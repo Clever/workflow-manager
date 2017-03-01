@@ -1,0 +1,141 @@
+hash: b61115a0a3c973bd2787a313f005a89b7b3e353bf43c57097d283b708f2783d9
+updated: 2017-03-01T01:24:02.642875792Z
+imports:
+- name: github.com/asaskevich/govalidator
+  version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
+- name: github.com/Clever/go-process-metrics
+  version: 17c3da159c36ee2bbb4198c8eeada7f68184350f
+  subpackages:
+  - metrics
+- name: github.com/Clever/wag
+  version: 8407d537e7a015a65d6f744abc3c3e1b85036d78
+  subpackages:
+  - samples/gen-go/models
+  - samples/gen-go/server
+- name: github.com/go-errors/errors
+  version: a41850380601eeb43f4350f7d17c6bbd8944aaf8
+- name: github.com/go-openapi/analysis
+  version: 7222828b8ce19afee3c595aef6643b9e42150120
+- name: github.com/go-openapi/errors
+  version: 4178436c9f2430cdd945c50301cfb61563b56573
+- name: github.com/go-openapi/jsonpointer
+  version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
+- name: github.com/go-openapi/jsonreference
+  version: 13c6e3589ad90f49bd3e3bbe2c2cb3d7a4142272
+- name: github.com/go-openapi/loads
+  version: 9168874c33ac10e241ee7767ed9f5d209c2a5ab0
+- name: github.com/go-openapi/runtime
+  version: 2faaf90bf67e0616db00094f2141f99b00a9ebc2
+- name: github.com/go-openapi/spec
+  version: 8f2b3d0e3aa15100eea0ab61dc6fa02f00f5e713
+- name: github.com/go-openapi/strfmt
+  version: d65c7fdb29eca313476e529628176fe17e58c488
+- name: github.com/go-openapi/swag
+  version: 3b6d86cd965820f968760d5d419cb4add096bdd7
+- name: github.com/go-openapi/validate
+  version: 027696d4b54399770f1cdcc6c6daa56975f9e14e
+- name: github.com/gogo/protobuf
+  version: 83faaee7bbbdf0c59310ec67d340bc0cbe77053f
+  subpackages:
+  - proto
+- name: github.com/golang/mock
+  version: bd3c8e81be01eef76d4b503f5e687d2d1354d2d9
+  subpackages:
+  - gomock
+- name: github.com/golang/protobuf
+  version: 98fa357170587e470c5f27d3c3ea0947b71eb455
+  subpackages:
+  - proto
+  - ptypes/timestamp
+- name: github.com/gorilla/context
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/gorilla/mux
+  version: 757bef944d0f21880861c2dd9c871ca543023cba
+- name: github.com/lightstep/lightstep-tracer-go
+  version: 0d48cd619841b1e1a3cdd20cd6ac97774c0002ce
+  subpackages:
+  - collectorpb
+  - lightstep_thrift
+  - thrift_0_9_2/lib/go/thrift
+  - thrift_rpc
+- name: github.com/mailru/easyjson
+  version: 9dc3521db3580379d6cc493938ef9d2e9782ee7b
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
+- name: github.com/opentracing/basictracer-go
+  version: 1b32af207119a14b1b231d451df3ed04a72efebf
+  subpackages:
+  - wire
+- name: github.com/opentracing/opentracing-go
+  version: 6edb48674bd9467b8e91fda004f2bd7202d60ce4
+  subpackages:
+  - ext
+  - log
+- name: github.com/PuerkitoBio/purell
+  version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
+- name: github.com/PuerkitoBio/urlesc
+  version: 5bd2802263f21d8788851d5305584c82a5c75d7e
+- name: github.com/xeipuuv/gojsonpointer
+  version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
+- name: github.com/xeipuuv/gojsonreference
+  version: e02fc20de94c78484cd5ffb007f8af96be030a45
+- name: github.com/xeipuuv/gojsonschema
+  version: e18f0065e8c148fcf567ac43a3f8f5b66ac0720b
+- name: golang.org/x/net
+  version: b626cca987fa6333e5dd25baa0fd61708c145011
+  subpackages:
+  - context
+  - http2
+  - http2/hpack
+  - idna
+  - internal/timeseries
+  - lex/httplex
+  - trace
+- name: golang.org/x/text
+  version: a8b38433e35b65ba247bb267317037dee1b70cea
+  subpackages:
+  - cases
+  - internal
+  - internal/tag
+  - language
+  - runes
+  - secure/bidirule
+  - secure/precis
+  - transform
+  - unicode/bidi
+  - unicode/norm
+  - width
+- name: google.golang.org/grpc
+  version: aefc96d792e01c7be09afa69b8c1cbfe3a21e2fc
+  subpackages:
+  - codes
+  - credentials
+  - grpclog
+  - internal
+  - metadata
+  - naming
+  - peer
+  - stats
+  - tap
+  - transport
+- name: gopkg.in/Clever/kayvee-go.v3
+  version: 49f03d5c1f4f10ad61121daec2208d5930f86b76
+  subpackages:
+  - logger
+- name: gopkg.in/Clever/kayvee-go.v5
+  version: 865aa5e4bbe8e274c69accd53f0b1e2ecc484cd8
+  subpackages:
+  - logger
+  - middleware
+- name: gopkg.in/Clever/kayvee-go.v6
+  version: 46dcd0a150bd16e7462efd62c755a2fce8237dfc
+  subpackages:
+  - logger
+  - router
+- name: gopkg.in/tylerb/graceful.v1
+  version: 50a48b6e73fcc75b45e22c05b79629a67c79e938
+- name: gopkg.in/yaml.v2
+  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+testImports: []

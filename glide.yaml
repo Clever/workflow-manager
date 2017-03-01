@@ -6,3 +6,5 @@ import:
   version: ^1.0.0
 - package: github.com/opentracing/basictracer-go
   version: 1b32af207119a14b1b231d451df3ed04a72efebf
+- package: github.com/gorilla/mux
+  version: 757bef944d0f21880861c2dd9c871ca543023cba

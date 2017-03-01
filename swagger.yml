@@ -2,13 +2,8 @@ swagger: '2.0'
 info:
   title: workflow-manager
   description: Minimal Workflow orchestrator for AWS Batch
-  # when changing the version here, make sure to
-  # 1. re-run `make generate` to generate clients and server
-  # 2. commit the new clients, and tag the commit with the version:
-  #    git tag -a vX.Y.Z -m "vX.Y.Z"
-  #    git push origin --tags
   version: 0.1.0
-  x-npm-package: # Put the name of the npm package you're publishing here - remember to scope with @clever/package-name if it's private
+  x-npm-package: workflow-manager
 schemes:
   - http
 produces:
@@ -31,6 +26,18 @@ paths:
         200:
           description: OK response
 
+  /workflows:
+    post:
+      operationId: newWorkflow
+      summary: Create a new workflow
+      schema:
+        $ref: '#/definitions/NewWorkflowRequest'
+      responses:
+        201:
+          description: Successful creation of a new workflow
+          schema:
+            $ref: '#/definitions/NewWorkflowResponse'
+
 definitions:
   InternalError:
     type: object
@@ -43,3 +50,43 @@ definitions:
     properties:
       message:
         type: string
+
+  NewWorkflowRequest:
+    type: object
+    properties:
+      name: 
+        type: string
+      states:
+        type: array
+        items:
+          $ref: '#/definitions/State'
+
+  State:
+    type: object
+    properties:
+      name: 
+        type: string
+      type: 
+        type: string
+      comment:
+        type: string
+      next:
+        type: string
+      resource:
+        type: string
+      end:
+        type: boolean
+
+  NewWorkflowResponse:
+    type: object
+    properties:
+      id:
+        type: string
+      revision:
+        type: integer
+      name: 
+        type: string
+      states:
+        type: array
+        items:
+          $ref: '#/definitions/State'
