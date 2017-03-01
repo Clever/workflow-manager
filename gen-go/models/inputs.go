@@ -1,0 +1,57 @@
+package models
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
+)
+
+// These imports may not be used depending on the input parameters
+var _ = json.Marshal
+var _ = fmt.Sprintf
+var _ = url.QueryEscape
+var _ = strconv.FormatInt
+var _ = strings.Replace
+var _ = validate.Maximum
+var _ = strfmt.NewFormats
+
+// HealthCheckInput holds the input parameters for a healthCheck operation.
+type HealthCheckInput struct {
+}
+
+// Validate returns an error if any of the HealthCheckInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i HealthCheckInput) Validate() error {
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i HealthCheckInput) Path() (string, error) {
+	path := "/_health"
+	urlVals := url.Values{}
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// NewWorkflowInput holds the input parameters for a newWorkflow operation.
+type NewWorkflowInput struct {
+}
+
+// Validate returns an error if any of the NewWorkflowInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i NewWorkflowInput) Validate() error {
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i NewWorkflowInput) Path() (string, error) {
+	path := "/workflows"
+	urlVals := url.Values{}
+
+	return path + "?" + urlVals.Encode(), nil
+}

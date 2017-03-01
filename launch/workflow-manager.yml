@@ -1,0 +1,17 @@
+env:
+- LIGHTSTEP_ACCESS_TOKEN
+resources:
+  cpu: 0.1
+  max_mem: 0.1
+shepherds:
+- "mohit.gupta@clever.com"
+expose:
+- name: default
+  port: 80
+  health_check:
+    type: http
+    path: /_health
+- name: pprof
+  port: 6060
+team: eng-infra@clever.com
+
