@@ -217,6 +217,7 @@ class WorkflowManager {
   }
 
   /**
+   * @param NewWorkflowRequest
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -228,8 +229,9 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  newWorkflow(options, cb) {
+  newWorkflow(NewWorkflowRequest, options, cb) {
     const params = {};
+    params["NewWorkflowRequest"] = NewWorkflowRequest;
 
     if (!cb && typeof options === "function") {
       cb = options;
@@ -277,6 +279,8 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+  
+      requestOptions.body = params.NewWorkflowRequest;
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;

@@ -153,7 +153,22 @@ func statusCodeForNewWorkflow(obj interface{}) int {
 
 func (h handler) NewWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	resp, err := h.NewWorkflow(ctx)
+	input, err := newNewWorkflowInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate(nil)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.NewWorkflow(ctx, input)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -183,11 +198,19 @@ func (h handler) NewWorkflowHandler(ctx context.Context, w http.ResponseWriter, 
 }
 
 // newNewWorkflowInput takes in an http.Request an returns the input struct.
-func newNewWorkflowInput(r *http.Request) (*models.NewWorkflowInput, error) {
-	var input models.NewWorkflowInput
+func newNewWorkflowInput(r *http.Request) (*models.NewWorkflowRequest, error) {
+	var input models.NewWorkflowRequest
 
 	var err error
 	_ = err
+
+	data, err := ioutil.ReadAll(r.Body)
+
+	if len(data) > 0 {
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(&input); err != nil {
+			return nil, err
+		}
+	}
 
 	return &input, nil
 }

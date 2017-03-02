@@ -30,8 +30,11 @@ paths:
     post:
       operationId: newWorkflow
       summary: Create a new workflow
-      schema:
-        $ref: '#/definitions/NewWorkflowRequest'
+      parameters:
+        - name: NewWorkflowRequest
+          in: body
+          schema:
+            $ref: '#/definitions/NewWorkflowRequest'
       responses:
         201:
           description: Successful creation of a new workflow

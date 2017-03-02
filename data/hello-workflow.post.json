@@ -1,0 +1,25 @@
+{
+  "name": "hello-workflow",
+  "states": [
+    {
+      "name": "start-state",
+      "type": "Task",
+      "next": "second-state",
+      "resource": "job:arn:start",
+      "end": false
+    },
+    {
+      "name": "second-state",
+      "type": "Task",
+      "next": "end-state",
+      "resource": "job:arn:second",
+      "end": false
+    },
+    {
+      "name":"end-state",
+      "type":"Task",
+      "resource": "job:arn:end",
+      "end": true
+    }
+  ]
+}

@@ -211,11 +211,22 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 // 400: *models.BadRequest
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) NewWorkflow(ctx context.Context) (*models.NewWorkflowResponse, error) {
+func (c *WagClient) NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.NewWorkflowResponse, error) {
 	headers := make(map[string]string)
 
 	var body []byte
 	path := c.basePath + "/workflows"
+
+	if i != nil {
+
+		var err error
+		body, err = json.Marshal(i)
+
+		if err != nil {
+			return nil, err
+		}
+
+	}
 
 	req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
 

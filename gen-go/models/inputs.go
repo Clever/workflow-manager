@@ -37,21 +37,3 @@ func (i HealthCheckInput) Path() (string, error) {
 
 	return path + "?" + urlVals.Encode(), nil
 }
-
-// NewWorkflowInput holds the input parameters for a newWorkflow operation.
-type NewWorkflowInput struct {
-}
-
-// Validate returns an error if any of the NewWorkflowInput parameters don't satisfy the
-// requirements from the swagger yml file.
-func (i NewWorkflowInput) Validate() error {
-	return nil
-}
-
-// Path returns the URI path for the input.
-func (i NewWorkflowInput) Path() (string, error) {
-	path := "/workflows"
-	urlVals := url.Values{}
-
-	return path + "?" + urlVals.Encode(), nil
-}

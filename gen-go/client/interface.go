@@ -25,5 +25,5 @@ type Client interface {
 	// 400: *models.BadRequest
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	NewWorkflow(ctx context.Context) (*models.NewWorkflowResponse, error)
+	NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.NewWorkflowResponse, error)
 }

@@ -9,7 +9,7 @@ workflow-manager client library.
         * [new WorkflowManager(options)](#new_module_workflow-manager--WorkflowManager_new)
         * _instance_
             * [.healthCheck([options], [cb])](#module_workflow-manager--WorkflowManager+healthCheck) ⇒ <code>Promise</code>
-            * [.newWorkflow([options], [cb])](#module_workflow-manager--WorkflowManager+newWorkflow) ⇒ <code>Promise</code>
+            * [.newWorkflow(NewWorkflowRequest, [options], [cb])](#module_workflow-manager--WorkflowManager+newWorkflow) ⇒ <code>Promise</code>
         * _static_
             * [.RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)
                 * [.Exponential](#module_workflow-manager--WorkflowManager.RetryPolicies.Exponential)
@@ -60,7 +60,7 @@ Checks if the service is healthy
 
 <a name="module_workflow-manager--WorkflowManager+newWorkflow"></a>
 
-#### workflowManager.newWorkflow([options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.newWorkflow(NewWorkflowRequest, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -69,6 +69,7 @@ Checks if the service is healthy
 
 | Param | Type | Description |
 | --- | --- | --- |
+| NewWorkflowRequest |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
