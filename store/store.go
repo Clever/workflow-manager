@@ -1,11 +1,42 @@
 package store
 
-import "github.com/Clever/workflow-manager/resources"
+import (
+	"fmt"
+
+	"github.com/Clever/workflow-manager/resources"
+)
 
 // WorkflowStore defines the interface for persistence of Workflow defintions
-type WorkflowStore interface {
-	Create(def resources.WorkflowDefintion) error
-	Update(name string, def resources.WorkflowDefinition) error
-	Get(name string, version int) (resources.WorkflowDefinition, error)
-	Latest(name string) (resources.WorkflowDefinition, error)
+type Store interface {
+	CreateWorkflow(def resources.WorkflowDefinition) error
+	UpdateWorkflow(name string, def resources.WorkflowDefinition) error
+	GetWorkflow(name string, version int) (resources.WorkflowDefinition, error)
+	LatestWorkflow(name string) (resources.WorkflowDefinition, error)
+
+	CreateJob(job resources.Job) error
+	GetJob(id string) (resources.Job, error)
+}
+
+type ConflictError struct {
+	name string
+}
+
+func (e ConflictError) Error() string {
+	return fmt.Sprintf("Already Exists: %s", e.name)
+}
+
+func NewConflict(name string) ConflictError {
+	return ConflictError{name}
+}
+
+type NotFoundError struct {
+	name string
+}
+
+func (e NotFoundError) Error() string {
+	return fmt.Sprintf("Already Exists: %s", e.name)
+}
+
+func NewNotFound(name string) NotFoundError {
+	return NotFoundError{name}
 }
