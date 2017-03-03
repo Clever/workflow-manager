@@ -10,9 +10,9 @@ import (
 	"github.com/go-openapi/errors"
 )
 
-// NewWorkflowResponse new workflow response
-// swagger:model NewWorkflowResponse
-type NewWorkflowResponse struct {
+// Workflow workflow
+// swagger:model Workflow
+type Workflow struct {
 
 	// id
 	ID string `json:"id,omitempty"`
@@ -27,8 +27,8 @@ type NewWorkflowResponse struct {
 	States []*State `json:"states"`
 }
 
-// Validate validates this new workflow response
-func (m *NewWorkflowResponse) Validate(formats strfmt.Registry) error {
+// Validate validates this workflow
+func (m *Workflow) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateStates(formats); err != nil {
@@ -42,7 +42,7 @@ func (m *NewWorkflowResponse) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *NewWorkflowResponse) validateStates(formats strfmt.Registry) error {
+func (m *Workflow) validateStates(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.States) { // not required
 		return nil

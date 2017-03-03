@@ -321,6 +321,119 @@ class WorkflowManager {
       }());
     });
   }
+
+  /**
+   * @param {string} name
+   * @param {object} [options]
+   * @param {number} [options.timeout] - A request specific timeout
+   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
+   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
+   * @param {function} [cb]
+   * @returns {Promise}
+   * @fulfill {Object}
+   * @reject {module:workflow-manager.Errors.BadRequest}
+   * @reject {module:workflow-manager.Errors.NotFound}
+   * @reject {module:workflow-manager.Errors.InternalError}
+   * @reject {Error}
+   */
+  getWorkflowByName(name, options, cb) {
+    const params = {};
+    params["name"] = name;
+
+    if (!cb && typeof options === "function") {
+      cb = options;
+      options = undefined;
+    }
+
+    return new Promise((resolve, reject) => {
+      const rejecter = (err) => {
+        reject(err);
+        if (cb) {
+          cb(err);
+        }
+      };
+      const resolver = (data) => {
+        resolve(data);
+        if (cb) {
+          cb(null, data);
+        }
+      };
+
+
+      if (!options) {
+        options = {};
+      }
+
+      const timeout = options.timeout || this.timeout;
+      const span = options.span;
+
+      const headers = {};
+      if (!params.name) {
+        rejecter(new Error("name must be non-empty because it's a path parameter"));
+        return;
+      }
+
+      const query = {};
+
+      if (span) {
+        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        span.logEvent("GET /workflows/{name}");
+        span.setTag("span.kind", "client");
+      }
+
+      const requestOptions = {
+        method: "GET",
+        uri: this.address + "/workflows/" + params.name + "",
+        json: true,
+        timeout,
+        headers,
+        qs: query,
+        useQuerystring: true,
+      };
+  
+
+      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
+      const backoffs = retryPolicy.backoffs();
+  
+      let retries = 0;
+      (function requestOnce() {
+        request(requestOptions, (err, response, body) => {
+          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
+            const backoff = backoffs[retries];
+            retries += 1;
+            setTimeout(requestOnce, backoff);
+            return;
+          }
+          if (err) {
+            rejecter(err);
+            return;
+          }
+
+          switch (response.statusCode) {
+            case 200:
+              resolver(body);
+              break;
+            
+            case 400:
+              rejecter(new Errors.BadRequest(body || {}));
+              return;
+            
+            case 404:
+              rejecter(new Errors.NotFound(body || {}));
+              return;
+            
+            case 500:
+              rejecter(new Errors.InternalError(body || {}));
+              return;
+            
+            default:
+              rejecter(new Error("Recieved unexpected statusCode " + response.statusCode));
+              return;
+          }
+        });
+      }());
+    });
+  }
 };
 
 module.exports = WorkflowManager;

@@ -109,6 +109,13 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
+	router.Methods("GET").Path("/workflows/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflowByName")
+		h.GetWorkflowByNameHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflowByName")
+		r = r.WithContext(ctx)
+	})
+
 	handler := withMiddleware("workflow-manager", router, m)
 	return &Server{Handler: handler, addr: addr, l: l}
 }

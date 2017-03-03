@@ -37,3 +37,32 @@ func (i HealthCheckInput) Path() (string, error) {
 
 	return path + "?" + urlVals.Encode(), nil
 }
+
+// GetWorkflowByNameInput holds the input parameters for a getWorkflowByName operation.
+type GetWorkflowByNameInput struct {
+	Name string
+}
+
+// ValidateGetWorkflowByNameInput returns an error if the input parameter doesn't
+// satisfy the requirements in the swagger yml file.
+func ValidateGetWorkflowByNameInput(name string) error {
+
+	return nil
+}
+
+// GetWorkflowByNameInputPath returns the URI path for the input.
+func GetWorkflowByNameInputPath(name string) (string, error) {
+	path := "/workflows/{name}"
+	urlVals := url.Values{}
+
+	pathname := name
+	if pathname == "" {
+		err := fmt.Errorf("name cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{name}", pathname, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}

@@ -134,7 +134,7 @@ func statusCodeForNewWorkflow(obj interface{}) int {
 	case *models.InternalError:
 		return 500
 
-	case *models.NewWorkflowResponse:
+	case *models.Workflow:
 		return 201
 
 	case models.BadRequest:
@@ -143,7 +143,7 @@ func statusCodeForNewWorkflow(obj interface{}) int {
 	case models.InternalError:
 		return 500
 
-	case models.NewWorkflowResponse:
+	case models.Workflow:
 		return 201
 
 	default:
@@ -213,4 +213,95 @@ func newNewWorkflowInput(r *http.Request) (*models.NewWorkflowRequest, error) {
 	}
 
 	return &input, nil
+}
+
+// statusCodeForGetWorkflowByName returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForGetWorkflowByName(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case *models.Workflow:
+		return 200
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	case models.Workflow:
+		return 200
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) GetWorkflowByNameHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	name, err := newGetWorkflowByNameInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = models.ValidateGetWorkflowByNameInput(name)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.GetWorkflowByName(ctx, name)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForGetWorkflowByName(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForGetWorkflowByName(resp))
+	w.Write(respBytes)
+
+}
+
+// newGetWorkflowByNameInput takes in an http.Request an returns the name parameter
+// that it contains. It returns an error if the request doesn't contain the parameter.
+func newGetWorkflowByNameInput(r *http.Request) (string, error) {
+	name := mux.Vars(r)["name"]
+	if len(name) == 0 {
+		return "", errors.New("Parameter name must be specified")
+	}
+	return name, nil
 }

@@ -8,6 +8,7 @@ schemes:
   - http
 produces:
   - application/json
+
 responses:
   BadRequest:
     description: "Bad Request"
@@ -17,6 +18,11 @@ responses:
     description: "Internal Error"
     schema:
       $ref: "#/definitions/InternalError"
+  NotFound:
+    description: "Entity Not Found"
+    schema:
+      $ref: "#/definitions/NotFound"
+
 paths:
   /_health:
     get:
@@ -39,7 +45,24 @@ paths:
         201:
           description: Successful creation of a new workflow
           schema:
-            $ref: '#/definitions/NewWorkflowResponse'
+            $ref: '#/definitions/Workflow'
+
+  /workflows/{name}:
+    get:
+      summary: Get a Workflow by Name
+      operationId: getWorkflowByName
+      parameters:
+        - name: name
+          in: path
+          type: string
+          required: true
+      responses:
+        200:
+          description: Workflow
+          schema:
+            $ref: "#/definitions/Workflow"
+        404:
+          $ref: "#/responses/NotFound"
 
 definitions:
   InternalError:
@@ -49,6 +72,12 @@ definitions:
         type: string
 
   BadRequest:
+    type: object
+    properties:
+      message:
+        type: string
+
+  NotFound:
     type: object
     properties:
       message:
@@ -80,7 +109,7 @@ definitions:
       end:
         type: boolean
 
-  NewWorkflowResponse:
+  Workflow:
     type: object
     properties:
       id:

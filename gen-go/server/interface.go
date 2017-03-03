@@ -21,9 +21,18 @@ type Controller interface {
 
 	// NewWorkflow handles POST requests to /workflows
 	//
-	// 201: *models.NewWorkflowResponse
+	// 201: *models.Workflow
 	// 400: *models.BadRequest
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.NewWorkflowResponse, error)
+	NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.Workflow, error)
+
+	// GetWorkflowByName handles GET requests to /workflows/{name}
+	//
+	// 200: *models.Workflow
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error)
 }

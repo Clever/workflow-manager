@@ -40,13 +40,24 @@ func (_mr *_MockClientRecorder) HealthCheck(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "HealthCheck", arg0)
 }
 
-func (_m *MockClient) NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.NewWorkflowResponse, error) {
+func (_m *MockClient) NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.Workflow, error) {
 	ret := _m.ctrl.Call(_m, "NewWorkflow", ctx, i)
-	ret0, _ := ret[0].(*models.NewWorkflowResponse)
+	ret0, _ := ret[0].(*models.Workflow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 func (_mr *_MockClientRecorder) NewWorkflow(arg0, arg1 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewWorkflow", arg0, arg1)
+}
+
+func (_m *MockClient) GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error) {
+	ret := _m.ctrl.Call(_m, "GetWorkflowByName", ctx, name)
+	ret0, _ := ret[0].(*models.Workflow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockClientRecorder) GetWorkflowByName(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflowByName", arg0, arg1)
 }
