@@ -38,6 +38,68 @@ func (i HealthCheckInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
+// GetJobsForWorkflowInput holds the input parameters for a getJobsForWorkflow operation.
+type GetJobsForWorkflowInput struct {
+	WorkflowName string
+}
+
+// ValidateGetJobsForWorkflowInput returns an error if the input parameter doesn't
+// satisfy the requirements in the swagger yml file.
+func ValidateGetJobsForWorkflowInput(workflowName string) error {
+
+	return nil
+}
+
+// GetJobsForWorkflowInputPath returns the URI path for the input.
+func GetJobsForWorkflowInputPath(workflowName string) (string, error) {
+	path := "/jobs/{workflowName}"
+	urlVals := url.Values{}
+
+	pathworkflowName := workflowName
+	if pathworkflowName == "" {
+		err := fmt.Errorf("workflowName cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{workflowName}", pathworkflowName, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// StartJobForWorkflowInput holds the input parameters for a startJobForWorkflow operation.
+type StartJobForWorkflowInput struct {
+	WorkflowName string
+	Input        *JobInput
+}
+
+// Validate returns an error if any of the StartJobForWorkflowInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i StartJobForWorkflowInput) Validate() error {
+
+	if err := i.Input.Validate(nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i StartJobForWorkflowInput) Path() (string, error) {
+	path := "/jobs/{workflowName}"
+	urlVals := url.Values{}
+
+	pathworkflowName := i.WorkflowName
+	if pathworkflowName == "" {
+		err := fmt.Errorf("workflowName cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{workflowName}", pathworkflowName, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
 // GetWorkflowByNameInput holds the input parameters for a getWorkflowByName operation.
 type GetWorkflowByNameInput struct {
 	Name string

@@ -23,6 +23,9 @@ type Workflow struct {
 	// revision
 	Revision int64 `json:"revision,omitempty"`
 
+	// start at
+	StartAt string `json:"startAt,omitempty"`
+
 	// states
 	States []*State `json:"states"`
 }

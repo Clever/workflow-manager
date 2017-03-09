@@ -52,11 +52,11 @@ func (s MemoryStore) LatestWorkflow(name string) (resources.WorkflowDefinition, 
 }
 
 func (s MemoryStore) CreateJob(job resources.Job) error {
-	if _, ok := s.jobs[job.Id]; ok {
-		return NewConflict(job.Id)
+	if _, ok := s.jobs[job.ID]; ok {
+		return NewConflict(job.ID)
 	}
 
-	s.jobs[job.Id] = job
+	s.jobs[job.ID] = job
 	return nil
 }
 

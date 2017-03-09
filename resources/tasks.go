@@ -1,24 +1,38 @@
 package resources
 
+// Task represents an active State and as part of a Job
 type Task struct {
-	Id       string
-	Input    map[string]interface{}
-	Output   map[string]interface{}
+	ID       string
+	Name     string
+	Input    string
+	State    string
+	success  bool
 	complete bool
 }
 
-func NewTask(id string, input map[string]interface{}) Task {
-	return Task{
-		Id:       id,
+// NewTask creates a new Task
+func NewTask(id, name, state, input string) *Task {
+	return &Task{
+		ID:       id,
+		Name:     name,
 		Input:    input,
 		complete: false,
 	}
 }
 
-func (t Task) IsComplete() bool {
+// IsComplete can be used check if a task is completed
+// true if failed or succeded
+func (t *Task) IsComplete() bool {
 	return t.complete
 }
 
-func (t Task) MarkComplete() {
+// IsSuccess returns true if the task is successfully completed
+func (t *Task) IsSuccess() bool {
+	return t.complete && t.success
+}
+
+// MarkComplete marks a Task as successful or failed
+func (t *Task) MarkComplete(success bool) {
 	t.complete = true
+	t.success = success
 }

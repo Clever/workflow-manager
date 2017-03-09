@@ -4,17 +4,31 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Job contains information about a running Workflow
 type Job struct {
-	Id       string
-	Workflow WorkflowDefinition
-	Input    map[string]interface{}
-	Tasks    []Task // list of states submitted as tasks
+	ID       string             // GUID for the job
+	Workflow WorkflowDefinition // Workflow executed as part of this job
+	Input    string             // Starting input for the job
+	Tasks    []*Task            // list of states submitted as tasks
 }
 
-func NewJob(wf WorkflowDefinition, input map[string]interface{}) Job {
-	return Job{
-		Id:       uuid.NewV4().String(),
+// NewJob creates a new Job struct for a Workflow
+func NewJob(wf WorkflowDefinition, input string) *Job {
+	return &Job{
+		ID:       uuid.NewV4().String(),
 		Workflow: wf,
 		Input:    input,
 	}
+}
+
+// AddTask adds a new task (representing a State) to the Job
+func (j *Job) AddTask(t *Task) error {
+	// TODO: run validation
+	// 1. ensure this task actually corresponds to a State
+	// 2. should have a 1:1 mapping with State unless RETRY
+
+	// for now just keep track of the taskIds
+	j.Tasks = append(j.Tasks, t)
+
+	return nil
 }

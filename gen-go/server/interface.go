@@ -19,6 +19,24 @@ type Controller interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	HealthCheck(ctx context.Context) error
 
+	// GetJobsForWorkflow handles GET requests to /jobs/{workflowName}
+	//
+	// 200: []models.Job
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetJobsForWorkflow(ctx context.Context, workflowName string) ([]models.Job, error)
+
+	// StartJobForWorkflow handles PUT requests to /jobs/{workflowName}
+	//
+	// 200: *models.Job
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	StartJobForWorkflow(ctx context.Context, i *models.StartJobForWorkflowInput) (*models.Job, error)
+
 	// NewWorkflow handles POST requests to /workflows
 	//
 	// 201: *models.Workflow

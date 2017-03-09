@@ -17,6 +17,9 @@ type NewWorkflowRequest struct {
 	// name
 	Name string `json:"name,omitempty"`
 
+	// start at
+	StartAt string `json:"startAt,omitempty"`
+
 	// states
 	States []*State `json:"states"`
 }

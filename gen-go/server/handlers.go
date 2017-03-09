@@ -122,6 +122,219 @@ func newHealthCheckInput(r *http.Request) (*models.HealthCheckInput, error) {
 	return &input, nil
 }
 
+// statusCodeForGetJobsForWorkflow returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForGetJobsForWorkflow(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *[]models.Job:
+		return 200
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case []models.Job:
+		return 200
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) GetJobsForWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	workflowName, err := newGetJobsForWorkflowInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = models.ValidateGetJobsForWorkflowInput(workflowName)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.GetJobsForWorkflow(ctx, workflowName)
+
+	// Success types that return an array should never return nil so let's make this easier
+	// for consumers by converting nil arrays to empty arrays
+	if resp == nil {
+		resp = []models.Job{}
+	}
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForGetJobsForWorkflow(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForGetJobsForWorkflow(resp))
+	w.Write(respBytes)
+
+}
+
+// newGetJobsForWorkflowInput takes in an http.Request an returns the workflowName parameter
+// that it contains. It returns an error if the request doesn't contain the parameter.
+func newGetJobsForWorkflowInput(r *http.Request) (string, error) {
+	workflowName := mux.Vars(r)["workflowName"]
+	if len(workflowName) == 0 {
+		return "", errors.New("Parameter workflowName must be specified")
+	}
+	return workflowName, nil
+}
+
+// statusCodeForStartJobForWorkflow returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForStartJobForWorkflow(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.Job:
+		return 200
+
+	case *models.NotFound:
+		return 404
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.Job:
+		return 200
+
+	case models.NotFound:
+		return 404
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) StartJobForWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newStartJobForWorkflowInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.StartJobForWorkflow(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForStartJobForWorkflow(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForStartJobForWorkflow(resp))
+	w.Write(respBytes)
+
+}
+
+// newStartJobForWorkflowInput takes in an http.Request an returns the input struct.
+func newStartJobForWorkflowInput(r *http.Request) (*models.StartJobForWorkflowInput, error) {
+	var input models.StartJobForWorkflowInput
+
+	var err error
+	_ = err
+
+	workflowNameStr := mux.Vars(r)["workflowName"]
+	if len(workflowNameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	workflowNameStrs := []string{workflowNameStr}
+
+	if len(workflowNameStrs) > 0 {
+		var workflowNameTmp string
+		workflowNameStr := workflowNameStrs[0]
+		workflowNameTmp, err = workflowNameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.WorkflowName = workflowNameTmp
+	}
+
+	data, err := ioutil.ReadAll(r.Body)
+
+	if len(data) > 0 {
+		input.Input = &models.JobInput{}
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Input); err != nil {
+			return nil, err
+		}
+	}
+
+	return &input, nil
+}
+
 // statusCodeForNewWorkflow returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
 func statusCodeForNewWorkflow(obj interface{}) int {

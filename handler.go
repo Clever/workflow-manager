@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
@@ -11,7 +12,8 @@ import (
 
 // WorkflowManager implements the wag server
 type WorkflowManager struct {
-	store store.Store
+	store   store.Store
+	manager executor.JobManager
 }
 
 // HealthCheck returns 200 if workflow-manager can respond to requests
@@ -30,7 +32,7 @@ func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.N
 	}
 	//TODO: validate states
 
-	workflow, err := newWorkflowDefinitionFromRequest(*workflowReq)
+	workflow, err := newWorkflowFromRequest(*workflowReq)
 	if err != nil {
 		return &models.Workflow{}, err
 	}
@@ -38,29 +40,103 @@ func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.N
 		return &models.Workflow{}, err
 	}
 
-	return &models.Workflow{
-		Revision: int64(workflow.Version()),
-		Name:     workflow.Name(),
-	}, nil
+	return apiWorkflowFromStore(workflow), nil
 }
 
+// GetWorkflowByName allows fetching an existing Workflow by providing it's name
 func (wm WorkflowManager) GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error) {
 	workflow, err := wm.store.LatestWorkflow(name)
 	if err != nil {
 		return &models.Workflow{}, err
 	}
 
-	return &models.Workflow{
-		Name:     workflow.Name(),
-		Revision: int64(workflow.Version()),
-	}, nil
+	return apiWorkflowFromStore(workflow), nil
 }
 
-func newWorkflowDefinitionFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDefinition, error) {
-	states := map[string]resources.State{}
-	for _, s := range req.States {
-		states[s.Name] = resources.NewWorkerState(s.Name, s.Next, s.Resource, s.End)
+// StartJobForWorkflow starts a new Job for the given workflow
+func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, req *models.StartJobForWorkflowInput) (*models.Job, error) {
+	workflow, err := wm.store.LatestWorkflow(req.WorkflowName)
+	if err != nil {
+		return &models.Job{}, err
 	}
 
-	return resources.NewWorkflowDefinition(req.Name, "description", states)
+	job, err := wm.manager.CreateJob(workflow, req.Input.Data)
+	if err != nil {
+		return &models.Job{}, err
+	}
+
+	// TODO: Don't actually store at this point, but should be done earlier. If saving
+	// fails we should either
+	// 1. reconcile somehow with the scheduled tasks
+	// 2. kill the running tasks so that we don't have orphan tasks in AWS Batch
+	err = wm.store.CreateJob(*job)
+	if err != nil {
+		return &models.Job{}, err
+	}
+
+	return apiJobFromStore(*job), nil
+}
+
+// GetJobsForWorkflow returns a summary of all active jobs for the given workflow
+func (wm WorkflowManager) GetJobsForWorkflow(ctx context.Context, workflowName string) ([]models.Job, error) {
+	return []models.Job{}, nil
+}
+
+// TODO: the functions below should probably just functions on the respective resources.<Struct>
+
+func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDefinition, error) {
+	states := map[string]resources.State{}
+	for _, s := range req.States {
+		workerState, err := resources.NewWorkerState(s.Name, s.Next, s.Resource, s.End)
+		if err != nil {
+			return resources.WorkflowDefinition{}, err
+		}
+		states[workerState.Name()] = workerState
+	}
+
+	// fill in dependencies for states
+	for _, s := range states {
+		if !s.IsEnd() {
+			states[s.Next()].AddDependency(s)
+		}
+	}
+
+	return resources.NewWorkflowDefinition(req.Name, "description", req.StartAt, states)
+}
+
+func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
+	states := []*models.State{}
+	for _, s := range wf.States() {
+		states = append(states, &models.State{
+			Resource: s.Resource(),
+			Name:     s.Name(),
+			Next:     s.Next(),
+			End:      s.IsEnd(),
+			Type:     s.Type(),
+		})
+	}
+
+	return &models.Workflow{
+		Name:     wf.Name(),
+		Revision: int64(wf.Version()),
+		States:   states,
+	}
+}
+
+func apiJobFromStore(job resources.Job) *models.Job {
+	tasks := []*models.Task{}
+	for _, task := range job.Tasks {
+		tasks = append(tasks, &models.Task{
+			ID:    task.ID,
+			State: task.State,
+			//Status: TODO: wat to do about status here
+		})
+	}
+
+	return &models.Job{
+		ID:       job.ID,
+		Tasks:    tasks,
+		Workflow: apiWorkflowFromStore(job.Workflow),
+	}
+
 }
