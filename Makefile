@@ -15,8 +15,8 @@ $(eval $(call golang-version-check,1.7))
 all: test build
 
 test: $(PKGS)
-$(PKGS): golang-test-all-strict-deps
-	$(call golang-test-all-strict,$@)
+$(PKGS): golang-test-all-deps
+	$(call golang-test-all,$@)
 
 build:
 	CGO_ENABLED=0 go build -installsuffix cgo -o build/$(EXECUTABLE) $(PKG)
