@@ -1,0 +1,25 @@
+{
+  "name": "echo-tail-linear",
+  "states": [
+    {
+      "name": "start-state",
+      "type": "Task",
+      "next": "second-state",
+      "resource": "workflow-manager-test:1",
+      "end": false
+    },
+    {
+      "name": "second-state",
+      "type": "Task",
+      "next": "end-state",
+      "resource": "workflow-manager-test:1",
+      "end": false
+    },
+    {
+      "name":"end-state",
+      "type":"Task",
+      "resource": "workflow-manager-test:1",
+      "end": true
+    }
+  ]
+}

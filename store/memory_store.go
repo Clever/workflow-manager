@@ -14,6 +14,7 @@ type MemoryStore struct {
 func NewMemoryStore() MemoryStore {
 	return MemoryStore{
 		workflows: map[string][]resources.WorkflowDefinition{},
+		jobs:      map[string]resources.Job{},
 	}
 }
 

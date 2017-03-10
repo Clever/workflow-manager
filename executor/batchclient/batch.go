@@ -1,6 +1,7 @@
 package batchclient
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,7 +10,12 @@ import (
 )
 
 // DependenciesEnvVarName is injected for every task
-const DependenciesEnvVarName = "_DEPENDENCIES"
+// with a list of dependency ids
+const DependenciesEnvVarName = "_BATCH_DEPENDENCIES"
+
+// StartingInputEnvVarName is used to pass in the input for the first task
+// in a job
+const StartingInputEnvVarName = "_BATCH_START"
 
 // BatchExecutor implements Executor to interact with the AWS Batch API
 type BatchExecutor struct {
@@ -51,12 +57,13 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 		// this parameter is used to add a default CMD argument to
 		// the worker container.
 		Parameters: map[string]*string{
-			"_WF_START": aws.String(input),
+			"_BATCH_START": aws.String(input),
 		},
 	}
 
 	output, err := be.client.SubmitJob(params)
 	if err != nil {
+		fmt.Printf("Error in batchclient.SubmitJob: %s", err)
 		// TODO: type assert awserr.Error for introspection of error codes
 		return "", err
 	}

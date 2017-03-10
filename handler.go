@@ -60,7 +60,12 @@ func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, req *models.S
 		return &models.Job{}, err
 	}
 
-	job, err := wm.manager.CreateJob(workflow, req.Input.Data)
+	data := ""
+	if req.Input != nil {
+		data = req.Input.Data
+	}
+
+	job, err := wm.manager.CreateJob(workflow, data)
 	if err != nil {
 		return &models.Job{}, err
 	}
