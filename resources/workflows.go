@@ -3,7 +3,7 @@ package resources
 import (
 	"fmt"
 
-	"github.com/Clever/catapult/toposort"
+	"github.com/Clever/workflow-manager/toposort"
 )
 
 // State refers to the different states in a Workflow
@@ -85,7 +85,7 @@ func NewWorkflowDefinition(name string, desc string, startAt string, states map[
 
 }
 
-// currently uses catapult/toposort for an ordered list
+// currently uses toposort for an ordered list
 func orderStates(states map[string]State) ([]State, error) {
 	var stateDeps = map[string][]string{}
 	for _, s := range states {

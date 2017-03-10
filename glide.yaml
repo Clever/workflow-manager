@@ -14,9 +14,7 @@ import:
   - service/batch
 - package: github.com/satori/go.uuid
   version: ^1.1.0
-- package: github.com/Clever/catapult
-  version: 58b381c5cf4fc403d3a36546b94da994a1b0f983
-  repo: git@github.com:Clever/catapult.git
-  vcs: git
+- package: github.com/stretchr/testify
+  version: ^1.1.4
   subpackages:
-  - toposort
+  - assert
