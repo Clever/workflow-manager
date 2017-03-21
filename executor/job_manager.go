@@ -10,6 +10,7 @@ import (
 // JobManager in the interface for creating, stopping and checking status for Jobs (workflow runs)
 type JobManager interface {
 	CreateJob(def resources.WorkflowDefinition, input string) (*resources.Job, error)
+	UpdateJobStatus(job *resources.Job) error
 }
 
 // BatchJobManager implements JobManager using the AWS Batch client
@@ -24,6 +25,40 @@ func NewBatchJobManager(executor Executor, store store.Store) BatchJobManager {
 		executor,
 		store,
 	}
+}
+
+// UpdateJobStatus ensures that the status of the tasks is in-sync with AWS Batch and sets Job status
+func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
+	err := jm.executor.Status(job.Tasks)
+	if err != nil {
+		return err
+	}
+
+	jobSuccess := true
+	jobRunning := false
+	for _, task := range job.Tasks {
+		if task.Status() != resources.TaskStatusSucceeded {
+			// all tasks should be successful for job success
+			jobSuccess = false
+		}
+		if task.Status() == resources.TaskStatusRunning {
+			jobRunning = true
+		}
+
+		if task.Status() == resources.TaskStatusFailed {
+			// any task failure results in the job being failed
+			job.Status = resources.Failed
+			return nil
+		}
+	}
+
+	if jobSuccess {
+		job.Status = resources.Succeded
+	} else if jobRunning {
+		job.Status = resources.Running
+	}
+
+	return nil
 }
 
 // CreateJob can be used to create a new job for a workflow

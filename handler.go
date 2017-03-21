@@ -84,7 +84,29 @@ func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, req *models.S
 
 // GetJobsForWorkflow returns a summary of all active jobs for the given workflow
 func (wm WorkflowManager) GetJobsForWorkflow(ctx context.Context, workflowName string) ([]models.Job, error) {
-	return []models.Job{}, nil
+	jobs, err := wm.store.GetJobsForWorkflow(workflowName)
+	if err != nil {
+		return []models.Job{}, err
+	}
+
+	results := []models.Job{}
+	for _, job := range jobs {
+		wm.manager.UpdateJobStatus(&job)
+		results = append(results, *apiJobFromStore(job))
+	}
+	return results, nil
+}
+
+func (wm WorkflowManager) GetJob(ctx context.Context, jobInput *models.GetJobInput) (*models.Job, error) {
+	job, err := wm.store.GetJob(jobInput.JobId)
+	if err != nil {
+		return &models.Job{}, err
+	}
+
+	// TODO: don't update the job status inline
+	wm.manager.UpdateJobStatus(&job)
+
+	return apiJobFromStore(job), nil
 }
 
 // TODO: the functions below should probably just functions on the respective resources.<Struct>
@@ -132,9 +154,9 @@ func apiJobFromStore(job resources.Job) *models.Job {
 	tasks := []*models.Task{}
 	for _, task := range job.Tasks {
 		tasks = append(tasks, &models.Task{
-			ID:    task.ID,
-			State: task.State,
-			//Status: TODO: wat to do about status here
+			ID:     task.ID,
+			State:  task.State,
+			Status: string(task.Status()),
 		})
 	}
 
@@ -142,6 +164,6 @@ func apiJobFromStore(job resources.Job) *models.Job {
 		ID:       job.ID,
 		Tasks:    tasks,
 		Workflow: apiWorkflowFromStore(job.Workflow),
+		Status:   string(job.Status),
 	}
-
 }

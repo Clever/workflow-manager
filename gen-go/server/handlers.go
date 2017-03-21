@@ -335,6 +335,132 @@ func newStartJobForWorkflowInput(r *http.Request) (*models.StartJobForWorkflowIn
 	return &input, nil
 }
 
+// statusCodeForGetJob returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForGetJob(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.Job:
+		return 200
+
+	case *models.NotFound:
+		return 404
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.Job:
+		return 200
+
+	case models.NotFound:
+		return 404
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) GetJobHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newGetJobInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.GetJob(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForGetJob(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	var out bytes.Buffer
+	json.Indent(&out, respBytes, "", "  ")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForGetJob(resp))
+	w.Write(out.Bytes())
+
+}
+
+// newGetJobInput takes in an http.Request an returns the input struct.
+func newGetJobInput(r *http.Request) (*models.GetJobInput, error) {
+	var input models.GetJobInput
+
+	var err error
+	_ = err
+
+	workflowNameStr := mux.Vars(r)["workflowName"]
+	if len(workflowNameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	workflowNameStrs := []string{workflowNameStr}
+
+	if len(workflowNameStrs) > 0 {
+		var workflowNameTmp string
+		workflowNameStr := workflowNameStrs[0]
+		workflowNameTmp, err = workflowNameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.WorkflowName = workflowNameTmp
+	}
+
+	jobIdStr := mux.Vars(r)["jobId"]
+	if len(jobIdStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	jobIdStrs := []string{jobIdStr}
+
+	if len(jobIdStrs) > 0 {
+		var jobIdTmp string
+		jobIdStr := jobIdStrs[0]
+		jobIdTmp, err = jobIdStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.JobId = jobIdTmp
+	}
+
+	return &input, nil
+}
+
 // statusCodeForNewWorkflow returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
 func statusCodeForNewWorkflow(obj interface{}) int {

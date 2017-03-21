@@ -4,12 +4,23 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+type JobStatus string
+
+const (
+	Queued    JobStatus = "QUEUED"
+	Running   JobStatus = "RUNNING"
+	Failed    JobStatus = "FAILED"
+	Succeded  JobStatus = "SUCCEEDED"
+	Cancelled JobStatus = "CANCELLED"
+)
+
 // Job contains information about a running Workflow
 type Job struct {
 	ID       string             // GUID for the job
 	Workflow WorkflowDefinition // Workflow executed as part of this job
 	Input    string             // Starting input for the job
 	Tasks    []*Task            // list of states submitted as tasks
+	Status   JobStatus
 }
 
 // NewJob creates a new Job struct for a Workflow
@@ -18,6 +29,7 @@ func NewJob(wf WorkflowDefinition, input string) *Job {
 		ID:       uuid.NewV4().String(),
 		Workflow: wf,
 		Input:    input,
+		Status:   Queued,
 	}
 }
 

@@ -61,6 +61,17 @@ func (s MemoryStore) CreateJob(job resources.Job) error {
 	return nil
 }
 
+func (s MemoryStore) GetJobsForWorkflow(workflowName string) ([]resources.Job, error) {
+	jobs := []resources.Job{}
+	for _, job := range s.jobs {
+		if job.Workflow.Name() == workflowName {
+			jobs = append(jobs, job)
+		}
+	}
+
+	return jobs, nil
+}
+
 func (s MemoryStore) GetJob(id string) (resources.Job, error) {
 	if _, ok := s.jobs[id]; !ok {
 		return resources.Job{}, NewNotFound(id)

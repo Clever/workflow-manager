@@ -102,6 +102,27 @@ paths:
         404:
           $ref: "#/responses/NotFound"
 
+  /jobs/{workflowName}/{jobId}:
+    get:
+      summary: Get details for the given jobId
+      operationId: GetJob
+      parameters:
+        - name: workflowName
+          in: path
+          type: string
+          required: true
+        - name: jobId
+          in: path
+          type: string
+          required: true
+      responses:
+        200:
+          description: Job
+          schema:
+            $ref: "#/definitions/Job"
+        404:
+          $ref: "#/responses/NotFound"
+
 definitions:
   InternalError:
     type: object
@@ -172,6 +193,8 @@ definitions:
         type: string
       workflow:
         $ref: '#/definitions/Workflow'
+      status:
+        type: string
       tasks:
         type: array
         items:

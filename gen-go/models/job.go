@@ -17,6 +17,9 @@ type Job struct {
 	// id
 	ID string `json:"id,omitempty"`
 
+	// status
+	Status string `json:"status,omitempty"`
+
 	// tasks
 	Tasks []*Task `json:"tasks"`
 

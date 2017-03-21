@@ -15,6 +15,7 @@ type Store interface {
 
 	CreateJob(job resources.Job) error
 	GetJob(id string) (resources.Job, error)
+	GetJobsForWorkflow(workflowName string) ([]resources.Job, error)
 }
 
 type ConflictError struct {

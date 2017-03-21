@@ -37,6 +37,15 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	StartJobForWorkflow(ctx context.Context, i *models.StartJobForWorkflowInput) (*models.Job, error)
 
+	// GetJob makes a GET request to /jobs/{workflowName}/{jobId}
+	//
+	// 200: *models.Job
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetJob(ctx context.Context, i *models.GetJobInput) (*models.Job, error)
+
 	// NewWorkflow makes a POST request to /workflows
 	//
 	// 201: *models.Workflow

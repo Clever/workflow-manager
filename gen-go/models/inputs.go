@@ -100,6 +100,45 @@ func (i StartJobForWorkflowInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
+// GetJobInput holds the input parameters for a GetJob operation.
+type GetJobInput struct {
+	WorkflowName string
+	JobId        string
+}
+
+// Validate returns an error if any of the GetJobInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetJobInput) Validate() error {
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i GetJobInput) Path() (string, error) {
+	path := "/jobs/{workflowName}/{jobId}"
+	urlVals := url.Values{}
+
+	pathworkflowName := i.WorkflowName
+	if pathworkflowName == "" {
+		err := fmt.Errorf("workflowName cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{workflowName}", pathworkflowName, -1)
+
+	pathjobId := i.JobId
+	if pathjobId == "" {
+		err := fmt.Errorf("jobId cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{jobId}", pathjobId, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
 // GetWorkflowByNameInput holds the input parameters for a getWorkflowByName operation.
 type GetWorkflowByNameInput struct {
 	Name string
