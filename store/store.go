@@ -35,7 +35,7 @@ type NotFoundError struct {
 }
 
 func (e NotFoundError) Error() string {
-	return fmt.Sprintf("Already Exists: %s", e.name)
+	return fmt.Sprintf("Not Found: %s", e.name)
 }
 
 func NewNotFound(name string) NotFoundError {
