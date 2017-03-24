@@ -86,14 +86,26 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 		})
 	}
 
-	// this parameter is used to add a default CMD argument to
+	environment := []*batch.KeyValuePair{
+		&batch.KeyValuePair{
+			Name:  aws.String(DependenciesEnvVarName),
+			Value: aws.String(strings.Join(dependencies, ",")),
+		},
+	}
+
+	// this parameter can be optionally
+	// used to add a default CMD argument to
 	// the worker container.
 	jobParams := map[string]*string{}
 	if input != "" {
-		jobParams["_BATCH_START"] = aws.String(input)
+		jobParams[StartingInputEnvVarName] = aws.String(input)
+		environment = append(environment, &batch.KeyValuePair{
+			Name:  aws.String(StartingInputEnvVarName),
+			Value: aws.String(input),
+		})
 	} else {
 		// TODO: fix: AWS does not like empty string here
-		jobParams["_BATCH_START"] = aws.String(" ")
+		jobParams[StartingInputEnvVarName] = aws.String(" ")
 	}
 
 	params := &batch.SubmitJobInput{
@@ -101,12 +113,7 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 		JobDefinition: aws.String(definition),
 		JobQueue:      aws.String(be.queue),
 		ContainerOverrides: &batch.ContainerOverrides{
-			Environment: []*batch.KeyValuePair{
-				&batch.KeyValuePair{
-					Name:  aws.String(DependenciesEnvVarName),
-					Value: aws.String(strings.Join(dependencies, ",")),
-				},
-			},
+			Environment: environment,
 		},
 		DependsOn:  jobDeps,
 		Parameters: jobParams,
