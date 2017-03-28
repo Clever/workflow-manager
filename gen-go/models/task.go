@@ -13,6 +13,9 @@ import (
 // swagger:model Task
 type Task struct {
 
+	// container
+	Container string `json:"Container,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
 
@@ -21,6 +24,9 @@ type Task struct {
 
 	// status
 	Status string `json:"status,omitempty"`
+
+	// status reason
+	StatusReason string `json:"statusReason,omitempty"`
 }
 
 // Validate validates this task

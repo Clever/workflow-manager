@@ -85,6 +85,17 @@ func NewWorkflowDefinition(name string, desc string, startAt string, states map[
 
 }
 
+func NewWorkflowDefinitionVersion(def WorkflowDefinition, version int) WorkflowDefinition {
+	return WorkflowDefinition{
+		name:          def.Name(),
+		version:       version,
+		startAt:       def.StartAt().Name(),
+		states:        def.States(),
+		orderedStates: def.OrderedStates(),
+		Description:   def.Description,
+	}
+}
+
 // currently uses toposort for an ordered list
 func orderStates(states map[string]State) ([]State, error) {
 	var stateDeps = map[string][]string{}

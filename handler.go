@@ -43,6 +43,29 @@ func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.N
 	return apiWorkflowFromStore(workflow), nil
 }
 
+func (wm WorkflowManager) UpdateWorkflow(ctx context.Context, workflowReq *models.NewWorkflowRequest) (*models.Workflow, error) {
+	if len(workflowReq.States) == 0 || workflowReq.Name == "" {
+		return &models.Workflow{}, fmt.Errorf("Must define at least one state")
+	}
+
+	workflow, err := wm.store.LatestWorkflow(workflowReq.Name)
+	if err != nil {
+		return &models.Workflow{}, err
+	}
+
+	workflow, err = newWorkflowFromRequest(*workflowReq)
+	if err != nil {
+		return &models.Workflow{}, err
+	}
+
+	workflow, err = wm.store.UpdateWorkflow(workflow)
+	if err != nil {
+		return &models.Workflow{}, err
+	}
+
+	return apiWorkflowFromStore(workflow), nil
+}
+
 // GetWorkflowByName allows fetching an existing Workflow by providing it's name
 func (wm WorkflowManager) GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error) {
 	workflow, err := wm.store.LatestWorkflow(name)
@@ -154,9 +177,11 @@ func apiJobFromStore(job resources.Job) *models.Job {
 	tasks := []*models.Task{}
 	for _, task := range job.Tasks {
 		tasks = append(tasks, &models.Task{
-			ID:     task.ID,
-			State:  task.State,
-			Status: string(task.Status()),
+			ID:           task.ID,
+			State:        task.State,
+			Status:       string(task.Status),
+			StatusReason: task.StatusReason,
+			Container:    task.Container,
 		})
 	}
 

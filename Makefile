@@ -6,7 +6,7 @@ SHELL := /bin/bash
 APP_NAME ?= workflow-manager
 EXECUTABLE = $(APP_NAME)
 PKG = github.com/Clever/$(APP_NAME)
-PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go)
+PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /workflow-ops)
 
 WAG_VERSION := latest
 

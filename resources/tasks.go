@@ -1,46 +1,65 @@
 package resources
 
+import "time"
+
 type TaskStatus string
 
 const (
-	TaskStatusCreated   TaskStatus = "CREATED"   // initialized
-	TaskStatusQueued    TaskStatus = "QUEUED"    // submitted to queue
-	TaskStatusWaiting   TaskStatus = "WAITING"   // waiting for dependencies
-	TaskStatusRunning   TaskStatus = "RUNNING"   // running
-	TaskStatusSucceeded TaskStatus = "SUCCEEDED" // completed successfully
-	TaskStatusFailed    TaskStatus = "FAILED"    // failed
-	TaskStatusCancelled TaskStatus = "CANCELLED" // cancelled due to user action
+	TaskStatusCreated     TaskStatus = "CREATED"             // initialized
+	TaskStatusQueued      TaskStatus = "QUEUED"              // submitted to queue
+	TaskStatusWaiting     TaskStatus = "WAITING_FOR_DEPS"    // waiting for dependencies
+	TaskStatusRunning     TaskStatus = "RUNNING"             // running
+	TaskStatusSucceeded   TaskStatus = "SUCCEEDED"           // completed successfully
+	TaskStatusFailed      TaskStatus = "FAILED"              // failed
+	TaskStatusAborted     TaskStatus = "ABORTED_DEPS_FAILED" // aborted due to a dependency failure
+	TaskStatusUserAborted TaskStatus = "ABORTED_BY_USER"     // aborted due to user action
 )
+
+type TaskDetail struct {
+	CreatedAt    time.Time
+	StartedAt    time.Time
+	StoppedAt    time.Time
+	Container    string
+	StatusReason string
+	Status       TaskStatus
+}
 
 // Task represents an active State and as part of a Job
 type Task struct {
-	ID     string
-	Name   string
-	Input  string
-	State  string
-	status TaskStatus
+	TaskDetail
+	ID    string
+	Name  string
+	Input string
+	State string
 }
 
 // NewTask creates a new Task
 func NewTask(id, name, state, input string) *Task {
 	return &Task{
-		ID:     id,
-		Name:   name,
-		Input:  input,
-		status: TaskStatusCreated,
+		ID:    id,
+		Name:  name,
+		Input: input,
+		TaskDetail: TaskDetail{
+			Status: TaskStatusCreated,
+		},
 	}
 }
 
 // IsComplete can be used check if a task is completed
 // true if failed or succeded
 func (t *Task) IsComplete() bool {
-	return (t.status == TaskStatusFailed || t.status == TaskStatusSucceeded)
+	return (t.Status == TaskStatusFailed || t.Status == TaskStatusSucceeded)
 }
 
 func (t *Task) SetStatus(status TaskStatus) {
-	t.status = status
+	t.Status = status
 }
 
-func (t *Task) Status() TaskStatus {
-	return t.status
+func (t *Task) SetDetail(detail TaskDetail) {
+	t.CreatedAt = detail.CreatedAt
+	t.StartedAt = detail.StartedAt
+	t.StoppedAt = detail.StoppedAt
+	t.Container = detail.Container
+	t.Status = detail.Status
+	t.StatusReason = detail.StatusReason
 }

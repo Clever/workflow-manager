@@ -209,6 +209,10 @@ definitions:
         type: string
       status:
         type: string
+      statusReason:
+        type: string
+      Container:
+        type: string
 
   JobInput:
     type: object

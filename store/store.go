@@ -9,7 +9,7 @@ import (
 // WorkflowStore defines the interface for persistence of Workflow defintions
 type Store interface {
 	CreateWorkflow(def resources.WorkflowDefinition) error
-	UpdateWorkflow(name string, def resources.WorkflowDefinition) error
+	UpdateWorkflow(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error)
 	GetWorkflow(name string, version int) (resources.WorkflowDefinition, error)
 	LatestWorkflow(name string) (resources.WorkflowDefinition, error)
 

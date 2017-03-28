@@ -28,8 +28,16 @@ func (s MemoryStore) CreateWorkflow(def resources.WorkflowDefinition) error {
 	return nil
 }
 
-func (s MemoryStore) UpdateWorkflow(name string, def resources.WorkflowDefinition) error {
-	return nil
+func (s MemoryStore) UpdateWorkflow(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error) {
+	last, err := s.LatestWorkflow(def.Name())
+	if err != nil {
+		return def, err
+	}
+
+	newVersion := resources.NewWorkflowDefinitionVersion(def, last.Version()+1)
+	s.workflows[def.Name()] = append(s.workflows[def.Name()], newVersion)
+
+	return newVersion, nil
 }
 
 func (s MemoryStore) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {

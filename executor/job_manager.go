@@ -29,23 +29,23 @@ func NewBatchJobManager(executor Executor, store store.Store) BatchJobManager {
 
 // UpdateJobStatus ensures that the status of the tasks is in-sync with AWS Batch and sets Job status
 func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
-	err := jm.executor.Status(job.Tasks)
-	if err != nil {
-		return err
+	errs := jm.executor.Status(job.Tasks)
+	if len(errs) > 0 {
+		return fmt.Errorf("Failed to update status for %d tasks. errors: %s", len(errs), errs)
 	}
 
 	jobSuccess := true
 	jobRunning := false
 	for _, task := range job.Tasks {
-		if task.Status() != resources.TaskStatusSucceeded {
+		if task.Status != resources.TaskStatusSucceeded {
 			// all tasks should be successful for job success
 			jobSuccess = false
 		}
-		if task.Status() == resources.TaskStatusRunning {
+		if task.Status == resources.TaskStatusRunning {
 			jobRunning = true
 		}
 
-		if task.Status() == resources.TaskStatusFailed {
+		if task.Status == resources.TaskStatusFailed {
 			// any task failure results in the job being failed
 			job.Status = resources.Failed
 			return nil

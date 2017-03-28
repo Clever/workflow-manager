@@ -3,6 +3,7 @@ package batchclient
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/aws/aws-sdk-go/aws"
@@ -32,7 +33,7 @@ func NewBatchExecutor(client batchiface.BatchAPI, queue string) BatchExecutor {
 	}
 }
 
-func (be BatchExecutor) Status(tasks []*resources.Task) error {
+func (be BatchExecutor) Status(tasks []*resources.Task) []error {
 	status := map[string]*resources.Task{}
 	jobs := []*string{}
 
@@ -45,35 +46,81 @@ func (be BatchExecutor) Status(tasks []*resources.Task) error {
 		Jobs: jobs,
 	})
 	if err != nil {
-		return err
+		return []error{err}
 	}
 
+	var taskErrors []error
 	for _, jobDetail := range results.Jobs {
-		status[*jobDetail.JobId].SetStatus(be.convertStatus(jobDetail.Status))
+		taskDetail, err := be.jobToTaskDetail(jobDetail)
+		if err != nil {
+			// TODO: add jobId to err for clarity
+			taskErrors = append(taskErrors, err)
+		}
+		status[*jobDetail.JobId].SetDetail(taskDetail)
 	}
 
 	return nil
 }
 
-func (be BatchExecutor) convertStatus(jobStatus *string) resources.TaskStatus {
-	switch *jobStatus {
-	case batch.JobStatusSubmitted, batch.JobStatusRunnable:
-		// submitted is queued for scheduler
-		// runnable is queued for resources
-		return resources.TaskStatusQueued
+func (be BatchExecutor) jobToTaskDetail(job *batch.JobDetail) (resources.TaskDetail, error) {
+	var statusReason, containerArn string
+	var createdAt, startedAt, stoppedAt time.Time
+	if job.StatusReason != nil {
+		statusReason = *job.StatusReason
+	}
+	if job.CreatedAt != nil {
+		createdAt = time.Unix(*job.CreatedAt, 0)
+	}
+	if job.StartedAt != nil {
+		startedAt = time.Unix(*job.StartedAt, 0)
+	}
+	if job.StoppedAt != nil {
+		stoppedAt = time.Unix(*job.StoppedAt, 0)
+	}
+	if job.Container != nil && job.Container.ContainerInstanceArn != nil {
+		containerArn = *job.Container.ContainerInstanceArn
+	}
+
+	return resources.TaskDetail{
+		StatusReason: statusReason,
+		Status:       be.taskStatus(job),
+		CreatedAt:    createdAt,
+		StartedAt:    startedAt,
+		StoppedAt:    stoppedAt,
+		Container:    containerArn,
+	}, nil
+}
+
+func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.TaskStatus {
+	if job == nil || job.Status == nil {
+		return "UNKNOWN_STATE"
+	}
+
+	switch *job.Status {
+	case batch.JobStatusSubmitted:
+		// submitted is queued for batch scheduler
+		return resources.TaskStatusCreated
 	case batch.JobStatusPending:
 		// pending is waiting for dependencies
 		return resources.TaskStatusWaiting
+	case batch.JobStatusStarting, batch.JobStatusRunnable:
+		// starting is waiting for the ecs scheduler
+		// runnable is queued for resources
+		return resources.TaskStatusQueued
 	case batch.JobStatusRunning:
 		return resources.TaskStatusRunning
 	case batch.JobStatusSucceeded:
 		return resources.TaskStatusSucceeded
 	case batch.JobStatusFailed:
+		if job.StartedAt == nil {
+			return resources.TaskStatusAborted
+		}
 		return resources.TaskStatusFailed
 	default:
 		// TODO: actually return error here?
-		return "INVALID_STATE_ERROR"
+		return "UNKNOWN_STATE"
 	}
+
 }
 
 // SubmitJob queues a task using the AWS Batch API client and returns the taskID

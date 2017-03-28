@@ -410,12 +410,9 @@ func (h handler) GetJobHandler(ctx context.Context, w http.ResponseWriter, r *ht
 		return
 	}
 
-	var out bytes.Buffer
-	json.Indent(&out, respBytes, "", "  ")
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForGetJob(resp))
-	w.Write(out.Bytes())
+	w.Write(respBytes)
 
 }
 

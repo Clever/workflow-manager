@@ -26,7 +26,7 @@ func (be *mockBatchClient) SubmitJob(name string, definition string, dependencie
 	return taskID, nil
 }
 
-func (be *mockBatchClient) Status(tasks []*resources.Task) error {
+func (be *mockBatchClient) Status(tasks []*resources.Task) []error {
 	return nil
 }
 
