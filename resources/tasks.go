@@ -39,6 +39,7 @@ func NewTask(id, name, state, input string) *Task {
 		ID:    id,
 		Name:  name,
 		Input: input,
+		State: state,
 		TaskDetail: TaskDetail{
 			Status: TaskStatusCreated,
 		},

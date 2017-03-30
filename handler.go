@@ -43,7 +43,12 @@ func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.N
 	return apiWorkflowFromStore(workflow), nil
 }
 
-func (wm WorkflowManager) UpdateWorkflow(ctx context.Context, workflowReq *models.NewWorkflowRequest) (*models.Workflow, error) {
+func (wm WorkflowManager) UpdateWorkflow(ctx context.Context, input *models.UpdateWorkflowInput) (*models.Workflow, error) {
+	if input.NewWorkflowRequest == nil || input.NewWorkflowRequest.Name != input.Name {
+		return &models.Workflow{}, fmt.Errorf("Name in path must match Workflow object")
+	}
+
+	workflowReq := input.NewWorkflowRequest
 	if len(workflowReq.States) == 0 || workflowReq.Name == "" {
 		return &models.Workflow{}, fmt.Errorf("Must define at least one state")
 	}
@@ -132,9 +137,13 @@ func (wm WorkflowManager) GetJob(ctx context.Context, jobInput *models.GetJobInp
 	return apiJobFromStore(job), nil
 }
 
-// TODO: the functions below should probably just functions on the respective resources.<Struct>
+// TODO: the functions below should probably just be functions on the respective resources.<Struct>
 
 func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDefinition, error) {
+	if req.StartAt == "" {
+		return resources.WorkflowDefinition{}, fmt.Errorf("startAt is a required field")
+	}
+
 	states := map[string]resources.State{}
 	for _, s := range req.States {
 		workerState, err := resources.NewWorkerState(s.Name, s.Next, s.Resource, s.End)
@@ -144,6 +153,10 @@ func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDe
 		states[workerState.Name()] = workerState
 	}
 
+	if _, ok := states[req.StartAt]; !ok {
+		return resources.WorkflowDefinition{}, fmt.Errorf("startAt state %s not defined", req.StartAt)
+	}
+
 	// fill in dependencies for states
 	for _, s := range states {
 		if !s.IsEnd() {
@@ -151,7 +164,7 @@ func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDe
 		}
 	}
 
-	return resources.NewWorkflowDefinition(req.Name, "description", req.StartAt, states)
+	return resources.NewWorkflowDefinition(req.Name, req.Description, req.StartAt, states)
 }
 
 func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
@@ -169,6 +182,7 @@ func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
 	return &models.Workflow{
 		Name:     wf.Name(),
 		Revision: int64(wf.Version()),
+		StartAt:  wf.StartAt().Name(),
 		States:   states,
 	}
 }

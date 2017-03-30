@@ -14,6 +14,9 @@ import (
 // swagger:model Workflow
 type Workflow struct {
 
+	// description
+	Description string `json:"description,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
 

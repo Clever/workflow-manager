@@ -88,14 +88,16 @@ func (jm BatchJobManager) scheduleTasks(job *resources.Job, input string) error 
 		var taskID string
 		var taskInput string
 		var err error
-		taskName := fmt.Sprintf("%s--%s", job.ID, state.Name())
+		// TODO: this should be limited to 50 characters due to a bug in the interaction between Batch
+		// and ECS
+		taskName := fmt.Sprintf("%s_%d--%s", job.Workflow.Name(), job.Workflow.Version(), state.Name())
 
 		// TODO: use job.Workflow.StartAt
 		// if first job pass in an input
 		if i == 0 {
 			taskInput = input
 		}
-		taskID, err = jm.executor.SubmitJob(fmt.Sprintf("%s--%s", job.ID, state.Name()), state.Resource(), deps, taskInput)
+		taskID, err = jm.executor.SubmitJob(taskName, state.Resource(), deps, taskInput)
 		if err != nil {
 			// TODO: cancel jobs that have already been posted for idempotency
 			return err

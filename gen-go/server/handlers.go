@@ -13,7 +13,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/gorilla/mux"
-	"gopkg.in/Clever/kayvee-go.v5/logger"
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 var _ = strconv.ParseInt
@@ -640,4 +640,120 @@ func newGetWorkflowByNameInput(r *http.Request) (string, error) {
 		return "", errors.New("Parameter name must be specified")
 	}
 	return name, nil
+}
+
+// statusCodeForUpdateWorkflow returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForUpdateWorkflow(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case *models.Workflow:
+		return 201
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	case models.Workflow:
+		return 201
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) UpdateWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newUpdateWorkflowInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.UpdateWorkflow(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForUpdateWorkflow(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForUpdateWorkflow(resp))
+	w.Write(respBytes)
+
+}
+
+// newUpdateWorkflowInput takes in an http.Request an returns the input struct.
+func newUpdateWorkflowInput(r *http.Request) (*models.UpdateWorkflowInput, error) {
+	var input models.UpdateWorkflowInput
+
+	var err error
+	_ = err
+
+	data, err := ioutil.ReadAll(r.Body)
+
+	if len(data) > 0 {
+		input.NewWorkflowRequest = &models.NewWorkflowRequest{}
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewWorkflowRequest); err != nil {
+			return nil, err
+		}
+	}
+
+	nameStr := mux.Vars(r)["name"]
+	if len(nameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	nameStrs := []string{nameStr}
+
+	if len(nameStrs) > 0 {
+		var nameTmp string
+		nameStr := nameStrs[0]
+		nameTmp, err = nameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Name = nameTmp
+	}
+
+	return &input, nil
 }

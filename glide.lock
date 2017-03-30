@@ -1,5 +1,5 @@
-hash: b5c0b1f130fd597406b27b07a2e8a6c988bd15cac771718677d9e168ce03dc05
-updated: 2017-03-28T01:20:09.370109754Z
+hash: 576e821e7f0e4a79f9110c2c944bfe2d14e2f7cb503b55fb4e07299e860fe879
+updated: 2017-03-30T19:31:20.878501246Z
 imports:
 - name: github.com/afex/hystrix-go
   version: 39520ddd07a9d9a071d615f7476798659f5a3b89
@@ -10,7 +10,7 @@ imports:
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
 - name: github.com/aws/aws-sdk-go
-  version: 7111a70b8bea15081468f11bc1450ac2fec2406b
+  version: 069aafcbf0db604407291f9acc76c6b69fc99e0e
   subpackages:
   - aws
   - aws/awserr
@@ -109,6 +109,8 @@ imports:
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
+- name: github.com/kardianos/osext
+  version: c2c54e542fb797ad986b31721e1baedf214ca413
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/lightstep/lightstep-tracer-go
@@ -237,11 +239,11 @@ imports:
   version: 865aa5e4bbe8e274c69accd53f0b1e2ecc484cd8
   subpackages:
   - logger
-  - middleware
 - name: gopkg.in/Clever/kayvee-go.v6
   version: 096364e316a52652d3493be702d8105d8d01db84
   subpackages:
   - logger
+  - middleware
   - router
 - name: gopkg.in/tylerb/graceful.v1
   version: 50a48b6e73fcc75b45e22c05b79629a67c79e938

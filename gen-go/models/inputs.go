@@ -167,3 +167,37 @@ func GetWorkflowByNameInputPath(name string) (string, error) {
 
 	return path + "?" + urlVals.Encode(), nil
 }
+
+// UpdateWorkflowInput holds the input parameters for a updateWorkflow operation.
+type UpdateWorkflowInput struct {
+	NewWorkflowRequest *NewWorkflowRequest
+	Name               string
+}
+
+// Validate returns an error if any of the UpdateWorkflowInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i UpdateWorkflowInput) Validate() error {
+
+	if err := i.NewWorkflowRequest.Validate(nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i UpdateWorkflowInput) Path() (string, error) {
+	path := "/workflows/{name}"
+	urlVals := url.Values{}
+
+	pathname := i.Name
+	if pathname == "" {
+		err := fmt.Errorf("name cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{name}", pathname, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
