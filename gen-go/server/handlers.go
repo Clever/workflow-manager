@@ -58,7 +58,7 @@ func convertDate(input string) (strfmt.Date, error) {
 }
 
 func jsonMarshalNoError(i interface{}) string {
-	bytes, err := json.Marshal(i)
+	bytes, err := json.MarshalIndent(i, "", "\t")
 	if err != nil {
 		// This should never happen
 		return ""
@@ -159,14 +159,14 @@ func statusCodeForGetJobsForWorkflow(obj interface{}) int {
 
 func (h handler) GetJobsForWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	workflowName, err := newGetJobsForWorkflowInput(r)
+	input, err := newGetJobsForWorkflowInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
 		return
 	}
 
-	err = models.ValidateGetJobsForWorkflowInput(workflowName)
+	err = input.Validate()
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -174,7 +174,7 @@ func (h handler) GetJobsForWorkflowHandler(ctx context.Context, w http.ResponseW
 		return
 	}
 
-	resp, err := h.GetJobsForWorkflow(ctx, workflowName)
+	resp, err := h.GetJobsForWorkflow(ctx, input)
 
 	// Success types that return an array should never return nil so let's make this easier
 	// for consumers by converting nil arrays to empty arrays
@@ -196,7 +196,7 @@ func (h handler) GetJobsForWorkflowHandler(ctx context.Context, w http.ResponseW
 		return
 	}
 
-	respBytes, err := json.Marshal(resp)
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -209,14 +209,29 @@ func (h handler) GetJobsForWorkflowHandler(ctx context.Context, w http.ResponseW
 
 }
 
-// newGetJobsForWorkflowInput takes in an http.Request an returns the workflowName parameter
-// that it contains. It returns an error if the request doesn't contain the parameter.
-func newGetJobsForWorkflowInput(r *http.Request) (string, error) {
-	workflowName := mux.Vars(r)["workflowName"]
-	if len(workflowName) == 0 {
-		return "", errors.New("Parameter workflowName must be specified")
+// newGetJobsForWorkflowInput takes in an http.Request an returns the input struct.
+func newGetJobsForWorkflowInput(r *http.Request) (*models.GetJobsForWorkflowInput, error) {
+	var input models.GetJobsForWorkflowInput
+
+	var err error
+	_ = err
+
+	workflowNameStrs := r.URL.Query()["workflowName"]
+	if len(workflowNameStrs) == 0 {
+		return nil, errors.New("parameter must be specified")
 	}
-	return workflowName, nil
+
+	if len(workflowNameStrs) > 0 {
+		var workflowNameTmp string
+		workflowNameStr := workflowNameStrs[0]
+		workflowNameTmp, err = workflowNameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.WorkflowName = workflowNameTmp
+	}
+
+	return &input, nil
 }
 
 // statusCodeForStartJobForWorkflow returns the status code corresponding to the returned
@@ -263,7 +278,7 @@ func (h handler) StartJobForWorkflowHandler(ctx context.Context, w http.Response
 		return
 	}
 
-	err = input.Validate()
+	err = input.Validate(nil)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -287,7 +302,7 @@ func (h handler) StartJobForWorkflowHandler(ctx context.Context, w http.Response
 		return
 	}
 
-	respBytes, err := json.Marshal(resp)
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -301,33 +316,16 @@ func (h handler) StartJobForWorkflowHandler(ctx context.Context, w http.Response
 }
 
 // newStartJobForWorkflowInput takes in an http.Request an returns the input struct.
-func newStartJobForWorkflowInput(r *http.Request) (*models.StartJobForWorkflowInput, error) {
-	var input models.StartJobForWorkflowInput
+func newStartJobForWorkflowInput(r *http.Request) (*models.JobInput, error) {
+	var input models.JobInput
 
 	var err error
 	_ = err
 
-	workflowNameStr := mux.Vars(r)["workflowName"]
-	if len(workflowNameStr) == 0 {
-		return nil, errors.New("parameter must be specified")
-	}
-	workflowNameStrs := []string{workflowNameStr}
-
-	if len(workflowNameStrs) > 0 {
-		var workflowNameTmp string
-		workflowNameStr := workflowNameStrs[0]
-		workflowNameTmp, err = workflowNameStr, error(nil)
-		if err != nil {
-			return nil, err
-		}
-		input.WorkflowName = workflowNameTmp
-	}
-
 	data, err := ioutil.ReadAll(r.Body)
 
 	if len(data) > 0 {
-		input.Input = &models.JobInput{}
-		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Input); err != nil {
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(&input); err != nil {
 			return nil, err
 		}
 	}
@@ -372,14 +370,14 @@ func statusCodeForGetJob(obj interface{}) int {
 
 func (h handler) GetJobHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newGetJobInput(r)
+	jobId, err := newGetJobInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
 		return
 	}
 
-	err = input.Validate()
+	err = models.ValidateGetJobInput(jobId)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -387,7 +385,7 @@ func (h handler) GetJobHandler(ctx context.Context, w http.ResponseWriter, r *ht
 		return
 	}
 
-	resp, err := h.GetJob(ctx, input)
+	resp, err := h.GetJob(ctx, jobId)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -403,7 +401,7 @@ func (h handler) GetJobHandler(ctx context.Context, w http.ResponseWriter, r *ht
 		return
 	}
 
-	respBytes, err := json.Marshal(resp)
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -416,46 +414,14 @@ func (h handler) GetJobHandler(ctx context.Context, w http.ResponseWriter, r *ht
 
 }
 
-// newGetJobInput takes in an http.Request an returns the input struct.
-func newGetJobInput(r *http.Request) (*models.GetJobInput, error) {
-	var input models.GetJobInput
-
-	var err error
-	_ = err
-
-	workflowNameStr := mux.Vars(r)["workflowName"]
-	if len(workflowNameStr) == 0 {
-		return nil, errors.New("parameter must be specified")
+// newGetJobInput takes in an http.Request an returns the jobId parameter
+// that it contains. It returns an error if the request doesn't contain the parameter.
+func newGetJobInput(r *http.Request) (string, error) {
+	jobId := mux.Vars(r)["jobId"]
+	if len(jobId) == 0 {
+		return "", errors.New("Parameter jobId must be specified")
 	}
-	workflowNameStrs := []string{workflowNameStr}
-
-	if len(workflowNameStrs) > 0 {
-		var workflowNameTmp string
-		workflowNameStr := workflowNameStrs[0]
-		workflowNameTmp, err = workflowNameStr, error(nil)
-		if err != nil {
-			return nil, err
-		}
-		input.WorkflowName = workflowNameTmp
-	}
-
-	jobIdStr := mux.Vars(r)["jobId"]
-	if len(jobIdStr) == 0 {
-		return nil, errors.New("parameter must be specified")
-	}
-	jobIdStrs := []string{jobIdStr}
-
-	if len(jobIdStrs) > 0 {
-		var jobIdTmp string
-		jobIdStr := jobIdStrs[0]
-		jobIdTmp, err = jobIdStr, error(nil)
-		if err != nil {
-			return nil, err
-		}
-		input.JobId = jobIdTmp
-	}
-
-	return &input, nil
+	return jobId, nil
 }
 
 // statusCodeForNewWorkflow returns the status code corresponding to the returned
@@ -520,7 +486,7 @@ func (h handler) NewWorkflowHandler(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
-	respBytes, err := json.Marshal(resp)
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -619,7 +585,7 @@ func (h handler) GetWorkflowByNameHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	respBytes, err := json.Marshal(resp)
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -710,7 +676,7 @@ func (h handler) UpdateWorkflowHandler(ctx context.Context, w http.ResponseWrite
 		return
 	}
 
-	respBytes, err := json.Marshal(resp)
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)

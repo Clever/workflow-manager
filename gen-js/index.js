@@ -262,22 +262,20 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
-      if (!params.workflowName) {
-        rejecter(new Error("workflowName must be non-empty because it's a path parameter"));
-        return;
-      }
 
       const query = {};
+      query["workflowName"] = params.workflowName;
+  
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("GET /jobs/{workflowName}");
+        span.logEvent("GET /jobs");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
-        uri: this.address + "/jobs/" + params.workflowName + "",
+        uri: this.address + "/jobs",
         json: true,
         timeout,
         headers,
@@ -330,9 +328,7 @@ class WorkflowManager {
   }
 
   /**
-   * @param {Object} params
-   * @param {string} params.workflowName
-   * @param [params.input]
+   * @param input
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -345,7 +341,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  startJobForWorkflow(params, options, cb) {
+  startJobForWorkflow(input, options, cb) {
+    const params = {};
+    params["input"] = input;
+
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -374,22 +373,18 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
-      if (!params.workflowName) {
-        rejecter(new Error("workflowName must be non-empty because it's a path parameter"));
-        return;
-      }
 
       const query = {};
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("PUT /jobs/{workflowName}");
+        span.logEvent("POST /jobs");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
-        method: "PUT",
-        uri: this.address + "/jobs/" + params.workflowName + "",
+        method: "POST",
+        uri: this.address + "/jobs",
         json: true,
         timeout,
         headers,
@@ -444,9 +439,7 @@ class WorkflowManager {
   }
 
   /**
-   * @param {Object} params
-   * @param {string} params.workflowName
-   * @param {string} params.jobId
+   * @param {string} jobId
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -459,7 +452,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  GetJob(params, options, cb) {
+  GetJob(jobId, options, cb) {
+    const params = {};
+    params["jobId"] = jobId;
+
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -488,10 +484,6 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
-      if (!params.workflowName) {
-        rejecter(new Error("workflowName must be non-empty because it's a path parameter"));
-        return;
-      }
       if (!params.jobId) {
         rejecter(new Error("jobId must be non-empty because it's a path parameter"));
         return;
@@ -501,13 +493,13 @@ class WorkflowManager {
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("GET /jobs/{workflowName}/{jobId}");
+        span.logEvent("GET /jobs/{jobId}");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
-        uri: this.address + "/jobs/" + params.workflowName + "/" + params.jobId + "",
+        uri: this.address + "/jobs/" + params.jobId + "",
         json: true,
         timeout,
         headers,

@@ -29,12 +29,12 @@ type Task struct {
 	TaskDetail
 	ID    string
 	Name  string
-	Input string
+	Input []string
 	State string
 }
 
 // NewTask creates a new Task
-func NewTask(id, name, state, input string) *Task {
+func NewTask(id, name, state string, input []string) *Task {
 	return &Task{
 		ID:    id,
 		Name:  name,

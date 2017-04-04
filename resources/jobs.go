@@ -18,13 +18,13 @@ const (
 type Job struct {
 	ID       string             // GUID for the job
 	Workflow WorkflowDefinition // Workflow executed as part of this job
-	Input    string             // Starting input for the job
+	Input    []string           // Starting input for the job
 	Tasks    []*Task            // list of states submitted as tasks
 	Status   JobStatus
 }
 
 // NewJob creates a new Job struct for a Workflow
-func NewJob(wf WorkflowDefinition, input string) *Job {
+func NewJob(wf WorkflowDefinition, input []string) *Job {
 	return &Job{
 		ID:       uuid.NewV4().String(),
 		Workflow: wf,

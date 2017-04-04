@@ -82,15 +82,16 @@ func (wm WorkflowManager) GetWorkflowByName(ctx context.Context, name string) (*
 }
 
 // StartJobForWorkflow starts a new Job for the given workflow
-func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, req *models.StartJobForWorkflowInput) (*models.Job, error) {
-	workflow, err := wm.store.LatestWorkflow(req.WorkflowName)
+func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models.JobInput) (*models.Job, error) {
+	// TODO: also support input.Workflow.Revision
+	workflow, err := wm.store.LatestWorkflow(input.Workflow.Name)
 	if err != nil {
 		return &models.Job{}, err
 	}
 
-	data := ""
-	if req.Input != nil {
-		data = req.Input.Data
+	var data []string
+	if input.Data != nil {
+		data = jsonToArgs(input.Data)
 	}
 
 	job, err := wm.manager.CreateJob(workflow, data)
@@ -111,8 +112,8 @@ func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, req *models.S
 }
 
 // GetJobsForWorkflow returns a summary of all active jobs for the given workflow
-func (wm WorkflowManager) GetJobsForWorkflow(ctx context.Context, workflowName string) ([]models.Job, error) {
-	jobs, err := wm.store.GetJobsForWorkflow(workflowName)
+func (wm WorkflowManager) GetJobsForWorkflow(ctx context.Context, input *models.GetJobsForWorkflowInput) ([]models.Job, error) {
+	jobs, err := wm.store.GetJobsForWorkflow(input.WorkflowName)
 	if err != nil {
 		return []models.Job{}, err
 	}
@@ -125,8 +126,8 @@ func (wm WorkflowManager) GetJobsForWorkflow(ctx context.Context, workflowName s
 	return results, nil
 }
 
-func (wm WorkflowManager) GetJob(ctx context.Context, jobInput *models.GetJobInput) (*models.Job, error) {
-	job, err := wm.store.GetJob(jobInput.JobId)
+func (wm WorkflowManager) GetJob(ctx context.Context, jobId string) (*models.Job, error) {
+	job, err := wm.store.GetJob(jobId)
 	if err != nil {
 		return &models.Job{}, err
 	}
@@ -135,6 +136,16 @@ func (wm WorkflowManager) GetJob(ctx context.Context, jobInput *models.GetJobInp
 	wm.manager.UpdateJobStatus(&job)
 
 	return apiJobFromStore(job), nil
+}
+
+func jsonToArgs(data []interface{}) []string {
+	args := []string{}
+	for _, v := range data {
+		if arg, ok := v.(string); ok {
+			args = append(args, arg)
+		}
+	}
+	return args
 }
 
 // TODO: the functions below should probably just be functions on the respective resources.<Struct>

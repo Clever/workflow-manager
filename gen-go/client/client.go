@@ -205,18 +205,18 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 	}
 }
 
-// GetJobsForWorkflow makes a GET request to /jobs/{workflowName}
+// GetJobsForWorkflow makes a GET request to /jobs
 //
 // 200: []models.Job
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetJobsForWorkflow(ctx context.Context, workflowName string) ([]models.Job, error) {
+func (c *WagClient) GetJobsForWorkflow(ctx context.Context, i *models.GetJobsForWorkflowInput) ([]models.Job, error) {
 	headers := make(map[string]string)
 
 	var body []byte
-	path, err := models.GetJobsForWorkflowInputPath(workflowName)
+	path, err := i.Path()
 
 	if err != nil {
 		return nil, err
@@ -296,29 +296,23 @@ func (c *WagClient) doGetJobsForWorkflowRequest(ctx context.Context, req *http.R
 	}
 }
 
-// StartJobForWorkflow makes a PUT request to /jobs/{workflowName}
+// StartJobForWorkflow makes a POST request to /jobs
 //
 // 200: *models.Job
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) StartJobForWorkflow(ctx context.Context, i *models.StartJobForWorkflowInput) (*models.Job, error) {
+func (c *WagClient) StartJobForWorkflow(ctx context.Context, i *models.JobInput) (*models.Job, error) {
 	headers := make(map[string]string)
 
 	var body []byte
-	path, err := i.Path()
+	path := c.basePath + "/jobs"
 
-	if err != nil {
-		return nil, err
-	}
-
-	path = c.basePath + path
-
-	if i.Input != nil {
+	if i != nil {
 
 		var err error
-		body, err = json.Marshal(i.Input)
+		body, err = json.Marshal(i)
 
 		if err != nil {
 			return nil, err
@@ -326,7 +320,7 @@ func (c *WagClient) StartJobForWorkflow(ctx context.Context, i *models.StartJobF
 
 	}
 
-	req, err := http.NewRequest("PUT", path, bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -398,18 +392,18 @@ func (c *WagClient) doStartJobForWorkflowRequest(ctx context.Context, req *http.
 	}
 }
 
-// GetJob makes a GET request to /jobs/{workflowName}/{jobId}
+// GetJob makes a GET request to /jobs/{jobId}
 //
 // 200: *models.Job
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetJob(ctx context.Context, i *models.GetJobInput) (*models.Job, error) {
+func (c *WagClient) GetJob(ctx context.Context, jobId string) (*models.Job, error) {
 	headers := make(map[string]string)
 
 	var body []byte
-	path, err := i.Path()
+	path, err := models.GetJobInputPath(jobId)
 
 	if err != nil {
 		return nil, err

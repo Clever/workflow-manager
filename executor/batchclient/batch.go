@@ -1,6 +1,7 @@
 package batchclient
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -124,7 +125,7 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.TaskStatus {
 }
 
 // SubmitJob queues a task using the AWS Batch API client and returns the taskID
-func (be BatchExecutor) SubmitJob(name string, definition string, dependencies []string, input string) (string, error) {
+func (be BatchExecutor) SubmitJob(name string, definition string, dependencies []string, input []string) (string, error) {
 	jobDeps := []*batch.JobDependency{}
 
 	for _, d := range dependencies {
@@ -144,11 +145,15 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 	// used to add a default CMD argument to
 	// the worker container.
 	jobParams := map[string]*string{}
-	if input != "" {
-		jobParams[StartingInputEnvVarName] = aws.String(input)
+	if input != nil && len(input) > 0 {
+		inputStr, err := json.Marshal(input)
+		if err != nil {
+			return "", fmt.Errorf("Failed to marshall task %s input: %s", name, err)
+		}
+		jobParams[StartingInputEnvVarName] = aws.String(string(inputStr))
 		environment = append(environment, &batch.KeyValuePair{
 			Name:  aws.String(StartingInputEnvVarName),
-			Value: aws.String(input),
+			Value: aws.String(string(inputStr)),
 		})
 	} else {
 		// TODO: fix: AWS does not like empty string here

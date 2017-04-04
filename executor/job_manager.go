@@ -9,7 +9,7 @@ import (
 
 // JobManager in the interface for creating, stopping and checking status for Jobs (workflow runs)
 type JobManager interface {
-	CreateJob(def resources.WorkflowDefinition, input string) (*resources.Job, error)
+	CreateJob(def resources.WorkflowDefinition, input []string) (*resources.Job, error)
 	UpdateJobStatus(job *resources.Job) error
 }
 
@@ -62,7 +62,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 }
 
 // CreateJob can be used to create a new job for a workflow
-func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input string) (*resources.Job, error) {
+func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []string) (*resources.Job, error) {
 	job := resources.NewJob(def, input)
 
 	err := jm.scheduleTasks(job, input)
@@ -73,7 +73,7 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input stri
 	return job, nil
 }
 
-func (jm BatchJobManager) scheduleTasks(job *resources.Job, input string) error {
+func (jm BatchJobManager) scheduleTasks(job *resources.Job, input []string) error {
 	tasks := map[string]*resources.Task{}
 
 	for i, state := range job.Workflow.OrderedStates() {
@@ -86,7 +86,7 @@ func (jm BatchJobManager) scheduleTasks(job *resources.Job, input string) error 
 			deps = append(deps, tasks[d].ID)
 		}
 		var taskID string
-		var taskInput string
+		var taskInput []string
 		var err error
 		// TODO: this should be limited to 50 characters due to a bug in the interaction between Batch
 		// and ECS

@@ -19,32 +19,32 @@ type Controller interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	HealthCheck(ctx context.Context) error
 
-	// GetJobsForWorkflow handles GET requests to /jobs/{workflowName}
+	// GetJobsForWorkflow handles GET requests to /jobs
 	//
 	// 200: []models.Job
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetJobsForWorkflow(ctx context.Context, workflowName string) ([]models.Job, error)
+	GetJobsForWorkflow(ctx context.Context, i *models.GetJobsForWorkflowInput) ([]models.Job, error)
 
-	// StartJobForWorkflow handles PUT requests to /jobs/{workflowName}
+	// StartJobForWorkflow handles POST requests to /jobs
 	//
 	// 200: *models.Job
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	StartJobForWorkflow(ctx context.Context, i *models.StartJobForWorkflowInput) (*models.Job, error)
+	StartJobForWorkflow(ctx context.Context, i *models.JobInput) (*models.Job, error)
 
-	// GetJob handles GET requests to /jobs/{workflowName}/{jobId}
+	// GetJob handles GET requests to /jobs/{jobId}
 	//
 	// 200: *models.Job
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetJob(ctx context.Context, i *models.GetJobInput) (*models.Job, error)
+	GetJob(ctx context.Context, jobId string) (*models.Job, error)
 
 	// NewWorkflow handles POST requests to /workflows
 	//

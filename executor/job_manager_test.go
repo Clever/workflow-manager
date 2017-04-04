@@ -11,17 +11,21 @@ import (
 )
 
 type mockBatchClient struct {
-	tasks map[string]string
+	tasks map[string]resources.Task
 }
 
-func (be *mockBatchClient) SubmitJob(name string, definition string, dependencies []string, input string) (string, error) {
+func (be *mockBatchClient) SubmitJob(name string, definition string, dependencies, input []string) (string, error) {
 	for _, d := range dependencies {
 		if _, ok := be.tasks[d]; !ok {
 			return "", fmt.Errorf("Dependency %s not found", d)
 		}
 	}
 	taskID := uuid.NewV4().String()
-	be.tasks[taskID] = name
+	be.tasks[taskID] = resources.Task{
+		ID:    taskID,
+		Name:  name,
+		Input: input,
+	}
 
 	return taskID, nil
 }
@@ -33,12 +37,12 @@ func (be *mockBatchClient) Status(tasks []*resources.Task) []error {
 func TestUpdateJobStatus(t *testing.T) {
 	jm := BatchJobManager{
 		&mockBatchClient{
-			map[string]string{},
+			map[string]resources.Task{},
 		},
 		store.NewMemoryStore(),
 	}
 	wf := resources.KitchenSinkWorkflow(t)
-	input := "test-start-input"
+	input := []string{"test-start-input"}
 
 	job, err := jm.CreateJob(wf, input)
 	assert.Nil(t, err)
@@ -93,18 +97,24 @@ func TestUpdateJobStatus(t *testing.T) {
 // TestCreateJob tests that tasks are created for a job in the right order
 // with the appropriate settings
 func TestCreateJob(t *testing.T) {
+	mockClient := &mockBatchClient{
+		map[string]resources.Task{},
+	}
 	jm := BatchJobManager{
-		&mockBatchClient{
-			map[string]string{},
-		},
+		mockClient,
 		store.NewMemoryStore(),
 	}
 
 	wf := resources.KitchenSinkWorkflow(t)
-	input := "test-start-input"
+	input := []string{"test-start-input", "arg2"}
 
 	job, err := jm.CreateJob(wf, input)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(job.Tasks), len(job.Workflow.States()))
+
+	t.Log("Input data is passed to the first task only")
+	assert.NotEmpty(t, job.Tasks[0].Input, mockClient.tasks[job.Tasks[0].ID].Input)
+	assert.Empty(t, job.Tasks[1].Input, mockClient.tasks[job.Tasks[1].ID].Input)
+	assert.Equal(t, job.Tasks[0].Input, mockClient.tasks[job.Tasks[0].ID].Input)
 }

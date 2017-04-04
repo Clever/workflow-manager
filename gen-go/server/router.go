@@ -112,21 +112,21 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("GET").Path("/jobs/{workflowName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.Methods("GET").Path("/jobs").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "getJobsForWorkflow")
 		h.GetJobsForWorkflowHandler(r.Context(), w, r)
 		ctx := WithTracingOpName(r.Context(), "getJobsForWorkflow")
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("PUT").Path("/jobs/{workflowName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.Methods("POST").Path("/jobs").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "startJobForWorkflow")
 		h.StartJobForWorkflowHandler(r.Context(), w, r)
 		ctx := WithTracingOpName(r.Context(), "startJobForWorkflow")
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("GET").Path("/jobs/{workflowName}/{jobId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.Methods("GET").Path("/jobs/{jobId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "GetJob")
 		h.GetJobHandler(r.Context(), w, r)
 		ctx := WithTracingOpName(r.Context(), "GetJob")

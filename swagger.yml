@@ -83,15 +83,11 @@ paths:
         404:
           $ref: "#/responses/NotFound"
 
-  /jobs/{workflowName}:
-    put:
+  /jobs:
+    post:
       summary: Start a job for a workflow
       operationId: startJobForWorkflow
       parameters:
-        - name: workflowName
-          in: path
-          type: string
-          required: true
         - name: input
           in: body
           schema:
@@ -108,7 +104,7 @@ paths:
       operationId: getJobsForWorkflow
       parameters:
         - name: workflowName
-          in: path
+          in: query
           type: string
           required: true
       responses:
@@ -121,15 +117,11 @@ paths:
         404:
           $ref: "#/responses/NotFound"
 
-  /jobs/{workflowName}/{jobId}:
+  /jobs/{jobId}:
     get:
       summary: Get details for the given jobId
       operationId: GetJob
       parameters:
-        - name: workflowName
-          in: path
-          type: string
-          required: true
         - name: jobId
           in: path
           type: string
@@ -240,5 +232,15 @@ definitions:
   JobInput:
     type: object
     properties:
+      workflow:
+        $ref: '#/definitions/WorkflowRef'
       data:
+        type: array
+
+  WorkflowRef:
+    type: object
+    properties:
+      name:
         type: string
+      revision:
+        type: integer
