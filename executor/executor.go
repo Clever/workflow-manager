@@ -6,4 +6,5 @@ import "github.com/Clever/workflow-manager/resources"
 type Executor interface {
 	SubmitJob(name string, definition string, dependencies []string, input []string) (string, error)
 	Status(ids []*resources.Task) []error
+	Cancel(ids []*resources.Task, reason string) []error
 }

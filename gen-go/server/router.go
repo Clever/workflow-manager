@@ -126,6 +126,13 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
+	router.Methods("DELETE").Path("/jobs/{jobId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "CancelJob")
+		h.CancelJobHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "CancelJob")
+		r = r.WithContext(ctx)
+	})
+
 	router.Methods("GET").Path("/jobs/{jobId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "GetJob")
 		h.GetJobHandler(r.Context(), w, r)

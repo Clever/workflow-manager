@@ -140,6 +140,15 @@ func (wm WorkflowManager) GetJob(ctx context.Context, jobId string) (*models.Job
 	return apiJobFromStore(job), nil
 }
 
+func (wm WorkflowManager) CancelJob(ctx context.Context, input *models.CancelJobInput) error {
+	job, err := wm.store.GetJob(input.JobId)
+	if err != nil {
+		return err
+	}
+
+	return wm.manager.CancelJob(&job, input.Reason.Reason)
+}
+
 func jsonToArgs(data []interface{}) []string {
 	args := []string{}
 	for _, v := range data {

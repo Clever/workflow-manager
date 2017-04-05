@@ -10,6 +10,7 @@ import (
 // JobManager in the interface for creating, stopping and checking status for Jobs (workflow runs)
 type JobManager interface {
 	CreateJob(def resources.WorkflowDefinition, input []string) (*resources.Job, error)
+	CancelJob(job *resources.Job, reason string) error
 	UpdateJobStatus(job *resources.Job) error
 }
 
@@ -42,6 +43,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 			jobSuccess = false
 		}
 		if task.Status == resources.TaskStatusRunning {
+			// any task running means running
 			jobRunning = true
 		}
 
@@ -52,12 +54,14 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 		}
 	}
 
-	if jobSuccess {
-		job.Status = resources.Succeded
-	} else if jobRunning {
+	if jobRunning {
 		job.Status = resources.Running
+		return nil
+	} else if jobSuccess {
+		job.Status = resources.Succeded
 	}
 
+	//jm.store.UpdateJob
 	return nil
 }
 
@@ -71,6 +75,30 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []st
 	}
 
 	return job, nil
+}
+
+func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
+	// don't cancel already succedded tasks
+	tasks := []*resources.Task{}
+	for _, task := range job.Tasks {
+		switch task.Status {
+		case resources.TaskStatusCreated,
+			resources.TaskStatusQueued,
+			resources.TaskStatusRunning,
+			resources.TaskStatusWaiting:
+
+			tasks = append(tasks, task)
+		}
+	}
+
+	errs := jm.executor.Cancel(tasks, reason)
+	//jm.store.UpdateJob
+
+	if len(errs) > 0 {
+		return fmt.Errorf("%d of %d tasks were not cancelled", len(errs), len(tasks))
+	}
+
+	return nil
 }
 
 func (jm BatchJobManager) scheduleTasks(job *resources.Job, input []string) error {

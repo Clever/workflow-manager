@@ -3,6 +3,7 @@ package store
 import (
 	"fmt"
 
+	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 )
 
@@ -30,14 +31,6 @@ func NewConflict(name string) ConflictError {
 	return ConflictError{name}
 }
 
-type NotFoundError struct {
-	name string
-}
-
-func (e NotFoundError) Error() string {
-	return fmt.Sprintf("Not Found: %s", e.name)
-}
-
-func NewNotFound(name string) NotFoundError {
-	return NotFoundError{name}
+func NewNotFound(name string) models.NotFound {
+	return models.NotFound{Message: name}
 }

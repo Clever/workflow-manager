@@ -31,7 +31,12 @@ func (be *mockBatchClient) SubmitJob(name string, definition string, dependencie
 }
 
 func (be *mockBatchClient) Status(tasks []*resources.Task) []error {
+	// ignore status update
 	return nil
+}
+
+func (be *mockBatchClient) Cancel(tasks []*resources.Task, reason string) []error {
+	return []error{fmt.Errorf("Not implemented")}
 }
 
 func TestUpdateJobStatus(t *testing.T) {
@@ -53,9 +58,11 @@ func TestUpdateJobStatus(t *testing.T) {
 	// mark one task as running
 	for _, task := range job.Tasks {
 		task.SetStatus(resources.TaskStatusRunning)
+		break
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("Job is RUNNING when a task starts RUNNING")
+	assert.Nil(t, err)
 	assert.Equal(t, job.Status, resources.Running)
 
 	// mark one task as failed
@@ -63,8 +70,9 @@ func TestUpdateJobStatus(t *testing.T) {
 		task.SetStatus(resources.TaskStatusFailed)
 		break
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("Job is FAILED if a task is FAILED")
+	assert.Nil(t, err)
 	assert.Equal(t, job.Status, resources.Failed)
 
 	// mark one task as success. should not mean success
@@ -72,16 +80,18 @@ func TestUpdateJobStatus(t *testing.T) {
 		task.SetStatus(resources.TaskStatusSucceeded)
 		break
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("One task SUCCESS does not result in job SUCCESS")
+	assert.Nil(t, err)
 	assert.NotEqual(t, job.Status, resources.Succeded)
 
 	// mark all tasks as success. should mean job success
 	for _, task := range job.Tasks {
 		task.SetStatus(resources.TaskStatusSucceeded)
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("Job is SUCCESSFUL if all tasks are SUCCESSFUL")
+	assert.Nil(t, err)
 	assert.Equal(t, job.Status, resources.Succeded)
 
 	// mark one task as failed, others are successful. Still means failed
@@ -89,8 +99,9 @@ func TestUpdateJobStatus(t *testing.T) {
 		task.SetStatus(resources.TaskStatusFailed)
 		break
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("Job is FAILED if any task FAILS")
+	assert.Nil(t, err)
 	assert.Equal(t, job.Status, resources.Failed)
 }
 
