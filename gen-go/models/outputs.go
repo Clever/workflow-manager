@@ -7,7 +7,3 @@ func (o BadRequest) Error() string {
 func (o InternalError) Error() string {
 	return o.Message
 }
-
-func (o NotFound) Error() string {
-	return o.Message
-}
