@@ -2,12 +2,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/batch"
 
@@ -20,7 +18,6 @@ import (
 // Config contains the configuration for the workflow-manager app
 type Config struct {
 	AWSRegion  string
-	AWSProfile string // profile should only be set for local runs
 	BatchQueue string
 }
 
@@ -52,21 +49,11 @@ func awsSession(c Config) *session.Session {
 		SharedConfigState: session.SharedConfigEnable,
 	}
 
-	// for local runs use profile and MFA
-	if c.AWSProfile != "" {
-		fmt.Printf("Using profile %s\n", c.AWSProfile)
-		options.AssumeRoleTokenProvider = stscreds.StdinTokenProvider
-		options.Profile = c.AWSProfile
-	}
-
-	sess := session.Must(session.NewSessionWithOptions(options))
-
-	return sess
+	return session.Must(session.NewSessionWithOptions(options))
 }
 
 func loadConfig() Config {
 	region := os.Getenv("AWS_REGION")
-	profile := os.Getenv("AWS_PROFILE")
 	queue := os.Getenv("BATCH_QUEUE")
 
 	if region == "" {
@@ -78,7 +65,6 @@ func loadConfig() Config {
 
 	return Config{
 		AWSRegion:  region,
-		AWSProfile: profile,
 		BatchQueue: queue,
 	}
 }
