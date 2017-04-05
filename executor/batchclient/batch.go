@@ -88,7 +88,7 @@ func (be BatchExecutor) jobToTaskDetail(job *batch.JobDetail) (resources.TaskDet
 		CreatedAt:    createdAt,
 		StartedAt:    startedAt,
 		StoppedAt:    stoppedAt,
-		Container:    containerArn,
+		ContainerId:  containerArn,
 	}, nil
 }
 
@@ -141,23 +141,15 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 		},
 	}
 
-	// this parameter can be optionally
-	// used to add a default CMD argument to
-	// the worker container.
-	jobParams := map[string]*string{}
 	if input != nil && len(input) > 0 {
 		inputStr, err := json.Marshal(input)
 		if err != nil {
 			return "", fmt.Errorf("Failed to marshall task %s input: %s", name, err)
 		}
-		jobParams[StartingInputEnvVarName] = aws.String(string(inputStr))
 		environment = append(environment, &batch.KeyValuePair{
 			Name:  aws.String(StartingInputEnvVarName),
 			Value: aws.String(string(inputStr)),
 		})
-	} else {
-		// TODO: fix: AWS does not like empty string here
-		jobParams[StartingInputEnvVarName] = aws.String(" ")
 	}
 
 	params := &batch.SubmitJobInput{
@@ -167,8 +159,7 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 		ContainerOverrides: &batch.ContainerOverrides{
 			Environment: environment,
 		},
-		DependsOn:  jobDeps,
-		Parameters: jobParams,
+		DependsOn: jobDeps,
 	}
 
 	output, err := be.client.SubmitJob(params)

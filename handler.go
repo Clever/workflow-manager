@@ -206,7 +206,7 @@ func apiJobFromStore(job resources.Job) *models.Job {
 			State:        task.State,
 			Status:       string(task.Status),
 			StatusReason: task.StatusReason,
-			Container:    task.Container,
+			Container:    task.ContainerId,
 		})
 	}
 

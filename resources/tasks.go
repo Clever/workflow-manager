@@ -19,7 +19,7 @@ type TaskDetail struct {
 	CreatedAt    time.Time
 	StartedAt    time.Time
 	StoppedAt    time.Time
-	Container    string
+	ContainerId  string // identification string for the running container
 	StatusReason string
 	Status       TaskStatus
 }
@@ -60,7 +60,7 @@ func (t *Task) SetDetail(detail TaskDetail) {
 	t.CreatedAt = detail.CreatedAt
 	t.StartedAt = detail.StartedAt
 	t.StoppedAt = detail.StoppedAt
-	t.Container = detail.Container
+	t.ContainerId = detail.ContainerId
 	t.Status = detail.Status
 	t.StatusReason = detail.StatusReason
 }

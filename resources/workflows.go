@@ -8,13 +8,16 @@ import (
 
 // State refers to the different states in a Workflow
 type State interface {
+	// State constants
 	Name() string
 	Type() string
 	Next() string
-	Dependencies() []string
-	AddDependency(State)
 	Resource() string
 	IsEnd() bool
+
+	// State metadata
+	Dependencies() []string
+	AddDependency(State)
 }
 
 // Workflow defines an interface for defining a flow of States
@@ -23,7 +26,6 @@ type Workflow interface {
 	Version() int
 	StartAt() State
 	States() map[string]State
-	//NextState(stateName string) State
 	OrderedStates() []State
 }
 
