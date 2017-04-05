@@ -38,20 +38,116 @@ func (i HealthCheckInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
-// NewWorkflowInput holds the input parameters for a newWorkflow operation.
-type NewWorkflowInput struct {
+// GetJobsForWorkflowInput holds the input parameters for a getJobsForWorkflow operation.
+type GetJobsForWorkflowInput struct {
+	WorkflowName string
 }
 
-// Validate returns an error if any of the NewWorkflowInput parameters don't satisfy the
+// Validate returns an error if any of the GetJobsForWorkflowInput parameters don't satisfy the
 // requirements from the swagger yml file.
-func (i NewWorkflowInput) Validate() error {
+func (i GetJobsForWorkflowInput) Validate() error {
+
 	return nil
 }
 
 // Path returns the URI path for the input.
-func (i NewWorkflowInput) Path() (string, error) {
-	path := "/workflows"
+func (i GetJobsForWorkflowInput) Path() (string, error) {
+	path := "/jobs"
 	urlVals := url.Values{}
+
+	urlVals.Add("workflowName", i.WorkflowName)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// GetJobInput holds the input parameters for a GetJob operation.
+type GetJobInput struct {
+	JobId string
+}
+
+// ValidateGetJobInput returns an error if the input parameter doesn't
+// satisfy the requirements in the swagger yml file.
+func ValidateGetJobInput(jobId string) error {
+
+	return nil
+}
+
+// GetJobInputPath returns the URI path for the input.
+func GetJobInputPath(jobId string) (string, error) {
+	path := "/jobs/{jobId}"
+	urlVals := url.Values{}
+
+	pathjobId := jobId
+	if pathjobId == "" {
+		err := fmt.Errorf("jobId cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{jobId}", pathjobId, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// GetWorkflowByNameInput holds the input parameters for a getWorkflowByName operation.
+type GetWorkflowByNameInput struct {
+	Name string
+}
+
+// ValidateGetWorkflowByNameInput returns an error if the input parameter doesn't
+// satisfy the requirements in the swagger yml file.
+func ValidateGetWorkflowByNameInput(name string) error {
+
+	return nil
+}
+
+// GetWorkflowByNameInputPath returns the URI path for the input.
+func GetWorkflowByNameInputPath(name string) (string, error) {
+	path := "/workflows/{name}"
+	urlVals := url.Values{}
+
+	pathname := name
+	if pathname == "" {
+		err := fmt.Errorf("name cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{name}", pathname, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// UpdateWorkflowInput holds the input parameters for a updateWorkflow operation.
+type UpdateWorkflowInput struct {
+	NewWorkflowRequest *NewWorkflowRequest
+	Name               string
+}
+
+// Validate returns an error if any of the UpdateWorkflowInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i UpdateWorkflowInput) Validate() error {
+
+	if err := i.NewWorkflowRequest.Validate(nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i UpdateWorkflowInput) Path() (string, error) {
+	path := "/workflows/{name}"
+	urlVals := url.Values{}
+
+	pathname := i.Name
+	if pathname == "" {
+		err := fmt.Errorf("name cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{name}", pathname, -1)
 
 	return path + "?" + urlVals.Encode(), nil
 }
