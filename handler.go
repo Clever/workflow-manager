@@ -26,11 +26,13 @@ func (wm WorkflowManager) HealthCheck(ctx context.Context) error {
 
 // NewWorkflow creates a new workflow
 func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.NewWorkflowRequest) (*models.Workflow, error) {
-
-	if len(workflowReq.States) == 0 || workflowReq.Name == "" {
+	//TODO: validate states
+	if len(workflowReq.States) == 0 {
 		return &models.Workflow{}, fmt.Errorf("Must define at least one state")
 	}
-	//TODO: validate states
+	if workflowReq.Name == "" {
+		return &models.Workflow{}, fmt.Errorf("Workflow `name` is required")
+	}
 
 	workflow, err := newWorkflowFromRequest(*workflowReq)
 	if err != nil {
@@ -44,12 +46,11 @@ func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.N
 }
 
 func (wm WorkflowManager) UpdateWorkflow(ctx context.Context, input *models.UpdateWorkflowInput) (*models.Workflow, error) {
-	if input.NewWorkflowRequest == nil || input.NewWorkflowRequest.Name != input.Name {
+	workflowReq := input.NewWorkflowRequest
+	if workflowReq == nil || workflowReq.Name != input.Name {
 		return &models.Workflow{}, fmt.Errorf("Name in path must match Workflow object")
 	}
-
-	workflowReq := input.NewWorkflowRequest
-	if len(workflowReq.States) == 0 || workflowReq.Name == "" {
+	if len(workflowReq.States) == 0 {
 		return &models.Workflow{}, fmt.Errorf("Must define at least one state")
 	}
 
@@ -91,6 +92,7 @@ func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models
 
 	var data []string
 	if input.Data != nil {
+		// convert from []interface{} to []string (i.e. flattened json string array)
 		data = jsonToArgs(input.Data)
 	}
 
