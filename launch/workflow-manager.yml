@@ -1,10 +1,10 @@
 env:
+  - LIGHTSTEP_ACCESS_TOKEN
   # AWS Batch settings and credentials
   - AWS_REGION
   - BATCH_QUEUE
   - AWS_ACCESS_KEY_ID
   - AWS_SECRET_ACCESS_KEY
-#- LIGHTSTEP_ACCESS_TOKEN
 resources:
   cpu: 0.01
   max_mem: 0.02
