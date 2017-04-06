@@ -21,6 +21,7 @@ deployment:
     commands:
     - $HOME/ci-scripts/circleci/docker-publish $DOCKER_USER $DOCKER_PASS "$DOCKER_EMAIL" $DOCKER_ORG
     - $HOME/ci-scripts/circleci/catapult-publish $CATAPULT_URL $CATAPULT_USER $CATAPULT_PASS $APP_NAME
+    - $HOME/ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS dapple
     - $HOME/ci-scripts/circleci/npm-publish $NPM_TOKEN gen-js/
 general:
   build_dir: ../.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
