@@ -9,7 +9,12 @@ workflow-manager client library.
         * [new WorkflowManager(options)](#new_module_workflow-manager--WorkflowManager_new)
         * _instance_
             * [.healthCheck([options], [cb])](#module_workflow-manager--WorkflowManager+healthCheck) ⇒ <code>Promise</code>
-            * [.newWorkflow([options], [cb])](#module_workflow-manager--WorkflowManager+newWorkflow) ⇒ <code>Promise</code>
+            * [.getJobsForWorkflow(workflowName, [options], [cb])](#module_workflow-manager--WorkflowManager+getJobsForWorkflow) ⇒ <code>Promise</code>
+            * [.startJobForWorkflow(input, [options], [cb])](#module_workflow-manager--WorkflowManager+startJobForWorkflow) ⇒ <code>Promise</code>
+            * [.GetJob(jobId, [options], [cb])](#module_workflow-manager--WorkflowManager+GetJob) ⇒ <code>Promise</code>
+            * [.newWorkflow(NewWorkflowRequest, [options], [cb])](#module_workflow-manager--WorkflowManager+newWorkflow) ⇒ <code>Promise</code>
+            * [.getWorkflowByName(name, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowByName) ⇒ <code>Promise</code>
+            * [.updateWorkflow(params, [options], [cb])](#module_workflow-manager--WorkflowManager+updateWorkflow) ⇒ <code>Promise</code>
         * _static_
             * [.RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)
                 * [.Exponential](#module_workflow-manager--WorkflowManager.RetryPolicies.Exponential)
@@ -18,6 +23,7 @@ workflow-manager client library.
             * [.Errors](#module_workflow-manager--WorkflowManager.Errors)
                 * [.BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest) ⇐ <code>Error</code>
                 * [.InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError) ⇐ <code>Error</code>
+                * [.NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound) ⇐ <code>Error</code>
 
 <a name="exp_module_workflow-manager--WorkflowManager"></a>
 
@@ -58,9 +64,66 @@ Checks if the service is healthy
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
+<a name="module_workflow-manager--WorkflowManager+getJobsForWorkflow"></a>
+
+#### workflowManager.getJobsForWorkflow(workflowName, [options], [cb]) ⇒ <code>Promise</code>
+**Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
+**Fulfill**: <code>Object[]</code>  
+**Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
+**Reject**: <code>[NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound)</code>  
+**Reject**: <code>[InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError)</code>  
+**Reject**: <code>Error</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| workflowName | <code>string</code> |  |
+| [options] | <code>object</code> |  |
+| [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
+| [cb] | <code>function</code> |  |
+
+<a name="module_workflow-manager--WorkflowManager+startJobForWorkflow"></a>
+
+#### workflowManager.startJobForWorkflow(input, [options], [cb]) ⇒ <code>Promise</code>
+**Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
+**Fulfill**: <code>Object</code>  
+**Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
+**Reject**: <code>[NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound)</code>  
+**Reject**: <code>[InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError)</code>  
+**Reject**: <code>Error</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| input |  |  |
+| [options] | <code>object</code> |  |
+| [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
+| [cb] | <code>function</code> |  |
+
+<a name="module_workflow-manager--WorkflowManager+GetJob"></a>
+
+#### workflowManager.GetJob(jobId, [options], [cb]) ⇒ <code>Promise</code>
+**Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
+**Fulfill**: <code>Object</code>  
+**Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
+**Reject**: <code>[NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound)</code>  
+**Reject**: <code>[InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError)</code>  
+**Reject**: <code>Error</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| jobId | <code>string</code> |  |
+| [options] | <code>object</code> |  |
+| [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
+| [cb] | <code>function</code> |  |
+
 <a name="module_workflow-manager--WorkflowManager+newWorkflow"></a>
 
-#### workflowManager.newWorkflow([options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.newWorkflow(NewWorkflowRequest, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -69,6 +132,47 @@ Checks if the service is healthy
 
 | Param | Type | Description |
 | --- | --- | --- |
+| NewWorkflowRequest |  |  |
+| [options] | <code>object</code> |  |
+| [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
+| [cb] | <code>function</code> |  |
+
+<a name="module_workflow-manager--WorkflowManager+getWorkflowByName"></a>
+
+#### workflowManager.getWorkflowByName(name, [options], [cb]) ⇒ <code>Promise</code>
+**Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
+**Fulfill**: <code>Object</code>  
+**Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
+**Reject**: <code>[NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound)</code>  
+**Reject**: <code>[InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError)</code>  
+**Reject**: <code>Error</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| name | <code>string</code> |  |
+| [options] | <code>object</code> |  |
+| [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
+| [cb] | <code>function</code> |  |
+
+<a name="module_workflow-manager--WorkflowManager+updateWorkflow"></a>
+
+#### workflowManager.updateWorkflow(params, [options], [cb]) ⇒ <code>Promise</code>
+**Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
+**Fulfill**: <code>Object</code>  
+**Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
+**Reject**: <code>[NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound)</code>  
+**Reject**: <code>[InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError)</code>  
+**Reject**: <code>Error</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| params | <code>Object</code> |  |
+| [params.NewWorkflowRequest] |  |  |
+| params.name | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
@@ -115,6 +219,7 @@ Errors returned by methods.
 * [.Errors](#module_workflow-manager--WorkflowManager.Errors)
     * [.BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest) ⇐ <code>Error</code>
     * [.InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError) ⇐ <code>Error</code>
+    * [.NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound) ⇐ <code>Error</code>
 
 <a name="module_workflow-manager--WorkflowManager.Errors.BadRequest"></a>
 
@@ -133,6 +238,19 @@ BadRequest
 
 ##### Errors.InternalError ⇐ <code>Error</code>
 InternalError
+
+**Kind**: static class of <code>[Errors](#module_workflow-manager--WorkflowManager.Errors)</code>  
+**Extends:** <code>Error</code>  
+**Properties**
+
+| Name | Type |
+| --- | --- |
+| message | <code>string</code> | 
+
+<a name="module_workflow-manager--WorkflowManager.Errors.NotFound"></a>
+
+##### Errors.NotFound ⇐ <code>Error</code>
+NotFound
 
 **Kind**: static class of <code>[Errors](#module_workflow-manager--WorkflowManager.Errors)</code>  
 **Extends:** <code>Error</code>  

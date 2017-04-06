@@ -14,8 +14,14 @@ import (
 // swagger:model NewWorkflowRequest
 type NewWorkflowRequest struct {
 
+	// description
+	Description string `json:"description,omitempty"`
+
 	// name
 	Name string `json:"name,omitempty"`
+
+	// start at
+	StartAt string `json:"startAt,omitempty"`
 
 	// states
 	States []*State `json:"states"`
