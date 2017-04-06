@@ -6,7 +6,7 @@ SHELL := /bin/bash
 APP_NAME ?= workflow-manager
 EXECUTABLE = $(APP_NAME)
 PKG = github.com/Clever/$(APP_NAME)
-PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go)
+PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /workflow-ops)
 
 WAG_VERSION := latest
 
@@ -15,8 +15,8 @@ $(eval $(call golang-version-check,1.7))
 all: test build
 
 test: $(PKGS)
-$(PKGS): golang-test-all-strict-deps
-	$(call golang-test-all-strict,$@)
+$(PKGS): golang-test-all-deps
+	$(call golang-test-all,$@)
 
 build:
 	CGO_ENABLED=0 go build -installsuffix cgo -o build/$(EXECUTABLE) $(PKG)

@@ -1,19 +1,62 @@
-hash: b61115a0a3c973bd2787a313f005a89b7b3e353bf43c57097d283b708f2783d9
-updated: 2017-03-01T01:24:02.642875792Z
+hash: 576e821e7f0e4a79f9110c2c944bfe2d14e2f7cb503b55fb4e07299e860fe879
+updated: 2017-03-30T19:31:20.878501246Z
 imports:
+- name: github.com/afex/hystrix-go
+  version: 39520ddd07a9d9a071d615f7476798659f5a3b89
+  subpackages:
+  - hystrix
+  - hystrix/metric_collector
+  - hystrix/rolling
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
+- name: github.com/aws/aws-sdk-go
+  version: 069aafcbf0db604407291f9acc76c6b69fc99e0e
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/credentials/endpointcreds
+  - aws/credentials/stscreds
+  - aws/defaults
+  - aws/ec2metadata
+  - aws/endpoints
+  - aws/request
+  - aws/session
+  - aws/signer/v4
+  - private/protocol
+  - private/protocol/json/jsonutil
+  - private/protocol/jsonrpc
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/restjson
+  - private/protocol/xml/xmlutil
+  - service/batch
+  - service/batch/batchiface
+  - service/sts
+- name: github.com/Clever/discovery-go
+  version: fd78b9ff3291bf5e69038a9b2da73e91ca0e49c7
 - name: github.com/Clever/go-process-metrics
   version: 17c3da159c36ee2bbb4198c8eeada7f68184350f
   subpackages:
   - metrics
-- name: github.com/Clever/wag
-  version: 8407d537e7a015a65d6f744abc3c3e1b85036d78
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
-  - samples/gen-go/models
-  - samples/gen-go/server
+  - spew
+- name: github.com/donovanhide/eventsource
+  version: fd1de70867126402be23c306e1ce32828455d85b
+- name: github.com/fsnotify/fsnotify
+  version: bd2828f9f176e52d7222e565abb2d338d3f3c103
 - name: github.com/go-errors/errors
   version: a41850380601eeb43f4350f7d17c6bbd8944aaf8
+- name: github.com/go-ini/ini
+  version: 6e4869b434bd001f6983749881c7ead3545887d8
 - name: github.com/go-openapi/analysis
   version: 7222828b8ce19afee3c595aef6643b9e42150120
 - name: github.com/go-openapi/errors
@@ -51,6 +94,25 @@ imports:
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: 757bef944d0f21880861c2dd9c871ca543023cba
+- name: github.com/hashicorp/hcl
+  version: 99ce73d4fe576449f7a689d4fc2b2ad09a86bdaa
+  subpackages:
+  - hcl/ast
+  - hcl/parser
+  - hcl/scanner
+  - hcl/strconv
+  - hcl/token
+  - json/parser
+  - json/scanner
+  - json/token
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jmespath/go-jmespath
+  version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
+- name: github.com/kardianos/osext
+  version: c2c54e542fb797ad986b31721e1baedf214ca413
+- name: github.com/kr/fs
+  version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/lightstep/lightstep-tracer-go
   version: 0d48cd619841b1e1a3cdd20cd6ac97774c0002ce
   subpackages:
@@ -58,12 +120,16 @@ imports:
   - lightstep_thrift
   - thrift_0_9_2/lib/go/thrift
   - thrift_rpc
+- name: github.com/magiconair/properties
+  version: 0723e352fa358f9322c938cc2dadda874e9151a9
 - name: github.com/mailru/easyjson
   version: 9dc3521db3580379d6cc493938ef9d2e9782ee7b
   subpackages:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/mitchellh/mapstructure
+  version: f3009df150dadf309fdee4a54ed65c124afad715
 - name: github.com/opentracing/basictracer-go
   version: 1b32af207119a14b1b231d451df3ed04a72efebf
   subpackages:
@@ -73,26 +139,71 @@ imports:
   subpackages:
   - ext
   - log
+- name: github.com/pelletier/go-buffruneio
+  version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
+- name: github.com/pelletier/go-toml
+  version: 45932ad32dfdd20826f5671da37a5f3ce9f26a8d
+- name: github.com/pkg/errors
+  version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
+- name: github.com/pkg/sftp
+  version: 4d0e916071f68db74f8a73926335f809396d6b42
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
 - name: github.com/PuerkitoBio/purell
   version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/spf13/afero
+  version: 52e4a6cfac46163658bd4f123c49b6ee7dc75f78
+  subpackages:
+  - mem
+  - sftp
+- name: github.com/spf13/cast
+  version: 2580bc98dc0e62908119e4737030cc2fdfc45e4c
+- name: github.com/spf13/cobra
+  version: 6e91dded25d73176bf7f60b40dd7aa1f0bf9be8d
+- name: github.com/spf13/jwalterweatherman
+  version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
+- name: github.com/spf13/pflag
+  version: 5ccb023bc27df288a957c5e994cd44fd19619465
+- name: github.com/spf13/viper
+  version: 285f1510193473600929e1183915f6220fabab94
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
 - name: github.com/xeipuuv/gojsonpointer
   version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
 - name: github.com/xeipuuv/gojsonreference
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - name: github.com/xeipuuv/gojsonschema
   version: e18f0065e8c148fcf567ac43a3f8f5b66ac0720b
+- name: golang.org/x/crypto
+  version: ca7e7f10cb9fd9c1a6ff7f60436c086d73714180
+  subpackages:
+  - curve25519
+  - ed25519
+  - ed25519/internal/edwards25519
+  - ssh
 - name: golang.org/x/net
-  version: b626cca987fa6333e5dd25baa0fd61708c145011
+  version: b336a971b799939dd16ae9b1df8334cb8b977c4d
   subpackages:
   - context
+  - context/ctxhttp
   - http2
   - http2/hpack
   - idna
   - internal/timeseries
   - lex/httplex
   - trace
+- name: golang.org/x/sys
+  version: c200b10b5d5e122be351b67af224adc6128af5bf
+  subpackages:
+  - unix
 - name: golang.org/x/text
   version: a8b38433e35b65ba247bb267317037dee1b70cea
   subpackages:
@@ -128,11 +239,11 @@ imports:
   version: 865aa5e4bbe8e274c69accd53f0b1e2ecc484cd8
   subpackages:
   - logger
-  - middleware
 - name: gopkg.in/Clever/kayvee-go.v6
-  version: 46dcd0a150bd16e7462efd62c755a2fce8237dfc
+  version: 096364e316a52652d3493be702d8105d8d01db84
   subpackages:
   - logger
+  - middleware
   - router
 - name: gopkg.in/tylerb/graceful.v1
   version: 50a48b6e73fcc75b45e22c05b79629a67c79e938
