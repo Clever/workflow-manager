@@ -34,6 +34,11 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	if len(errs) > 0 {
 		return fmt.Errorf("Failed to update status for %d tasks. errors: %s", len(errs), errs)
 	}
+	if job.Status == resources.Cancelled {
+		// if a job is cancelled, just return the updated task status
+		// JobStatus should remain cancelled
+		return nil
+	}
 
 	jobSuccess := true
 	jobRunning := false
@@ -46,7 +51,6 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 			// any task running means running
 			jobRunning = true
 		}
-
 		if task.Status == resources.TaskStatusFailed {
 			// any task failure results in the job being failed
 			job.Status = resources.Failed
@@ -96,6 +100,11 @@ func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 
 	if len(errs) > 0 {
 		return fmt.Errorf("%d of %d tasks were not cancelled", len(errs), len(tasks))
+	}
+	if len(errs) < len(tasks) {
+		// TODO: this assumes that a workflow is linear. One task cancellation
+		// will lead to all subsequent tasks failing
+		job.Status = resources.Cancelled
 	}
 
 	return nil
