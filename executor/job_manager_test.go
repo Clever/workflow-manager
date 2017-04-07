@@ -31,6 +31,21 @@ func (be *mockBatchClient) SubmitJob(name string, definition string, dependencie
 }
 
 func (be *mockBatchClient) Status(tasks []*resources.Task) []error {
+	errs := []error{}
+	for _, t := range tasks {
+		if _, ok := be.tasks[t.ID]; !ok {
+			errs = append(errs, fmt.Errorf("%s", t.ID))
+		}
+	}
+	return errs
+}
+
+func (be *mockBatchClient) Cancel(tasks []*resources.Task, reason string) []error {
+	// mark first task as Cancelled
+	if len(tasks) > 0 {
+		tasks[0].Status = resources.TaskStatusUserAborted
+	}
+
 	return nil
 }
 
@@ -53,9 +68,11 @@ func TestUpdateJobStatus(t *testing.T) {
 	// mark one task as running
 	for _, task := range job.Tasks {
 		task.SetStatus(resources.TaskStatusRunning)
+		break
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("Job is RUNNING when a task starts RUNNING")
+	assert.Nil(t, err)
 	assert.Equal(t, job.Status, resources.Running)
 
 	// mark one task as failed
@@ -63,8 +80,9 @@ func TestUpdateJobStatus(t *testing.T) {
 		task.SetStatus(resources.TaskStatusFailed)
 		break
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("Job is FAILED if a task is FAILED")
+	assert.Nil(t, err)
 	assert.Equal(t, job.Status, resources.Failed)
 
 	// mark one task as success. should not mean success
@@ -72,16 +90,18 @@ func TestUpdateJobStatus(t *testing.T) {
 		task.SetStatus(resources.TaskStatusSucceeded)
 		break
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("One task SUCCESS does not result in job SUCCESS")
+	assert.Nil(t, err)
 	assert.NotEqual(t, job.Status, resources.Succeded)
 
 	// mark all tasks as success. should mean job success
 	for _, task := range job.Tasks {
 		task.SetStatus(resources.TaskStatusSucceeded)
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("Job is SUCCESSFUL if all tasks are SUCCESSFUL")
+	assert.Nil(t, err)
 	assert.Equal(t, job.Status, resources.Succeded)
 
 	// mark one task as failed, others are successful. Still means failed
@@ -89,9 +109,45 @@ func TestUpdateJobStatus(t *testing.T) {
 		task.SetStatus(resources.TaskStatusFailed)
 		break
 	}
-	jm.UpdateJobStatus(job)
+	err = jm.UpdateJobStatus(job)
 	t.Log("Job is FAILED if any task FAILS")
+	assert.Nil(t, err)
 	assert.Equal(t, job.Status, resources.Failed)
+}
+
+// TestCancelUpdates ensures that a cancelling a job works
+// and that the following updates behave as expected
+func TestCancelUpdates(t *testing.T) {
+	batchClient := &mockBatchClient{
+		map[string]resources.Task{},
+	}
+	jm := BatchJobManager{
+		batchClient,
+		store.NewMemoryStore(),
+	}
+	wf := resources.KitchenSinkWorkflow(t)
+	input := []string{"test-start-input"}
+
+	job, err := jm.CreateJob(wf, input)
+	assert.Nil(t, err)
+
+	// mark all tasks as running
+	for _, task := range job.Tasks {
+		task.SetStatus(resources.TaskStatusRunning)
+	}
+	err = jm.UpdateJobStatus(job)
+	assert.NotEqual(t, resources.Cancelled, job.Status)
+
+	// cancel the job
+	t.Log("CancelJob marks a job as Cancelled")
+	err = jm.CancelJob(job, "testing")
+	assert.Nil(t, err)
+	assert.Equal(t, resources.Cancelled, job.Status)
+
+	// UpdateStatus ensures that job is still marked as Cancelled
+	err = jm.UpdateJobStatus(job)
+	assert.Nil(t, err)
+	assert.Equal(t, resources.Cancelled, job.Status)
 }
 
 // TestCreateJob tests that tasks are created for a job in the right order

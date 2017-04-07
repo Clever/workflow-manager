@@ -333,6 +333,111 @@ func newStartJobForWorkflowInput(r *http.Request) (*models.JobInput, error) {
 	return &input, nil
 }
 
+// statusCodeForCancelJob returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForCancelJob(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) CancelJobHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newCancelJobInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = h.CancelJob(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForCancelJob(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	w.WriteHeader(200)
+	w.Write([]byte(""))
+
+}
+
+// newCancelJobInput takes in an http.Request an returns the input struct.
+func newCancelJobInput(r *http.Request) (*models.CancelJobInput, error) {
+	var input models.CancelJobInput
+
+	var err error
+	_ = err
+
+	jobIdStr := mux.Vars(r)["jobId"]
+	if len(jobIdStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	jobIdStrs := []string{jobIdStr}
+
+	if len(jobIdStrs) > 0 {
+		var jobIdTmp string
+		jobIdStr := jobIdStrs[0]
+		jobIdTmp, err = jobIdStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.JobId = jobIdTmp
+	}
+
+	data, err := ioutil.ReadAll(r.Body)
+	if len(data) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+
+	if len(data) > 0 {
+		input.Reason = &models.CancelReason{}
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Reason); err != nil {
+			return nil, err
+		}
+	}
+
+	return &input, nil
+}
+
 // statusCodeForGetJob returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
 func statusCodeForGetJob(obj interface{}) int {

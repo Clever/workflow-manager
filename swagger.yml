@@ -133,6 +133,24 @@ paths:
             $ref: "#/definitions/Job"
         404:
           $ref: "#/responses/NotFound"
+    delete:
+      summary: Cancel job with the jobId
+      operationId: CancelJob
+      parameters:
+        - name: jobId
+          in: path
+          type: string
+          required: true
+        - name: reason
+          in: body
+          schema:
+            $ref: "#/definitions/CancelReason"
+          required: true
+      responses:
+        200:
+          type: string
+        404:
+          $ref: "#/responses/NotFound"
 
 definitions:
   InternalError:
@@ -244,3 +262,9 @@ definitions:
         type: string
       revision:
         type: integer
+
+  CancelReason:
+    type: object
+    properties:
+      reason:
+        type: string

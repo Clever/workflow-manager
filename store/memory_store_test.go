@@ -12,7 +12,7 @@ func TestUpdateWorkflow(t *testing.T) {
 
 	// create kitchensink workflow
 	store := NewMemoryStore()
-	err := store.CreateWorkflow(resources.KitchenSinkWorkflow(t))
+	err := store.SaveWorkflow(resources.KitchenSinkWorkflow(t))
 	assert.Nil(t, err)
 
 	// get kitchensink workflow

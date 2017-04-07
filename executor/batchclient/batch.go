@@ -63,6 +63,27 @@ func (be BatchExecutor) Status(tasks []*resources.Task) []error {
 	return nil
 }
 
+func (be BatchExecutor) Cancel(tasks []*resources.Task, reason string) []error {
+	var taskErrors []error
+	// append TaskStatusUserAborted so that we can infer that failure was due to
+	// user action when updating status
+	userReason := fmt.Sprintf("%s: %s", resources.TaskStatusUserAborted, reason)
+
+	for _, task := range tasks {
+		_, err := be.client.TerminateJob(&batch.TerminateJobInput{
+			JobId:  aws.String(task.ID),
+			Reason: aws.String(userReason),
+		})
+		if err != nil {
+			taskErrors = append(taskErrors, err)
+		} else {
+			task.SetStatus(resources.TaskStatusUserAborted)
+		}
+	}
+
+	return taskErrors
+}
+
 func (be BatchExecutor) jobToTaskDetail(job *batch.JobDetail) (resources.TaskDetail, error) {
 	var statusReason, containerArn string
 	var createdAt, startedAt, stoppedAt time.Time
@@ -96,6 +117,10 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.TaskStatus {
 	if job == nil || job.Status == nil {
 		return "UNKNOWN_STATE"
 	}
+	statusReason := ""
+	if job.StatusReason != nil {
+		statusReason = *job.StatusReason
+	}
 
 	switch *job.Status {
 	case batch.JobStatusSubmitted:
@@ -114,7 +139,11 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.TaskStatus {
 		return resources.TaskStatusSucceeded
 	case batch.JobStatusFailed:
 		if job.StartedAt == nil {
-			return resources.TaskStatusAborted
+			if strings.HasPrefix(string(resources.TaskStatusUserAborted), statusReason) {
+				return resources.TaskStatusUserAborted
+			} else {
+				return resources.TaskStatusAborted
+			}
 		}
 		return resources.TaskStatusFailed
 	default:

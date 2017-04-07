@@ -62,6 +62,16 @@ func (_mr *_MockControllerRecorder) StartJobForWorkflow(arg0, arg1 interface{}) 
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "StartJobForWorkflow", arg0, arg1)
 }
 
+func (_m *MockController) CancelJob(ctx context.Context, i *models.CancelJobInput) error {
+	ret := _m.ctrl.Call(_m, "CancelJob", ctx, i)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockControllerRecorder) CancelJob(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "CancelJob", arg0, arg1)
+}
+
 func (_m *MockController) GetJob(ctx context.Context, jobId string) (*models.Job, error) {
 	ret := _m.ctrl.Call(_m, "GetJob", ctx, jobId)
 	ret0, _ := ret[0].(*models.Job)

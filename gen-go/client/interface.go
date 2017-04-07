@@ -37,6 +37,15 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	StartJobForWorkflow(ctx context.Context, i *models.JobInput) (*models.Job, error)
 
+	// CancelJob makes a DELETE request to /jobs/{jobId}
+	//
+	// 200: nil
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	CancelJob(ctx context.Context, i *models.CancelJobInput) error
+
 	// GetJob makes a GET request to /jobs/{jobId}
 	//
 	// 200: *models.Job
