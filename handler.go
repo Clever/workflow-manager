@@ -38,7 +38,7 @@ func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.N
 	if err != nil {
 		return &models.Workflow{}, err
 	}
-	if err := wm.store.CreateWorkflow(workflow); err != nil {
+	if err := wm.store.SaveWorkflow(workflow); err != nil {
 		return &models.Workflow{}, err
 	}
 
@@ -101,11 +101,7 @@ func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models
 		return &models.Job{}, err
 	}
 
-	// TODO: Don't actually store at this point, but should be done earlier. If saving
-	// fails we should either
-	// 1. reconcile somehow with the scheduled tasks
-	// 2. kill the running tasks so that we don't have orphan tasks in AWS Batch
-	err = wm.store.CreateJob(*job)
+	err = wm.store.SaveJob(*job)
 	if err != nil {
 		return &models.Job{}, err
 	}
@@ -134,8 +130,10 @@ func (wm WorkflowManager) GetJob(ctx context.Context, jobId string) (*models.Job
 		return &models.Job{}, err
 	}
 
-	// TODO: don't update the job status inline
-	wm.manager.UpdateJobStatus(&job)
+	err = wm.manager.UpdateJobStatus(&job)
+	if err != nil {
+		return &models.Job{}, err
+	}
 
 	return apiJobFromStore(job), nil
 }

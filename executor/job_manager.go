@@ -42,6 +42,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 
 	jobSuccess := true
 	jobRunning := false
+	jobFailed := false
 	for _, task := range job.Tasks {
 		if task.Status != resources.TaskStatusSucceeded {
 			// all tasks should be successful for job success
@@ -53,20 +54,19 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 		}
 		if task.Status == resources.TaskStatusFailed {
 			// any task failure results in the job being failed
-			job.Status = resources.Failed
-			return nil
+			jobFailed = true
 		}
 	}
 
-	if jobRunning {
+	if jobFailed {
+		job.Status = resources.Failed
+	} else if jobRunning {
 		job.Status = resources.Running
-		return nil
 	} else if jobSuccess {
 		job.Status = resources.Succeded
 	}
 
-	//jm.store.UpdateJob
-	return nil
+	return jm.store.UpdateJob(*job)
 }
 
 // CreateJob can be used to create a new job for a workflow
@@ -78,7 +78,11 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []st
 		return &resources.Job{}, err
 	}
 
-	return job, nil
+	// TODO: fails we should either
+	// 1. reconcile somehow with the scheduled tasks
+	// 2. kill the running tasks so that we don't have orphan tasks in AWS Batch
+	err = jm.store.SaveJob(*job)
+	return job, err
 }
 
 func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
@@ -96,7 +100,7 @@ func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 	}
 
 	errs := jm.executor.Cancel(tasks, reason)
-	//jm.store.UpdateJob
+	jm.store.UpdateJob(*job)
 
 	if len(errs) > 0 {
 		return fmt.Errorf("%d of %d tasks were not cancelled", len(errs), len(tasks))

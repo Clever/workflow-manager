@@ -18,7 +18,7 @@ func NewMemoryStore() MemoryStore {
 	}
 }
 
-func (s MemoryStore) CreateWorkflow(def resources.WorkflowDefinition) error {
+func (s MemoryStore) SaveWorkflow(def resources.WorkflowDefinition) error {
 
 	if _, ok := s.workflows[def.Name()]; ok {
 		return NewConflict(def.Name())
@@ -60,9 +60,18 @@ func (s MemoryStore) LatestWorkflow(name string) (resources.WorkflowDefinition, 
 	return s.GetWorkflow(name, len(s.workflows[name])-1)
 }
 
-func (s MemoryStore) CreateJob(job resources.Job) error {
+func (s MemoryStore) SaveJob(job resources.Job) error {
 	if _, ok := s.jobs[job.ID]; ok {
 		return NewConflict(job.ID)
+	}
+
+	s.jobs[job.ID] = job
+	return nil
+}
+
+func (s MemoryStore) UpdateJob(job resources.Job) error {
+	if _, ok := s.jobs[job.ID]; !ok {
+		return NewNotFound(job.ID)
 	}
 
 	s.jobs[job.ID] = job
