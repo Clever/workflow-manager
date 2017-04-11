@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/resources"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,15 +39,17 @@ func TestNewWorkflowFromRequest(t *testing.T) {
 	t.Log("No error converting from new workflow request to resource")
 	assert.Nil(t, err)
 
-	var prevState resources.State
+	// We currently only support linear workflows (single dependency)
+	// and we also require that start-state does not have dependencies.
+	// i.e. start states in the middle of the workflow are not allowed.
 	for _, s := range wf.States() {
-		if prevState == nil {
-			// ignore first state
-			prevState = s
-			continue
+		if s.Name() == wf.StartAt().Name() {
+			t.Logf("Starting state has no dependencies")
+			assert.Empty(t, s.Dependencies())
+		} else {
+			t.Logf("State %s has the correct infered dependency", s.Name())
+			depName := s.Dependencies()[0]
+			assert.Equal(t, wf.States()[depName].Next(), s.Name())
 		}
-		t.Logf("State %s have inferred depdendencies", s.Name())
-		assert.Equal(t, prevState.Name(), s.Dependencies()[0])
-		prevState = s
 	}
 }

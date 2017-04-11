@@ -161,6 +161,9 @@ func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDe
 
 	states := map[string]resources.State{}
 	for _, s := range req.States {
+		if s.Type != "" && s.Type != "Task" {
+			return resources.WorkflowDefinition{}, fmt.Errorf("Only States of `type=Task` are supported")
+		}
 		workerState, err := resources.NewWorkerState(s.Name, s.Next, s.Resource, s.End)
 		if err != nil {
 			return resources.WorkflowDefinition{}, err

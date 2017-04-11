@@ -70,7 +70,6 @@ func (wf WorkflowDefinition) StartAt() State {
 
 // NewWorkflowDefinition creates a new Workflow
 func NewWorkflowDefinition(name string, desc string, startAt string, states map[string]State) (WorkflowDefinition, error) {
-
 	orderedStates, err := orderStates(states)
 	if err != nil {
 		return WorkflowDefinition{}, err
