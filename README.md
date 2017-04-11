@@ -2,6 +2,8 @@
 
 Minimal Workflow orchestrator for AWS Batch
 
+![](https://circleci.com/gh/Clever/workflow-manager/tree/master.svg?style=shield) [![GoDoc](https://godoc.org/github.com/Clever/workflow-manager?status.png)](http://godoc.org/github.com/Clever/workflow-manager)
+
 Owned by eng-infra
 
 ## Development
