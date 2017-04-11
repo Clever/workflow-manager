@@ -101,11 +101,6 @@ func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models
 		return &models.Job{}, err
 	}
 
-	err = wm.store.SaveJob(*job)
-	if err != nil {
-		return &models.Job{}, err
-	}
-
 	return apiJobFromStore(*job), nil
 }
 
