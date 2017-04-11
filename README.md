@@ -25,21 +25,22 @@ Also contains `KitchenSink` which is a workflow resource that can be used by oth
   * `JobManager` currently is currently a place where Workflows are converted to tasks and vice versa.
   *  `JobManager` also converts between the resources to details that can be consumed by the `BatchClient` 
 
-* `store` defines and interface for the store and contains a very simple in-memory implementation
+* `store` defines an interface for the store and contains a very simple in-memory implementation
 
 ### Setting up a workflow
 
 1. Setup a Batch environment in AWS with a `JobQueue` and a `ComputeEnvironment`. 
 
-2. Create one or more `JobDefinitions` the `AWS CLI` or [UI](https://console.aws.amazon.com/batch/home?region=us-east-1#/job-definitions/new) (with IAM Permissions)
+2. Create one or more `JobDefinitions` via the [AWS CLI](http://docs.aws.amazon.com/cli/latest/reference/batch/index.html) 
+or [UI](https://console.aws.amazon.com/batch/home?region=us-east-1#/job-definitions/new) (with IAM Permissions)
 
-3. Your app role should have the `batchcli-dev` policy (defined below) appended to it
+3. Your app role should have the [batchcli](https://github.com/Clever/batchcli/tree/master/README.md#AWS_Policy) policy appended to it
 
 4. Define a workflow json (see [example](./data/hello-workflow.post.json) with the resource as the `job-definition-name:version-number`
 
 ### Running a job
 
-0. Run workflow-manager on your local machine or on an ECS cluster.
+0. Run workflow-manager on your local machine (`ark start -l`) or on an ECS cluster (`ark start workflow-manager`).
 
 1. Post the workflow using the API
 
@@ -47,7 +48,7 @@ Also contains `KitchenSink` which is a workflow resource that can be used by oth
 curl -XPOST http://localhost:8080/workflows -d @data/hello-workflow.post.json
 ```
 
-2. [optional]  Test the above worked.
+2. [optional]  Verify the workflow was created.
 
 ```sh
 curl -XGET http://localhost:8080/workflows/hello-workflow
