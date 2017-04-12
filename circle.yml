@@ -15,16 +15,18 @@ test:
   override:
   - make test
 deployment:
-  all:
-    branch: /.*/ 
+  non-master:
+    branch: /^(?!master$)/
     owner: Clever
     commands:
     - $HOME/ci-scripts/circleci/docker-publish $DOCKER_USER $DOCKER_PASS "$DOCKER_EMAIL" $DOCKER_ORG
     - $HOME/ci-scripts/circleci/catapult-publish $CATAPULT_URL $CATAPULT_USER $CATAPULT_PASS $APP_NAME
-  production:
-    branc: master
+  master:
+    branch: master
     owner: Clever
     commands:
+      - $HOME/ci-scripts/circleci/docker-publish $DOCKER_USER $DOCKER_PASS "$DOCKER_EMAIL" $DOCKER_ORG
+      - $HOME/ci-scripts/circleci/catapult-publish $CATAPULT_URL $CATAPULT_USER $CATAPULT_PASS $APP_NAME
       - $HOME/ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS $APP_NAME
       - $HOME/ci-scripts/circleci/npm-publish $NPM_TOKEN gen-js/
 general:
