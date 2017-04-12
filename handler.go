@@ -84,8 +84,13 @@ func (wm WorkflowManager) GetWorkflowByName(ctx context.Context, name string) (*
 
 // StartJobForWorkflow starts a new Job for the given workflow
 func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models.JobInput) (*models.Job, error) {
-	// TODO: also support input.Workflow.Revision
-	workflow, err := wm.store.LatestWorkflow(input.Workflow.Name)
+	var workflow resources.WorkflowDefinition
+	var err error
+	if input.Workflow.Revision < 0 {
+		workflow, err = wm.store.LatestWorkflow(input.Workflow.Name)
+	} else {
+		workflow, err = wm.store.GetWorkflow(input.Workflow.Name, int(input.Workflow.Revision))
+	}
 	if err != nil {
 		return &models.Job{}, err
 	}
