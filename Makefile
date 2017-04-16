@@ -1,12 +1,12 @@
 include golang.mk
 include wag.mk
 
-.PHONY: all test build run
+.PHONY: all test build run store-test
 SHELL := /bin/bash
 APP_NAME ?= workflow-manager
 EXECUTABLE = $(APP_NAME)
 PKG = github.com/Clever/$(APP_NAME)
-PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /workflow-ops)
+PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /workflow-ops | grep -v /dynamodb)
 
 WAG_VERSION := latest
 
@@ -14,9 +14,12 @@ $(eval $(call golang-version-check,1.7))
 
 all: test build
 
-test: $(PKGS)
+test: $(PKGS) dynamodb-test
 $(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
+
+dynamodb-test:
+	./run_dynamodb_store_test.sh
 
 build:
 	CGO_ENABLED=0 go build -installsuffix cgo -o build/$(EXECUTABLE) $(PKG)

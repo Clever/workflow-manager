@@ -1,9 +1,10 @@
-package store
+package memory
 
 import (
 	"fmt"
 
 	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/store"
 )
 
 type MemoryStore struct {
@@ -21,7 +22,7 @@ func NewMemoryStore() MemoryStore {
 func (s MemoryStore) SaveWorkflow(def resources.WorkflowDefinition) error {
 
 	if _, ok := s.workflows[def.Name()]; ok {
-		return NewConflict(def.Name())
+		return store.NewConflict(def.Name())
 	}
 
 	s.workflows[def.Name()] = []resources.WorkflowDefinition{def}
@@ -42,11 +43,11 @@ func (s MemoryStore) UpdateWorkflow(def resources.WorkflowDefinition) (resources
 
 func (s MemoryStore) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {
 	if _, ok := s.workflows[name]; !ok {
-		return resources.WorkflowDefinition{}, NewNotFound(name)
+		return resources.WorkflowDefinition{}, store.NewNotFound(name)
 	}
 
 	if len(s.workflows[name]) < version {
-		return resources.WorkflowDefinition{}, NewNotFound(fmt.Sprintf("%s.%d", name, version))
+		return resources.WorkflowDefinition{}, store.NewNotFound(fmt.Sprintf("%s.%d", name, version))
 	}
 
 	return s.workflows[name][version], nil
@@ -54,7 +55,7 @@ func (s MemoryStore) GetWorkflow(name string, version int) (resources.WorkflowDe
 
 func (s MemoryStore) LatestWorkflow(name string) (resources.WorkflowDefinition, error) {
 	if _, ok := s.workflows[name]; !ok {
-		return resources.WorkflowDefinition{}, NewNotFound(name)
+		return resources.WorkflowDefinition{}, store.NewNotFound(name)
 	}
 
 	return s.GetWorkflow(name, len(s.workflows[name])-1)
@@ -62,7 +63,7 @@ func (s MemoryStore) LatestWorkflow(name string) (resources.WorkflowDefinition, 
 
 func (s MemoryStore) SaveJob(job resources.Job) error {
 	if _, ok := s.jobs[job.ID]; ok {
-		return NewConflict(job.ID)
+		return store.NewConflict(job.ID)
 	}
 
 	s.jobs[job.ID] = job
@@ -71,7 +72,7 @@ func (s MemoryStore) SaveJob(job resources.Job) error {
 
 func (s MemoryStore) UpdateJob(job resources.Job) error {
 	if _, ok := s.jobs[job.ID]; !ok {
-		return NewNotFound(job.ID)
+		return store.NewNotFound(job.ID)
 	}
 
 	s.jobs[job.ID] = job
@@ -91,7 +92,7 @@ func (s MemoryStore) GetJobsForWorkflow(workflowName string) ([]resources.Job, e
 
 func (s MemoryStore) GetJob(id string) (resources.Job, error) {
 	if _, ok := s.jobs[id]; !ok {
-		return resources.Job{}, NewNotFound(id)
+		return resources.Job{}, store.NewNotFound(id)
 	}
 
 	return s.jobs[id], nil
