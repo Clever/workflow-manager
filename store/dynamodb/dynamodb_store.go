@@ -1,10 +1,12 @@
 package dynamodb
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/gob"
 	"fmt"
 
 	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/store"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
@@ -16,7 +18,7 @@ type DynamoDB struct {
 	tableNamePrefix string
 }
 
-func NewDynamoDB(ddb dynamodbiface.DynamoDBAPI, tableNamePrefix string) DynamoDB {
+func New(ddb dynamodbiface.DynamoDBAPI, tableNamePrefix string) DynamoDB {
 	return DynamoDB{
 		ddb:             ddb,
 		tableNamePrefix: tableNamePrefix,
@@ -94,14 +96,29 @@ type dynamodbWorkflow struct {
 	Workflow []byte `dynamodbav:"workflow"`
 }
 
+// EncodeWorkflow encodes a WorkflowDefinition as a dynamo attribute map.
+// Since WorkflowDefinitions contain interface types, the main piece of
+// the encoding is a full gob-encoding of the WorkflowDefinition.
 func EncodeWorkflow(def resources.WorkflowDefinition) (map[string]*dynamodb.AttributeValue, error) {
-	defJSONb, _ := json.Marshal(def)
-	defJSON := string(defJSONb)
-	return dynamodbattribute.MarshalMap(map[string]interface{}{
-		"name":    def.Name(),
-		"version": def.Version(),
-		"obj":     defJSON,
+	var defGOB bytes.Buffer
+	if err := gob.NewEncoder(&defGOB).Encode(def); err != nil {
+		return nil, err
+	}
+	return dynamodbattribute.MarshalMap(dynamodbWorkflow{
+		Name:     def.Name(),
+		Version:  def.Version(),
+		Workflow: defGOB.Bytes(),
 	})
+}
+
+// DecodeWorkflow translates the WorkflowDefinition stored in dynamodb to a WorkflowDefinition object.
+func DecodeWorkflow(m map[string]*dynamodb.AttributeValue, out *resources.WorkflowDefinition) error {
+	var ddbWorkflow dynamodbWorkflow
+	if err := dynamodbattribute.UnmarshalMap(m, &ddbWorkflow); err != nil {
+		return err
+	}
+	wfBuf := bytes.NewBuffer(ddbWorkflow.Workflow)
+	return gob.NewDecoder(wfBuf).Decode(out)
 }
 
 func (d DynamoDB) SaveWorkflow(def resources.WorkflowDefinition) error {
@@ -125,10 +142,36 @@ func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefin
 	panic("implement " + "GetWorkflow")
 	return resources.WorkflowDefinition{}, nil
 }
+
 func (d DynamoDB) LatestWorkflow(name string) (resources.WorkflowDefinition, error) {
-	panic("implement " + "LatestWorkflow")
-	return resources.WorkflowDefinition{}, nil
+	res, err := d.ddb.Query(&dynamodb.QueryInput{
+		TableName: aws.String(d.WorkflowsTable()),
+		ExpressionAttributeNames: map[string]*string{
+			"#N": aws.String("name"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":name": &dynamodb.AttributeValue{
+				S: aws.String(name),
+			},
+		},
+		KeyConditionExpression: aws.String("#N = :name"),
+		Limit:            aws.Int64(1),
+		ConsistentRead:   aws.Bool(true),
+		ScanIndexForward: aws.Bool(false), // descending order
+	})
+	if err != nil {
+		return resources.WorkflowDefinition{}, err
+	}
+	if len(res.Items) != 1 {
+		return resources.WorkflowDefinition{}, store.NewNotFound(name)
+	}
+	var wf resources.WorkflowDefinition
+	if err := DecodeWorkflow(res.Items[0], &wf); err != nil {
+		return resources.WorkflowDefinition{}, err
+	}
+	return wf, nil
 }
+
 func (d DynamoDB) SaveJob(job resources.Job) error {
 	panic("implement " + "SaveJob")
 	return nil

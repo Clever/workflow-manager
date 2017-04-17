@@ -12,7 +12,7 @@ type MemoryStore struct {
 	jobs      map[string]resources.Job
 }
 
-func NewMemoryStore() MemoryStore {
+func New() MemoryStore {
 	return MemoryStore{
 		workflows: map[string][]resources.WorkflowDefinition{},
 		jobs:      map[string]resources.Job{},

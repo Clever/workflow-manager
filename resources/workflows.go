@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"encoding/gob"
 	"fmt"
 
 	"github.com/Clever/workflow-manager/toposort"
@@ -32,40 +33,40 @@ type Workflow interface {
 // WorkflowDefinition defines a named ordered set of
 // states. Currently does NOT define a DAG.
 type WorkflowDefinition struct {
-	name          string
-	version       int
-	startAt       string
-	states        map[string]State
-	orderedStates []State
+	NameStr          string
+	VersionInt       int
+	StartAtStr       string
+	StatesMap        map[string]State
+	OrderedStatesArr []State
 
 	Description string
 }
 
 // Name returns the name of the workflow
 func (wf WorkflowDefinition) Name() string {
-	return wf.name
+	return wf.NameStr
 }
 
 // Version returns the revision of the workflow
 // i.e. how many times has this definition been updated
 func (wf WorkflowDefinition) Version() int {
-	return wf.version
+	return wf.VersionInt
 }
 
 // States returns all the states in this workflow as a map
 func (wf WorkflowDefinition) States() map[string]State {
-	return wf.states
+	return wf.StatesMap
 }
 
 // OrderedStates returns an ordered list of states in the
 // order of execution required
 func (wf WorkflowDefinition) OrderedStates() []State {
-	return wf.orderedStates
+	return wf.OrderedStatesArr
 }
 
 // StartAt returns the first state that should be executed for this workflow
 func (wf WorkflowDefinition) StartAt() State {
-	return wf.states[wf.startAt]
+	return wf.StatesMap[wf.StartAtStr]
 }
 
 // NewWorkflowDefinition creates a new Workflow
@@ -76,24 +77,24 @@ func NewWorkflowDefinition(name string, desc string, startAt string, states map[
 	}
 
 	return WorkflowDefinition{
-		name:          name,
-		version:       0,
-		startAt:       startAt,
-		states:        states,
-		orderedStates: orderedStates,
-		Description:   desc,
+		NameStr:          name,
+		VersionInt:       0,
+		StartAtStr:       startAt,
+		StatesMap:        states,
+		OrderedStatesArr: orderedStates,
+		Description:      desc,
 	}, nil
 
 }
 
 func NewWorkflowDefinitionVersion(def WorkflowDefinition, version int) WorkflowDefinition {
 	return WorkflowDefinition{
-		name:          def.Name(),
-		version:       version,
-		startAt:       def.StartAt().Name(),
-		states:        def.States(),
-		orderedStates: def.OrderedStates(),
-		Description:   def.Description,
+		NameStr:          def.Name(),
+		VersionInt:       version,
+		StartAtStr:       def.StartAt().Name(),
+		StatesMap:        def.States(),
+		OrderedStatesArr: def.OrderedStates(),
+		Description:      def.Description,
 	}
 }
 
@@ -126,11 +127,18 @@ func orderStates(states map[string]State) ([]State, error) {
 
 // WorkerState implements the State interface for workers runnin in containers
 type WorkerState struct {
-	name         string
-	next         string
-	resource     string
-	dependencies []string
-	end          bool
+	NameStr         string
+	NextStr         string
+	ResourceStr     string
+	DependenciesArr []string
+	End             bool
+}
+
+// Currently the way we persist worker state is via GOB encoding, since it is the
+// only encoding that can encode interface types (e.g. State).
+// In order for GOB encoding to work, we have to Register types that implement encoded interfaces, e.g. State.
+func init() {
+	gob.Register(&WorkerState{})
 }
 
 // NewWorkerState creates a new struct
@@ -142,7 +150,13 @@ func NewWorkerState(name, next, resource string, end bool) (*WorkerState, error)
 		return &WorkerState{}, fmt.Errorf("Next must be defined for non-end state")
 	}
 
-	return &WorkerState{name, next, resource, []string{}, end}, nil
+	return &WorkerState{
+		NameStr:         name,
+		NextStr:         next,
+		ResourceStr:     resource,
+		DependenciesArr: []string{},
+		End:             end,
+	}, nil
 }
 
 // Type of a WorkerState is WORKER
@@ -153,31 +167,31 @@ func (ws *WorkerState) Type() string {
 // Next returns the name of the state to run after successful execution
 // of this one
 func (ws *WorkerState) Next() string {
-	return ws.next
+	return ws.NextStr
 }
 
 // Dependencies returns the names of States that this state depends on
 func (ws *WorkerState) Dependencies() []string {
-	return ws.dependencies
+	return ws.DependenciesArr
 }
 
 // AddDependency adds a new dependency for this state
 func (ws *WorkerState) AddDependency(s State) {
-	ws.dependencies = append(ws.dependencies, s.Name())
+	ws.DependenciesArr = append(ws.DependenciesArr, s.Name())
 }
 
 // IsEnd returns true if this State is the last one for the workflow
 func (ws *WorkerState) IsEnd() bool {
-	return ws.end
+	return ws.End
 }
 
 // Resource the resource that needs to be executed as
 // part of a task for this State
 func (ws *WorkerState) Resource() string {
-	return ws.resource
+	return ws.ResourceStr
 }
 
 // Name of this state
 func (ws *WorkerState) Name() string {
-	return ws.name
+	return ws.NameStr
 }

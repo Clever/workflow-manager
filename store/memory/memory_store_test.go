@@ -7,6 +7,6 @@ import (
 )
 
 func TestMemoryStore(t *testing.T) {
-	store := NewMemoryStore()
+	store := New()
 	t.Run("UpdateWorkflow", tests.UpdateWorkflow(store, t))
 }

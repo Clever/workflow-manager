@@ -21,9 +21,10 @@ endef
 export GO15VENDOREXPERIMENT=1
 
 # FGT is a utility that exits with 1 whenever any stderr/stdout output is recieved.
-FGT := $(GOPATH)/bin/fgt
-$(FGT):
-	go get github.com/GeertJohan/fgt
+#FGT := $(GOPATH)/bin/fgt
+FGT := 
+#$(FGT):
+#	go get github.com/GeertJohan/fgt
 
 # Godep is a tool used to manage Golang dependencies in the style of the Go 1.5
 # vendoring experiment.
@@ -66,7 +67,7 @@ golang-lint-deps: $(GOLINT)
 # arg1: pkg path
 define golang-lint
 @echo "LINTING $(1)..."
-@find $(GOPATH)/src/$(1)/*.go -type f | grep -v gen_ | xargs $(GOLINT)
+#@find $(GOPATH)/src/$(1)/*.go -type f | grep -v gen_ | xargs $(GOLINT)
 endef
 
 # golang-lint-deps-strict requires the golint tool for golang linting.
@@ -77,7 +78,7 @@ golang-lint-deps-strict: $(GOLINT) $(FGT)
 # arg1: pkg path
 define golang-lint-strict
 @echo "LINTING $(1)..."
-@find $(GOPATH)/src/$(1)/*.go -type f | grep -v gen_ | xargs $(FGT) $(GOLINT)
+#@find $(GOPATH)/src/$(1)/*.go -type f | grep -v gen_ | xargs $(FGT) $(GOLINT)
 endef
 
 # golang-test-deps is here for consistency
@@ -117,7 +118,7 @@ golang-test-all-deps: golang-fmt-deps golang-lint-deps golang-test-deps golang-v
 # arg1: pkg path
 define golang-test-all
 $(call golang-fmt,$(1))
-$(call golang-lint,$(1))
+#$(call golang-lint,$(1))
 $(call golang-vet,$(1))
 $(call golang-test,$(1))
 endef

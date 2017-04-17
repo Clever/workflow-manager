@@ -5,7 +5,7 @@ import (
 
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func UpdateWorkflow(store store.Store, t *testing.T) func(t *testing.T) {
@@ -14,25 +14,25 @@ func UpdateWorkflow(store store.Store, t *testing.T) func(t *testing.T) {
 
 		// create kitchensink workflow
 		err := store.SaveWorkflow(resources.KitchenSinkWorkflow(t))
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		// get kitchensink workflow
 		def, err := store.LatestWorkflow("kitchensink")
-		assert.Nil(t, err)
-		assert.Equal(t, def.Version(), 0)
-		assert.NotNil(t, def.StartAt())
-		assert.Equal(t, def.StartAt().Name(), "start-state")
+		require.Nil(t, err)
+		require.Equal(t, def.Version(), 0)
+		require.NotNil(t, def.StartAt())
+		require.Equal(t, def.StartAt().Name(), "start-state")
 
 		// update kitchensink workflow
 		def.Description = "update the description"
 		wf, err := store.UpdateWorkflow(def)
-		assert.Nil(t, err)
-		assert.Equal(t, wf.Version(), def.Version()+1)
+		require.Nil(t, err)
+		require.Equal(t, wf.Version(), def.Version()+1)
 
 		// get kitchensink version
 		def, err = store.LatestWorkflow("kitchensink")
-		assert.Nil(t, err)
-		assert.Equal(t, def.Version(), 1)
-		assert.Equal(t, def.Description, "update the description")
+		require.Nil(t, err)
+		require.Equal(t, def.Version(), 1)
+		require.Equal(t, def.Description, "update the description")
 	}
 }

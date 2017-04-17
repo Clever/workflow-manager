@@ -17,7 +17,7 @@ func TestDynamoDBStore(t *testing.T) {
 			Endpoint: aws.String(os.Getenv("AWS_DYNAMO_ENDPOINT")),
 		},
 	})))
-	s := NewDynamoDB(svc, "test")
+	s := New(svc, "test")
 	if err := s.InitTables(); err != nil {
 		t.Fatal(err)
 	}
