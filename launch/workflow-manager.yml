@@ -3,11 +3,10 @@ env:
   # AWS Batch settings and credentials
   - AWS_REGION
   - BATCH_QUEUE
-  - AWS_ACCESS_KEY_ID
-  - AWS_SECRET_ACCESS_KEY
 resources:
   cpu: 0.01
   max_mem: 0.02
+use_iam_roles: true
 expose:
 - name: default
   port: 80
