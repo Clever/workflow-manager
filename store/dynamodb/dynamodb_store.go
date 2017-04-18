@@ -25,14 +25,17 @@ func New(ddb dynamodbiface.DynamoDBAPI, tableNamePrefix string) DynamoDB {
 	}
 }
 
-func (d DynamoDB) WorkflowsTable() string {
+// workflowsTable returns the name of the table that stores workflow definitions.
+func (d DynamoDB) workflowsTable() string {
 	return fmt.Sprintf("%s-workflows", d.tableNamePrefix)
 }
 
-func (d DynamoDB) JobsTable() string {
+// jobsTable returns the name of the table that stores jobs.
+func (d DynamoDB) jobsTable() string {
 	return fmt.Sprintf("%s-jobs", d.tableNamePrefix)
 }
 
+// InitTables creates the dynamo tables.
 func (d DynamoDB) InitTables() error {
 	// create workflows table from name, version -> workflow object
 	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
@@ -60,7 +63,7 @@ func (d DynamoDB) InitTables() error {
 			ReadCapacityUnits:  aws.Int64(1),
 			WriteCapacityUnits: aws.Int64(1),
 		},
-		TableName: aws.String(d.WorkflowsTable()),
+		TableName: aws.String(d.workflowsTable()),
 	}); err != nil {
 		return err
 	}
@@ -83,13 +86,14 @@ func (d DynamoDB) InitTables() error {
 			ReadCapacityUnits:  aws.Int64(1),
 			WriteCapacityUnits: aws.Int64(1),
 		},
-		TableName: aws.String(d.JobsTable()),
+		TableName: aws.String(d.jobsTable()),
 	}); err != nil {
 		return err
 	}
 	return nil
 }
 
+// dynamodbWorkflow represents the workflow definition as stored in dynamo.
 type dynamodbWorkflow struct {
 	Name     string `dynamodbav:"name"`
 	Version  int    `dynamodbav:"version"`
@@ -121,6 +125,7 @@ func DecodeWorkflow(m map[string]*dynamodb.AttributeValue, out *resources.Workfl
 	return gob.NewDecoder(wfBuf).Decode(out)
 }
 
+// SaveWorkflow saves a workflow definition.
 func (d DynamoDB) SaveWorkflow(def resources.WorkflowDefinition) error {
 	data, err := EncodeWorkflow(def)
 	if err != nil {
@@ -128,16 +133,28 @@ func (d DynamoDB) SaveWorkflow(def resources.WorkflowDefinition) error {
 	}
 
 	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
-		TableName: aws.String(d.WorkflowsTable()),
+		TableName: aws.String(d.workflowsTable()),
 		Item:      data,
 	})
 
 	return nil
 }
+
+// UpdateWorkflow updates an existing workflow definition.
+// The version will be set to the version following the latest definition.
+// The workflow definition returned contains this new version number.
 func (d DynamoDB) UpdateWorkflow(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error) {
-	panic("implement " + "UpdateWorkflow")
-	return resources.WorkflowDefinition{}, nil
+	latest, err := d.LatestWorkflow(def.Name())
+	if err != nil {
+		return def, err
+	}
+
+	// TODO: this isn't thread safe...
+	newVersion := resources.NewWorkflowDefinitionVersion(def, latest.Version()+1)
+
+	return newVersion, d.SaveWorkflow(newVersion)
 }
+
 func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {
 	panic("implement " + "GetWorkflow")
 	return resources.WorkflowDefinition{}, nil
@@ -145,7 +162,7 @@ func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefin
 
 func (d DynamoDB) LatestWorkflow(name string) (resources.WorkflowDefinition, error) {
 	res, err := d.ddb.Query(&dynamodb.QueryInput{
-		TableName: aws.String(d.WorkflowsTable()),
+		TableName: aws.String(d.workflowsTable()),
 		ExpressionAttributeNames: map[string]*string{
 			"#N": aws.String("name"),
 		},
