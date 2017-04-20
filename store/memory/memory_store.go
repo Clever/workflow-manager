@@ -2,6 +2,7 @@ package memory
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/Clever/workflow-manager/resources"
@@ -12,6 +13,12 @@ type MemoryStore struct {
 	workflows map[string][]resources.WorkflowDefinition
 	jobs      map[string]resources.Job
 }
+
+type ByCreatedAt []resources.Job
+
+func (a ByCreatedAt) Len() int           { return len(a) }
+func (a ByCreatedAt) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByCreatedAt) Less(i, j int) bool { return a[i].CreatedAt.Before(a[j].CreatedAt) }
 
 func New() MemoryStore {
 	return MemoryStore{
@@ -86,10 +93,10 @@ func (s MemoryStore) GetJobsForWorkflow(workflowName string) ([]resources.Job, e
 	jobs := []resources.Job{}
 	for _, job := range s.jobs {
 		if job.Workflow.Name() == workflowName {
-			jobs = append([]resources.Job{job}, jobs...) // newest first
+			jobs = append(jobs, job)
 		}
 	}
-
+	sort.Sort(sort.Reverse(ByCreatedAt(jobs))) // reverse to get newest first
 	return jobs, nil
 }
 
