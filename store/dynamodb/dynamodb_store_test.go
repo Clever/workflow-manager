@@ -13,6 +13,7 @@ import (
 func TestDynamoDBStore(t *testing.T) {
 	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
+			Region:   aws.String("doesntmatter"),
 			Endpoint: aws.String(os.Getenv("AWS_DYNAMO_ENDPOINT")),
 		},
 	})))
