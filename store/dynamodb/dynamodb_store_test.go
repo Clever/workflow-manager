@@ -6,6 +6,7 @@ import (
 
 	"github.com/Clever/workflow-manager/store/tests"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
@@ -13,8 +14,9 @@ import (
 func TestDynamoDBStore(t *testing.T) {
 	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
-			Region:   aws.String("doesntmatter"),
-			Endpoint: aws.String(os.Getenv("AWS_DYNAMO_ENDPOINT")),
+			Region:      aws.String("doesntmatter"),
+			Endpoint:    aws.String(os.Getenv("AWS_DYNAMO_ENDPOINT")),
+			Credentials: credentials.NewStaticCredentials("id", "secret", "token"),
 		},
 	})))
 	s := New(svc, "test")
