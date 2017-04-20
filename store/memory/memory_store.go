@@ -2,6 +2,7 @@ package memory
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
@@ -24,7 +25,7 @@ func (s MemoryStore) SaveWorkflow(def resources.WorkflowDefinition) error {
 	if _, ok := s.workflows[def.Name()]; ok {
 		return store.NewConflict(def.Name())
 	}
-
+	def.CreatedAt = time.Now()
 	s.workflows[def.Name()] = []resources.WorkflowDefinition{def}
 	return nil
 }
@@ -36,6 +37,7 @@ func (s MemoryStore) UpdateWorkflow(def resources.WorkflowDefinition) (resources
 	}
 
 	newVersion := resources.NewWorkflowDefinitionVersion(def, last.Version()+1)
+	newVersion.CreatedAt = time.Now()
 	s.workflows[def.Name()] = append(s.workflows[def.Name()], newVersion)
 
 	return newVersion, nil
@@ -65,7 +67,8 @@ func (s MemoryStore) SaveJob(job resources.Job) error {
 	if _, ok := s.jobs[job.ID]; ok {
 		return store.NewConflict(job.ID)
 	}
-
+	job.CreatedAt = time.Now()
+	job.LastUpdated = job.CreatedAt
 	s.jobs[job.ID] = job
 	return nil
 }
@@ -74,7 +77,7 @@ func (s MemoryStore) UpdateJob(job resources.Job) error {
 	if _, ok := s.jobs[job.ID]; !ok {
 		return store.NewNotFound(job.ID)
 	}
-
+	job.LastUpdated = time.Now()
 	s.jobs[job.ID] = job
 	return nil
 }

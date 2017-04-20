@@ -63,7 +63,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	} else if jobRunning {
 		job.Status = resources.Running
 	} else if jobSuccess {
-		job.Status = resources.Succeded
+		job.Status = resources.Succeeded
 	}
 
 	return jm.store.UpdateJob(*job)
@@ -86,7 +86,7 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []st
 }
 
 func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
-	// don't cancel already succedded tasks
+	// don't cancel already succeeded tasks
 	tasks := []*resources.Task{}
 	for _, task := range job.Tasks {
 		switch task.Status {

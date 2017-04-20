@@ -3,6 +3,7 @@ package resources
 import (
 	"encoding/gob"
 	"fmt"
+	"time"
 
 	"github.com/Clever/workflow-manager/toposort"
 )
@@ -35,6 +36,7 @@ type Workflow interface {
 type WorkflowDefinition struct {
 	NameStr          string
 	VersionInt       int
+	CreatedAt        time.Time
 	StartAtStr       string
 	StatesMap        map[string]State
 	OrderedStatesArr []State
