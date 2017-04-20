@@ -22,7 +22,6 @@ export GO15VENDOREXPERIMENT=1
 
 # FGT is a utility that exits with 1 whenever any stderr/stdout output is recieved.
 FGT := $(GOPATH)/bin/fgt
-FGT := 
 $(FGT):
 	go get github.com/GeertJohan/fgt
 
