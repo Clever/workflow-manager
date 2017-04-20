@@ -8,6 +8,7 @@ import (
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
@@ -93,11 +94,19 @@ func (d DynamoDB) InitTables() error {
 	return nil
 }
 
-// dynamodbWorkflow represents the workflow definition as stored in dynamo.
-type dynamodbWorkflow struct {
+// ddbWorkflow represents the workflow definition as stored in dynamo.
+// Use this to make PutItem queries.
+type ddbWorkflow struct {
 	Name     string `dynamodbav:"name"`
 	Version  int    `dynamodbav:"version"`
 	Workflow []byte `dynamodbav:"workflow"`
+}
+
+// ddbWorkflowKey represents the primary key of the workflow defintiions table in dynamo.
+// Use this to make GetItem queries.
+type ddbWorkflowKey struct {
+	Name    string `dynamodbav:"name"`
+	Version int    `dynamodbav:"version"`
 }
 
 // EncodeWorkflow encodes a WorkflowDefinition as a dynamo attribute map.
@@ -108,7 +117,7 @@ func EncodeWorkflow(def resources.WorkflowDefinition) (map[string]*dynamodb.Attr
 	if err := gob.NewEncoder(&defGOB).Encode(def); err != nil {
 		return nil, err
 	}
-	return dynamodbattribute.MarshalMap(dynamodbWorkflow{
+	return dynamodbattribute.MarshalMap(ddbWorkflow{
 		Name:     def.Name(),
 		Version:  def.Version(),
 		Workflow: defGOB.Bytes(),
@@ -117,7 +126,7 @@ func EncodeWorkflow(def resources.WorkflowDefinition) (map[string]*dynamodb.Attr
 
 // DecodeWorkflow translates the WorkflowDefinition stored in dynamodb to a WorkflowDefinition object.
 func DecodeWorkflow(m map[string]*dynamodb.AttributeValue, out *resources.WorkflowDefinition) error {
-	var ddbWorkflow dynamodbWorkflow
+	var ddbWorkflow ddbWorkflow
 	if err := dynamodbattribute.UnmarshalMap(m, &ddbWorkflow); err != nil {
 		return err
 	}
@@ -126,6 +135,7 @@ func DecodeWorkflow(m map[string]*dynamodb.AttributeValue, out *resources.Workfl
 }
 
 // SaveWorkflow saves a workflow definition.
+// If the workflow already exists, it will return a store.ConflictError.
 func (d DynamoDB) SaveWorkflow(def resources.WorkflowDefinition) error {
 	data, err := EncodeWorkflow(def)
 	if err != nil {
@@ -135,9 +145,20 @@ func (d DynamoDB) SaveWorkflow(def resources.WorkflowDefinition) error {
 	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
 		TableName: aws.String(d.workflowsTable()),
 		Item:      data,
+		ExpressionAttributeNames: map[string]*string{
+			"#N": aws.String("name"),
+			"#V": aws.String("version"),
+		},
+		ConditionExpression: aws.String("attribute_not_exists(#N) AND attribute_not_exists(#V)"),
 	})
-
-	return nil
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
+				return store.NewConflict(def.Name())
+			}
+		}
+	}
+	return err
 }
 
 // UpdateWorkflow updates an existing workflow definition.
@@ -156,8 +177,31 @@ func (d DynamoDB) UpdateWorkflow(def resources.WorkflowDefinition) (resources.Wo
 }
 
 func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {
-	panic("implement " + "GetWorkflow")
-	return resources.WorkflowDefinition{}, nil
+	key, err := dynamodbattribute.MarshalMap(ddbWorkflowKey{
+		Name:    name,
+		Version: version,
+	})
+	if err != nil {
+		return resources.WorkflowDefinition{}, err
+	}
+	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
+		Key:       key,
+		TableName: aws.String(d.workflowsTable()),
+	})
+	if err != nil {
+		return resources.WorkflowDefinition{}, err
+	}
+
+	if len(res.Item) == 0 {
+		return resources.WorkflowDefinition{}, store.NewNotFound(name)
+	}
+
+	var wd resources.WorkflowDefinition
+	if err := DecodeWorkflow(res.Item, &wd); err != nil {
+		return resources.WorkflowDefinition{}, err
+	}
+
+	return wd, nil
 }
 
 func (d DynamoDB) LatestWorkflow(name string) (resources.WorkflowDefinition, error) {

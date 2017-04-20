@@ -1,7 +1,9 @@
 package resources
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +35,7 @@ func KitchenSinkWorkflow(t *testing.T) WorkflowDefinition {
 		},
 	}
 
-	wf, err := NewWorkflowDefinition("kitchensink",
+	wf, err := NewWorkflowDefinition(fmt.Sprintf("kitchensink-%s", time.Now().Format(time.RFC3339Nano)),
 		"description",
 		"start-state",
 		states)
