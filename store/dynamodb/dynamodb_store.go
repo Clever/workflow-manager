@@ -72,16 +72,22 @@ func (d DynamoDB) InitTables() error {
 
 	// create jobs table from job ID to to job object
 	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+		AttributeDefinitions: append(
+			ddbJobPrimaryKey{}.AttributeDefinitions(),
+			ddbJobSecondaryKeyWorkflowCreatedAt{}.AttributeDefinitions()...,
+		),
+		KeySchema: ddbJobPrimaryKey{}.KeySchema(),
+		GlobalSecondaryIndexes: []*dynamodb.GlobalSecondaryIndex{
 			{
-				AttributeName: aws.String("id"),
-				AttributeType: aws.String("S"),
-			},
-		},
-		KeySchema: []*dynamodb.KeySchemaElement{
-			{
-				AttributeName: aws.String("id"),
-				KeyType:       aws.String(dynamodb.KeyTypeHash),
+				IndexName: aws.String(ddbJobSecondaryKeyWorkflowCreatedAt{}.Name()),
+				KeySchema: ddbJobSecondaryKeyWorkflowCreatedAt{}.KeySchema(),
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
+				},
+				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+					ReadCapacityUnits:  aws.Int64(1),
+					WriteCapacityUnits: aws.Int64(1),
+				},
 			},
 		},
 		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
@@ -109,25 +115,95 @@ type ddbWorkflow struct {
 	Workflow []byte `dynamodbav:"workflow"`
 }
 
-// ddbJobPrimaryKey represents the primary key of the jobs table in dynamo.
+// ddbJobPrimaryKey represents the primary + global secondary keys of the jobs table.
 // Use this to make GetItem queries.
 type ddbJobPrimaryKey struct {
+	// ID is the primary key
 	ID string `dynamodbav:"id"`
+}
+
+func (pk ddbJobPrimaryKey) AttributeDefinitions() []*dynamodb.AttributeDefinition {
+	return []*dynamodb.AttributeDefinition{
+		{
+			AttributeName: aws.String("id"),
+			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+		},
+	}
+}
+
+func (pk ddbJobPrimaryKey) KeySchema() []*dynamodb.KeySchemaElement {
+	return []*dynamodb.KeySchemaElement{
+		{
+			AttributeName: aws.String("id"),
+			KeyType:       aws.String(dynamodb.KeyTypeHash),
+		},
+	}
+}
+
+// ddbJobWorkflowCreatedAtKey is a global secondary index that allows us to query
+// for all jobs for a particular workflow, sorted by when they were created.
+type ddbJobSecondaryKeyWorkflowCreatedAt struct {
+	WorkflowName string     `dynamodbav:"_gsi-wn,omitempty"`
+	CreatedAt    *time.Time `dynamodbav:"_gsi-ca,omitempty"`
+}
+
+func (sk ddbJobSecondaryKeyWorkflowCreatedAt) Name() string {
+	return "workflowname-createdat"
+}
+
+func (sk ddbJobSecondaryKeyWorkflowCreatedAt) AttributeDefinitions() []*dynamodb.AttributeDefinition {
+	return []*dynamodb.AttributeDefinition{
+		{
+			AttributeName: aws.String("_gsi-wn"),
+			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+		},
+		{
+			AttributeName: aws.String("_gsi-ca"),
+			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+		},
+	}
+}
+
+func (sk ddbJobSecondaryKeyWorkflowCreatedAt) ConstructQuery() *dynamodb.QueryInput {
+	return &dynamodb.QueryInput{
+		IndexName: aws.String(sk.Name()),
+		ExpressionAttributeNames: map[string]*string{
+			"#W": aws.String("_gsi-wn"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":workflowName": &dynamodb.AttributeValue{
+				S: aws.String(sk.WorkflowName),
+			},
+		},
+		KeyConditionExpression: aws.String("#W = :workflowName"),
+	}
+}
+
+func (pk ddbJobSecondaryKeyWorkflowCreatedAt) KeySchema() []*dynamodb.KeySchemaElement {
+	return []*dynamodb.KeySchemaElement{
+		{
+			AttributeName: aws.String("_gsi-wn"),
+			KeyType:       aws.String(dynamodb.KeyTypeHash),
+		},
+		{
+			AttributeName: aws.String("_gsi-ca"),
+			KeyType:       aws.String(dynamodb.KeyTypeRange),
+		},
+	}
 }
 
 // ddbJob represents the job as stored in dynamo.
 // Use this to make PutItem queries.
 type ddbJob struct {
 	ddbJobPrimaryKey
-	CreatedAt   time.Time             `dynamodbav:"createdAt"`
+	ddbJobSecondaryKeyWorkflowCreatedAt
+	CreatedAt   time.Time
 	LastUpdated time.Time             `dynamodbav:"lastUpdated"`
 	Workflow    ddbWorkflowPrimaryKey `dynamodbav:"workflow"`
 	Input       []string              `dynamodbav:"input"`
 	Tasks       []*resources.Task     `dynamodbav:"tasks"`
 	Status      resources.JobStatus   `dynamodbav:"status"`
 }
-
-// TODO definte GSI with partition key on workflow name, sort key on createdAt time?
 
 // EncodeWorkflow encodes a WorkflowDefinition as a dynamo attribute map.
 // Since WorkflowDefinitions contain interface types, the main piece of
@@ -161,6 +237,10 @@ func EncodeJob(job resources.Job) (map[string]*dynamodb.AttributeValue, error) {
 	return dynamodbattribute.MarshalMap(ddbJob{
 		ddbJobPrimaryKey: ddbJobPrimaryKey{
 			ID: job.ID,
+		},
+		ddbJobSecondaryKeyWorkflowCreatedAt: ddbJobSecondaryKeyWorkflowCreatedAt{
+			WorkflowName: job.Workflow.Name(),
+			CreatedAt:    &job.CreatedAt,
 		},
 		CreatedAt:   job.CreatedAt,
 		LastUpdated: job.LastUpdated,
@@ -331,16 +411,37 @@ func (d DynamoDB) SaveJob(job resources.Job) error {
 	}
 	return err
 }
+
 func (d DynamoDB) UpdateJob(job resources.Job) error {
-	panic("implement " + "UpdateJob")
-	return nil
+	job.LastUpdated = time.Now()
+
+	data, err := EncodeJob(job)
+	if err != nil {
+		return err
+	}
+	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(d.jobsTable()),
+		Item:      data,
+		ExpressionAttributeNames: map[string]*string{
+			"#I": aws.String("id"),
+		},
+		ConditionExpression: aws.String("attribute_exists(#I)"),
+	})
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
+				return store.NewNotFound(job.ID)
+			}
+		}
+	}
+	return err
 }
 
 // populateJob fills in the workflow object contained in a job
 func (d DynamoDB) populateJob(job *resources.Job) error {
 	wf, err := d.GetWorkflow(job.Workflow.Name(), job.Workflow.Version())
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting workflow for job %s: %s", job.ID, err)
 	}
 	job.Workflow = wf
 	return nil
@@ -354,8 +455,9 @@ func (d DynamoDB) GetJob(id string) (resources.Job, error) {
 		return resources.Job{}, err
 	}
 	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
-		Key:       key,
-		TableName: aws.String(d.jobsTable()),
+		Key:            key,
+		TableName:      aws.String(d.jobsTable()),
+		ConsistentRead: aws.Bool(true),
 	})
 	if err != nil {
 		return resources.Job{}, err
@@ -377,7 +479,32 @@ func (d DynamoDB) GetJob(id string) (resources.Job, error) {
 	return job, nil
 }
 
+// GetJobsForWorkflow returns the last 10 jobs for a workflow.
+// It uses a global secondary index on the workflow name + created time for a job.
 func (d DynamoDB) GetJobsForWorkflow(workflowName string) ([]resources.Job, error) {
-	panic("implement " + "GetJobsForWorkflow")
-	return nil, nil
+	var jobs []resources.Job
+	query := ddbJobSecondaryKeyWorkflowCreatedAt{
+		WorkflowName: workflowName,
+	}.ConstructQuery()
+
+	query.TableName = aws.String(d.jobsTable())
+	query.Limit = aws.Int64(10)
+	query.ScanIndexForward = aws.Bool(false) // descending order
+
+	res, err := d.ddb.Query(query)
+	if err != nil {
+		return jobs, err
+	}
+
+	for _, item := range res.Items {
+		job, err := DecodeJob(item)
+		if err != nil {
+			return jobs, err
+		}
+		if err := d.populateJob(&job); err != nil {
+			return jobs, err
+		}
+		jobs = append(jobs, job)
+	}
+	return jobs, nil
 }

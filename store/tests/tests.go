@@ -75,6 +75,7 @@ func SaveWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 func SaveJob(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflow(t)
+		require.Nil(t, s.SaveWorkflow(wf))
 		job := resources.NewJob(wf, []string{"input"})
 		require.Nil(t, s.SaveJob(*job))
 		// TODO: test behavior when workflow is invalid, e.g. breaks a length limit on a field / array
@@ -84,6 +85,7 @@ func SaveJob(s store.Store, t *testing.T) func(t *testing.T) {
 func UpdateJob(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflow(t)
+		require.Nil(t, s.SaveWorkflow(wf))
 		job := resources.NewJob(wf, []string{"input"})
 		require.Nil(t, s.SaveJob(*job))
 
@@ -105,6 +107,7 @@ func UpdateJob(s store.Store, t *testing.T) func(t *testing.T) {
 func GetJob(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflow(t)
+		require.Nil(t, s.SaveWorkflow(wf))
 		job := resources.NewJob(wf, []string{"input"})
 		require.Nil(t, s.SaveJob(*job))
 
@@ -118,15 +121,17 @@ func GetJob(s store.Store, t *testing.T) func(t *testing.T) {
 func GetJobsForWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf1 := resources.KitchenSinkWorkflow(t)
+		require.Nil(t, s.SaveWorkflow(wf1))
 		wf2 := resources.KitchenSinkWorkflow(t)
+		require.Nil(t, s.SaveWorkflow(wf2))
 		var job1IDs, job2IDs []string
 		for len(job1IDs) < 2 {
 			job1 := resources.NewJob(wf1, []string{"input"})
-			job1IDs = append(job1IDs, job1.ID)
+			job1IDs = append([]string{job1.ID}, job1IDs...) // newest first
 			require.Nil(t, s.SaveJob(*job1))
 
 			job2 := resources.NewJob(wf2, []string{"input"})
-			job2IDs = append(job2IDs, job2.ID)
+			job2IDs = append([]string{job2.ID}, job2IDs...)
 			require.Nil(t, s.SaveJob(*job2))
 		}
 

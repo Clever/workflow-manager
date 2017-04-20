@@ -86,7 +86,7 @@ func (s MemoryStore) GetJobsForWorkflow(workflowName string) ([]resources.Job, e
 	jobs := []resources.Job{}
 	for _, job := range s.jobs {
 		if job.Workflow.Name() == workflowName {
-			jobs = append(jobs, job)
+			jobs = append([]resources.Job{job}, jobs...) // newest first
 		}
 	}
 
