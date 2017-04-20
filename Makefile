@@ -15,7 +15,7 @@ $(eval $(call golang-version-check,1.7))
 all: test build
 
 test: $(PKGS) dynamodb-test
-$(PKGS): #golang-test-all-deps
+$(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
 
 dynamodb-test:
