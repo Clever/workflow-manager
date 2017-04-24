@@ -1,7 +1,7 @@
 include golang.mk
 include wag.mk
 
-.PHONY: all test build run store-test
+.PHONY: all test build run dynamodb-test
 SHELL := /bin/bash
 APP_NAME ?= workflow-manager
 EXECUTABLE = $(APP_NAME)
