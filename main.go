@@ -12,7 +12,7 @@ import (
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/batchclient"
 	"github.com/Clever/workflow-manager/gen-go/server"
-	"github.com/Clever/workflow-manager/store"
+	"github.com/Clever/workflow-manager/store/memory"
 )
 
 // Config contains the configuration for the workflow-manager app
@@ -26,7 +26,7 @@ func main() {
 	flag.Parse()
 
 	c := loadConfig()
-	db := store.NewMemoryStore()
+	db := memory.New()
 	batch :=
 		batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.BatchQueue)
 

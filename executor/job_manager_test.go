@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/Clever/workflow-manager/resources"
-	"github.com/Clever/workflow-manager/store"
+	"github.com/Clever/workflow-manager/store/memory"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,7 +54,7 @@ func TestUpdateJobStatus(t *testing.T) {
 		&mockBatchClient{
 			map[string]resources.Task{},
 		},
-		store.NewMemoryStore(),
+		memory.New(),
 	}
 	wf := resources.KitchenSinkWorkflow(t)
 	input := []string{"test-start-input"}
@@ -93,7 +93,7 @@ func TestUpdateJobStatus(t *testing.T) {
 	err = jm.UpdateJobStatus(job)
 	t.Log("One task SUCCESS does not result in job SUCCESS")
 	assert.Nil(t, err)
-	assert.NotEqual(t, job.Status, resources.Succeded)
+	assert.NotEqual(t, job.Status, resources.Succeeded)
 
 	// mark all tasks as success. should mean job success
 	for _, task := range job.Tasks {
@@ -102,7 +102,7 @@ func TestUpdateJobStatus(t *testing.T) {
 	err = jm.UpdateJobStatus(job)
 	t.Log("Job is SUCCESSFUL if all tasks are SUCCESSFUL")
 	assert.Nil(t, err)
-	assert.Equal(t, job.Status, resources.Succeded)
+	assert.Equal(t, job.Status, resources.Succeeded)
 
 	// mark one task as failed, others are successful. Still means failed
 	for _, task := range job.Tasks {
@@ -123,7 +123,7 @@ func TestCancelUpdates(t *testing.T) {
 	}
 	jm := BatchJobManager{
 		batchClient,
-		store.NewMemoryStore(),
+		memory.New(),
 	}
 	wf := resources.KitchenSinkWorkflow(t)
 	input := []string{"test-start-input"}
@@ -158,7 +158,7 @@ func TestCreateJob(t *testing.T) {
 	}
 	jm := BatchJobManager{
 		mockClient,
-		store.NewMemoryStore(),
+		memory.New(),
 	}
 
 	wf := resources.KitchenSinkWorkflow(t)

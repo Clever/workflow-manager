@@ -1,6 +1,8 @@
 package resources
 
 import (
+	"time"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -10,17 +12,19 @@ const (
 	Queued    JobStatus = "QUEUED"
 	Running   JobStatus = "RUNNING"
 	Failed    JobStatus = "FAILED"
-	Succeded  JobStatus = "SUCCEEDED"
+	Succeeded JobStatus = "SUCCEEDED"
 	Cancelled JobStatus = "CANCELLED"
 )
 
 // Job contains information about a running Workflow
 type Job struct {
-	ID       string             // GUID for the job
-	Workflow WorkflowDefinition // Workflow executed as part of this job
-	Input    []string           // Starting input for the job
-	Tasks    []*Task            // list of states submitted as tasks
-	Status   JobStatus
+	ID          string // GUID for the job
+	CreatedAt   time.Time
+	LastUpdated time.Time
+	Workflow    WorkflowDefinition // Workflow executed as part of this job
+	Input       []string           // Starting input for the job
+	Tasks       []*Task            // list of states submitted as tasks
+	Status      JobStatus
 }
 
 // NewJob creates a new Job struct for a Workflow
