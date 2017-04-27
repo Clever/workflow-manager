@@ -3,6 +3,8 @@ env:
   # AWS Batch settings and credentials
   - AWS_REGION
   - BATCH_QUEUE
+  - AWS_DYNAMO_REGION
+  - AWS_DYNAMO_PREFIX
 resources:
   cpu: 0.01
   max_mem: 0.02
@@ -18,4 +20,3 @@ expose:
 shepherds:
 - "mohit.gupta@clever.com"
 team: eng-infra@clever.com
-

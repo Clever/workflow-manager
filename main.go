@@ -8,17 +8,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/batch"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/batchclient"
 	"github.com/Clever/workflow-manager/gen-go/server"
-	"github.com/Clever/workflow-manager/store/memory"
+	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
 )
 
 // Config contains the configuration for the workflow-manager app
 type Config struct {
-	AWSRegion  string
-	BatchQueue string
+	AWSRegion    string
+	BatchQueue   string
+	DynamoRegion string
+	DynamoPrefix string
 }
 
 func main() {
@@ -26,7 +29,10 @@ func main() {
 	flag.Parse()
 
 	c := loadConfig()
-	db := memory.New()
+	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{Region: aws.String(c.DynamoRegion)},
+	})))
+	db := dynamodbstore.New(svc, c.DynamoPrefix)
 	batch :=
 		batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.BatchQueue)
 
@@ -55,6 +61,8 @@ func awsSession(c Config) *session.Session {
 func loadConfig() Config {
 	region := os.Getenv("AWS_REGION")
 	queue := os.Getenv("BATCH_QUEUE")
+	dynamoPrefix := os.Getenv("AWS_DYNAMO_PREFIX")
+	dynamoRegion := os.Getenv("AWS_DYNAMO_REGION")
 
 	if region == "" {
 		region = "us-east-1"
@@ -62,9 +70,14 @@ func loadConfig() Config {
 	if queue == "" {
 		queue = "default"
 	}
+	if dynamoPrefix == "" {
+		dynamoPrefix = "workflow-manager-test"
+	}
 
 	return Config{
-		AWSRegion:  region,
-		BatchQueue: queue,
+		AWSRegion:    region,
+		BatchQueue:   queue,
+		DynamoPrefix: dynamoPrefix,
+		DynamoRegion: dynamoRegion,
 	}
 }
