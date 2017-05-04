@@ -38,6 +38,7 @@ func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.N
 	if err != nil {
 		return &models.Workflow{}, err
 	}
+
 	if err := wm.store.SaveWorkflow(workflow); err != nil {
 		return &models.Workflow{}, err
 	}
@@ -54,12 +55,7 @@ func (wm WorkflowManager) UpdateWorkflow(ctx context.Context, input *models.Upda
 		return &models.Workflow{}, fmt.Errorf("Must define at least one state")
 	}
 
-	workflow, err := wm.store.LatestWorkflow(workflowReq.Name)
-	if err != nil {
-		return &models.Workflow{}, err
-	}
-
-	workflow, err = newWorkflowFromRequest(*workflowReq)
+	workflow, err := newWorkflowFromRequest(*workflowReq)
 	if err != nil {
 		return &models.Workflow{}, err
 	}
@@ -183,6 +179,10 @@ func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDe
 	// fill in dependencies for states
 	for _, s := range states {
 		if !s.IsEnd() {
+			if _, ok := states[s.Next()]; !ok {
+				return resources.WorkflowDefinition{}, fmt.Errorf("%s.Next=%s, but %s not defined.",
+					s.Name(), s.Next(), s.Next())
+			}
 			states[s.Next()].AddDependency(s)
 		}
 	}
