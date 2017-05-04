@@ -10,7 +10,7 @@ PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /wor
 
 WAG_VERSION := latest
 
-$(eval $(call golang-version-check,1.7))
+$(eval $(call golang-version-check,1.8))
 
 all: test build
 
