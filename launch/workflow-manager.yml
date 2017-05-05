@@ -19,4 +19,4 @@ expose:
   port: 6060
 shepherds:
 - "mohit.gupta@clever.com"
-team: eng-infra@clever.com
+team: eng-infra
