@@ -56,6 +56,7 @@ func (be BatchExecutor) Status(tasks []*resources.Task) []error {
 		if err != nil {
 			// TODO: add jobId to err for clarity
 			taskErrors = append(taskErrors, err)
+			continue
 		}
 		status[*jobDetail.JobId].SetDetail(taskDetail)
 	}
@@ -87,17 +88,18 @@ func (be BatchExecutor) Cancel(tasks []*resources.Task, reason string) []error {
 func (be BatchExecutor) jobToTaskDetail(job *batch.JobDetail) (resources.TaskDetail, error) {
 	var statusReason, containerArn string
 	var createdAt, startedAt, stoppedAt time.Time
+	msToNs := int64(time.Millisecond)
 	if job.StatusReason != nil {
 		statusReason = *job.StatusReason
 	}
 	if job.CreatedAt != nil {
-		createdAt = time.Unix(*job.CreatedAt, 0)
+		createdAt = time.Unix(0, *job.CreatedAt*msToNs)
 	}
 	if job.StartedAt != nil {
-		startedAt = time.Unix(*job.StartedAt, 0)
+		startedAt = time.Unix(0, *job.StartedAt*msToNs)
 	}
 	if job.StoppedAt != nil {
-		stoppedAt = time.Unix(*job.StoppedAt, 0)
+		stoppedAt = time.Unix(0, *job.StoppedAt*msToNs)
 	}
 	if job.Container != nil && job.Container.ContainerInstanceArn != nil {
 		containerArn = *job.Container.ContainerInstanceArn

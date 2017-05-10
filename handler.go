@@ -46,6 +46,7 @@ func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.N
 	return apiWorkflowFromStore(workflow), nil
 }
 
+// UpdateWorkflow creates a new revision for an existing workflow
 func (wm WorkflowManager) UpdateWorkflow(ctx context.Context, input *models.UpdateWorkflowInput) (*models.Workflow, error) {
 	workflowReq := input.NewWorkflowRequest
 	if workflowReq == nil || workflowReq.Name != input.Name {
@@ -120,6 +121,7 @@ func (wm WorkflowManager) GetJobsForWorkflow(ctx context.Context, input *models.
 	return results, nil
 }
 
+// GetJob returns current details about a Job with the given jobId
 func (wm WorkflowManager) GetJob(ctx context.Context, jobId string) (*models.Job, error) {
 	job, err := wm.store.GetJob(jobId)
 	if err != nil {
@@ -134,6 +136,8 @@ func (wm WorkflowManager) GetJob(ctx context.Context, jobId string) (*models.Job
 	return apiJobFromStore(job), nil
 }
 
+// CancelJob cancels all the tasks currently running or queued for the Job and
+// marks the job as cancelled
 func (wm WorkflowManager) CancelJob(ctx context.Context, input *models.CancelJobInput) error {
 	job, err := wm.store.GetJob(input.JobId)
 	if err != nil {
