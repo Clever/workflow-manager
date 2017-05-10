@@ -47,7 +47,7 @@ func TestJobToTaskDetail(t *testing.T) {
 	assert.NotNil(t, taskDetail)
 
 	assert.Equal(t, taskDetail.Status, resources.TaskStatusSucceeded)
-	assert.Equal(t, taskDetail.CreatedAt.Unix(), *jobDetail.CreatedAt)
-	assert.Equal(t, taskDetail.StartedAt.Unix(), *jobDetail.StartedAt)
+	assert.Equal(t, taskDetail.CreatedAt.Format(time.RFC3339Nano), "2017-03-28T00:45:46.376Z")
+	assert.Equal(t, taskDetail.StartedAt.Format(time.RFC3339Nano), "2017-03-28T00:46:48.178Z")
 	assert.Equal(t, taskDetail.StoppedAt, time.Time{})
 }
