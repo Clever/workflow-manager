@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"time"
 
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 
@@ -131,6 +132,7 @@ func (jm BatchJobManager) pollUpdateStatus(job *resources.Job) {
 				"error":    err.Error(),
 			})
 		}
+		time.Sleep(time.Minute)
 	}
 }
 
