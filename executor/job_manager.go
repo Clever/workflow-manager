@@ -114,8 +114,9 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []st
 
 func (jm BatchJobManager) pollUpdateStatus(job *resources.Job) {
 	for {
-		switch job.Status {
-		case resources.Cancelled, resources.Failed, resources.Succeeded:
+		if job.Status == resources.Cancelled ||
+			job.Status == resources.Failed ||
+			job.Status == resources.Succeeded {
 			// no need to poll anymore
 			log.InfoD("job-polling-stop", logger.M{
 				"id":       job.ID,
