@@ -2,10 +2,15 @@ package executor
 
 import (
 	"fmt"
+	"time"
+
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 )
+
+var log = logger.New("workflow-manager")
 
 // JobManager in the interface for creating, stopping and checking status for Jobs (workflow runs)
 type JobManager interface {
@@ -30,13 +35,31 @@ func NewBatchJobManager(executor Executor, store store.Store) BatchJobManager {
 
 // UpdateJobStatus ensures that the status of the tasks is in-sync with AWS Batch and sets Job status
 func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
+	// copy current status
+	taskStatus := map[string]resources.TaskStatus{}
+	for _, task := range job.Tasks {
+		taskStatus[task.ID] = task.Status
+	}
+
+	// fetch new status from batch
 	errs := jm.executor.Status(job.Tasks)
 	if len(errs) > 0 {
 		return fmt.Errorf("Failed to update status for %d tasks. errors: %s", len(errs), errs)
 	}
+
 	if job.Status == resources.Cancelled {
 		// if a job is cancelled, just return the updated task status
 		// JobStatus should remain cancelled
+		return nil
+	}
+	// if no task status has changed skip store updates
+	noChanges := true
+	for _, task := range job.Tasks {
+		if task.Status != taskStatus[task.ID] {
+			noChanges = false
+		}
+	}
+	if noChanges {
 		return nil
 	}
 
@@ -82,7 +105,36 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []st
 	// 1. reconcile somehow with the scheduled tasks
 	// 2. kill the running tasks so that we don't have orphan tasks in AWS Batch
 	err = jm.store.SaveJob(*job)
+
+	// TODO: remove this polling and replace by ECS task event processing
+	go jm.pollUpdateStatus(job)
+
 	return job, err
+}
+
+func (jm BatchJobManager) pollUpdateStatus(job *resources.Job) {
+	for {
+		if job.Status == resources.Cancelled ||
+			job.Status == resources.Failed ||
+			job.Status == resources.Succeeded {
+			// no need to poll anymore
+			log.InfoD("job-polling-stop", logger.M{
+				"id":       job.ID,
+				"status":   job.Status,
+				"workflow": job.Workflow.Name(),
+			})
+			break
+		}
+		if err := jm.UpdateJobStatus(job); err != nil {
+			log.ErrorD("job-polling-error", logger.M{
+				"id":       job.ID,
+				"status":   job.Status,
+				"workflow": job.Workflow.Name(),
+				"error":    err.Error(),
+			})
+		}
+		time.Sleep(time.Minute)
+	}
 }
 
 func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {

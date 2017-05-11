@@ -37,9 +37,11 @@ func NewBatchExecutor(client batchiface.BatchAPI, queue string) BatchExecutor {
 func (be BatchExecutor) Status(tasks []*resources.Task) []error {
 	status := map[string]*resources.Task{}
 	jobs := []*string{}
+	taskIds := []string{}
 
 	for _, task := range tasks {
 		jobs = append(jobs, aws.String(task.ID))
+		taskIds = append(taskIds, task.ID)
 		status[task.ID] = task
 	}
 
@@ -48,6 +50,10 @@ func (be BatchExecutor) Status(tasks []*resources.Task) []error {
 	})
 	if err != nil {
 		return []error{err}
+	}
+	// TODO: aws seems to silently fail on no jobs found. need to investigate
+	if len(results.Jobs) == 0 {
+		return []error{fmt.Errorf("No task(s) found: %v.", taskIds)}
 	}
 
 	var taskErrors []error

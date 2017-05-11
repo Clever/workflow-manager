@@ -11,7 +11,7 @@ import (
 )
 
 type mockBatchClient struct {
-	tasks map[string]resources.Task
+	tasks map[string]*resources.Task
 }
 
 func (be *mockBatchClient) SubmitJob(name string, definition string, dependencies, input []string) (string, error) {
@@ -21,7 +21,7 @@ func (be *mockBatchClient) SubmitJob(name string, definition string, dependencie
 		}
 	}
 	taskID := uuid.NewV4().String()
-	be.tasks[taskID] = resources.Task{
+	be.tasks[taskID] = &resources.Task{
 		ID:    taskID,
 		Name:  name,
 		Input: input,
@@ -35,6 +35,8 @@ func (be *mockBatchClient) Status(tasks []*resources.Task) []error {
 	for _, t := range tasks {
 		if _, ok := be.tasks[t.ID]; !ok {
 			errs = append(errs, fmt.Errorf("%s", t.ID))
+		} else {
+			t.SetStatus(be.tasks[t.ID].Status)
 		}
 	}
 	return errs
@@ -50,10 +52,11 @@ func (be *mockBatchClient) Cancel(tasks []*resources.Task, reason string) []erro
 }
 
 func TestUpdateJobStatus(t *testing.T) {
+	mockClient := &mockBatchClient{
+		map[string]*resources.Task{},
+	}
 	jm := BatchJobManager{
-		&mockBatchClient{
-			map[string]resources.Task{},
-		},
+		mockClient,
 		memory.New(),
 	}
 	wf := resources.KitchenSinkWorkflow(t)
@@ -63,21 +66,21 @@ func TestUpdateJobStatus(t *testing.T) {
 	assert.Nil(t, err)
 
 	t.Log("Job is QUEUED till a task starts RUNNING")
-	assert.Equal(t, job.Status, resources.Queued)
+	assert.Equal(t, resources.Queued, job.Status)
 
 	// mark one task as running
 	for _, task := range job.Tasks {
-		task.SetStatus(resources.TaskStatusRunning)
+		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusRunning)
 		break
 	}
 	err = jm.UpdateJobStatus(job)
 	t.Log("Job is RUNNING when a task starts RUNNING")
 	assert.Nil(t, err)
-	assert.Equal(t, job.Status, resources.Running)
+	assert.Equal(t, resources.Running, job.Status)
 
 	// mark one task as failed
 	for _, task := range job.Tasks {
-		task.SetStatus(resources.TaskStatusFailed)
+		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusFailed)
 		break
 	}
 	err = jm.UpdateJobStatus(job)
@@ -87,7 +90,7 @@ func TestUpdateJobStatus(t *testing.T) {
 
 	// mark one task as success. should not mean success
 	for _, task := range job.Tasks {
-		task.SetStatus(resources.TaskStatusSucceeded)
+		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusSucceeded)
 		break
 	}
 	err = jm.UpdateJobStatus(job)
@@ -97,7 +100,7 @@ func TestUpdateJobStatus(t *testing.T) {
 
 	// mark all tasks as success. should mean job success
 	for _, task := range job.Tasks {
-		task.SetStatus(resources.TaskStatusSucceeded)
+		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusSucceeded)
 	}
 	err = jm.UpdateJobStatus(job)
 	t.Log("Job is SUCCESSFUL if all tasks are SUCCESSFUL")
@@ -106,7 +109,7 @@ func TestUpdateJobStatus(t *testing.T) {
 
 	// mark one task as failed, others are successful. Still means failed
 	for _, task := range job.Tasks {
-		task.SetStatus(resources.TaskStatusFailed)
+		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusFailed)
 		break
 	}
 	err = jm.UpdateJobStatus(job)
@@ -118,11 +121,11 @@ func TestUpdateJobStatus(t *testing.T) {
 // TestCancelUpdates ensures that a cancelling a job works
 // and that the following updates behave as expected
 func TestCancelUpdates(t *testing.T) {
-	batchClient := &mockBatchClient{
-		map[string]resources.Task{},
+	mockClient := &mockBatchClient{
+		map[string]*resources.Task{},
 	}
 	jm := BatchJobManager{
-		batchClient,
+		mockClient,
 		memory.New(),
 	}
 	wf := resources.KitchenSinkWorkflow(t)
@@ -133,7 +136,7 @@ func TestCancelUpdates(t *testing.T) {
 
 	// mark all tasks as running
 	for _, task := range job.Tasks {
-		task.SetStatus(resources.TaskStatusRunning)
+		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusRunning)
 	}
 	err = jm.UpdateJobStatus(job)
 	assert.NotEqual(t, resources.Cancelled, job.Status)
@@ -154,7 +157,7 @@ func TestCancelUpdates(t *testing.T) {
 // with the appropriate settings
 func TestCreateJob(t *testing.T) {
 	mockClient := &mockBatchClient{
-		map[string]resources.Task{},
+		map[string]*resources.Task{},
 	}
 	jm := BatchJobManager{
 		mockClient,
