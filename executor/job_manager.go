@@ -94,7 +94,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	// If the status was updated, log it and save to datastore
 	if previousStatus != job.Status {
 		log.InfoD("job-status-change", logger.M{
-			"job-id": job.ID,
+			"id":     job.ID,
 			"before": previousStatus,
 			"after":  job.Status,
 		})
