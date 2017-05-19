@@ -35,6 +35,8 @@ func NewBatchJobManager(executor Executor, store store.Store) BatchJobManager {
 
 // UpdateJobStatus ensures that the status of the tasks is in-sync with AWS Batch and sets Job status
 func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
+	previousStatus := job.Status
+
 	// copy current status
 	taskStatus := map[string]resources.TaskStatus{}
 	for _, task := range job.Tasks {
@@ -89,12 +91,27 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 		job.Status = resources.Succeeded
 	}
 
+	// If the status was updated, log it and save to datastore
+	if previousStatus != job.Status {
+		log.InfoD("job-status-change", logger.M{
+			"id":               job.ID,
+			"workflow":         job.Workflow.Name(),
+			"workflow-version": job.Workflow.Version(),
+			"before":           previousStatus,
+			"after":            job.Status,
+		})
+	}
 	return jm.store.UpdateJob(*job)
 }
 
 // CreateJob can be used to create a new job for a workflow
 func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []string) (*resources.Job, error) {
 	job := resources.NewJob(def, input)
+	log.InfoD("job-created", logger.M{
+		"id":               job.ID,
+		"workflow":         job.Workflow.Name(),
+		"workflow-version": job.Workflow.Version(),
+	})
 
 	err := jm.scheduleTasks(job, input)
 	if err != nil {
@@ -139,6 +156,13 @@ func (jm BatchJobManager) pollUpdateStatus(job *resources.Job) {
 
 func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 	// don't cancel already succeeded tasks
+	log.InfoD("job-cancelled", logger.M{
+		"id":               job.ID,
+		"workflow":         job.Workflow.Name(),
+		"workflow-version": job.Workflow.Version(),
+		"reason":           reason,
+	})
+
 	tasks := []*resources.Task{}
 	for _, task := range job.Tasks {
 		switch task.Status {
