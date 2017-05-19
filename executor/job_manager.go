@@ -98,9 +98,8 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 			"before": previousStatus,
 			"after":  job.Status,
 		})
-		return jm.store.UpdateJob(*job)
 	}
-	return nil
+	return jm.store.UpdateJob(*job)
 }
 
 // CreateJob can be used to create a new job for a workflow
