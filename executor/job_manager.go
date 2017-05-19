@@ -94,9 +94,11 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	// If the status was updated, log it and save to datastore
 	if previousStatus != job.Status {
 		log.InfoD("job-status-change", logger.M{
-			"id":     job.ID,
-			"before": previousStatus,
-			"after":  job.Status,
+			"id":               job.ID,
+			"workflow":         job.Workflow.Name(),
+			"workflow-version": job.Workflow.Version(),
+			"before":           previousStatus,
+			"after":            job.Status,
 		})
 	}
 	return jm.store.UpdateJob(*job)
@@ -105,7 +107,11 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 // CreateJob can be used to create a new job for a workflow
 func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []string) (*resources.Job, error) {
 	job := resources.NewJob(def, input)
-	log.InfoD("job-created", logger.M{"id": job.ID})
+	log.InfoD("job-created", logger.M{
+		"id":               job.ID,
+		"workflow":         job.Workflow.Name(),
+		"workflow-version": job.Workflow.Version(),
+	})
 
 	err := jm.scheduleTasks(job, input)
 	if err != nil {
@@ -151,8 +157,10 @@ func (jm BatchJobManager) pollUpdateStatus(job *resources.Job) {
 func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 	// don't cancel already succeeded tasks
 	log.InfoD("job-cancelled", logger.M{
-		"id":     job.ID,
-		"reason": reason,
+		"id":               job.ID,
+		"workflow":         job.Workflow.Name(),
+		"workflow-version": job.Workflow.Version(),
+		"reason":           reason,
 	})
 
 	tasks := []*resources.Task{}
