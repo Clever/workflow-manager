@@ -1,6 +1,7 @@
 package dynamodb
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
