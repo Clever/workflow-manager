@@ -30,10 +30,11 @@ type Job struct {
 // NewJob creates a new Job struct for a Workflow
 func NewJob(wf WorkflowDefinition, input []string) *Job {
 	return &Job{
-		ID:       uuid.NewV4().String(),
-		Workflow: wf,
-		Input:    input,
-		Status:   Queued,
+		ID:        uuid.NewV4().String(),
+		Workflow:  wf,
+		Input:     input,
+		Status:    Queued,
+		CreatedAt: time.Now(),
 	}
 }
 
