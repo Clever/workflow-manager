@@ -13,7 +13,7 @@ routes:
   job-polling-alerts:
     matchers:
       title: ["job-polling-error"]
-      output:
-        type: "alerts"
-        series: "workflow-manager.job-polling-error"
-        dimensions: ["id", "status", "workflow"]
+    output:
+      type: "alerts"
+      series: "workflow-manager.job-polling-error"
+      dimensions: ["id", "status", "workflow"]
