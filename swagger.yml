@@ -33,6 +33,14 @@ paths:
           description: OK response
 
   /workflows:
+    # get:
+    #   operationId: getWorkflows
+    #   description: Get an array of all available Workflows
+    #   responses:
+    #     200:
+    #       description: Successfully fetched all workflows
+    #       schema:
+    #         $ref: '#/definitions/Workflows'
     post:
       operationId: newWorkflow
       summary: Create a new workflow
@@ -219,11 +227,19 @@ definitions:
         items:
           $ref: '#/definitions/State'
 
+  Workflows:
+    type: array
+    items:
+      $ref: '#/definitions/Workflow'
+
   Job:
     type: object
     properties:
       id:
         type: string
+      createdAt:
+        type: string
+        format: date-time
       workflow:
         $ref: '#/definitions/Workflow'
       status:

@@ -14,6 +14,9 @@ import (
 // swagger:model Job
 type Job struct {
 
+	// created at
+	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
 
