@@ -4,12 +4,15 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/batch"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/kardianos/osext"
 
+	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/batchclient"
 	"github.com/Clever/workflow-manager/gen-go/server"
@@ -24,11 +27,23 @@ type Config struct {
 	DynamoPrefix string
 }
 
+func setupRouting() {
+	dir, err := osext.ExecutableFolder()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = logger.SetGlobalRouting(path.Join(dir, "kvconfig.yml"))
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
 	addr := flag.String("addr", ":8080", "Address to listen at")
 	flag.Parse()
 
 	c := loadConfig()
+	setupRouting()
 	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{Region: aws.String(c.DynamoRegion)},
 	})))

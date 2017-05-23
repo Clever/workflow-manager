@@ -1,0 +1,16 @@
+routes:
+  job-status-alerts:
+    matchers:
+      title: ["job-status-change"]
+    output:
+      type: "alerts"
+      series: "workflows.job-status"
+      dimensions: ["id", "workflow", "workflow-version", "after"]
+      stat_type: "counter"
+  job-polling-alerts:
+    matchers:
+      title: ["job-polling-error"]
+      output:
+        type: "alerts"
+        series: "workflows.status-poll-error"
+        dimensions: ["id", "status", "workflow"]
