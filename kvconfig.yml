@@ -1,16 +1,19 @@
 routes:
+  # matchers for tracking Jobs/Workflows; previx workflows.
   job-status-alerts:
     matchers:
       title: ["job-status-change"]
     output:
       type: "alerts"
       series: "workflows.job-status"
-      dimensions: ["id", "workflow", "workflow-version", "after"]
+      dimensions: ["id", "workflow", "workflow-version", "status"]
       stat_type: "counter"
+
+  # workflow-manager relates matchers; prefix with workflow-mananger
   job-polling-alerts:
     matchers:
       title: ["job-polling-error"]
       output:
         type: "alerts"
-        series: "workflows.status-poll-error"
+        series: "workflow-manager.job-polling-error"
         dimensions: ["id", "status", "workflow"]

@@ -97,8 +97,8 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 			"id":               job.ID,
 			"workflow":         job.Workflow.Name(),
 			"workflow-version": job.Workflow.Version(),
-			"before":           previousStatus,
-			"after":            job.Status,
+			"previous-status":  previousStatus,
+			"status":           job.Status,
 		})
 	}
 	return jm.store.UpdateJob(*job)
@@ -107,10 +107,12 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 // CreateJob can be used to create a new job for a workflow
 func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []string) (*resources.Job, error) {
 	job := resources.NewJob(def, input)
-	log.InfoD("job-created", logger.M{
+	log.InfoD("job-status-change", logger.M{
 		"id":               job.ID,
 		"workflow":         job.Workflow.Name(),
 		"workflow-version": job.Workflow.Version(),
+		"previous-status":  "",
+		"status":           job.Status, // CREATED
 	})
 
 	err := jm.scheduleTasks(job, input)
@@ -155,14 +157,7 @@ func (jm BatchJobManager) pollUpdateStatus(job *resources.Job) {
 }
 
 func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
-	// don't cancel already succeeded tasks
-	log.InfoD("job-cancelled", logger.M{
-		"id":               job.ID,
-		"workflow":         job.Workflow.Name(),
-		"workflow-version": job.Workflow.Version(),
-		"reason":           reason,
-	})
-
+	// TODO: don't cancel already succeeded tasks
 	tasks := []*resources.Task{}
 	for _, task := range job.Tasks {
 		switch task.Status {
@@ -178,13 +173,23 @@ func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 	errs := jm.executor.Cancel(tasks, reason)
 	jm.store.UpdateJob(*job)
 
-	if len(errs) > 0 {
-		return fmt.Errorf("%d of %d tasks were not cancelled", len(errs), len(tasks))
-	}
 	if len(errs) < len(tasks) {
 		// TODO: this assumes that a workflow is linear. One task cancellation
 		// will lead to all subsequent tasks failing
+		previousStatus := job.Status
 		job.Status = resources.Cancelled
+		log.InfoD("job-status-change", logger.M{
+			"id":               job.ID,
+			"workflow":         job.Workflow.Name(),
+			"workflow-version": job.Workflow.Version(),
+			"previous-status":  previousStatus,
+			"status":           job.Status,
+			"reason":           reason,
+		})
+
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("%d of %d tasks were not cancelled", len(errs), len(tasks))
 	}
 
 	return nil
