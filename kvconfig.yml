@@ -1,5 +1,5 @@
 routes:
-  # matchers for tracking Jobs/Workflows; previx workflows.
+  # matchers for tracking Jobs/Workflows; prefix with workflows.
   job-status-alerts:
     matchers:
       title: ["job-status-change"]
