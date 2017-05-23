@@ -42,6 +42,20 @@ func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	}
 }
 
+func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		numWfs := 2
+		for wfNum := 0; wfNum < numWfs; wfNum++ {
+			wf := resources.KitchenSinkWorkflow(t)
+			require.Nil(t, s.SaveWorkflow(wf))
+		}
+		wfs, err := s.GetWorkflows()
+		require.Nil(t, err)
+		require.Equal(t, numWfs, len(wfs))
+		// TODO more sophisticated test against versions, etc
+	}
+}
+
 func GetWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflow(t)
