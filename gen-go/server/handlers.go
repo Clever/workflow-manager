@@ -544,9 +544,6 @@ func statusCodeForGetWorkflows(obj interface{}) int {
 	case *models.InternalError:
 		return 500
 
-	case *models.NotFound:
-		return 404
-
 	case []models.Workflow:
 		return 200
 
@@ -555,9 +552,6 @@ func statusCodeForGetWorkflows(obj interface{}) int {
 
 	case models.InternalError:
 		return 500
-
-	case models.NotFound:
-		return 404
 
 	default:
 		return -1

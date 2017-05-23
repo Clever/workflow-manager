@@ -584,7 +584,6 @@ func (c *WagClient) doGetJobRequest(ctx context.Context, req *http.Request, head
 // Get the latest versions of all available workflows
 // 200: []models.Workflow
 // 400: *models.BadRequest
-// 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
 func (c *WagClient) GetWorkflows(ctx context.Context) ([]models.Workflow, error) {
@@ -639,14 +638,6 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 	case 400:
 
 		var output models.BadRequest
-		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, err
-		}
-		return nil, &output
-
-	case 404:
-
-		var output models.NotFound
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
 			return nil, err
 		}

@@ -59,7 +59,6 @@ type Client interface {
 	// Get the latest versions of all available workflows
 	// 200: []models.Workflow
 	// 400: *models.BadRequest
-	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	GetWorkflows(ctx context.Context) ([]models.Workflow, error)

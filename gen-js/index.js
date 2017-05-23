@@ -675,7 +675,6 @@ class WorkflowManager {
    * @returns {Promise}
    * @fulfill {Object[]}
    * @reject {module:workflow-manager.Errors.BadRequest}
-   * @reject {module:workflow-manager.Errors.NotFound}
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
@@ -754,10 +753,6 @@ class WorkflowManager {
             
             case 400:
               rejecter(new Errors.BadRequest(body || {}));
-              return;
-            
-            case 404:
-              rejecter(new Errors.NotFound(body || {}));
               return;
             
             case 500:
