@@ -19,3 +19,7 @@ import:
   subpackages:
   - assert
 - package: github.com/kardianos/osext
+- package: github.com/Clever/kayvee-go
+  version: ^6.6.0
+  subpackages:
+  - logger
