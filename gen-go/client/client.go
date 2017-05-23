@@ -581,7 +581,7 @@ func (c *WagClient) doGetJobRequest(ctx context.Context, req *http.Request, head
 }
 
 // GetWorkflows makes a GET request to /workflows
-// Get an array of all available Workflows
+// Get the latest versions of all available workflows
 // 200: []models.Workflow
 // 400: *models.BadRequest
 // 404: *models.NotFound

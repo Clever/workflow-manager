@@ -147,9 +147,9 @@ func (d DynamoDB) UpdateWorkflow(def resources.WorkflowDefinition) (resources.Wo
 	return d.GetWorkflow(newVersion.Name(), newVersion.Version())
 }
 
-// TODO
+// GetWorkflows TODO
 func (d DynamoDB) GetWorkflows() ([]resources.WorkflowDefinition, error) {
-	return nil, nil
+	return nil, errors.New("Not yet implemented")
 }
 
 func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {

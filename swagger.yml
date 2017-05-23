@@ -35,7 +35,7 @@ paths:
   /workflows:
     get:
       operationId: getWorkflows
-      description: Get an array of all available Workflows
+      description: Get the latest versions of all available workflows
       responses:
         200:
           description: Successfully fetched all workflows

@@ -666,7 +666,7 @@ class WorkflowManager {
   }
 
   /**
-   * Get an array of all available Workflows
+   * Get the latest versions of all available workflows
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request

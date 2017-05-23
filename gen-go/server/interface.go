@@ -56,7 +56,7 @@ type Controller interface {
 	GetJob(ctx context.Context, jobId string) (*models.Job, error)
 
 	// GetWorkflows handles GET requests to /workflows
-	// Get an array of all available Workflows
+	// Get the latest versions of all available workflows
 	// 200: []models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound

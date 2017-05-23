@@ -147,7 +147,7 @@ Checks if the service is healthy
 <a name="module_workflow-manager--WorkflowManager+getWorkflows"></a>
 
 #### workflowManager.getWorkflows([options], [cb]) ⇒ <code>Promise</code>
-Get an array of all available Workflows
+Get the latest versions of all available workflows
 
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object[]</code>  

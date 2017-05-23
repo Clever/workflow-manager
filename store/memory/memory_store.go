@@ -50,11 +50,10 @@ func (s MemoryStore) UpdateWorkflow(def resources.WorkflowDefinition) (resources
 	return newVersion, nil
 }
 
-// as a prototype for the moment we will just get the latest version of a given Workflow
+// GetWorkflows returns the latest version of all stored Workflows
 func (s MemoryStore) GetWorkflows() ([]resources.WorkflowDefinition, error) {
 	workflows := []resources.WorkflowDefinition{}
-	for k, v := range s.workflows {
-		fmt.Println("k:", k, "v:", v)
+	for k, _ := range s.workflows {
 		workflow, err := s.LatestWorkflow(k)
 		if err != nil {
 			return workflows, err
