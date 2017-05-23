@@ -122,6 +122,24 @@ func GetJobInputPath(jobId string) (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
+// GetWorkflowsInput holds the input parameters for a getWorkflows operation.
+type GetWorkflowsInput struct {
+}
+
+// Validate returns an error if any of the GetWorkflowsInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetWorkflowsInput) Validate() error {
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i GetWorkflowsInput) Path() (string, error) {
+	path := "/workflows"
+	urlVals := url.Values{}
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
 // GetWorkflowByNameInput holds the input parameters for a getWorkflowByName operation.
 type GetWorkflowByNameInput struct {
 	Name string

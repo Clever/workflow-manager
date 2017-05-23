@@ -1,6 +1,7 @@
 package dynamodb
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -145,6 +146,11 @@ func (d DynamoDB) UpdateWorkflow(def resources.WorkflowDefinition) (resources.Wo
 
 	// need to perform a get to return any mutations that happened in Save, e.g. CreatedAt
 	return d.GetWorkflow(newVersion.Name(), newVersion.Version())
+}
+
+// GetWorkflows TODO
+func (d DynamoDB) GetWorkflows() ([]resources.WorkflowDefinition, error) {
+	return nil, errors.New("Not yet implemented")
 }
 
 func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {

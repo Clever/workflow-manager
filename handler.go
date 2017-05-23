@@ -69,6 +69,20 @@ func (wm WorkflowManager) UpdateWorkflow(ctx context.Context, input *models.Upda
 	return apiWorkflowFromStore(workflow), nil
 }
 
+// GetWorkflows fetches all available workflows
+func (wm WorkflowManager) GetWorkflows(ctx context.Context) ([]models.Workflow, error) {
+	workflows, err := wm.store.GetWorkflows()
+	if err != nil {
+		return []models.Workflow{}, err
+	}
+	apiWorkflows := []models.Workflow{}
+	for _, workflow := range workflows {
+		apiWorkflow := apiWorkflowFromStore(workflow)
+		apiWorkflows = append(apiWorkflows, *apiWorkflow)
+	}
+	return apiWorkflows, nil
+}
+
 // GetWorkflowByName allows fetching an existing Workflow by providing it's name
 func (wm WorkflowManager) GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error) {
 	workflow, err := wm.store.LatestWorkflow(name)

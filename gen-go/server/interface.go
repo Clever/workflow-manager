@@ -55,6 +55,14 @@ type Controller interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	GetJob(ctx context.Context, jobId string) (*models.Job, error)
 
+	// GetWorkflows handles GET requests to /workflows
+	// Get the latest versions of all available workflows
+	// 200: []models.Workflow
+	// 400: *models.BadRequest
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetWorkflows(ctx context.Context) ([]models.Workflow, error)
+
 	// NewWorkflow handles POST requests to /workflows
 	//
 	// 201: *models.Workflow

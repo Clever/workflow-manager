@@ -140,6 +140,13 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
+	router.Methods("GET").Path("/workflows").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflows")
+		h.GetWorkflowsHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflows")
+		r = r.WithContext(ctx)
+	})
+
 	router.Methods("POST").Path("/workflows").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "newWorkflow")
 		h.NewWorkflowHandler(r.Context(), w, r)
