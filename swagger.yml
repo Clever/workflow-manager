@@ -33,14 +33,18 @@ paths:
           description: OK response
 
   /workflows:
-    # get:
-    #   operationId: getWorkflows
-    #   description: Get an array of all available Workflows
-    #   responses:
-    #     200:
-    #       description: Successfully fetched all workflows
-    #       schema:
-    #         $ref: '#/definitions/Workflows'
+    get:
+      operationId: getWorkflows
+      description: Get an array of all available Workflows
+      responses:
+        200:
+          description: Successfully fetched all workflows
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Workflow'
+        404:
+          $ref: "#/responses/NotFound"
     post:
       operationId: newWorkflow
       summary: Create a new workflow
@@ -226,11 +230,6 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/State'
-
-  Workflows:
-    type: array
-    items:
-      $ref: '#/definitions/Workflow'
 
   Job:
     type: object
