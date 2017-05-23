@@ -8,7 +8,6 @@ routes:
       series: "workflows.job-status"
       dimensions: ["id", "workflow", "workflow-version", "status"]
       stat_type: "counter"
-
   # workflow-manager relates matchers; prefix with workflow-mananger
   job-polling-alerts:
     matchers:
@@ -17,3 +16,4 @@ routes:
       type: "alerts"
       series: "workflow-manager.job-polling-error"
       dimensions: ["id", "status", "workflow"]
+      stat_type: "counter"
