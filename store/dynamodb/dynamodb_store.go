@@ -103,7 +103,7 @@ func (d DynamoDB) InitTables() error {
 // SaveWorkflow saves a workflow definition.
 // If the workflow already exists, it will return a store.ConflictError.
 func (d DynamoDB) SaveWorkflow(def resources.WorkflowDefinition) error {
-	def.CreatedAt = time.Now()
+	def.CreatedAtTime = time.Now()
 
 	data, err := EncodeWorkflow(def)
 	if err != nil {

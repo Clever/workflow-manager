@@ -16,6 +16,9 @@ type Task struct {
 	// container
 	Container string `json:"Container,omitempty"`
 
+	// created at
+	CreatedAt string `json:"createdAt,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
 

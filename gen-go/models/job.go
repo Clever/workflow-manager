@@ -15,7 +15,7 @@ import (
 type Job struct {
 
 	// created at
-	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
 
 	// id
 	ID string `json:"id,omitempty"`

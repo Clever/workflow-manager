@@ -32,7 +32,7 @@ func (s MemoryStore) SaveWorkflow(def resources.WorkflowDefinition) error {
 	if _, ok := s.workflows[def.Name()]; ok {
 		return store.NewConflict(def.Name())
 	}
-	def.CreatedAt = time.Now()
+	def.CreatedAtTime = time.Now()
 	s.workflows[def.Name()] = []resources.WorkflowDefinition{def}
 	return nil
 }
@@ -44,7 +44,7 @@ func (s MemoryStore) UpdateWorkflow(def resources.WorkflowDefinition) (resources
 	}
 
 	newVersion := resources.NewWorkflowDefinitionVersion(def, last.Version()+1)
-	newVersion.CreatedAt = time.Now()
+	newVersion.CreatedAtTime = time.Now()
 	s.workflows[def.Name()] = append(s.workflows[def.Name()], newVersion)
 
 	return newVersion, nil

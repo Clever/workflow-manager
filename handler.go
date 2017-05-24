@@ -221,10 +221,11 @@ func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
 	}
 
 	return &models.Workflow{
-		Name:     wf.Name(),
-		Revision: int64(wf.Version()),
-		StartAt:  wf.StartAt().Name(),
-		States:   states,
+		Name:      wf.Name(),
+		Revision:  int64(wf.Version()),
+		StartAt:   wf.StartAt().Name(),
+		CreatedAt: wf.CreatedAt().String(),
+		States:    states,
 	}
 }
 
@@ -233,6 +234,7 @@ func apiJobFromStore(job resources.Job) *models.Job {
 	for _, task := range job.Tasks {
 		tasks = append(tasks, &models.Task{
 			ID:           task.ID,
+			CreatedAt:    task.CreatedAt.String(),
 			State:        task.State,
 			Status:       string(task.Status),
 			StatusReason: task.StatusReason,
@@ -241,9 +243,10 @@ func apiJobFromStore(job resources.Job) *models.Job {
 	}
 
 	return &models.Job{
-		ID:       job.ID,
-		Tasks:    tasks,
-		Workflow: apiWorkflowFromStore(job.Workflow),
-		Status:   string(job.Status),
+		ID:        job.ID,
+		CreatedAt: job.CreatedAt.String(),
+		Tasks:     tasks,
+		Workflow:  apiWorkflowFromStore(job.Workflow),
+		Status:    string(job.Status),
 	}
 }

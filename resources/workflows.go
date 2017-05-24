@@ -26,6 +26,7 @@ type State interface {
 type Workflow interface {
 	Name() string
 	Version() int
+	CreatedAt() time.Time
 	StartAt() State
 	States() map[string]State
 	OrderedStates() []State
@@ -36,7 +37,7 @@ type Workflow interface {
 type WorkflowDefinition struct {
 	NameStr          string
 	VersionInt       int
-	CreatedAt        time.Time
+	CreatedAtTime    time.Time
 	StartAtStr       string
 	StatesMap        map[string]State
 	OrderedStatesArr []State
@@ -47,6 +48,11 @@ type WorkflowDefinition struct {
 // Name returns the name of the workflow
 func (wf WorkflowDefinition) Name() string {
 	return wf.NameStr
+}
+
+// CreatedAt returns the time the workflow was created
+func (wf WorkflowDefinition) CreatedAt() time.Time {
+	return wf.CreatedAtTime
 }
 
 // Version returns the revision of the workflow
@@ -81,6 +87,7 @@ func NewWorkflowDefinition(name string, desc string, startAt string, states map[
 	return WorkflowDefinition{
 		NameStr:          name,
 		VersionInt:       0,
+		CreatedAtTime:    time.Now(),
 		StartAtStr:       startAt,
 		StatesMap:        states,
 		OrderedStatesArr: orderedStates,
@@ -93,6 +100,7 @@ func NewWorkflowDefinitionVersion(def WorkflowDefinition, version int) WorkflowD
 	return WorkflowDefinition{
 		NameStr:          def.Name(),
 		VersionInt:       version,
+		CreatedAtTime:    time.Now(),
 		StartAtStr:       def.StartAt().Name(),
 		StatesMap:        def.States(),
 		OrderedStatesArr: def.OrderedStates(),

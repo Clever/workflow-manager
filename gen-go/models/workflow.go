@@ -14,6 +14,9 @@ import (
 // swagger:model Workflow
 type Workflow struct {
 
+	// created at
+	CreatedAt string `json:"createdAt,omitempty"`
+
 	// description
 	Description string `json:"description,omitempty"`
 
