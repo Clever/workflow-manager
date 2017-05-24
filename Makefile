@@ -27,6 +27,10 @@ build:
 run: build
 	build/$(EXECUTABLE)
 
+run-docker:
+	@docker run \
+	--env-file=<(echo -e $(_ARKLOC_ENV_FILE)) clever/workflow-manager:569f2dc
+
 generate: wag-generate-deps
 	$(call wag-generate,./swagger.yml,$(PKG))
 
