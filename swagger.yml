@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   title: workflow-manager
   description: Minimal Workflow orchestrator for AWS Batch
-  version: 0.1.3
+  version: 0.1.4
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -222,6 +222,7 @@ definitions:
         type: string
       createdAt:
         type: string
+        format: date-time
       startAt:
         type: string
       description:
@@ -238,6 +239,10 @@ definitions:
         type: string
       createdAt:
         type: string
+        format: date-time
+      lastUpdated:
+        type: string
+        format: date-time
       workflow:
         $ref: '#/definitions/Workflow'
       status:
@@ -254,6 +259,13 @@ definitions:
         type: string
       createdAt:
         type: string
+        format: date-time
+      startedAt:
+        type: string
+        format: date-time
+      stoppedAt:
+        type: string
+        format: date-time
       state:
         type: string
       status:

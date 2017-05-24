@@ -15,7 +15,7 @@ import (
 type Workflow struct {
 
 	// created at
-	CreatedAt string `json:"createdAt,omitempty"`
+	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
 	// description
 	Description string `json:"description,omitempty"`

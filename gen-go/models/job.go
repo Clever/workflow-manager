@@ -15,10 +15,13 @@ import (
 type Job struct {
 
 	// created at
-	CreatedAt string `json:"createdAt,omitempty"`
+	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
 	// id
 	ID string `json:"id,omitempty"`
+
+	// last updated
+	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
 
 	// status
 	Status string `json:"status,omitempty"`
