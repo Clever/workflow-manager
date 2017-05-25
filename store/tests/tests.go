@@ -22,7 +22,7 @@ func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Equal(t, wflatest.Version(), 0)
 		require.NotNil(t, wflatest.StartAt())
 		require.Equal(t, wflatest.StartAt().Name(), "start-state")
-		require.WithinDuration(t, wflatest.CreatedAt, time.Now(), 1*time.Second)
+		require.WithinDuration(t, wflatest.CreatedAt(), time.Now(), 1*time.Second)
 
 		// update kitchensink workflow
 		wflatest.Description = "update the description"
@@ -30,15 +30,15 @@ func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, wfupdated.Description, "update the description")
 		require.Equal(t, wfupdated.Version(), wflatest.Version()+1)
-		require.WithinDuration(t, wfupdated.CreatedAt, time.Now(), 1*time.Second)
-		require.True(t, wfupdated.CreatedAt.After(wflatest.CreatedAt))
+		require.WithinDuration(t, wfupdated.CreatedAt(), time.Now(), 1*time.Second)
+		require.True(t, wfupdated.CreatedAt().After(wflatest.CreatedAt()))
 
 		// get kitchensink workflow
 		wflatest2, err := s.LatestWorkflow(wf.Name())
 		require.Nil(t, err)
 		require.Equal(t, wflatest2.Version(), wfupdated.Version())
-		require.WithinDuration(t, wflatest2.CreatedAt, time.Now(), 1*time.Second)
-		require.Equal(t, wflatest2.CreatedAt, wfupdated.CreatedAt)
+		require.WithinDuration(t, wflatest2.CreatedAt(), time.Now(), 1*time.Second)
+		require.Equal(t, wflatest2.CreatedAt(), wfupdated.CreatedAt())
 	}
 }
 
@@ -64,7 +64,7 @@ func GetWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, wf.Name(), gwf.Name())
 		require.Equal(t, wf.Version(), gwf.Version())
-		require.WithinDuration(t, gwf.CreatedAt, time.Now(), 1*time.Second)
+		require.WithinDuration(t, gwf.CreatedAt(), time.Now(), 1*time.Second)
 		// TODO: deeper test of equality
 
 		_, err = s.GetWorkflow("doesntexist", 1)

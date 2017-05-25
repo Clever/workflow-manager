@@ -20,6 +20,9 @@ type Job struct {
 	// id
 	ID string `json:"id,omitempty"`
 
+	// last updated
+	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
+
 	// status
 	Status string `json:"status,omitempty"`
 

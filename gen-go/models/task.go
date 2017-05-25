@@ -16,8 +16,14 @@ type Task struct {
 	// container
 	Container string `json:"Container,omitempty"`
 
+	// created at
+	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
+
+	// started at
+	StartedAt strfmt.DateTime `json:"startedAt,omitempty"`
 
 	// state
 	State string `json:"state,omitempty"`
@@ -27,6 +33,9 @@ type Task struct {
 
 	// status reason
 	StatusReason string `json:"statusReason,omitempty"`
+
+	// stopped at
+	StoppedAt strfmt.DateTime `json:"stoppedAt,omitempty"`
 }
 
 // Validate validates this task

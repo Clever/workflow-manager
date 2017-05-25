@@ -8,6 +8,7 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
+	"github.com/go-openapi/strfmt"
 )
 
 // WorkflowManager implements the wag server
@@ -221,10 +222,11 @@ func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
 	}
 
 	return &models.Workflow{
-		Name:     wf.Name(),
-		Revision: int64(wf.Version()),
-		StartAt:  wf.StartAt().Name(),
-		States:   states,
+		Name:      wf.Name(),
+		Revision:  int64(wf.Version()),
+		StartAt:   wf.StartAt().Name(),
+		CreatedAt: strfmt.DateTime(wf.CreatedAt()),
+		States:    states,
 	}
 }
 
@@ -233,6 +235,9 @@ func apiJobFromStore(job resources.Job) *models.Job {
 	for _, task := range job.Tasks {
 		tasks = append(tasks, &models.Task{
 			ID:           task.ID,
+			CreatedAt:    strfmt.DateTime(task.CreatedAt),
+			StartedAt:    strfmt.DateTime(task.StartedAt),
+			StoppedAt:    strfmt.DateTime(task.StoppedAt),
 			State:        task.State,
 			Status:       string(task.Status),
 			StatusReason: task.StatusReason,
@@ -241,9 +246,11 @@ func apiJobFromStore(job resources.Job) *models.Job {
 	}
 
 	return &models.Job{
-		ID:       job.ID,
-		Tasks:    tasks,
-		Workflow: apiWorkflowFromStore(job.Workflow),
-		Status:   string(job.Status),
+		ID:          job.ID,
+		CreatedAt:   strfmt.DateTime(job.CreatedAt),
+		LastUpdated: strfmt.DateTime(job.LastUpdated),
+		Tasks:       tasks,
+		Workflow:    apiWorkflowFromStore(job.Workflow),
+		Status:      string(job.Status),
 	}
 }
