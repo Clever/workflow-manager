@@ -1,7 +1,6 @@
 package dynamodb
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -148,9 +147,34 @@ func (d DynamoDB) UpdateWorkflow(def resources.WorkflowDefinition) (resources.Wo
 	return d.GetWorkflow(newVersion.Name(), newVersion.Version())
 }
 
-// GetWorkflows TODO
+// GetWorkflows returns the latest version of all stored Workflows
 func (d DynamoDB) GetWorkflows() ([]resources.WorkflowDefinition, error) {
-	return nil, errors.New("Not yet implemented")
+	workflows := []resources.WorkflowDefinition{}
+	// Scan returns the entire table
+	results, err := d.ddb.Scan(&dynamodb.ScanInput{
+		ConsistentRead: aws.Bool(true),
+		TableName:      aws.String(d.workflowsTable()),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Scan will return the items ordered by revision
+	// For now, iterating in reverse we will take the newest revision of each uniquely name workflow
+	previousWorkflow := ""
+	for idx := len(results.Items) - 1; idx >= 0; idx-- {
+		item := results.Items[idx]
+		var wf resources.WorkflowDefinition
+		if err := DecodeWorkflow(item, &wf); err != nil {
+			return []resources.WorkflowDefinition{}, err
+		}
+		if previousWorkflow == wf.NameStr {
+			continue
+		}
+		workflows = append(workflows, wf)
+		previousWorkflow = wf.NameStr
+	}
+	return workflows, nil
 }
 
 func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {
