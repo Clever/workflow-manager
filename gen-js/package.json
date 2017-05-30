@@ -1,6 +1,6 @@
 {
   "name": "workflow-manager",
-  "version": "0.1.4",
+  "version": "1.0.0",
   "description": "Minimal Workflow orchestrator for AWS Batch",
   "main": "index.js",
   "dependencies": {

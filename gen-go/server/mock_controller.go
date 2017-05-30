@@ -105,9 +105,9 @@ func (_mr *_MockControllerRecorder) NewWorkflow(arg0, arg1 interface{}) *gomock.
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewWorkflow", arg0, arg1)
 }
 
-func (_m *MockController) GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error) {
-	ret := _m.ctrl.Call(_m, "GetWorkflowByName", ctx, name)
-	ret0, _ := ret[0].(*models.Workflow)
+func (_m *MockController) GetWorkflowByName(ctx context.Context, i *models.GetWorkflowByNameInput) ([]models.Workflow, error) {
+	ret := _m.ctrl.Call(_m, "GetWorkflowByName", ctx, i)
+	ret0, _ := ret[0].([]models.Workflow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

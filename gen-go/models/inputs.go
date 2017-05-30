@@ -142,22 +142,24 @@ func (i GetWorkflowsInput) Path() (string, error) {
 
 // GetWorkflowByNameInput holds the input parameters for a getWorkflowByName operation.
 type GetWorkflowByNameInput struct {
-	Name string
+	Name    string
+	Version *int64
+	Latest  *bool
 }
 
-// ValidateGetWorkflowByNameInput returns an error if the input parameter doesn't
-// satisfy the requirements in the swagger yml file.
-func ValidateGetWorkflowByNameInput(name string) error {
+// Validate returns an error if any of the GetWorkflowByNameInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetWorkflowByNameInput) Validate() error {
 
 	return nil
 }
 
-// GetWorkflowByNameInputPath returns the URI path for the input.
-func GetWorkflowByNameInputPath(name string) (string, error) {
+// Path returns the URI path for the input.
+func (i GetWorkflowByNameInput) Path() (string, error) {
 	path := "/workflows/{name}"
 	urlVals := url.Values{}
 
-	pathname := name
+	pathname := i.Name
 	if pathname == "" {
 		err := fmt.Errorf("name cannot be empty because it's a path parameter")
 		if err != nil {
@@ -165,6 +167,14 @@ func GetWorkflowByNameInputPath(name string) (string, error) {
 		}
 	}
 	path = strings.Replace(path, "{name}", pathname, -1)
+
+	if i.Version != nil {
+		urlVals.Add("version", strconv.FormatInt(*i.Version, 10))
+	}
+
+	if i.Latest != nil {
+		urlVals.Add("latest", strconv.FormatBool(*i.Latest))
+	}
 
 	return path + "?" + urlVals.Encode(), nil
 }
