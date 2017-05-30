@@ -23,6 +23,7 @@ func TestDynamoDBStore(t *testing.T) {
 	if err := s.InitTables(); err != nil {
 		t.Fatal(err)
 	}
+	t.Run("GetWorkflows", tests.GetWorkflows(s, t))
 	t.Run("UpdateWorkflow", tests.UpdateWorkflow(s, t))
 	t.Run("GetWorkflow", tests.GetWorkflow(s, t))
 	t.Run("SaveWorkflow", tests.SaveWorkflow(s, t))
