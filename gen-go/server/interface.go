@@ -71,14 +71,14 @@ type Controller interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.Workflow, error)
 
-	// GetWorkflowByName handles GET requests to /workflows/{name}
+	// GetWorkflowVersionsByName handles GET requests to /workflows/{name}
 	//
 	// 200: []models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflowByName(ctx context.Context, i *models.GetWorkflowByNameInput) ([]models.Workflow, error)
+	GetWorkflowVersionsByName(ctx context.Context, i *models.GetWorkflowVersionsByNameInput) ([]models.Workflow, error)
 
 	// UpdateWorkflow handles PUT requests to /workflows/{name}
 	//
@@ -88,4 +88,13 @@ type Controller interface {
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	UpdateWorkflow(ctx context.Context, i *models.UpdateWorkflowInput) (*models.Workflow, error)
+
+	// GetWorkflowByNameAndVersion handles GET requests to /workflows/{name}/{version}
+	//
+	// 200: *models.Workflow
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetWorkflowByNameAndVersion(ctx context.Context, i *models.GetWorkflowByNameAndVersionInput) (*models.Workflow, error)
 }

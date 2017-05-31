@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   title: workflow-manager
   description: Minimal Workflow orchestrator for AWS Batch
-  version: 1.0.0
+  version: 0.2.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -36,6 +36,12 @@ paths:
     get:
       operationId: getWorkflows
       description: Get the latest versions of all available workflows
+      # parameters:
+      #   - name: latest
+      #     in: query
+      #     type: boolean
+      #     required: false
+      #     default: true
       responses:
         200:
           description: Successfully fetched all workflows
@@ -60,7 +66,7 @@ paths:
   /workflows/{name}:
     get:
       summary: Get a Workflow by Name
-      operationId: getWorkflowByName
+      operationId: getWorkflowVersionsByName
       parameters:
         - name: name
           in: path
@@ -103,7 +109,26 @@ paths:
             $ref: '#/definitions/Workflow'
         404:
           $ref: "#/responses/NotFound"
-
+  /workflows/{name}/{version}:
+    get:
+      summary: Get a Workflow by Name
+      operationId: getWorkflowByNameAndVersion
+      parameters:
+        - name: name
+          in: path
+          type: string
+          required: true
+        - name: version
+          in: path
+          type: integer
+          required: true
+      responses:
+        200:
+          description: Workflows
+          schema:
+            $ref: "#/definitions/Workflow"
+        404:
+          $ref: "#/responses/NotFound"
   /jobs:
     post:
       summary: Start a job for a workflow

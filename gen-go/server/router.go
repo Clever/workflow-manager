@@ -155,9 +155,9 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 	})
 
 	router.Methods("GET").Path("/workflows/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "getWorkflowByName")
-		h.GetWorkflowByNameHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "getWorkflowByName")
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflowVersionsByName")
+		h.GetWorkflowVersionsByNameHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflowVersionsByName")
 		r = r.WithContext(ctx)
 	})
 
@@ -165,6 +165,13 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		logger.FromContext(r.Context()).AddContext("op", "updateWorkflow")
 		h.UpdateWorkflowHandler(r.Context(), w, r)
 		ctx := WithTracingOpName(r.Context(), "updateWorkflow")
+		r = r.WithContext(ctx)
+	})
+
+	router.Methods("GET").Path("/workflows/{name}/{version}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflowByNameAndVersion")
+		h.GetWorkflowByNameAndVersionHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflowByNameAndVersion")
 		r = r.WithContext(ctx)
 	})
 

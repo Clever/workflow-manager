@@ -84,35 +84,36 @@ func (wm WorkflowManager) GetWorkflows(ctx context.Context) ([]models.Workflow, 
 	return apiWorkflows, nil
 }
 
-// GetWorkflowByName allows fetching an existing Workflow by providing it's name
-func (wm WorkflowManager) GetWorkflowByName(ctx context.Context, input *models.GetWorkflowByNameInput) ([]models.Workflow, error) {
-	apiWorkflows := []models.Workflow{}
+// GetWorkflowVersionsByName allows fetching an existing Workflow by providing it's name
+func (wm WorkflowManager) GetWorkflowVersionsByName(ctx context.Context, input *models.GetWorkflowVersionsByNameInput) ([]models.Workflow, error) {
 	if *input.Latest == true {
 		workflow, err := wm.store.LatestWorkflow(input.Name)
 		if err != nil {
 			return []models.Workflow{}, err
 		}
+		return []models.Workflow{*(apiWorkflowFromStore(workflow))}, nil
+	}
+
+	apiWorkflows := []models.Workflow{}
+	workflows, err := wm.store.GetWorkflowVersions(input.Name)
+	if err != nil {
+		return []models.Workflow{}, err
+	}
+	for _, workflow := range workflows {
 		apiWorkflow := apiWorkflowFromStore(workflow)
 		apiWorkflows = append(apiWorkflows, *apiWorkflow)
-	} else if input.Version != nil {
-		workflow, err := wm.store.GetWorkflow(input.Name, int(*input.Version))
-		if err != nil {
-			return []models.Workflow{}, err
-		}
-		apiWorkflow := apiWorkflowFromStore(workflow)
-		apiWorkflows = append(apiWorkflows, *apiWorkflow)
-	} else {
-		workflows, err := wm.store.GetWorkflowVersions(input.Name)
-		if err != nil {
-			return []models.Workflow{}, err
-		}
-		for _, workflow := range workflows {
-			apiWorkflow := apiWorkflowFromStore(workflow)
-			apiWorkflows = append(apiWorkflows, *apiWorkflow)
-		}
 	}
 
 	return apiWorkflows, nil
+}
+
+// GetWorkflowByNameAndVersion allows fetching an existing Workflow by providing it's name
+func (wm WorkflowManager) GetWorkflowByNameAndVersion(ctx context.Context, input *models.GetWorkflowByNameAndVersionInput) (*models.Workflow, error) {
+	workflow, err := wm.store.GetWorkflow(input.Name, int(input.Version))
+	if err != nil {
+		return &models.Workflow{}, err
+	}
+	return apiWorkflowFromStore(workflow), nil
 }
 
 // StartJobForWorkflow starts a new Job for the given workflow
