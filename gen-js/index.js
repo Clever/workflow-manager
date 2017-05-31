@@ -875,23 +875,23 @@ class WorkflowManager {
   }
 
   /**
-   * @param {Object} params
-   * @param {string} params.name
-   * @param {number} [params.version]
-   * @param {boolean} [params.latest=true]
+   * @param {string} name
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
-   * @fulfill {Object[]}
+   * @fulfill {Object}
    * @reject {module:workflow-manager.Errors.BadRequest}
    * @reject {module:workflow-manager.Errors.NotFound}
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflowByName(params, options, cb) {
+  getWorkflowByName(name, options, cb) {
+    const params = {};
+    params["name"] = name;
+
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -926,14 +926,6 @@ class WorkflowManager {
       }
 
       const query = {};
-      if (typeof params.version !== "undefined") {
-        query["version"] = params.version;
-      }
-  
-      if (typeof params.latest !== "undefined") {
-        query["latest"] = params.latest;
-      }
-  
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);

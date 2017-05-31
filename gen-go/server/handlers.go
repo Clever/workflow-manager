@@ -704,9 +704,6 @@ func statusCodeForGetWorkflowByName(obj interface{}) int {
 
 	switch obj.(type) {
 
-	case *[]models.Workflow:
-		return 200
-
 	case *models.BadRequest:
 		return 400
 
@@ -716,7 +713,7 @@ func statusCodeForGetWorkflowByName(obj interface{}) int {
 	case *models.NotFound:
 		return 404
 
-	case []models.Workflow:
+	case *models.Workflow:
 		return 200
 
 	case models.BadRequest:
@@ -728,6 +725,9 @@ func statusCodeForGetWorkflowByName(obj interface{}) int {
 	case models.NotFound:
 		return 404
 
+	case models.Workflow:
+		return 200
+
 	default:
 		return -1
 	}
@@ -735,14 +735,14 @@ func statusCodeForGetWorkflowByName(obj interface{}) int {
 
 func (h handler) GetWorkflowByNameHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newGetWorkflowByNameInput(r)
+	name, err := newGetWorkflowByNameInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
 		return
 	}
 
-	err = input.Validate()
+	err = models.ValidateGetWorkflowByNameInput(name)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -750,13 +750,7 @@ func (h handler) GetWorkflowByNameHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	resp, err := h.GetWorkflowByName(ctx, input)
-
-	// Success types that return an array should never return nil so let's make this easier
-	// for consumers by converting nil arrays to empty arrays
-	if resp == nil {
-		resp = []models.Workflow{}
-	}
+	resp, err := h.GetWorkflowByName(ctx, name)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -785,57 +779,14 @@ func (h handler) GetWorkflowByNameHandler(ctx context.Context, w http.ResponseWr
 
 }
 
-// newGetWorkflowByNameInput takes in an http.Request an returns the input struct.
-func newGetWorkflowByNameInput(r *http.Request) (*models.GetWorkflowByNameInput, error) {
-	var input models.GetWorkflowByNameInput
-
-	var err error
-	_ = err
-
-	nameStr := mux.Vars(r)["name"]
-	if len(nameStr) == 0 {
-		return nil, errors.New("parameter must be specified")
+// newGetWorkflowByNameInput takes in an http.Request an returns the name parameter
+// that it contains. It returns an error if the request doesn't contain the parameter.
+func newGetWorkflowByNameInput(r *http.Request) (string, error) {
+	name := mux.Vars(r)["name"]
+	if len(name) == 0 {
+		return "", errors.New("Parameter name must be specified")
 	}
-	nameStrs := []string{nameStr}
-
-	if len(nameStrs) > 0 {
-		var nameTmp string
-		nameStr := nameStrs[0]
-		nameTmp, err = nameStr, error(nil)
-		if err != nil {
-			return nil, err
-		}
-		input.Name = nameTmp
-	}
-
-	versionStrs := r.URL.Query()["version"]
-
-	if len(versionStrs) > 0 {
-		var versionTmp int64
-		versionStr := versionStrs[0]
-		versionTmp, err = swag.ConvertInt64(versionStr)
-		if err != nil {
-			return nil, err
-		}
-		input.Version = &versionTmp
-	}
-
-	latestStrs := r.URL.Query()["latest"]
-
-	if len(latestStrs) == 0 {
-		latestStrs = []string{"true"}
-	}
-	if len(latestStrs) > 0 {
-		var latestTmp bool
-		latestStr := latestStrs[0]
-		latestTmp, err = strconv.ParseBool(latestStr)
-		if err != nil {
-			return nil, err
-		}
-		input.Latest = &latestTmp
-	}
-
-	return &input, nil
+	return name, nil
 }
 
 // statusCodeForUpdateWorkflow returns the status code corresponding to the returned

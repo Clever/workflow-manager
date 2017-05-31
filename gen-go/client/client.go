@@ -745,16 +745,16 @@ func (c *WagClient) doNewWorkflowRequest(ctx context.Context, req *http.Request,
 
 // GetWorkflowByName makes a GET request to /workflows/{name}
 //
-// 200: []models.Workflow
+// 200: *models.Workflow
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetWorkflowByName(ctx context.Context, i *models.GetWorkflowByNameInput) ([]models.Workflow, error) {
+func (c *WagClient) GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error) {
 	headers := make(map[string]string)
 
 	var body []byte
-	path, err := i.Path()
+	path, err := models.GetWorkflowByNameInputPath(name)
 
 	if err != nil {
 		return nil, err
@@ -771,7 +771,7 @@ func (c *WagClient) GetWorkflowByName(ctx context.Context, i *models.GetWorkflow
 	return c.doGetWorkflowByNameRequest(ctx, req, headers)
 }
 
-func (c *WagClient) doGetWorkflowByNameRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Workflow, error) {
+func (c *WagClient) doGetWorkflowByNameRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
 	client := &http.Client{Transport: c.transport}
 
 	for field, value := range headers {
@@ -798,12 +798,12 @@ func (c *WagClient) doGetWorkflowByNameRequest(ctx context.Context, req *http.Re
 
 	case 200:
 
-		var output []models.Workflow
+		var output models.Workflow
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
 			return nil, err
 		}
 
-		return output, nil
+		return &output, nil
 
 	case 400:
 
