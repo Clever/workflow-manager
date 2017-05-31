@@ -73,12 +73,12 @@ type Client interface {
 
 	// GetWorkflowByName makes a GET request to /workflows/{name}
 	//
-	// 200: *models.Workflow
+	// 200: []models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error)
+	GetWorkflowByName(ctx context.Context, i *models.GetWorkflowByNameInput) ([]models.Workflow, error)
 
 	// UpdateWorkflow makes a PUT request to /workflows/{name}
 	//

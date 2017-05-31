@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   title: workflow-manager
   description: Minimal Workflow orchestrator for AWS Batch
-  version: 0.1.4
+  version: 1.0.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -66,11 +66,22 @@ paths:
           in: path
           type: string
           required: true
+        - name: version
+          in: query
+          type: integer
+          required: false
+        - name: latest
+          in: query
+          type: boolean
+          required: false
+          default: true
       responses:
         200:
-          description: Workflow
+          description: Workflows
           schema:
-            $ref: "#/definitions/Workflow"
+            type: array
+            items:
+              $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
     put:
