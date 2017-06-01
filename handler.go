@@ -107,7 +107,7 @@ func (wm WorkflowManager) GetWorkflowVersionsByName(ctx context.Context, input *
 	return apiWorkflows, nil
 }
 
-// GetWorkflowByNameAndVersion allows fetching an existing Workflow by providing it's name
+// GetWorkflowByNameAndVersion allows fetching an existing Workflow by providing it's name and version
 func (wm WorkflowManager) GetWorkflowByNameAndVersion(ctx context.Context, input *models.GetWorkflowByNameAndVersionInput) (*models.Workflow, error) {
 	workflow, err := wm.store.GetWorkflow(input.Name, int(input.Version))
 	if err != nil {

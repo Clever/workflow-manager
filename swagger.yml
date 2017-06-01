@@ -36,12 +36,6 @@ paths:
     get:
       operationId: getWorkflows
       description: Get the latest versions of all available workflows
-      # parameters:
-      #   - name: latest
-      #     in: query
-      #     type: boolean
-      #     required: false
-      #     default: true
       responses:
         200:
           description: Successfully fetched all workflows
@@ -65,17 +59,13 @@ paths:
 
   /workflows/{name}:
     get:
-      summary: Get a Workflow by Name
+      summary: List Workflow Versions by Name
       operationId: getWorkflowVersionsByName
       parameters:
         - name: name
           in: path
           type: string
           required: true
-        - name: version
-          in: query
-          type: integer
-          required: false
         - name: latest
           in: query
           type: boolean
@@ -111,7 +101,7 @@ paths:
           $ref: "#/responses/NotFound"
   /workflows/{name}/{version}:
     get:
-      summary: Get a Workflow by Name
+      summary: Get a Workflow by Name and Version
       operationId: getWorkflowByNameAndVersion
       parameters:
         - name: name
