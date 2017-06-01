@@ -140,24 +140,25 @@ func (i GetWorkflowsInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
-// GetWorkflowByNameInput holds the input parameters for a getWorkflowByName operation.
-type GetWorkflowByNameInput struct {
-	Name string
+// GetWorkflowVersionsByNameInput holds the input parameters for a getWorkflowVersionsByName operation.
+type GetWorkflowVersionsByNameInput struct {
+	Name   string
+	Latest *bool
 }
 
-// ValidateGetWorkflowByNameInput returns an error if the input parameter doesn't
-// satisfy the requirements in the swagger yml file.
-func ValidateGetWorkflowByNameInput(name string) error {
+// Validate returns an error if any of the GetWorkflowVersionsByNameInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetWorkflowVersionsByNameInput) Validate() error {
 
 	return nil
 }
 
-// GetWorkflowByNameInputPath returns the URI path for the input.
-func GetWorkflowByNameInputPath(name string) (string, error) {
+// Path returns the URI path for the input.
+func (i GetWorkflowVersionsByNameInput) Path() (string, error) {
 	path := "/workflows/{name}"
 	urlVals := url.Values{}
 
-	pathname := name
+	pathname := i.Name
 	if pathname == "" {
 		err := fmt.Errorf("name cannot be empty because it's a path parameter")
 		if err != nil {
@@ -165,6 +166,10 @@ func GetWorkflowByNameInputPath(name string) (string, error) {
 		}
 	}
 	path = strings.Replace(path, "{name}", pathname, -1)
+
+	if i.Latest != nil {
+		urlVals.Add("latest", strconv.FormatBool(*i.Latest))
+	}
 
 	return path + "?" + urlVals.Encode(), nil
 }
@@ -199,6 +204,45 @@ func (i UpdateWorkflowInput) Path() (string, error) {
 		}
 	}
 	path = strings.Replace(path, "{name}", pathname, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// GetWorkflowByNameAndVersionInput holds the input parameters for a getWorkflowByNameAndVersion operation.
+type GetWorkflowByNameAndVersionInput struct {
+	Name    string
+	Version int64
+}
+
+// Validate returns an error if any of the GetWorkflowByNameAndVersionInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetWorkflowByNameAndVersionInput) Validate() error {
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i GetWorkflowByNameAndVersionInput) Path() (string, error) {
+	path := "/workflows/{name}/{version}"
+	urlVals := url.Values{}
+
+	pathname := i.Name
+	if pathname == "" {
+		err := fmt.Errorf("name cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{name}", pathname, -1)
+
+	pathversion := strconv.FormatInt(i.Version, 10)
+	if pathversion == "" {
+		err := fmt.Errorf("version cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{version}", pathversion, -1)
 
 	return path + "?" + urlVals.Encode(), nil
 }

@@ -71,14 +71,14 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.Workflow, error)
 
-	// GetWorkflowByName makes a GET request to /workflows/{name}
+	// GetWorkflowVersionsByName makes a GET request to /workflows/{name}
 	//
-	// 200: *models.Workflow
+	// 200: []models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error)
+	GetWorkflowVersionsByName(ctx context.Context, i *models.GetWorkflowVersionsByNameInput) ([]models.Workflow, error)
 
 	// UpdateWorkflow makes a PUT request to /workflows/{name}
 	//
@@ -88,4 +88,13 @@ type Client interface {
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	UpdateWorkflow(ctx context.Context, i *models.UpdateWorkflowInput) (*models.Workflow, error)
+
+	// GetWorkflowByNameAndVersion makes a GET request to /workflows/{name}/{version}
+	//
+	// 200: *models.Workflow
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetWorkflowByNameAndVersion(ctx context.Context, i *models.GetWorkflowByNameAndVersionInput) (*models.Workflow, error)
 }

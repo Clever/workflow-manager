@@ -177,6 +177,38 @@ func (d DynamoDB) GetWorkflows() ([]resources.WorkflowDefinition, error) {
 	return workflows, nil
 }
 
+// GetWorkflowVersions gets all versions of a given workflow
+func (d DynamoDB) GetWorkflowVersions(name string) ([]resources.WorkflowDefinition, error) {
+	res, err := d.ddb.Query(&dynamodb.QueryInput{
+		TableName: aws.String(d.workflowsTable()),
+		ExpressionAttributeNames: map[string]*string{
+			"#N": aws.String("name"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":name": &dynamodb.AttributeValue{
+				S: aws.String(name),
+			},
+		},
+		KeyConditionExpression: aws.String("#N = :name"),
+		ConsistentRead:         aws.Bool(true),
+	})
+	if err != nil {
+		return []resources.WorkflowDefinition{}, err
+	}
+	if len(res.Items) == 0 {
+		return []resources.WorkflowDefinition{}, store.NewNotFound(name)
+	}
+	workflows := []resources.WorkflowDefinition{}
+	for _, item := range res.Items {
+		var wf resources.WorkflowDefinition
+		if err := DecodeWorkflow(item, &wf); err != nil {
+			return []resources.WorkflowDefinition{}, err
+		}
+		workflows = append(workflows, wf)
+	}
+	return workflows, nil
+}
+
 func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowPrimaryKey{
 		Name:    name,

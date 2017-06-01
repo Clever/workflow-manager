@@ -105,15 +105,15 @@ func (_mr *_MockClientRecorder) NewWorkflow(arg0, arg1 interface{}) *gomock.Call
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewWorkflow", arg0, arg1)
 }
 
-func (_m *MockClient) GetWorkflowByName(ctx context.Context, name string) (*models.Workflow, error) {
-	ret := _m.ctrl.Call(_m, "GetWorkflowByName", ctx, name)
-	ret0, _ := ret[0].(*models.Workflow)
+func (_m *MockClient) GetWorkflowVersionsByName(ctx context.Context, i *models.GetWorkflowVersionsByNameInput) ([]models.Workflow, error) {
+	ret := _m.ctrl.Call(_m, "GetWorkflowVersionsByName", ctx, i)
+	ret0, _ := ret[0].([]models.Workflow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-func (_mr *_MockClientRecorder) GetWorkflowByName(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflowByName", arg0, arg1)
+func (_mr *_MockClientRecorder) GetWorkflowVersionsByName(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflowVersionsByName", arg0, arg1)
 }
 
 func (_m *MockClient) UpdateWorkflow(ctx context.Context, i *models.UpdateWorkflowInput) (*models.Workflow, error) {
@@ -125,4 +125,15 @@ func (_m *MockClient) UpdateWorkflow(ctx context.Context, i *models.UpdateWorkfl
 
 func (_mr *_MockClientRecorder) UpdateWorkflow(arg0, arg1 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "UpdateWorkflow", arg0, arg1)
+}
+
+func (_m *MockClient) GetWorkflowByNameAndVersion(ctx context.Context, i *models.GetWorkflowByNameAndVersionInput) (*models.Workflow, error) {
+	ret := _m.ctrl.Call(_m, "GetWorkflowByNameAndVersion", ctx, i)
+	ret0, _ := ret[0].(*models.Workflow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockClientRecorder) GetWorkflowByNameAndVersion(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflowByNameAndVersion", arg0, arg1)
 }

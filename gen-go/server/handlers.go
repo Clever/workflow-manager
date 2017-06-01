@@ -698,11 +698,14 @@ func newNewWorkflowInput(r *http.Request) (*models.NewWorkflowRequest, error) {
 	return &input, nil
 }
 
-// statusCodeForGetWorkflowByName returns the status code corresponding to the returned
+// statusCodeForGetWorkflowVersionsByName returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForGetWorkflowByName(obj interface{}) int {
+func statusCodeForGetWorkflowVersionsByName(obj interface{}) int {
 
 	switch obj.(type) {
+
+	case *[]models.Workflow:
+		return 200
 
 	case *models.BadRequest:
 		return 400
@@ -713,7 +716,7 @@ func statusCodeForGetWorkflowByName(obj interface{}) int {
 	case *models.NotFound:
 		return 404
 
-	case *models.Workflow:
+	case []models.Workflow:
 		return 200
 
 	case models.BadRequest:
@@ -725,24 +728,21 @@ func statusCodeForGetWorkflowByName(obj interface{}) int {
 	case models.NotFound:
 		return 404
 
-	case models.Workflow:
-		return 200
-
 	default:
 		return -1
 	}
 }
 
-func (h handler) GetWorkflowByNameHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) GetWorkflowVersionsByNameHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	name, err := newGetWorkflowByNameInput(r)
+	input, err := newGetWorkflowVersionsByNameInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
 		return
 	}
 
-	err = models.ValidateGetWorkflowByNameInput(name)
+	err = input.Validate()
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -750,14 +750,20 @@ func (h handler) GetWorkflowByNameHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	resp, err := h.GetWorkflowByName(ctx, name)
+	resp, err := h.GetWorkflowVersionsByName(ctx, input)
+
+	// Success types that return an array should never return nil so let's make this easier
+	// for consumers by converting nil arrays to empty arrays
+	if resp == nil {
+		resp = []models.Workflow{}
+	}
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForGetWorkflowByName(err)
+		statusCode := statusCodeForGetWorkflowVersionsByName(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -774,19 +780,50 @@ func (h handler) GetWorkflowByNameHandler(ctx context.Context, w http.ResponseWr
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForGetWorkflowByName(resp))
+	w.WriteHeader(statusCodeForGetWorkflowVersionsByName(resp))
 	w.Write(respBytes)
 
 }
 
-// newGetWorkflowByNameInput takes in an http.Request an returns the name parameter
-// that it contains. It returns an error if the request doesn't contain the parameter.
-func newGetWorkflowByNameInput(r *http.Request) (string, error) {
-	name := mux.Vars(r)["name"]
-	if len(name) == 0 {
-		return "", errors.New("Parameter name must be specified")
+// newGetWorkflowVersionsByNameInput takes in an http.Request an returns the input struct.
+func newGetWorkflowVersionsByNameInput(r *http.Request) (*models.GetWorkflowVersionsByNameInput, error) {
+	var input models.GetWorkflowVersionsByNameInput
+
+	var err error
+	_ = err
+
+	nameStr := mux.Vars(r)["name"]
+	if len(nameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
 	}
-	return name, nil
+	nameStrs := []string{nameStr}
+
+	if len(nameStrs) > 0 {
+		var nameTmp string
+		nameStr := nameStrs[0]
+		nameTmp, err = nameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Name = nameTmp
+	}
+
+	latestStrs := r.URL.Query()["latest"]
+
+	if len(latestStrs) == 0 {
+		latestStrs = []string{"true"}
+	}
+	if len(latestStrs) > 0 {
+		var latestTmp bool
+		latestStr := latestStrs[0]
+		latestTmp, err = strconv.ParseBool(latestStr)
+		if err != nil {
+			return nil, err
+		}
+		input.Latest = &latestTmp
+	}
+
+	return &input, nil
 }
 
 // statusCodeForUpdateWorkflow returns the status code corresponding to the returned
@@ -900,6 +937,129 @@ func newUpdateWorkflowInput(r *http.Request) (*models.UpdateWorkflowInput, error
 			return nil, err
 		}
 		input.Name = nameTmp
+	}
+
+	return &input, nil
+}
+
+// statusCodeForGetWorkflowByNameAndVersion returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForGetWorkflowByNameAndVersion(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case *models.Workflow:
+		return 200
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	case models.Workflow:
+		return 200
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) GetWorkflowByNameAndVersionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newGetWorkflowByNameAndVersionInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.GetWorkflowByNameAndVersion(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForGetWorkflowByNameAndVersion(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForGetWorkflowByNameAndVersion(resp))
+	w.Write(respBytes)
+
+}
+
+// newGetWorkflowByNameAndVersionInput takes in an http.Request an returns the input struct.
+func newGetWorkflowByNameAndVersionInput(r *http.Request) (*models.GetWorkflowByNameAndVersionInput, error) {
+	var input models.GetWorkflowByNameAndVersionInput
+
+	var err error
+	_ = err
+
+	nameStr := mux.Vars(r)["name"]
+	if len(nameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	nameStrs := []string{nameStr}
+
+	if len(nameStrs) > 0 {
+		var nameTmp string
+		nameStr := nameStrs[0]
+		nameTmp, err = nameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Name = nameTmp
+	}
+
+	versionStr := mux.Vars(r)["version"]
+	if len(versionStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	versionStrs := []string{versionStr}
+
+	if len(versionStrs) > 0 {
+		var versionTmp int64
+		versionStr := versionStrs[0]
+		versionTmp, err = swag.ConvertInt64(versionStr)
+		if err != nil {
+			return nil, err
+		}
+		input.Version = versionTmp
 	}
 
 	return &input, nil

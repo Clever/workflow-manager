@@ -56,9 +56,18 @@ func (s MemoryStore) GetWorkflows() ([]resources.WorkflowDefinition, error) {
 	for k, _ := range s.workflows {
 		workflow, err := s.LatestWorkflow(k)
 		if err != nil {
-			return workflows, err
+			return []resources.WorkflowDefinition{}, err
 		}
 		workflows = append(workflows, workflow)
+	}
+
+	return workflows, nil
+}
+
+func (s MemoryStore) GetWorkflowVersions(name string) ([]resources.WorkflowDefinition, error) {
+	workflows, ok := s.workflows[name]
+	if !ok {
+		return []resources.WorkflowDefinition{}, store.NewNotFound(name)
 	}
 
 	return workflows, nil
