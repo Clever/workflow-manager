@@ -142,9 +142,8 @@ func (i GetWorkflowsInput) Path() (string, error) {
 
 // GetWorkflowVersionsByNameInput holds the input parameters for a getWorkflowVersionsByName operation.
 type GetWorkflowVersionsByNameInput struct {
-	Name    string
-	Version *int64
-	Latest  *bool
+	Name   string
+	Latest *bool
 }
 
 // Validate returns an error if any of the GetWorkflowVersionsByNameInput parameters don't satisfy the
@@ -167,10 +166,6 @@ func (i GetWorkflowVersionsByNameInput) Path() (string, error) {
 		}
 	}
 	path = strings.Replace(path, "{name}", pathname, -1)
-
-	if i.Version != nil {
-		urlVals.Add("version", strconv.FormatInt(*i.Version, 10))
-	}
 
 	if i.Latest != nil {
 		urlVals.Add("latest", strconv.FormatBool(*i.Latest))

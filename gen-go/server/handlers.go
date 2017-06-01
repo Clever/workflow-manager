@@ -808,18 +808,6 @@ func newGetWorkflowVersionsByNameInput(r *http.Request) (*models.GetWorkflowVers
 		input.Name = nameTmp
 	}
 
-	versionStrs := r.URL.Query()["version"]
-
-	if len(versionStrs) > 0 {
-		var versionTmp int64
-		versionStr := versionStrs[0]
-		versionTmp, err = swag.ConvertInt64(versionStr)
-		if err != nil {
-			return nil, err
-		}
-		input.Version = &versionTmp
-	}
-
 	latestStrs := r.URL.Query()["latest"]
 
 	if len(latestStrs) == 0 {

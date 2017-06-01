@@ -877,7 +877,6 @@ class WorkflowManager {
   /**
    * @param {Object} params
    * @param {string} params.name
-   * @param {number} [params.version]
    * @param {boolean} [params.latest=true]
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
@@ -926,10 +925,6 @@ class WorkflowManager {
       }
 
       const query = {};
-      if (typeof params.version !== "undefined") {
-        query["version"] = params.version;
-      }
-  
       if (typeof params.latest !== "undefined") {
         query["latest"] = params.latest;
       }

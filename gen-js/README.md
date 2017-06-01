@@ -196,7 +196,6 @@ Get the latest versions of all available workflows
 | --- | --- | --- | --- |
 | params | <code>Object</code> |  |  |
 | params.name | <code>string</code> |  |  |
-| [params.version] | <code>number</code> |  |  |
 | [params.latest] | <code>boolean</code> | <code>true</code> |  |
 | [options] | <code>object</code> |  |  |
 | [options.timeout] | <code>number</code> |  | A request specific timeout |
