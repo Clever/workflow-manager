@@ -61,7 +61,7 @@ type Controller interface {
 	// 400: *models.BadRequest
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflows(ctx context.Context) ([]models.Workflow, error)
+	GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error)
 
 	// NewWorkflow handles POST requests to /workflows
 	//

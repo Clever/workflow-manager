@@ -667,6 +667,7 @@ class WorkflowManager {
 
   /**
    * Get the latest versions of all available workflows
+   * @param {boolean} latest=true
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -678,8 +679,9 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflows(options, cb) {
+  getWorkflows(latest, options, cb) {
     const params = {};
+    params["latest"] = latest;
 
     if (!cb && typeof options === "function") {
       cb = options;
@@ -711,6 +713,10 @@ class WorkflowManager {
       const headers = {};
 
       const query = {};
+      if (typeof params.latest !== "undefined") {
+        query["latest"] = params.latest;
+      }
+  
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);

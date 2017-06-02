@@ -124,11 +124,13 @@ func GetJobInputPath(jobId string) (string, error) {
 
 // GetWorkflowsInput holds the input parameters for a getWorkflows operation.
 type GetWorkflowsInput struct {
+	Latest *bool
 }
 
 // Validate returns an error if any of the GetWorkflowsInput parameters don't satisfy the
 // requirements from the swagger yml file.
 func (i GetWorkflowsInput) Validate() error {
+
 	return nil
 }
 
@@ -136,6 +138,10 @@ func (i GetWorkflowsInput) Validate() error {
 func (i GetWorkflowsInput) Path() (string, error) {
 	path := "/workflows"
 	urlVals := url.Values{}
+
+	if i.Latest != nil {
+		urlVals.Add("latest", strconv.FormatBool(*i.Latest))
+	}
 
 	return path + "?" + urlVals.Encode(), nil
 }

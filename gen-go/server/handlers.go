@@ -560,7 +560,22 @@ func statusCodeForGetWorkflows(obj interface{}) int {
 
 func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	resp, err := h.GetWorkflows(ctx)
+	input, err := newGetWorkflowsInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.GetWorkflows(ctx, input)
 
 	// Success types that return an array should never return nil so let's make this easier
 	// for consumers by converting nil arrays to empty arrays
@@ -601,6 +616,21 @@ func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
 
 	var err error
 	_ = err
+
+	latestStrs := r.URL.Query()["latest"]
+
+	if len(latestStrs) == 0 {
+		latestStrs = []string{"true"}
+	}
+	if len(latestStrs) > 0 {
+		var latestTmp bool
+		latestStr := latestStrs[0]
+		latestTmp, err = strconv.ParseBool(latestStr)
+		if err != nil {
+			return nil, err
+		}
+		input.Latest = &latestTmp
+	}
 
 	return &input, nil
 }
