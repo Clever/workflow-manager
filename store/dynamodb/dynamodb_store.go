@@ -40,7 +40,7 @@ func (d DynamoDB) jobsTable() string {
 	return fmt.Sprintf("%s-jobs", d.tableNamePrefix)
 }
 
-// dynamoItemsToWorkflows takes the Items array from a Query or Scan result and decodes it into an array of workflow definitions
+// dynamoItemsToWorkflows takes the Items from a Query or Scan result and decodes it into an array of workflow definitions
 func (d DynamoDB) dynamoItemsToWorkflows(items []map[string]*dynamodb.AttributeValue) ([]resources.WorkflowDefinition, error) {
 	workflows := []resources.WorkflowDefinition{}
 
@@ -181,6 +181,7 @@ func (d DynamoDB) SaveWorkflow(def resources.WorkflowDefinition) error {
 // The version will be set to the version following the latest definition.
 // The workflow definition returned contains this new version number.
 func (d DynamoDB) UpdateWorkflow(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error) {
+	// TODO we should change this to use the latest-workflows table with a projection expressions
 	latest, err := d.LatestWorkflow(def.Name()) // TODO: only need version here, can optimize query
 	if err != nil {
 		return def, err
@@ -280,9 +281,8 @@ func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefin
 
 // LatestWorkflow gets the latest version of a workflow definition.
 func (d DynamoDB) LatestWorkflow(name string) (resources.WorkflowDefinition, error) {
-	// TODO we should change this to use the latest-workflows table with a projection expressions
 	res, err := d.ddb.Query(&dynamodb.QueryInput{
-		TableName: aws.String(d.workflowsTable()),
+		TableName: aws.String(d.latestWorkflowsTable()),
 		ExpressionAttributeNames: map[string]*string{
 			"#N": aws.String("name"),
 		},
@@ -292,9 +292,7 @@ func (d DynamoDB) LatestWorkflow(name string) (resources.WorkflowDefinition, err
 			},
 		},
 		KeyConditionExpression: aws.String("#N = :name"),
-		Limit:            aws.Int64(1),
-		ConsistentRead:   aws.Bool(true),
-		ScanIndexForward: aws.Bool(false), // descending order
+		ConsistentRead:         aws.Bool(true),
 	})
 	if err != nil {
 		return resources.WorkflowDefinition{}, err
