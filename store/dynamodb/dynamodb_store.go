@@ -197,23 +197,8 @@ func (d DynamoDB) UpdateWorkflow(def resources.WorkflowDefinition) (resources.Wo
 	return d.GetWorkflow(newVersion.Name(), newVersion.Version())
 }
 
-// GetWorkflows returns all versions of all stored workflow definitions
+// GetWorkflows returns the latest version of all stored workflow definitions
 func (d DynamoDB) GetWorkflows() ([]resources.WorkflowDefinition, error) {
-	// Scan returns the entire table
-	// TODO this won't scale
-	results, err := d.ddb.Scan(&dynamodb.ScanInput{
-		ConsistentRead: aws.Bool(true),
-		TableName:      aws.String(d.workflowsTable()),
-	})
-	if err != nil {
-		return []resources.WorkflowDefinition{}, err
-	}
-
-	return d.dynamoItemsToWorkflows(results.Items)
-}
-
-// GetLatestWorkflows returns the latest version of all stored workflow definitions
-func (d DynamoDB) GetLatestWorkflows() ([]resources.WorkflowDefinition, error) {
 	// Scan returns the entire table
 	results, err := d.ddb.Scan(&dynamodb.ScanInput{
 		ConsistentRead: aws.Bool(true),

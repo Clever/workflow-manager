@@ -12,7 +12,6 @@ type Store interface {
 	SaveWorkflow(def resources.WorkflowDefinition) error
 	UpdateWorkflow(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error)
 	GetWorkflows() ([]resources.WorkflowDefinition, error)
-	GetLatestWorkflows() ([]resources.WorkflowDefinition, error)
 	GetWorkflowVersions(name string) ([]resources.WorkflowDefinition, error)
 	GetWorkflow(name string, version int) (resources.WorkflowDefinition, error)
 	LatestWorkflow(name string) (resources.WorkflowDefinition, error)

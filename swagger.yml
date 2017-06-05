@@ -36,12 +36,6 @@ paths:
     get:
       operationId: getWorkflows
       description: Get the latest versions of all available workflows
-      parameters:
-        - name: latest
-          in: query
-          type: boolean
-          required: false
-          default: true
       responses:
         200:
           description: Successfully fetched all workflows
