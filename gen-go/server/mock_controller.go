@@ -83,15 +83,15 @@ func (_mr *_MockControllerRecorder) GetJob(arg0, arg1 interface{}) *gomock.Call 
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetJob", arg0, arg1)
 }
 
-func (_m *MockController) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error) {
-	ret := _m.ctrl.Call(_m, "GetWorkflows", ctx, i)
+func (_m *MockController) GetWorkflows(ctx context.Context) ([]models.Workflow, error) {
+	ret := _m.ctrl.Call(_m, "GetWorkflows", ctx)
 	ret0, _ := ret[0].([]models.Workflow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-func (_mr *_MockControllerRecorder) GetWorkflows(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflows", arg0, arg1)
+func (_mr *_MockControllerRecorder) GetWorkflows(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflows", arg0)
 }
 
 func (_m *MockController) NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.Workflow, error) {

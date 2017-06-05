@@ -586,17 +586,11 @@ func (c *WagClient) doGetJobRequest(ctx context.Context, req *http.Request, head
 // 400: *models.BadRequest
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error) {
+func (c *WagClient) GetWorkflows(ctx context.Context) ([]models.Workflow, error) {
 	headers := make(map[string]string)
 
 	var body []byte
-	path, err := i.Path()
-
-	if err != nil {
-		return nil, err
-	}
-
-	path = c.basePath + path
+	path := c.basePath + "/workflows"
 
 	req, err := http.NewRequest("GET", path, bytes.NewBuffer(body))
 

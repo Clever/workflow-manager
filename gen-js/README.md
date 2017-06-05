@@ -13,7 +13,7 @@ workflow-manager client library.
             * [.startJobForWorkflow(input, [options], [cb])](#module_workflow-manager--WorkflowManager+startJobForWorkflow) ⇒ <code>Promise</code>
             * [.CancelJob(params, [options], [cb])](#module_workflow-manager--WorkflowManager+CancelJob) ⇒ <code>Promise</code>
             * [.GetJob(jobId, [options], [cb])](#module_workflow-manager--WorkflowManager+GetJob) ⇒ <code>Promise</code>
-            * [.getWorkflows(latest, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflows) ⇒ <code>Promise</code>
+            * [.getWorkflows([options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflows) ⇒ <code>Promise</code>
             * [.newWorkflow(NewWorkflowRequest, [options], [cb])](#module_workflow-manager--WorkflowManager+newWorkflow) ⇒ <code>Promise</code>
             * [.getWorkflowVersionsByName(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowVersionsByName) ⇒ <code>Promise</code>
             * [.updateWorkflow(params, [options], [cb])](#module_workflow-manager--WorkflowManager+updateWorkflow) ⇒ <code>Promise</code>
@@ -147,7 +147,7 @@ Checks if the service is healthy
 
 <a name="module_workflow-manager--WorkflowManager+getWorkflows"></a>
 
-#### workflowManager.getWorkflows(latest, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.getWorkflows([options], [cb]) ⇒ <code>Promise</code>
 Get the latest versions of all available workflows
 
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
@@ -156,14 +156,13 @@ Get the latest versions of all available workflows
 **Reject**: <code>[InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError)</code>  
 **Reject**: <code>Error</code>  
 
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| latest | <code>boolean</code> | <code>true</code> |  |
-| [options] | <code>object</code> |  |  |
-| [options.timeout] | <code>number</code> |  | A request specific timeout |
-| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> |  | An OpenTracing span - For example from the parent request |
-| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> |  | A request specific retryPolicy |
-| [cb] | <code>function</code> |  |  |
+| Param | Type | Description |
+| --- | --- | --- |
+| [options] | <code>object</code> |  |
+| [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
+| [cb] | <code>function</code> |  |
 
 <a name="module_workflow-manager--WorkflowManager+newWorkflow"></a>
 
