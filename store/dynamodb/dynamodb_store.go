@@ -25,6 +25,11 @@ func New(ddb dynamodbiface.DynamoDBAPI, tableNamePrefix string) DynamoDB {
 	}
 }
 
+// latestWorkflowsTable returns the name of the table that stores the latest version of every workflow definition
+func (d DynamoDB) latestWorkflowsTable() string {
+	return fmt.Sprintf("%s-latest-workflows", d.tableNamePrefix)
+}
+
 // workflowsTable returns the name of the table that stores workflow definitions.
 func (d DynamoDB) workflowsTable() string {
 	return fmt.Sprintf("%s-workflows", d.tableNamePrefix)
@@ -33,6 +38,21 @@ func (d DynamoDB) workflowsTable() string {
 // jobsTable returns the name of the table that stores jobs.
 func (d DynamoDB) jobsTable() string {
 	return fmt.Sprintf("%s-jobs", d.tableNamePrefix)
+}
+
+// dynamoItemsToWorkflows takes the Items from a Query or Scan result and decodes it into an array of workflow definitions
+func (d DynamoDB) dynamoItemsToWorkflows(items []map[string]*dynamodb.AttributeValue) ([]resources.WorkflowDefinition, error) {
+	workflows := []resources.WorkflowDefinition{}
+
+	for _, item := range items {
+		var wf resources.WorkflowDefinition
+		if err := DecodeWorkflow(item, &wf); err != nil {
+			return []resources.WorkflowDefinition{}, err
+		}
+		workflows = append(workflows, wf)
+	}
+
+	return workflows, nil
 }
 
 // InitTables creates the dynamo tables.
@@ -68,7 +88,30 @@ func (d DynamoDB) InitTables() error {
 		return err
 	}
 
-	// create jobs table from job ID to to job object
+	// create latest workflows table from name -> workflow object
+	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("name"),
+				AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+			},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("name"),
+				KeyType:       aws.String(dynamodb.KeyTypeHash),
+			},
+		},
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits:  aws.Int64(1),
+			WriteCapacityUnits: aws.Int64(1),
+		},
+		TableName: aws.String(d.latestWorkflowsTable()),
+	}); err != nil {
+		return err
+	}
+
+	// create jobs table from job ID -> job object
 	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
 		AttributeDefinitions: append(
 			ddbJobPrimaryKey{}.AttributeDefinitions(),
@@ -124,7 +167,13 @@ func (d DynamoDB) SaveWorkflow(def resources.WorkflowDefinition) error {
 				return store.NewConflict(def.Name())
 			}
 		}
+		return err
 	}
+	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(d.latestWorkflowsTable()),
+		Item:      data,
+	})
+	// TODO determine what we should do in case the 2nd write fails
 	return err
 }
 
@@ -132,6 +181,7 @@ func (d DynamoDB) SaveWorkflow(def resources.WorkflowDefinition) error {
 // The version will be set to the version following the latest definition.
 // The workflow definition returned contains this new version number.
 func (d DynamoDB) UpdateWorkflow(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error) {
+	// TODO we should change this to use the latest-workflows table with a projection expressions
 	latest, err := d.LatestWorkflow(def.Name()) // TODO: only need version here, can optimize query
 	if err != nil {
 		return def, err
@@ -147,39 +197,22 @@ func (d DynamoDB) UpdateWorkflow(def resources.WorkflowDefinition) (resources.Wo
 	return d.GetWorkflow(newVersion.Name(), newVersion.Version())
 }
 
-// GetWorkflows returns the latest version of all stored Workflows
+// GetWorkflows returns the latest version of all stored workflow definitions
 func (d DynamoDB) GetWorkflows() ([]resources.WorkflowDefinition, error) {
-	workflows := []resources.WorkflowDefinition{}
 	// Scan returns the entire table
 	results, err := d.ddb.Scan(&dynamodb.ScanInput{
 		ConsistentRead: aws.Bool(true),
-		TableName:      aws.String(d.workflowsTable()),
+		TableName:      aws.String(d.latestWorkflowsTable()),
 	})
 	if err != nil {
-		return nil, err
+		return []resources.WorkflowDefinition{}, err
 	}
-
-	// Scan will return the items ordered by revision
-	// For now, iterating in reverse we will take the newest revision of each uniquely name workflow
-	previousWorkflow := ""
-	for idx := len(results.Items) - 1; idx >= 0; idx-- {
-		item := results.Items[idx]
-		var wf resources.WorkflowDefinition
-		if err := DecodeWorkflow(item, &wf); err != nil {
-			return []resources.WorkflowDefinition{}, err
-		}
-		if previousWorkflow == wf.NameStr {
-			continue
-		}
-		workflows = append(workflows, wf)
-		previousWorkflow = wf.NameStr
-	}
-	return workflows, nil
+	return d.dynamoItemsToWorkflows(results.Items)
 }
 
-// GetWorkflowVersions gets all versions of a given workflow
+// GetWorkflowVersions gets all versions of a workflow definition
 func (d DynamoDB) GetWorkflowVersions(name string) ([]resources.WorkflowDefinition, error) {
-	res, err := d.ddb.Query(&dynamodb.QueryInput{
+	results, err := d.ddb.Query(&dynamodb.QueryInput{
 		TableName: aws.String(d.workflowsTable()),
 		ExpressionAttributeNames: map[string]*string{
 			"#N": aws.String("name"),
@@ -195,20 +228,14 @@ func (d DynamoDB) GetWorkflowVersions(name string) ([]resources.WorkflowDefiniti
 	if err != nil {
 		return []resources.WorkflowDefinition{}, err
 	}
-	if len(res.Items) == 0 {
+	if len(results.Items) == 0 {
 		return []resources.WorkflowDefinition{}, store.NewNotFound(name)
 	}
-	workflows := []resources.WorkflowDefinition{}
-	for _, item := range res.Items {
-		var wf resources.WorkflowDefinition
-		if err := DecodeWorkflow(item, &wf); err != nil {
-			return []resources.WorkflowDefinition{}, err
-		}
-		workflows = append(workflows, wf)
-	}
-	return workflows, nil
+
+	return d.dynamoItemsToWorkflows(results.Items)
 }
 
+// GetWorkflow gets the specific version of a workflow definition
 func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowPrimaryKey{
 		Name:    name,
@@ -240,7 +267,7 @@ func (d DynamoDB) GetWorkflow(name string, version int) (resources.WorkflowDefin
 // LatestWorkflow gets the latest version of a workflow definition.
 func (d DynamoDB) LatestWorkflow(name string) (resources.WorkflowDefinition, error) {
 	res, err := d.ddb.Query(&dynamodb.QueryInput{
-		TableName: aws.String(d.workflowsTable()),
+		TableName: aws.String(d.latestWorkflowsTable()),
 		ExpressionAttributeNames: map[string]*string{
 			"#N": aws.String("name"),
 		},
@@ -250,9 +277,7 @@ func (d DynamoDB) LatestWorkflow(name string) (resources.WorkflowDefinition, err
 			},
 		},
 		KeyConditionExpression: aws.String("#N = :name"),
-		Limit:            aws.Int64(1),
-		ConsistentRead:   aws.Bool(true),
-		ScanIndexForward: aws.Bool(false), // descending order
+		ConsistentRead:         aws.Bool(true),
 	})
 	if err != nil {
 		return resources.WorkflowDefinition{}, err

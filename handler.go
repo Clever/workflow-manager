@@ -70,9 +70,10 @@ func (wm WorkflowManager) UpdateWorkflow(ctx context.Context, input *models.Upda
 	return apiWorkflowFromStore(workflow), nil
 }
 
-// GetWorkflows fetches all available workflows
+// GetWorkflows retrieves a list of the latest version of each workflow
 func (wm WorkflowManager) GetWorkflows(ctx context.Context) ([]models.Workflow, error) {
 	workflows, err := wm.store.GetWorkflows()
+
 	if err != nil {
 		return []models.Workflow{}, err
 	}
@@ -84,7 +85,9 @@ func (wm WorkflowManager) GetWorkflows(ctx context.Context) ([]models.Workflow, 
 	return apiWorkflows, nil
 }
 
-// GetWorkflowVersionsByName allows fetching an existing Workflow by providing it's name
+// GetWorkflowVersionsByName fetches either:
+//  1. A list of all versions of a workflow by name
+//  2. The most recent version of a workflow by name
 func (wm WorkflowManager) GetWorkflowVersionsByName(ctx context.Context, input *models.GetWorkflowVersionsByNameInput) ([]models.Workflow, error) {
 	if *input.Latest == true {
 		workflow, err := wm.store.LatestWorkflow(input.Name)
