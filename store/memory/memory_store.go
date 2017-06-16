@@ -10,8 +10,9 @@ import (
 )
 
 type MemoryStore struct {
-	workflows map[string][]resources.WorkflowDefinition
-	jobs      map[string]resources.Job
+	workflows      map[string][]resources.WorkflowDefinition
+	jobs           map[string]resources.Job
+	stateResources map[string]resources.StateResource
 }
 
 type ByCreatedAt []resources.Job
@@ -22,8 +23,9 @@ func (a ByCreatedAt) Less(i, j int) bool { return a[i].CreatedAt.Before(a[j].Cre
 
 func New() MemoryStore {
 	return MemoryStore{
-		workflows: map[string][]resources.WorkflowDefinition{},
-		jobs:      map[string]resources.Job{},
+		workflows:      map[string][]resources.WorkflowDefinition{},
+		jobs:           map[string]resources.Job{},
+		stateResources: map[string]resources.StateResource{},
 	}
 }
 
@@ -92,6 +94,29 @@ func (s MemoryStore) LatestWorkflow(name string) (resources.WorkflowDefinition, 
 	}
 
 	return s.GetWorkflow(name, len(s.workflows[name])-1)
+}
+
+func (s MemoryStore) SaveStateResource(res resources.StateResource) error {
+	resourceName := res.Name
+	if res.Namespace != "" {
+		resourceName = fmt.Sprintf("%s--%s", res.Namespace, res.Name)
+	}
+
+	s.stateResources[resourceName] = res
+	return nil
+}
+
+func (s MemoryStore) GetStateResource(name, namespace string) (resources.StateResource, error) {
+	resourceName := name
+	if namespace != "" {
+		resourceName = fmt.Sprintf("%s--%s", namespace, name)
+	}
+
+	if _, ok := s.stateResources[resourceName]; !ok {
+		return resources.StateResource{}, store.NewNotFound(resourceName)
+	}
+
+	return s.stateResources[resourceName], nil
 }
 
 func (s MemoryStore) SaveJob(job resources.Job) error {
