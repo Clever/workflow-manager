@@ -9,7 +9,6 @@ import (
 
 // TestNewWorkflowFromRequest tests the newWorkflowFromRequest helper
 func TestNewWorkflowFromRequest(t *testing.T) {
-
 	workflowReq := models.NewWorkflowRequest{
 		Name:    "test-workflow",
 		StartAt: "start-state",

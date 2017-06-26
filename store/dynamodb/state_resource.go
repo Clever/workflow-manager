@@ -11,8 +11,8 @@ import (
 
 //
 type ddbStateResourcePrimaryKey struct {
-	Name      string `dyanmodbav:"name"`
-	Namespace string `dyanmodbav:"namespace"`
+	Name      string `dynamodbav:"name"`
+	Namespace string `dynamodbav:"namespace"`
 }
 
 func (pk ddbStateResourcePrimaryKey) AttributeDefinitions() []*dynamodb.AttributeDefinition {
@@ -43,8 +43,8 @@ func (pk ddbStateResourcePrimaryKey) KeySchema() []*dynamodb.KeySchemaElement {
 
 type ddbStateResource struct {
 	ddbStateResourcePrimaryKey
-	URI         string    `dyanmodbav:"uri"`
-	Type        string    `dyanmodbav:"type"`
+	URI         string    `dynamodbav:"uri"`
+	Type        string    `dynamodbav:"type"`
 	LastUpdated time.Time `dynamodbav:"lastUpdated"`
 }
 

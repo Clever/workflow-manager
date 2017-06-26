@@ -99,6 +99,7 @@ func SaveStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Equal(t, "aws:batch:arn", stateResource.URI)
 	}
 }
+
 func GetStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		require.Nil(t, s.SaveStateResource(resources.NewBatchResource(

@@ -55,6 +55,31 @@ type Controller interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	GetJob(ctx context.Context, jobId string) (*models.Job, error)
 
+	// PostStateResource handles POST requests to /state-resources
+	//
+	// 201: *models.StateResource
+	// 400: *models.BadRequest
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error)
+
+	// GetStateResource handles GET requests to /state-resources/{namespace}/{name}
+	//
+	// 200: *models.StateResource
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error)
+
+	// PutStateResource handles PUT requests to /state-resources/{namespace}/{name}
+	//
+	// 201: *models.StateResource
+	// 400: *models.BadRequest
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error)
+
 	// GetWorkflows handles GET requests to /workflows
 	// Get the latest versions of all available workflows
 	// 200: []models.Workflow

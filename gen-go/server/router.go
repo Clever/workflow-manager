@@ -140,6 +140,27 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
+	router.Methods("POST").Path("/state-resources").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "postStateResource")
+		h.PostStateResourceHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "postStateResource")
+		r = r.WithContext(ctx)
+	})
+
+	router.Methods("GET").Path("/state-resources/{namespace}/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getStateResource")
+		h.GetStateResourceHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getStateResource")
+		r = r.WithContext(ctx)
+	})
+
+	router.Methods("PUT").Path("/state-resources/{namespace}/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "putStateResource")
+		h.PutStateResourceHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "putStateResource")
+		r = r.WithContext(ctx)
+	})
+
 	router.Methods("GET").Path("/workflows").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "getWorkflows")
 		h.GetWorkflowsHandler(r.Context(), w, r)

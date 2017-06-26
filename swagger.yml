@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   title: workflow-manager
   description: Minimal Workflow orchestrator for AWS Batch
-  version: 0.2.1
+  version: 0.3.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -99,6 +99,7 @@ paths:
             $ref: '#/definitions/Workflow'
         404:
           $ref: "#/responses/NotFound"
+
   /workflows/{name}/{version}:
     get:
       summary: Get a Workflow by Name and Version
@@ -187,6 +188,65 @@ paths:
           type: string
         404:
           $ref: "#/responses/NotFound"
+
+  /state-resources:
+    post:
+      summary: Create or Update a StateResource
+      operationId: postStateResource
+      parameters:
+        - name: NewStateResource
+          in: body
+          schema:
+            $ref: '#/definitions/NewStateResource'
+      responses:
+        201:
+          description: StateResource Successfully saved
+          schema:
+            $ref: "#/definitions/StateResource"
+
+  /state-resources/{namespace}/{name}:
+    get:
+      summary: Get details about StateResource given the namespace and name
+      operationId: getStateResource
+      parameters:
+        - name: namespace
+          in: path
+          type: string
+          required: true
+        - name: name
+          in: path
+          type: string
+          required: true
+      responses:
+        200:
+          description: StateResource
+          schema:
+            $ref: "#/definitions/StateResource"
+        404:
+          $ref: "#/responses/NotFound"
+    put:
+      summary: Create or Update a StateResource for the name and namespace
+      operationId: putStateResource
+      parameters:
+        - name: namespace
+          in: path
+          type: string
+          required: true
+        - name: name
+          type: string
+          in: path
+          required: true
+        - name: NewStateResource
+          in: body
+          schema:
+            $ref: '#/definitions/NewStateResource'
+      responses:
+        201:
+          description: StateResource Successfully saved
+          schema:
+            $ref: "#/definitions/StateResource"
+        400:
+          $ref: "#/responses/BadRequest"
 
 definitions:
   InternalError:
@@ -321,4 +381,29 @@ definitions:
     type: object
     properties:
       reason:
+        type: string
+
+  NewStateResource:
+    type: object
+    properties:
+      name:
+        type: string
+      namespace:
+        type: string
+      uri:
+        type: string
+
+  StateResource:
+    type: object
+    properties:
+      name:
+        type: string
+      namespace:
+        type: string
+      uri:
+        type: string
+      lastUpdated:
+        type: string
+        format: date-time
+      type:
         type: string
