@@ -6,9 +6,12 @@ const (
 	AWSBatchJobDefinition = "JobDefinitionArn"
 )
 
-// StateResource contains a lookup from a Resource name to
-// a `namespace`, `version` and an URI for reference by
-// the exectuor (e.g. ARN for the JobDefinition in the batchclient?)
+// StateResource maps the Resource URI (e.g. ARN for the JobDefinition
+// in batchclient) to a `name` and `namespace`. Each Workflow.State defines
+// a resource name for that state, and a `namespace` is provided as part of
+// when creating a new Job. StateResource allows for a dynamic lookup of the
+// URI by the `executor` package.
+//
 type StateResource struct {
 	Name        string
 	Namespace   string
