@@ -180,7 +180,7 @@ func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models
 		data = jsonToArgs(input.Data)
 	}
 
-	job, err := wm.manager.CreateJob(workflow, data)
+	job, err := wm.manager.CreateJob(workflow, data, input.Namespace)
 	if err != nil {
 		return &models.Job{}, err
 	}

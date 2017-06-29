@@ -14,7 +14,7 @@ var log = logger.New("workflow-manager")
 
 // JobManager in the interface for creating, stopping and checking status for Jobs (workflow runs)
 type JobManager interface {
-	CreateJob(def resources.WorkflowDefinition, input []string) (*resources.Job, error)
+	CreateJob(def resources.WorkflowDefinition, input []string, namspace string) (*resources.Job, error)
 	CancelJob(job *resources.Job, reason string) error
 	UpdateJobStatus(job *resources.Job) error
 }
@@ -105,8 +105,8 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 }
 
 // CreateJob can be used to create a new job for a workflow
-func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []string) (*resources.Job, error) {
-	job := resources.NewJob(def, input)
+func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []string, namespace string) (*resources.Job, error) {
+	job := resources.NewJob(def, input) // TODO: add namespace to Job struct
 	log.InfoD("job-status-change", logger.M{
 		"id":               job.ID,
 		"workflow":         job.Workflow.Name(),
@@ -115,7 +115,12 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []st
 		"status":           job.Status, // CREATED
 	})
 
-	err := jm.scheduleTasks(job, input)
+	stateResources, err := jm.getStateResources(job, namespace)
+	if err != nil {
+		return &resources.Job{}, err
+	}
+
+	err = jm.scheduleTasks(job, stateResources, input)
 	if err != nil {
 		return &resources.Job{}, err
 	}
@@ -195,7 +200,9 @@ func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 	return nil
 }
 
-func (jm BatchJobManager) scheduleTasks(job *resources.Job, input []string) error {
+func (jm BatchJobManager) scheduleTasks(job *resources.Job,
+	stateResources map[string]resources.StateResource, input []string) error {
+
 	tasks := map[string]*resources.Task{}
 
 	for i, state := range job.Workflow.OrderedStates() {
@@ -219,16 +226,55 @@ func (jm BatchJobManager) scheduleTasks(job *resources.Job, input []string) erro
 		if i == 0 {
 			taskInput = input
 		}
-		taskID, err = jm.executor.SubmitJob(taskName, state.Resource(), deps, taskInput)
+		taskID, err = jm.executor.SubmitJob(taskName, stateResources[state.Name()].URI, deps, taskInput)
 		if err != nil {
 			// TODO: cancel jobs that have already been posted for idempotency
 			return err
 		}
 		// create a Task with the Id returned by AWS
-		task := resources.NewTask(taskID, taskName, state.Name(), taskInput)
+		task := resources.NewTask(taskID, taskName, state.Name(), stateResources[state.Name()], taskInput)
 		tasks[state.Name()] = task
 		job.AddTask(task)
 	}
 
 	return nil
+}
+
+// getStateResources fetches JobDefinition URIs for each state 8
+// from store.StateResource if namespace is set. If namespace is NOT
+// defined then StateResource objects are created with URI = state.Resource
+//
+// This behavior allows to shortcircuit use of the StateResource database and provide
+// Resource URIs directly in the WorkflowDefinition
+func (jm BatchJobManager) getStateResources(job *resources.Job,
+	namespace string) (map[string]resources.StateResource, error) {
+
+	stateResources := map[string]resources.StateResource{}
+
+	if namespace == "" {
+		// assume State.Resource is a URI
+		for _, state := range job.Workflow.States() {
+			stateResources[state.Name()] = resources.NewBatchResource(
+				state.Name(),
+				"",
+				state.Resource(),
+			)
+		}
+
+		return stateResources, nil
+	}
+
+	// fetch each of the StateResource objects using the namespace
+	// and State.Resource name.
+	// Could be faster with the store supporting a BatchGetStateResource([]names, namespace)
+	for _, state := range job.Workflow.OrderedStates() {
+		stateResource, err := jm.store.GetStateResource(state.Resource(), namespace)
+		if err != nil {
+			return stateResources, fmt.Errorf("StateResource `%s:%s` Not Found: %s",
+				namespace, state.Resource(), err)
+		}
+		stateResources[state.Name()] = stateResource
+	}
+
+	return stateResources, nil
 }

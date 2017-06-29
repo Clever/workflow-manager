@@ -17,6 +17,9 @@ type JobInput struct {
 	// data
 	Data []interface{} `json:"data"`
 
+	// namespace
+	Namespace string `json:"namespace,omitempty"`
+
 	// workflow
 	Workflow *WorkflowRef `json:"workflow,omitempty"`
 }
