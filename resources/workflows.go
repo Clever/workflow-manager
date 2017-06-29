@@ -195,7 +195,7 @@ func (ws *WorkerState) IsEnd() bool {
 	return ws.End
 }
 
-// Resource the name of the resource that needs to be executed as
+// Resource is the name of the resource that needs to be executed as
 // part of a task for this State
 func (ws *WorkerState) Resource() string {
 	return ws.ResourceStr

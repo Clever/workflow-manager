@@ -14,7 +14,7 @@ var log = logger.New("workflow-manager")
 
 // JobManager in the interface for creating, stopping and checking status for Jobs (workflow runs)
 type JobManager interface {
-	CreateJob(def resources.WorkflowDefinition, input []string, namspace string) (*resources.Job, error)
+	CreateJob(def resources.WorkflowDefinition, input []string, namespace string) (*resources.Job, error)
 	CancelJob(job *resources.Job, reason string) error
 	UpdateJobStatus(job *resources.Job) error
 }
@@ -240,7 +240,7 @@ func (jm BatchJobManager) scheduleTasks(job *resources.Job,
 	return nil
 }
 
-// getStateResources fetches JobDefinition URIs for each state 8
+// getStateResources fetches JobDefinition URIs for each state
 // from store.StateResource if namespace is set. If namespace is NOT
 // defined then StateResource objects are created with URI = state.Resource
 //
