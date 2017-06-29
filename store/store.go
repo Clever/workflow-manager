@@ -16,6 +16,9 @@ type Store interface {
 	GetWorkflow(name string, version int) (resources.WorkflowDefinition, error)
 	LatestWorkflow(name string) (resources.WorkflowDefinition, error)
 
+	SaveStateResource(res resources.StateResource) error
+	GetStateResource(name, namespace string) (resources.StateResource, error)
+
 	SaveJob(job resources.Job) error
 	UpdateJob(job resources.Job) error
 	GetJob(id string) (resources.Job, error)

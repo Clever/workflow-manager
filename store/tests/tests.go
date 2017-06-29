@@ -86,6 +86,38 @@ func SaveWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	}
 }
 
+func SaveStateResource(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		require.Nil(t, s.SaveStateResource(resources.NewBatchResource(
+			"name",
+			"namespace",
+			"aws:batch:arn")))
+		stateResource, err := s.GetStateResource("name", "namespace")
+		require.Nil(t, err)
+		require.Equal(t, "name", stateResource.Name)
+		require.Equal(t, "namespace", stateResource.Namespace)
+		require.Equal(t, "aws:batch:arn", stateResource.URI)
+	}
+}
+
+func GetStateResource(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		require.Nil(t, s.SaveStateResource(resources.NewBatchResource(
+			"name",
+			"namespace",
+			"aws:batch:arn")))
+		stateResource, err := s.GetStateResource("name", "namespace")
+		require.Nil(t, err)
+		require.Equal(t, "name", stateResource.Name)
+		require.Equal(t, "namespace", stateResource.Namespace)
+		require.Equal(t, "aws:batch:arn", stateResource.URI)
+
+		_, err = s.GetStateResource("doesntexist", "nope")
+		require.NotNil(t, err)
+		require.IsType(t, err, models.NotFound{})
+	}
+}
+
 func SaveJob(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflow(t)

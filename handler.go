@@ -119,6 +119,48 @@ func (wm WorkflowManager) GetWorkflowByNameAndVersion(ctx context.Context, input
 	return apiWorkflowFromStore(workflow), nil
 }
 
+// PostStateResource creates a new state resource
+func (wm WorkflowManager) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
+	stateResource := resources.NewBatchResource(i.Name, i.Namespace, i.URI)
+	if err := wm.store.SaveStateResource(stateResource); err != nil {
+		return &models.StateResource{}, err
+	}
+
+	return apiStateResourceFromStore(stateResource), nil
+}
+
+// PutStateResource creates or updates a state resource
+func (wm WorkflowManager) PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error) {
+	if i.Name != i.NewStateResource.Name {
+		return &models.StateResource{}, models.BadRequest{
+			Message: "StateResource.Name does not match name in path",
+		}
+	}
+	if i.Namespace != i.NewStateResource.Namespace {
+		return &models.StateResource{}, models.BadRequest{
+			Message: "StateResource.Namespace does not match namespace in path",
+		}
+	}
+
+	stateResource := resources.NewBatchResource(
+		i.NewStateResource.Name, i.NewStateResource.Namespace, i.NewStateResource.URI)
+	if err := wm.store.SaveStateResource(stateResource); err != nil {
+		return &models.StateResource{}, err
+	}
+
+	return apiStateResourceFromStore(stateResource), nil
+}
+
+// GetStateResource fetches a StateResource given a name and namespace
+func (wm WorkflowManager) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
+	stateResource, err := wm.store.GetStateResource(i.Name, i.Namespace)
+	if err != nil {
+		return &models.StateResource{}, err
+	}
+
+	return apiStateResourceFromStore(stateResource), nil
+}
+
 // StartJobForWorkflow starts a new Job for the given workflow
 func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models.JobInput) (*models.Job, error) {
 	var workflow resources.WorkflowDefinition
@@ -277,5 +319,15 @@ func apiJobFromStore(job resources.Job) *models.Job {
 		Tasks:       tasks,
 		Workflow:    apiWorkflowFromStore(job.Workflow),
 		Status:      string(job.Status),
+	}
+}
+
+func apiStateResourceFromStore(stateResource resources.StateResource) *models.StateResource {
+	return &models.StateResource{
+		Name:        stateResource.Name,
+		Namespace:   stateResource.Namespace,
+		URI:         stateResource.URI,
+		LastUpdated: strfmt.DateTime(stateResource.LastUpdated),
+		Type:        stateResource.Type,
 	}
 }

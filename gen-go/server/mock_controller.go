@@ -83,6 +83,39 @@ func (_mr *_MockControllerRecorder) GetJob(arg0, arg1 interface{}) *gomock.Call 
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetJob", arg0, arg1)
 }
 
+func (_m *MockController) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
+	ret := _m.ctrl.Call(_m, "PostStateResource", ctx, i)
+	ret0, _ := ret[0].(*models.StateResource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockControllerRecorder) PostStateResource(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "PostStateResource", arg0, arg1)
+}
+
+func (_m *MockController) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
+	ret := _m.ctrl.Call(_m, "GetStateResource", ctx, i)
+	ret0, _ := ret[0].(*models.StateResource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockControllerRecorder) GetStateResource(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetStateResource", arg0, arg1)
+}
+
+func (_m *MockController) PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error) {
+	ret := _m.ctrl.Call(_m, "PutStateResource", ctx, i)
+	ret0, _ := ret[0].(*models.StateResource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockControllerRecorder) PutStateResource(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "PutStateResource", arg0, arg1)
+}
+
 func (_m *MockController) GetWorkflows(ctx context.Context) ([]models.Workflow, error) {
 	ret := _m.ctrl.Call(_m, "GetWorkflows", ctx)
 	ret0, _ := ret[0].([]models.Workflow)

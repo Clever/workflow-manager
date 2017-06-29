@@ -40,6 +40,11 @@ func (d DynamoDB) jobsTable() string {
 	return fmt.Sprintf("%s-jobs", d.tableNamePrefix)
 }
 
+// stateResourcesTable returns the name of the table that stores stateResources.
+func (d DynamoDB) stateResourcesTable() string {
+	return fmt.Sprintf("%s-state-resources", d.tableNamePrefix)
+}
+
 // dynamoItemsToWorkflows takes the Items from a Query or Scan result and decodes it into an array of workflow definitions
 func (d DynamoDB) dynamoItemsToWorkflows(items []map[string]*dynamodb.AttributeValue) ([]resources.WorkflowDefinition, error) {
 	workflows := []resources.WorkflowDefinition{}
@@ -139,6 +144,20 @@ func (d DynamoDB) InitTables() error {
 	}); err != nil {
 		return err
 	}
+
+	// create state-resources table from stateResource.{name, namespace} -> stateResource object
+	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
+		AttributeDefinitions: ddbStateResourcePrimaryKey{}.AttributeDefinitions(),
+		KeySchema:            ddbStateResourcePrimaryKey{}.KeySchema(),
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits:  aws.Int64(1),
+			WriteCapacityUnits: aws.Int64(1),
+		},
+		TableName: aws.String(d.stateResourcesTable()),
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -290,6 +309,52 @@ func (d DynamoDB) LatestWorkflow(name string) (resources.WorkflowDefinition, err
 		return resources.WorkflowDefinition{}, err
 	}
 	return wf, nil
+}
+
+// SaveStateResource creates or updates a StateResource in dynamo
+// always overwrite old resource in store
+func (d DynamoDB) SaveStateResource(stateResource resources.StateResource) error {
+	data, err := EncodeStateResource(stateResource)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(d.stateResourcesTable()),
+		Item:      data,
+	})
+
+	return err
+}
+
+// GetStateResource gets the StateResource matching the name and namespace.
+func (d DynamoDB) GetStateResource(name, namespace string) (resources.StateResource, error) {
+	key, err := dynamodbattribute.MarshalMap(ddbStateResourcePrimaryKey{
+		Name:      name,
+		Namespace: namespace,
+	})
+	if err != nil {
+		return resources.StateResource{}, err
+	}
+	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
+		Key:            key,
+		TableName:      aws.String(d.stateResourcesTable()),
+		ConsistentRead: aws.Bool(true),
+	})
+	if err != nil {
+		return resources.StateResource{}, err
+	}
+
+	if len(res.Item) == 0 {
+		return resources.StateResource{}, store.NewNotFound(fmt.Sprintf("%s--%s", namespace, name))
+	}
+
+	stateResource, err := DecodeStateResource(res.Item)
+	if err != nil {
+		return resources.StateResource{}, err
+	}
+
+	return stateResource, nil
 }
 
 // SaveJob saves a job to dynamo.

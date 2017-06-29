@@ -122,6 +122,88 @@ func GetJobInputPath(jobId string) (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
+// GetStateResourceInput holds the input parameters for a getStateResource operation.
+type GetStateResourceInput struct {
+	Namespace string
+	Name      string
+}
+
+// Validate returns an error if any of the GetStateResourceInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetStateResourceInput) Validate() error {
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i GetStateResourceInput) Path() (string, error) {
+	path := "/state-resources/{namespace}/{name}"
+	urlVals := url.Values{}
+
+	pathnamespace := i.Namespace
+	if pathnamespace == "" {
+		err := fmt.Errorf("namespace cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{namespace}", pathnamespace, -1)
+
+	pathname := i.Name
+	if pathname == "" {
+		err := fmt.Errorf("name cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{name}", pathname, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// PutStateResourceInput holds the input parameters for a putStateResource operation.
+type PutStateResourceInput struct {
+	Namespace        string
+	Name             string
+	NewStateResource *NewStateResource
+}
+
+// Validate returns an error if any of the PutStateResourceInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i PutStateResourceInput) Validate() error {
+
+	if err := i.NewStateResource.Validate(nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i PutStateResourceInput) Path() (string, error) {
+	path := "/state-resources/{namespace}/{name}"
+	urlVals := url.Values{}
+
+	pathnamespace := i.Namespace
+	if pathnamespace == "" {
+		err := fmt.Errorf("namespace cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{namespace}", pathnamespace, -1)
+
+	pathname := i.Name
+	if pathname == "" {
+		err := fmt.Errorf("name cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{name}", pathname, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
 // GetWorkflowsInput holds the input parameters for a getWorkflows operation.
 type GetWorkflowsInput struct {
 }

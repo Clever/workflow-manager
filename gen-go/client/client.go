@@ -580,6 +580,277 @@ func (c *WagClient) doGetJobRequest(ctx context.Context, req *http.Request, head
 	}
 }
 
+// PostStateResource makes a POST request to /state-resources
+//
+// 201: *models.StateResource
+// 400: *models.BadRequest
+// 500: *models.InternalError
+// default: client side HTTP errors, for example: context.DeadlineExceeded.
+func (c *WagClient) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
+	headers := make(map[string]string)
+
+	var body []byte
+	path := c.basePath + "/state-resources"
+
+	if i != nil {
+
+		var err error
+		body, err = json.Marshal(i)
+
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return c.doPostStateResourceRequest(ctx, req, headers)
+}
+
+func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.StateResource, error) {
+	client := &http.Client{Transport: c.transport}
+
+	for field, value := range headers {
+		req.Header.Set(field, value)
+	}
+
+	// Add the opname for doers like tracing
+	ctx = context.WithValue(ctx, opNameCtx{}, "postStateResource")
+	req = req.WithContext(ctx)
+	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
+	// until we've finished all the processing of the request object. Otherwise we'll cancel
+	// our own request before we've finished it.
+	if c.defaultTimeout != 0 {
+		ctx, cancel := context.WithTimeout(req.Context(), c.defaultTimeout)
+		defer cancel()
+		req = req.WithContext(ctx)
+	}
+	resp, err := c.requestDoer.Do(client, req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+
+	case 201:
+
+		var output models.StateResource
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+
+		return &output, nil
+
+	case 400:
+
+		var output models.BadRequest
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+		return nil, &output
+
+	case 500:
+
+		var output models.InternalError
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+		return nil, &output
+
+	default:
+		return nil, &models.InternalError{Message: "Unknown response"}
+	}
+}
+
+// GetStateResource makes a GET request to /state-resources/{namespace}/{name}
+//
+// 200: *models.StateResource
+// 400: *models.BadRequest
+// 404: *models.NotFound
+// 500: *models.InternalError
+// default: client side HTTP errors, for example: context.DeadlineExceeded.
+func (c *WagClient) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
+	headers := make(map[string]string)
+
+	var body []byte
+	path, err := i.Path()
+
+	if err != nil {
+		return nil, err
+	}
+
+	path = c.basePath + path
+
+	req, err := http.NewRequest("GET", path, bytes.NewBuffer(body))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return c.doGetStateResourceRequest(ctx, req, headers)
+}
+
+func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.StateResource, error) {
+	client := &http.Client{Transport: c.transport}
+
+	for field, value := range headers {
+		req.Header.Set(field, value)
+	}
+
+	// Add the opname for doers like tracing
+	ctx = context.WithValue(ctx, opNameCtx{}, "getStateResource")
+	req = req.WithContext(ctx)
+	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
+	// until we've finished all the processing of the request object. Otherwise we'll cancel
+	// our own request before we've finished it.
+	if c.defaultTimeout != 0 {
+		ctx, cancel := context.WithTimeout(req.Context(), c.defaultTimeout)
+		defer cancel()
+		req = req.WithContext(ctx)
+	}
+	resp, err := c.requestDoer.Do(client, req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+
+	case 200:
+
+		var output models.StateResource
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+
+		return &output, nil
+
+	case 400:
+
+		var output models.BadRequest
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+		return nil, &output
+
+	case 404:
+
+		var output models.NotFound
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+		return nil, &output
+
+	case 500:
+
+		var output models.InternalError
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+		return nil, &output
+
+	default:
+		return nil, &models.InternalError{Message: "Unknown response"}
+	}
+}
+
+// PutStateResource makes a PUT request to /state-resources/{namespace}/{name}
+//
+// 201: *models.StateResource
+// 400: *models.BadRequest
+// 500: *models.InternalError
+// default: client side HTTP errors, for example: context.DeadlineExceeded.
+func (c *WagClient) PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error) {
+	headers := make(map[string]string)
+
+	var body []byte
+	path, err := i.Path()
+
+	if err != nil {
+		return nil, err
+	}
+
+	path = c.basePath + path
+
+	if i.NewStateResource != nil {
+
+		var err error
+		body, err = json.Marshal(i.NewStateResource)
+
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	req, err := http.NewRequest("PUT", path, bytes.NewBuffer(body))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return c.doPutStateResourceRequest(ctx, req, headers)
+}
+
+func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.StateResource, error) {
+	client := &http.Client{Transport: c.transport}
+
+	for field, value := range headers {
+		req.Header.Set(field, value)
+	}
+
+	// Add the opname for doers like tracing
+	ctx = context.WithValue(ctx, opNameCtx{}, "putStateResource")
+	req = req.WithContext(ctx)
+	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
+	// until we've finished all the processing of the request object. Otherwise we'll cancel
+	// our own request before we've finished it.
+	if c.defaultTimeout != 0 {
+		ctx, cancel := context.WithTimeout(req.Context(), c.defaultTimeout)
+		defer cancel()
+		req = req.WithContext(ctx)
+	}
+	resp, err := c.requestDoer.Do(client, req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+
+	case 201:
+
+		var output models.StateResource
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+
+		return &output, nil
+
+	case 400:
+
+		var output models.BadRequest
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+		return nil, &output
+
+	case 500:
+
+		var output models.InternalError
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return nil, err
+		}
+		return nil, &output
+
+	default:
+		return nil, &models.InternalError{Message: "Unknown response"}
+	}
+}
+
 // GetWorkflows makes a GET request to /workflows
 // Get the latest versions of all available workflows
 // 200: []models.Workflow

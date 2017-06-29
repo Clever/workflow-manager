@@ -529,6 +529,348 @@ func newGetJobInput(r *http.Request) (string, error) {
 	return jobId, nil
 }
 
+// statusCodeForPostStateResource returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForPostStateResource(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.StateResource:
+		return 201
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.StateResource:
+		return 201
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newPostStateResourceInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate(nil)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.PostStateResource(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForPostStateResource(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForPostStateResource(resp))
+	w.Write(respBytes)
+
+}
+
+// newPostStateResourceInput takes in an http.Request an returns the input struct.
+func newPostStateResourceInput(r *http.Request) (*models.NewStateResource, error) {
+	var input models.NewStateResource
+
+	var err error
+	_ = err
+
+	data, err := ioutil.ReadAll(r.Body)
+
+	if len(data) > 0 {
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(&input); err != nil {
+			return nil, err
+		}
+	}
+
+	return &input, nil
+}
+
+// statusCodeForGetStateResource returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForGetStateResource(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case *models.StateResource:
+		return 200
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	case models.StateResource:
+		return 200
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) GetStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newGetStateResourceInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.GetStateResource(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForGetStateResource(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForGetStateResource(resp))
+	w.Write(respBytes)
+
+}
+
+// newGetStateResourceInput takes in an http.Request an returns the input struct.
+func newGetStateResourceInput(r *http.Request) (*models.GetStateResourceInput, error) {
+	var input models.GetStateResourceInput
+
+	var err error
+	_ = err
+
+	namespaceStr := mux.Vars(r)["namespace"]
+	if len(namespaceStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	namespaceStrs := []string{namespaceStr}
+
+	if len(namespaceStrs) > 0 {
+		var namespaceTmp string
+		namespaceStr := namespaceStrs[0]
+		namespaceTmp, err = namespaceStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Namespace = namespaceTmp
+	}
+
+	nameStr := mux.Vars(r)["name"]
+	if len(nameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	nameStrs := []string{nameStr}
+
+	if len(nameStrs) > 0 {
+		var nameTmp string
+		nameStr := nameStrs[0]
+		nameTmp, err = nameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Name = nameTmp
+	}
+
+	return &input, nil
+}
+
+// statusCodeForPutStateResource returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForPutStateResource(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.StateResource:
+		return 201
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.StateResource:
+		return 201
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) PutStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newPutStateResourceInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.PutStateResource(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForPutStateResource(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForPutStateResource(resp))
+	w.Write(respBytes)
+
+}
+
+// newPutStateResourceInput takes in an http.Request an returns the input struct.
+func newPutStateResourceInput(r *http.Request) (*models.PutStateResourceInput, error) {
+	var input models.PutStateResourceInput
+
+	var err error
+	_ = err
+
+	namespaceStr := mux.Vars(r)["namespace"]
+	if len(namespaceStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	namespaceStrs := []string{namespaceStr}
+
+	if len(namespaceStrs) > 0 {
+		var namespaceTmp string
+		namespaceStr := namespaceStrs[0]
+		namespaceTmp, err = namespaceStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Namespace = namespaceTmp
+	}
+
+	nameStr := mux.Vars(r)["name"]
+	if len(nameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	nameStrs := []string{nameStr}
+
+	if len(nameStrs) > 0 {
+		var nameTmp string
+		nameStr := nameStrs[0]
+		nameTmp, err = nameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Name = nameTmp
+	}
+
+	data, err := ioutil.ReadAll(r.Body)
+
+	if len(data) > 0 {
+		input.NewStateResource = &models.NewStateResource{}
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewStateResource); err != nil {
+			return nil, err
+		}
+	}
+
+	return &input, nil
+}
+
 // statusCodeForGetWorkflows returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
 func statusCodeForGetWorkflows(obj interface{}) int {
