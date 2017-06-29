@@ -62,7 +62,7 @@ func TestUpdateJobStatus(t *testing.T) {
 	wf := resources.KitchenSinkWorkflow(t)
 	input := []string{"test-start-input"}
 
-	job, err := jm.CreateJob(wf, input)
+	job, err := jm.CreateJob(wf, input, "")
 	assert.Nil(t, err)
 
 	t.Log("Job is QUEUED till a task starts RUNNING")
@@ -131,7 +131,7 @@ func TestCancelUpdates(t *testing.T) {
 	wf := resources.KitchenSinkWorkflow(t)
 	input := []string{"test-start-input"}
 
-	job, err := jm.CreateJob(wf, input)
+	job, err := jm.CreateJob(wf, input, "")
 	assert.Nil(t, err)
 
 	// mark all tasks as running
@@ -159,15 +159,17 @@ func TestCreateJob(t *testing.T) {
 	mockClient := &mockBatchClient{
 		map[string]*resources.Task{},
 	}
+	store := memory.New()
 	jm := BatchJobManager{
 		mockClient,
-		memory.New(),
+		store,
 	}
 
 	wf := resources.KitchenSinkWorkflow(t)
 	input := []string{"test-start-input", "arg2"}
 
-	job, err := jm.CreateJob(wf, input)
+	// CreateJob without namespace
+	job, err := jm.CreateJob(wf, input, "")
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(job.Tasks), len(job.Workflow.States()))
@@ -176,4 +178,57 @@ func TestCreateJob(t *testing.T) {
 	assert.NotEmpty(t, job.Tasks[0].Input, mockClient.tasks[job.Tasks[0].ID].Input)
 	assert.Empty(t, job.Tasks[1].Input, mockClient.tasks[job.Tasks[1].ID].Input)
 	assert.Equal(t, job.Tasks[0].Input, mockClient.tasks[job.Tasks[0].ID].Input)
+
+	// CreateJob using namespaces
+	for _, i := range []int{1, 2, 3} {
+		store.SaveStateResource(resources.NewBatchResource(
+			fmt.Sprintf("fake-resource-%d", i),
+			"my-env",
+			fmt.Sprintf("arn:batch:jobdefinition:%d", i)))
+	}
+
+	job, err = jm.CreateJob(wf, input, "my-env")
+	assert.Nil(t, err)
+	assert.Equal(t, job.Tasks[0].Input, mockClient.tasks[job.Tasks[0].ID].Input)
+}
+
+// TestGetStateResources tests that the correct stateResources are set for
+// for a Worflow.
+func TestGetStateResources(t *testing.T) {
+	mockClient := &mockBatchClient{
+		map[string]*resources.Task{},
+	}
+	store := memory.New()
+	jm := BatchJobManager{
+		mockClient,
+		store,
+	}
+	wf := resources.KitchenSinkWorkflow(t)
+	input := []string{"test-start-input", "arg2"}
+
+	t.Log("Works without providing a namespace for CreateJob")
+	stateResources, err := jm.getStateResources(resources.NewJob(wf, input), "")
+	assert.Nil(t, err)
+	for k, stateResource := range stateResources {
+		assert.Equal(t, wf.StatesMap[k].Resource(), stateResource.URI)
+	}
+
+	t.Log("Fails when using a namespace for CreateJob without StateResource")
+	stateResources, err = jm.getStateResources(resources.NewJob(wf, input), "does-not-exist")
+	assert.Error(t, err, fmt.Sprintf("StateResource `%s:%s` Not Found: %s",
+		"does-not-exist", "fake-resource-1", "does-not-exist--fake-resource-1"))
+
+	t.Log("Works when using a namespace for CreateJob")
+	for _, i := range []int{1, 2, 3} {
+		store.SaveStateResource(resources.NewBatchResource(
+			fmt.Sprintf("fake-resource-%d", i),
+			"my-env",
+			fmt.Sprintf("arn:batch:jobdefinition:%d", i)))
+	}
+	stateResources, err = jm.getStateResources(resources.NewJob(wf, input), "my-env")
+	assert.Nil(t, err)
+	assert.Equal(t, stateResources["start-state"].Name, "fake-resource-1")
+	assert.Equal(t, stateResources["start-state"].Namespace, "my-env")
+	assert.Equal(t, stateResources["start-state"].URI, "arn:batch:jobdefinition:1")
+	assert.Equal(t, stateResources["start-state"].Type, resources.AWSBatchJobDefinition)
 }

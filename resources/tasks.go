@@ -27,19 +27,21 @@ type TaskDetail struct {
 // Task represents an active State and as part of a Job
 type Task struct {
 	TaskDetail
-	ID    string
-	Name  string
-	Input []string
-	State string
+	ID            string
+	Name          string
+	Input         []string
+	State         string
+	StateResource StateResource
 }
 
 // NewTask creates a new Task
-func NewTask(id, name, state string, input []string) *Task {
+func NewTask(id, name, state string, stateResource StateResource, input []string) *Task {
 	return &Task{
-		ID:    id,
-		Name:  name,
-		Input: input,
-		State: state,
+		ID:            id,
+		Name:          name,
+		Input:         input,
+		State:         state,
+		StateResource: stateResource,
 		TaskDetail: TaskDetail{
 			Status: TaskStatusCreated,
 		},
