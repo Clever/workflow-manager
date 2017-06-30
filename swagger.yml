@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   title: workflow-manager
   description: Minimal Workflow orchestrator for AWS Batch
-  version: 0.3.0
+  version: 0.3.1
   x-npm-package: workflow-manager
 schemes:
   - http
