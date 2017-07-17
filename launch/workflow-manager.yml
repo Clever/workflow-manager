@@ -2,7 +2,8 @@ env:
   - LIGHTSTEP_ACCESS_TOKEN
   # AWS Batch settings and credentials
   - AWS_REGION
-  - BATCH_QUEUE
+  - DEFAULT_BATCH_QUEUE
+  - CUSTOM_BATCH_QUEUES # a JSON containing mappings from {"<name>":"<queue>",...}
   - AWS_DYNAMO_REGION
   - AWS_DYNAMO_PREFIX
 resources:

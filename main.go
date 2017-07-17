@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -21,10 +22,11 @@ import (
 
 // Config contains the configuration for the workflow-manager app
 type Config struct {
-	AWSRegion    string
-	BatchQueue   string
-	DynamoRegion string
-	DynamoPrefix string
+	AWSRegion         string
+	DefaultBatchQueue string
+	CustomBatchQueues map[string]string
+	DynamoRegion      string
+	DynamoPrefix      string
 }
 
 func setupRouting() {
@@ -48,8 +50,7 @@ func main() {
 		Config: aws.Config{Region: aws.String(c.DynamoRegion)},
 	})))
 	db := dynamodbstore.New(svc, c.DynamoPrefix)
-	batch :=
-		batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.BatchQueue)
+	batch := batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.DefaultBatchQueue, c.CustomBatchQueues)
 
 	wm := WorkflowManager{
 		store:   db,
@@ -75,24 +76,45 @@ func awsSession(c Config) *session.Session {
 
 func loadConfig() Config {
 	region := os.Getenv("AWS_REGION")
-	queue := os.Getenv("BATCH_QUEUE")
+	defaultQueue := os.Getenv("DEFAULT_BATCH_QUEUE")
+	customQueues := os.Getenv("CUSTOM_BATCH_QUEUES")
 	dynamoPrefix := os.Getenv("AWS_DYNAMO_PREFIX")
 	dynamoRegion := os.Getenv("AWS_DYNAMO_REGION")
 
 	if region == "" {
 		region = "us-east-1"
 	}
-	if queue == "" {
-		queue = "default"
+
+	if defaultQueue == "" {
+		defaultQueue = "default"
 	}
+
+	customQueuesMap, err := parseCustomQueues(customQueues)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if dynamoPrefix == "" {
 		dynamoPrefix = "workflow-manager-test"
 	}
 
 	return Config{
-		AWSRegion:    region,
-		BatchQueue:   queue,
-		DynamoPrefix: dynamoPrefix,
-		DynamoRegion: dynamoRegion,
+		AWSRegion:         region,
+		DefaultBatchQueue: defaultQueue,
+		CustomBatchQueues: customQueuesMap,
+		DynamoPrefix:      dynamoPrefix,
+		DynamoRegion:      dynamoRegion,
 	}
+}
+
+func parseCustomQueues(s string) (map[string]string, error) {
+	if s == "" {
+		return map[string]string{}, nil
+
+	}
+	var output map[string]string
+	if err := json.Unmarshal([]byte(s), &output); err != nil {
+		return map[string]string{}, err
+	}
+	return output, nil
 }
