@@ -20,6 +20,9 @@ type JobInput struct {
 	// namespace
 	Namespace string `json:"namespace,omitempty"`
 
+	// queue
+	Queue string `json:"queue,omitempty"`
+
 	// workflow
 	Workflow *WorkflowRef `json:"workflow,omitempty"`
 }
