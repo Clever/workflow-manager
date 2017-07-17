@@ -34,6 +34,10 @@ run-docker:
 generate: wag-generate-deps
 	$(call wag-generate,./swagger.yml,$(PKG))
 
+generate-mocks:
+	rm mocks/mock_batchiface/mock_batchapi.go
+	mockgen github.com/aws/aws-sdk-go/service/batch/batchiface BatchAPI > mocks/mock_batchiface/mock_batchapi.go
+
 $(GOPATH)/bin/glide:
 	@go get github.com/Masterminds/glide
 
