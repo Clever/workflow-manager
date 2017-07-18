@@ -22,15 +22,17 @@ const StartingInputEnvVarName = "_BATCH_START"
 
 // BatchExecutor implements Executor to interact with the AWS Batch API
 type BatchExecutor struct {
-	client batchiface.BatchAPI
-	queue  string
+	client       batchiface.BatchAPI
+	defaultQueue string
+	customQueues map[string]string
 }
 
 // NewBatchExecutor creates a new BatchExecutor for interacting with an AWS Batch queue
-func NewBatchExecutor(client batchiface.BatchAPI, queue string) BatchExecutor {
+func NewBatchExecutor(client batchiface.BatchAPI, defaultQueue string, customQueues map[string]string) BatchExecutor {
 	return BatchExecutor{
 		client,
-		queue,
+		defaultQueue,
+		customQueues,
 	}
 }
 
@@ -162,7 +164,12 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.TaskStatus {
 }
 
 // SubmitJob queues a task using the AWS Batch API client and returns the taskID
-func (be BatchExecutor) SubmitJob(name string, definition string, dependencies []string, input []string) (string, error) {
+func (be BatchExecutor) SubmitJob(name string, definition string, dependencies []string, input []string, queue string) (string, error) {
+	jobQueue, err := be.getJobQueue(queue)
+	if err != nil {
+		return "", err
+	}
+
 	jobDeps := []*batch.JobDependency{}
 
 	for _, d := range dependencies {
@@ -192,7 +199,7 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 	params := &batch.SubmitJobInput{
 		JobName:       aws.String(name),
 		JobDefinition: aws.String(definition),
-		JobQueue:      aws.String(be.queue),
+		JobQueue:      aws.String(jobQueue),
 		ContainerOverrides: &batch.ContainerOverrides{
 			Environment: environment,
 		},
@@ -207,4 +214,18 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 	}
 
 	return *output.JobId, nil
+}
+
+// resolves a user specified queue instead an AWS batch queue
+func (be BatchExecutor) getJobQueue(queue string) (string, error) {
+	var ok bool
+	jobQueue := be.defaultQueue
+	if queue != "" {
+		// use a custom queue
+		jobQueue, ok = be.customQueues[queue]
+		if !ok {
+			return "", fmt.Errorf("error getting job queue: %s", queue)
+		}
+	}
+	return jobQueue, nil
 }

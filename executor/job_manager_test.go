@@ -14,7 +14,7 @@ type mockBatchClient struct {
 	tasks map[string]*resources.Task
 }
 
-func (be *mockBatchClient) SubmitJob(name string, definition string, dependencies, input []string) (string, error) {
+func (be *mockBatchClient) SubmitJob(name string, definition string, dependencies, input []string, queue string) (string, error) {
 	for _, d := range dependencies {
 		if _, ok := be.tasks[d]; !ok {
 			return "", fmt.Errorf("Dependency %s not found", d)
@@ -62,7 +62,7 @@ func TestUpdateJobStatus(t *testing.T) {
 	wf := resources.KitchenSinkWorkflow(t)
 	input := []string{"test-start-input"}
 
-	job, err := jm.CreateJob(wf, input, "")
+	job, err := jm.CreateJob(wf, input, "", "")
 	assert.Nil(t, err)
 
 	t.Log("Job is QUEUED till a task starts RUNNING")
@@ -131,7 +131,7 @@ func TestCancelUpdates(t *testing.T) {
 	wf := resources.KitchenSinkWorkflow(t)
 	input := []string{"test-start-input"}
 
-	job, err := jm.CreateJob(wf, input, "")
+	job, err := jm.CreateJob(wf, input, "", "")
 	assert.Nil(t, err)
 
 	// mark all tasks as running
@@ -168,8 +168,8 @@ func TestCreateJob(t *testing.T) {
 	wf := resources.KitchenSinkWorkflow(t)
 	input := []string{"test-start-input", "arg2"}
 
-	// CreateJob without namespace
-	job, err := jm.CreateJob(wf, input, "")
+	t.Log("CreateJob without namespace")
+	job, err := jm.CreateJob(wf, input, "", "")
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(job.Tasks), len(job.Workflow.States()))
@@ -179,7 +179,7 @@ func TestCreateJob(t *testing.T) {
 	assert.Empty(t, job.Tasks[1].Input, mockClient.tasks[job.Tasks[1].ID].Input)
 	assert.Equal(t, job.Tasks[0].Input, mockClient.tasks[job.Tasks[0].ID].Input)
 
-	// CreateJob using namespaces
+	t.Log("CreateJob using namespaces")
 	for _, i := range []int{1, 2, 3} {
 		store.SaveStateResource(resources.NewBatchResource(
 			fmt.Sprintf("fake-resource-%d", i),
@@ -187,9 +187,22 @@ func TestCreateJob(t *testing.T) {
 			fmt.Sprintf("arn:batch:jobdefinition:%d", i)))
 	}
 
-	job, err = jm.CreateJob(wf, input, "my-env")
+	job, err = jm.CreateJob(wf, input, "my-env", "")
 	assert.Nil(t, err)
 	assert.Equal(t, job.Tasks[0].Input, mockClient.tasks[job.Tasks[0].ID].Input)
+
+	t.Log("CreateJob using specific queue")
+	for _, i := range []int{1, 2, 3} {
+		store.SaveStateResource(resources.NewBatchResource(
+			fmt.Sprintf("fake-resource-%d", i),
+			"my-env",
+			fmt.Sprintf("arn:batch:jobdefinition:%d", i)))
+	}
+
+	job, err = jm.CreateJob(wf, input, "", "custom-queue")
+	assert.Nil(t, err)
+	assert.Equal(t, job.Tasks[0].Input, mockClient.tasks[job.Tasks[0].ID].Input)
+
 }
 
 // TestGetStateResources tests that the correct stateResources are set for

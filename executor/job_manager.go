@@ -14,7 +14,7 @@ var log = logger.New("workflow-manager")
 
 // JobManager in the interface for creating, stopping and checking status for Jobs (workflow runs)
 type JobManager interface {
-	CreateJob(def resources.WorkflowDefinition, input []string, namespace string) (*resources.Job, error)
+	CreateJob(def resources.WorkflowDefinition, input []string, namespace string, queue string) (*resources.Job, error)
 	CancelJob(job *resources.Job, reason string) error
 	UpdateJobStatus(job *resources.Job) error
 }
@@ -105,7 +105,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 }
 
 // CreateJob can be used to create a new job for a workflow
-func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []string, namespace string) (*resources.Job, error) {
+func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []string, namespace string, queue string) (*resources.Job, error) {
 	job := resources.NewJob(def, input) // TODO: add namespace to Job struct
 	log.InfoD("job-status-change", logger.M{
 		"id":               job.ID,
@@ -120,7 +120,7 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []st
 		return &resources.Job{}, err
 	}
 
-	err = jm.scheduleTasks(job, stateResources, input)
+	err = jm.scheduleTasks(job, stateResources, input, queue)
 	if err != nil {
 		return &resources.Job{}, err
 	}
@@ -201,7 +201,7 @@ func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 }
 
 func (jm BatchJobManager) scheduleTasks(job *resources.Job,
-	stateResources map[string]resources.StateResource, input []string) error {
+	stateResources map[string]resources.StateResource, input []string, queue string) error {
 
 	tasks := map[string]*resources.Task{}
 
@@ -232,7 +232,7 @@ func (jm BatchJobManager) scheduleTasks(job *resources.Job,
 		if i == 0 {
 			taskInput = input
 		}
-		taskID, err = jm.executor.SubmitJob(taskName, taskDefinition, deps, taskInput)
+		taskID, err = jm.executor.SubmitJob(taskName, taskDefinition, deps, taskInput, queue)
 		if err != nil {
 			// TODO: cancel jobs that have already been posted for idempotency
 			return err

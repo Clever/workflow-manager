@@ -270,7 +270,7 @@ definitions:
   NewWorkflowRequest:
     type: object
     properties:
-      name: 
+      name:
         type: string
       startAt:
         type: string
@@ -284,9 +284,9 @@ definitions:
   State:
     type: object
     properties:
-      name: 
+      name:
         type: string
-      type: 
+      type:
         type: string
       comment:
         type: string
@@ -304,7 +304,7 @@ definitions:
         type: string
       revision:
         type: integer
-      name: 
+      name:
         type: string
       createdAt:
         type: string
@@ -369,6 +369,8 @@ definitions:
       data:
         type: array
       namespace:
+        type: string
+      queue:
         type: string
 
   WorkflowRef:

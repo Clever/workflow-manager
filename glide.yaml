@@ -23,3 +23,6 @@ import:
   version: ^6.6.0
   subpackages:
   - logger
+- package: github.com/golang/mock
+  subpackages:
+  - gomock
