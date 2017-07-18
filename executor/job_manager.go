@@ -10,8 +10,6 @@ import (
 	"github.com/Clever/workflow-manager/store"
 )
 
-var log = logger.New("workflow-manager")
-
 // JobManager in the interface for creating, stopping and checking status for Jobs (workflow runs)
 type JobManager interface {
 	CreateJob(def resources.WorkflowDefinition, input []string, namespace string) (*resources.Job, error)
@@ -69,13 +67,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	jobRunning := false
 	jobFailed := false
 	for _, task := range job.Tasks {
-		log.InfoD("task-status", logger.M{
-			"id":         job.ID,
-			"workflow":   job.Workflow.Name(),
-			"state":      task.State,
-			"status":     task.Status,
-			"status_num": task.StatusToInt(),
-		})
+		logTaskStatus(task, job)
 		if task.Status != resources.TaskStatusSucceeded {
 			// all tasks should be successful for job success
 			jobSuccess = false
@@ -98,31 +90,15 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 		job.Status = resources.Succeeded
 	}
 
-	// If the status was updated, log it and save to datastore
-	if previousStatus != job.Status {
-		log.InfoD("job-status-change", logger.M{
-			"id":               job.ID,
-			"workflow":         job.Workflow.Name(),
-			"workflow-version": job.Workflow.Version(),
-			"previous-status":  previousStatus,
-			"status":           job.Status,
-			"status_num":       job.StatusToInt(), // 0 -> no; 1 -> yes; -1 -> cancelled
-		})
-	}
+	// log if changed and save to datastore
+	logJobStatusChange(job, previousStatus)
 	return jm.store.UpdateJob(*job)
 }
 
 // CreateJob can be used to create a new job for a workflow
 func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []string, namespace string) (*resources.Job, error) {
 	job := resources.NewJob(def, input) // TODO: add namespace to Job struct
-	log.InfoD("job-status-change", logger.M{
-		"id":               job.ID,
-		"workflow":         job.Workflow.Name(),
-		"workflow-version": job.Workflow.Version(),
-		"previous-status":  "",
-		"status":           job.Status,        // QUEUED
-		"status_num":       job.StatusToInt(), // 0
-	})
+	logJobStatusChange(job, "")
 
 	stateResources, err := jm.getStateResources(job, namespace)
 	if err != nil {
@@ -192,16 +168,7 @@ func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 		// will lead to all subsequent tasks failing
 		previousStatus := job.Status
 		job.Status = resources.Cancelled
-		log.InfoD("job-status-change", logger.M{
-			"id":               job.ID,
-			"workflow":         job.Workflow.Name(),
-			"workflow-version": job.Workflow.Version(),
-			"previous-status":  previousStatus,
-			"status":           job.Status,
-			"reason":           reason,
-			"status_num":       job.StatusToInt(), // non-zero (-1)
-		})
-
+		logJobStatusChange(job, previousStatus)
 	}
 	if len(errs) > 0 {
 		return fmt.Errorf("%d of %d tasks were not cancelled", len(errs), len(tasks))
