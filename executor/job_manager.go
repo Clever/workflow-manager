@@ -214,13 +214,17 @@ func (jm BatchJobManager) scheduleTasks(job *resources.Job,
 			}
 			deps = append(deps, tasks[d].ID)
 		}
-		var taskID string
+		var taskID, taskName string
 		var taskInput []string
 		var err error
 		// TODO: this should be limited to 50 characters due to a bug in the interaction between Batch
 		// and ECS. {namespace--app} for now, to enable easy parsing across workflows
-		taskName := fmt.Sprintf("%s--%s",
-			stateResources[state.Name()].Namespace, stateResources[state.Name()].Name)
+		if stateResources[state.Name()].Namespace == "" {
+			taskName = fmt.Sprintf("default--%s", stateResources[state.Name()].Name)
+		} else {
+			taskName = fmt.Sprintf("%s--%s",
+				stateResources[state.Name()].Namespace, stateResources[state.Name()].Name)
+		}
 		taskDefinition := stateResources[state.Name()].URI
 
 		// TODO: use job.Workflow.StartAt
