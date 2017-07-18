@@ -165,16 +165,11 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.TaskStatus {
 
 // SubmitJob queues a task using the AWS Batch API client and returns the taskID
 func (be BatchExecutor) SubmitJob(name string, definition string, dependencies []string, input []string, queue string) (string, error) {
-	var ok bool
-	jobQueue := be.defaultQueue
-	if queue != "" {
-		// use a custom queue
-		jobQueue, ok = be.customQueues[queue]
-		if !ok {
-			return "", fmt.Errorf("attempted to submit job to invalid queue: %s", queue)
-		}
-
+	jobQueue, err := be.getJobQueue(queue)
+	if err != nil {
+		return "", err
 	}
+
 	jobDeps := []*batch.JobDependency{}
 
 	for _, d := range dependencies {
@@ -219,4 +214,18 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 	}
 
 	return *output.JobId, nil
+}
+
+// resolves a user specified queue instead an AWS batch queue
+func (be BatchExecutor) getJobQueue(queue string) (string, error) {
+	var ok bool
+	jobQueue := be.defaultQueue
+	if queue != "" {
+		// use a custom queue
+		jobQueue, ok = be.customQueues[queue]
+		if !ok {
+			return "", fmt.Errorf("error getting job queue: %s", queue)
+		}
+	}
+	return jobQueue, nil
 }
