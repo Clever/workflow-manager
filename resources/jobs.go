@@ -49,3 +49,24 @@ func (j *Job) AddTask(t *Task) error {
 
 	return nil
 }
+
+// StatusToInt converts the current JobStatus to an
+// integer. This is useful for generating metrics.
+func (j *Job) StatusToInt() int {
+	switch j.Status {
+	// non-completion return non-zero
+	case Cancelled:
+		return -1
+	case Failed:
+		return 1
+	// states in path to completion return zero
+	case Queued:
+		return 0
+	case Running:
+		return 0
+	case Succeeded:
+		return 0
+	default:
+		return 0
+	}
+}
