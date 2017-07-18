@@ -69,6 +69,13 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	jobRunning := false
 	jobFailed := false
 	for _, task := range job.Tasks {
+		log.InfoD("task-status", logger.M{
+			"id":         job.ID,
+			"workflow":   job.Workflow.Name(),
+			"state":      task.State,
+			"status":     task.Status,
+			"status_num": task.StatusToInt(),
+		})
 		if task.Status != resources.TaskStatusSucceeded {
 			// all tasks should be successful for job success
 			jobSuccess = false
@@ -99,6 +106,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 			"workflow-version": job.Workflow.Version(),
 			"previous-status":  previousStatus,
 			"status":           job.Status,
+			"status_num":       job.StatusToInt(), // 0 -> no; 1 -> yes; -1 -> cancelled
 		})
 	}
 	return jm.store.UpdateJob(*job)
@@ -112,7 +120,8 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []st
 		"workflow":         job.Workflow.Name(),
 		"workflow-version": job.Workflow.Version(),
 		"previous-status":  "",
-		"status":           job.Status, // CREATED
+		"status":           job.Status,        // QUEUED
+		"status_num":       job.StatusToInt(), // 0
 	})
 
 	stateResources, err := jm.getStateResources(job, namespace)
@@ -190,6 +199,7 @@ func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 			"previous-status":  previousStatus,
 			"status":           job.Status,
 			"reason":           reason,
+			"status_num":       job.StatusToInt(), // non-zero (-1)
 		})
 
 	}

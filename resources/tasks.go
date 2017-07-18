@@ -58,6 +58,21 @@ func (t *Task) SetStatus(status TaskStatus) {
 	t.Status = status
 }
 
+func (t *Task) StatusToInt() int {
+	switch t.Status {
+	// non-completion return non-zero
+	case TaskStatusFailed:
+		return 1
+	case TaskStatusUserAborted:
+		return -1
+	case TaskStatusAborted:
+		return -2
+	// states in path to completion return zero
+	default:
+		return 0
+	}
+}
+
 func (t *Task) SetDetail(detail TaskDetail) {
 	t.CreatedAt = detail.CreatedAt
 	t.StartedAt = detail.StartedAt
