@@ -18,7 +18,7 @@ routes:
       series: "workflows.job-error"
       dimensions: ["id", "workflow", "workflow-version"]
       # 0 for ongoing; 1 for failed; -1 for cancelled
-      value: "value" 
+      value_field: "value" 
       stat_type: "gauge"
   task-status-alerts:
     matchers:
@@ -29,7 +29,7 @@ routes:
       dimensions: ["id", "workflow", "state"]
       # 1 for failed; -1 for user abort; -2 for deps_abort
       # 0 for ongoing
-      value: "value"
+      value_field: "value"
       stat_type: "gauge"
 
   # workflow-manager related matchers; prefix with workflow-mananger
