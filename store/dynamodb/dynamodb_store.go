@@ -357,6 +357,39 @@ func (d DynamoDB) GetStateResource(name, namespace string) (resources.StateResou
 	return stateResource, nil
 }
 
+// DeleteStateResource removes an existing StateResource matching the name and namespace
+func (d DynamoDB) DeleteStateResource(name, namespace string) error {
+	// TODO: maybe we want to mark for deletion instead?
+	key, err := dynamodbattribute.MarshalMap(ddbStateResourcePrimaryKey{
+		Name:      name,
+		Namespace: namespace,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = d.ddb.DeleteItem(&dynamodb.DeleteItemInput{
+		Key:       key,
+		TableName: aws.String(d.stateResourcesTable()),
+		ExpressionAttributeNames: map[string]*string{
+			"#N": aws.String("name"),
+			"#S": aws.String("namespace"),
+		},
+		ConditionExpression: aws.String("attribute_exists(#N) AND attribute_exists(#S)"),
+	})
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
+				return store.NewNotFound(
+					fmt.Sprintf("name: %s, namespace: %s", name, namespace))
+			}
+		}
+		return err
+	}
+
+	return nil
+}
+
 // SaveJob saves a job to dynamo.
 func (d DynamoDB) SaveJob(job resources.Job) error {
 	job.CreatedAt = time.Now()

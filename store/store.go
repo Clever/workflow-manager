@@ -18,6 +18,7 @@ type Store interface {
 
 	SaveStateResource(res resources.StateResource) error
 	GetStateResource(name, namespace string) (resources.StateResource, error)
+	DeleteStateResource(name, namespace string) error
 
 	SaveJob(job resources.Job) error
 	UpdateJob(job resources.Job) error

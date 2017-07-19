@@ -29,6 +29,7 @@ func TestDynamoDBStore(t *testing.T) {
 	t.Run("SaveWorkflow", tests.SaveWorkflow(s, t))
 	t.Run("SaveStateResource", tests.SaveStateResource(s, t))
 	t.Run("GetStateResource", tests.GetStateResource(s, t))
+	t.Run("DeleteStateResource", tests.DeleteStateResource(s, t))
 	t.Run("SaveJob", tests.SaveJob(s, t))
 	t.Run("UpdateJob", tests.UpdateJob(s, t))
 	t.Run("GetJob", tests.GetJob(s, t))

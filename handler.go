@@ -161,6 +161,11 @@ func (wm WorkflowManager) GetStateResource(ctx context.Context, i *models.GetSta
 	return apiStateResourceFromStore(stateResource), nil
 }
 
+// DeleteStateResource removes a StateResource given a name and namespace
+func (wm WorkflowManager) DeleteStateResource(ctx context.Context, i *models.DeleteStateResourceInput) error {
+	return wm.store.DeleteStateResource(i.Name, i.Namespace)
+}
+
 // StartJobForWorkflow starts a new Job for the given workflow
 func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models.JobInput) (*models.Job, error) {
 	var workflow resources.WorkflowDefinition
