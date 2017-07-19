@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   title: workflow-manager
   description: Minimal Workflow orchestrator for AWS Batch
-  version: 0.3.1
+  version: 0.3.2
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -247,6 +247,23 @@ paths:
             $ref: "#/definitions/StateResource"
         400:
           $ref: "#/responses/BadRequest"
+    delete:
+      summary: Delete an existing StateResource
+      operationId: deleteStateResource
+      parameters:
+        - name: namespace
+          in: path
+          type: string
+          required: true
+        - name: name
+          type: string
+          in: path
+          required: true
+      responses:
+        200:
+          description: StateResource deleted successfully
+        404:
+          $ref: "#/responses/NotFound"
 
 definitions:
   InternalError:
