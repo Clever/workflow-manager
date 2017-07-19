@@ -63,6 +63,15 @@ type Controller interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error)
 
+	// DeleteStateResource handles DELETE requests to /state-resources/{namespace}/{name}
+	//
+	// 200: nil
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	DeleteStateResource(ctx context.Context, i *models.DeleteStateResourceInput) error
+
 	// GetStateResource handles GET requests to /state-resources/{namespace}/{name}
 	//
 	// 200: *models.StateResource

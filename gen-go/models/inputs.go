@@ -122,6 +122,45 @@ func GetJobInputPath(jobId string) (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
+// DeleteStateResourceInput holds the input parameters for a deleteStateResource operation.
+type DeleteStateResourceInput struct {
+	Namespace string
+	Name      string
+}
+
+// Validate returns an error if any of the DeleteStateResourceInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i DeleteStateResourceInput) Validate() error {
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i DeleteStateResourceInput) Path() (string, error) {
+	path := "/state-resources/{namespace}/{name}"
+	urlVals := url.Values{}
+
+	pathnamespace := i.Namespace
+	if pathnamespace == "" {
+		err := fmt.Errorf("namespace cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{namespace}", pathnamespace, -1)
+
+	pathname := i.Name
+	if pathname == "" {
+		err := fmt.Errorf("name cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{name}", pathname, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
 // GetStateResourceInput holds the input parameters for a getStateResource operation.
 type GetStateResourceInput struct {
 	Namespace string

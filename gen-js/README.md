@@ -14,6 +14,7 @@ workflow-manager client library.
             * [.CancelJob(params, [options], [cb])](#module_workflow-manager--WorkflowManager+CancelJob) ⇒ <code>Promise</code>
             * [.GetJob(jobId, [options], [cb])](#module_workflow-manager--WorkflowManager+GetJob) ⇒ <code>Promise</code>
             * [.postStateResource(NewStateResource, [options], [cb])](#module_workflow-manager--WorkflowManager+postStateResource) ⇒ <code>Promise</code>
+            * [.deleteStateResource(params, [options], [cb])](#module_workflow-manager--WorkflowManager+deleteStateResource) ⇒ <code>Promise</code>
             * [.getStateResource(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getStateResource) ⇒ <code>Promise</code>
             * [.putStateResource(params, [options], [cb])](#module_workflow-manager--WorkflowManager+putStateResource) ⇒ <code>Promise</code>
             * [.getWorkflows([options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflows) ⇒ <code>Promise</code>
@@ -160,6 +161,27 @@ Checks if the service is healthy
 | Param | Type | Description |
 | --- | --- | --- |
 | NewStateResource |  |  |
+| [options] | <code>object</code> |  |
+| [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
+| [cb] | <code>function</code> |  |
+
+<a name="module_workflow-manager--WorkflowManager+deleteStateResource"></a>
+
+#### workflowManager.deleteStateResource(params, [options], [cb]) ⇒ <code>Promise</code>
+**Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
+**Fulfill**: <code>undefined</code>  
+**Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
+**Reject**: <code>[NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound)</code>  
+**Reject**: <code>[InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError)</code>  
+**Reject**: <code>Error</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| params | <code>Object</code> |  |
+| params.namespace | <code>string</code> |  |
+| params.name | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |

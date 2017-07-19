@@ -119,6 +119,20 @@ func (s MemoryStore) GetStateResource(name, namespace string) (resources.StateRe
 	return s.stateResources[resourceName], nil
 }
 
+func (s MemoryStore) DeleteStateResource(name, namespace string) error {
+	resourceName := name
+	if namespace != "" {
+		resourceName = fmt.Sprintf("%s--%s", namespace, name)
+	}
+
+	if _, ok := s.stateResources[resourceName]; !ok {
+		return store.NewNotFound(resourceName)
+	}
+	delete(s.stateResources, resourceName)
+
+	return nil
+}
+
 func (s MemoryStore) SaveJob(job resources.Job) error {
 	if _, ok := s.jobs[job.ID]; ok {
 		return store.NewConflict(job.ID)

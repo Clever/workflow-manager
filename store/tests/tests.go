@@ -118,6 +118,23 @@ func GetStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 	}
 }
 
+func DeleteStateResource(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		require.Nil(t, s.SaveStateResource(resources.NewBatchResource(
+			"name",
+			"namespace",
+			"aws:batch:arn")))
+		stateResource, err := s.GetStateResource("name", "namespace")
+		require.Nil(t, err)
+		require.Equal(t, "name", stateResource.Name)
+
+		require.Nil(t, s.DeleteStateResource("name", "namespace"))
+		_, err = s.GetStateResource("name", "namespace")
+		require.Error(t, err)
+		require.IsType(t, err, models.NotFound{})
+	}
+}
+
 func SaveJob(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflow(t)

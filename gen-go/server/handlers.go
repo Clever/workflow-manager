@@ -622,6 +622,115 @@ func newPostStateResourceInput(r *http.Request) (*models.NewStateResource, error
 	return &input, nil
 }
 
+// statusCodeForDeleteStateResource returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForDeleteStateResource(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) DeleteStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newDeleteStateResourceInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = h.DeleteStateResource(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForDeleteStateResource(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	w.WriteHeader(200)
+	w.Write([]byte(""))
+
+}
+
+// newDeleteStateResourceInput takes in an http.Request an returns the input struct.
+func newDeleteStateResourceInput(r *http.Request) (*models.DeleteStateResourceInput, error) {
+	var input models.DeleteStateResourceInput
+
+	var err error
+	_ = err
+
+	namespaceStr := mux.Vars(r)["namespace"]
+	if len(namespaceStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	namespaceStrs := []string{namespaceStr}
+
+	if len(namespaceStrs) > 0 {
+		var namespaceTmp string
+		namespaceStr := namespaceStrs[0]
+		namespaceTmp, err = namespaceStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Namespace = namespaceTmp
+	}
+
+	nameStr := mux.Vars(r)["name"]
+	if len(nameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	nameStrs := []string{nameStr}
+
+	if len(nameStrs) > 0 {
+		var nameTmp string
+		nameStr := nameStrs[0]
+		nameTmp, err = nameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Name = nameTmp
+	}
+
+	return &input, nil
+}
+
 // statusCodeForGetStateResource returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
 func statusCodeForGetStateResource(obj interface{}) int {
