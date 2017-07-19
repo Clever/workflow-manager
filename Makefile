@@ -23,6 +23,7 @@ dynamodb-test:
 
 build:
 	CGO_ENABLED=0 go build -installsuffix cgo -o build/$(EXECUTABLE) $(PKG)
+	cp ./kvconfig.yml ./build/kvconfig.yml
 
 run: build
 	build/$(EXECUTABLE)

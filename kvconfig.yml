@@ -9,7 +9,6 @@ routes:
       type: "metrics"
       series: "workflows.job-status"
       dimensions: ["id", "workflow", "workflow-version", "status"]
-      stat_type: "counter"
   job-status-alerts:
     matchers:
       title: ["job-status-change"]
