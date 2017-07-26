@@ -66,6 +66,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	jobSuccess := true
 	jobRunning := false
 	jobFailed := false
+	jobCancelled := false
 	for _, task := range job.Tasks {
 		logTaskStatus(task, job)
 		if task.Status != resources.TaskStatusSucceeded {
@@ -76,13 +77,20 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 			// any task running means running
 			jobRunning = true
 		}
-		if task.Status == resources.TaskStatusFailed {
+		if task.Status == resources.TaskStatusFailed ||
+			task.Status == resources.TaskStatusAborted {
 			// any task failure results in the job being failed
 			jobFailed = true
 		}
+		if task.Status == resources.TaskStatusUserAborted {
+			// if any task is aborted by user, we should mark the job as cancelled
+			jobCancelled = true
+		}
 	}
 
-	if jobFailed {
+	if jobCancelled {
+		job.Status = resources.Cancelled
+	} else if jobFailed {
 		job.Status = resources.Failed
 	} else if jobRunning {
 		job.Status = resources.Running

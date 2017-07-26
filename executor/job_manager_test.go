@@ -116,6 +116,25 @@ func TestUpdateJobStatus(t *testing.T) {
 	t.Log("Job is FAILED if any task FAILS")
 	assert.Nil(t, err)
 	assert.Equal(t, job.Status, resources.Failed)
+
+	// mark tasks as aborted, this should still mean the job is failed
+	for _, task := range job.Tasks {
+		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusAborted)
+	}
+	err = jm.UpdateJobStatus(job)
+	t.Log("Job is FAILED if all tasks are aborted")
+	assert.Nil(t, err)
+	assert.Equal(t, job.Status, resources.Failed)
+
+	// mark a task as user-aborted, this should still mean the job is cancelled
+	for _, task := range job.Tasks {
+		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusUserAborted)
+		break
+	}
+	err = jm.UpdateJobStatus(job)
+	t.Log("Job is CANCELLED if any task is user aborted")
+	assert.Nil(t, err)
+	assert.Equal(t, job.Status, resources.Cancelled)
 }
 
 // TestCancelUpdates ensures that a cancelling a job works
