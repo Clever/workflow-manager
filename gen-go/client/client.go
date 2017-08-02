@@ -54,8 +54,15 @@ func New(basePath string) *WagClient {
 		logger:      logger,
 	}
 	circuit.init()
-	client := &WagClient{requestDoer: circuit, retryDoer: &retry, circuitDoer: circuit, defaultTimeout: 10 * time.Second,
-		transport: &http.Transport{}, basePath: basePath}
+	client := &WagClient{
+		requestDoer:    circuit,
+		retryDoer:      &retry,
+		circuitDoer:    circuit,
+		defaultTimeout: 10 * time.Second,
+		transport:      &http.Transport{},
+		basePath:       basePath,
+		logger:         logger,
+	}
 	client.SetCircuitBreakerSettings(DefaultCircuitBreakerSettings)
 	return client
 }
@@ -174,7 +181,25 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return err
 	}
 	defer resp.Body.Close()
@@ -252,7 +277,25 @@ func (c *WagClient) doGetJobsForWorkflowRequest(ctx context.Context, req *http.R
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -348,7 +391,25 @@ func (c *WagClient) doStartJobForWorkflowRequest(ctx context.Context, req *http.
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -450,7 +511,25 @@ func (c *WagClient) doCancelJobRequest(ctx context.Context, req *http.Request, h
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return err
 	}
 	defer resp.Body.Close()
@@ -536,7 +615,25 @@ func (c *WagClient) doGetJobRequest(ctx context.Context, req *http.Request, head
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -631,7 +728,25 @@ func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Re
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -714,7 +829,25 @@ func (c *WagClient) doDeleteStateResourceRequest(ctx context.Context, req *http.
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return err
 	}
 	defer resp.Body.Close()
@@ -800,7 +933,25 @@ func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Req
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -901,7 +1052,25 @@ func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Req
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -977,7 +1146,25 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1064,7 +1251,25 @@ func (c *WagClient) doNewWorkflowRequest(ctx context.Context, req *http.Request,
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1147,7 +1352,25 @@ func (c *WagClient) doGetWorkflowVersionsByNameRequest(ctx context.Context, req 
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1249,7 +1472,25 @@ func (c *WagClient) doUpdateWorkflowRequest(ctx context.Context, req *http.Reque
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1340,7 +1581,25 @@ func (c *WagClient) doGetWorkflowByNameAndVersionRequest(ctx context.Context, re
 		req = req.WithContext(ctx)
 	}
 	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
 	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()

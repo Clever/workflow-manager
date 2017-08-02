@@ -1,7 +1,10 @@
 const async = require("async");
 const discovery = require("clever-discovery");
+const kayvee = require("kayvee");
 const request = require("request");
 const opentracing = require("opentracing");
+const {commandFactory} = require("hystrixjs");
+const RollingNumberEvent = require("hystrixjs/lib/metrics/RollingNumberEvent");
 
 /**
  * @external Span
@@ -68,6 +71,43 @@ const noRetryPolicy = {
 };
 
 /**
+ * Request status log is used to
+ * to output the status of a request returned
+ * by the client.
+ */
+function responseLog(logger, req, res, err) {
+  var res = res || { };
+  var req = req || { };
+  var logData = {
+	"backend": "workflow-manager",
+	"method": req.method || "",
+	"uri": req.uri || "",
+    "message": err || (res.statusMessage || ""),
+    "status_code": res.statusCode || 0,
+  };
+
+  if (err) {
+    logger.errorD("client-request-finished", logData);
+  } else {
+    logger.infoD("client-request-finished", logData);
+  }
+}
+
+/**
+ * Default circuit breaker options.
+ * @alias module:workflow-manager.DefaultCircuitOptions
+ */
+const defaultCircuitOptions = {
+  forceClosed:            true,
+  requestVolumeThreshold: 20,
+  maxConcurrentRequests:  100,
+  requestVolumeThreshold: 20,
+  sleepWindow:            5000,
+  errorPercentThreshold:  90,
+  logIntervalMs:          30000
+};
+
+/**
  * workflow-manager client library.
  * @module workflow-manager
  * @typicalname WorkflowManager
@@ -90,6 +130,19 @@ class WorkflowManager {
    * in milliseconds. This can be overridden on a per-request basis.
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy=RetryPolicies.Single] - The logic to
    * determine which requests to retry, as well as how many times to retry.
+   * @param {module:kayvee.Logger} [options.logger=logger.New("workflow-manager-wagclient")] - The Kayvee 
+   * logger to use in the client.
+   * @param {Object} [options.circuit] - Options for constructing the client's circuit breaker.
+   * @param {bool} [options.circuit.forceClosed] - When set to true the circuit will always be closed. Default: true.
+   * @param {number} [options.circuit.maxConcurrentRequests] - the maximum number of concurrent requests
+   * the client can make at the same time. Default: 100.
+   * @param {number} [options.circuit.requestVolumeThreshold] - The minimum number of requests needed
+   * before a circuit can be tripped due to health. Default: 20.
+   * @param {number} [options.circuit.sleepWindow] - how long, in milliseconds, to wait after a circuit opens
+   * before testing for recovery. Default: 5000.
+   * @param {number} [options.circuit.errorPercentThreshold] - the threshold to place on the rolling error
+   * rate. Once the error rate exceeds this percentage, the circuit opens.
+   * Default: 90.
    */
   constructor(options) {
     options = options || {};
@@ -111,6 +164,59 @@ class WorkflowManager {
     if (options.retryPolicy) {
       this.retryPolicy = options.retryPolicy;
     }
+    if (options.logger) {
+      this.logger = options.logger;
+    } else {
+      this.logger =  new kayvee.logger("workflow-manager-wagclient");
+    }
+
+    const circuitOptions = Object.assign({}, defaultCircuitOptions, options.circuit);
+    this._hystrixCommand = commandFactory.getOrCreate("workflow-manager").
+      errorHandler(this._hystrixCommandErrorHandler).
+      circuitBreakerForceClosed(circuitOptions.forceClosed).
+      requestVolumeRejectionThreshold(circuitOptions.maxConcurrentRequests).
+      circuitBreakerRequestVolumeThreshold(circuitOptions.requestVolumeThreshold).
+      circuitBreakerSleepWindowInMilliseconds(circuitOptions.sleepWindow).
+      circuitBreakerErrorThresholdPercentage(circuitOptions.errorPercentThreshold).
+      timeout(0).
+      statisticalWindowLength(10000).
+      statisticalWindowNumberOfBuckets(10).
+      run(this._hystrixCommandRun).
+      context(this).
+      build();
+
+    setInterval(() => this._logCircuitState(), circuitOptions.logIntervalMs);
+  }
+
+  _hystrixCommandErrorHandler(err) {
+    // to avoid counting 4XXs as errors, only count an error if it comes from the request library
+    if (err._fromRequest === true) {
+      return err;
+    }
+    return false;
+  }
+
+  _hystrixCommandRun(method, args) {
+    return method.apply(this, args);
+  }
+
+  _logCircuitState(logger) {
+    // code below heavily borrows from hystrix's internal HystrixSSEStream.js logic
+    const metrics = this._hystrixCommand.metrics;
+    const healthCounts = metrics.getHealthCounts()
+    const circuitBreaker = this._hystrixCommand.circuitBreaker;
+    this.logger.infoD("workflow-manager", {
+      "requestCount":                    healthCounts.totalCount,
+      "errorCount":                      healthCounts.errorCount,
+      "errorPercentage":                 healthCounts.errorPercentage,
+      "isCircuitBreakerOpen":            circuitBreaker.isOpen(),
+      "rollingCountFailure":             metrics.getRollingCount(RollingNumberEvent.FAILURE),
+      "rollingCountShortCircuited":      metrics.getRollingCount(RollingNumberEvent.SHORT_CIRCUITED),
+      "rollingCountSuccess":             metrics.getRollingCount(RollingNumberEvent.SUCCESS),
+      "rollingCountTimeout":             metrics.getRollingCount(RollingNumberEvent.TIMEOUT),
+      "currentConcurrentExecutionCount": metrics.getCurrentExecutionCount(),
+      "latencyTotalMean":                metrics.getExecutionTime("mean") || 0,
+    });
   }
 
   /**
@@ -127,6 +233,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   healthCheck(options, cb) {
+    return this._hystrixCommand.execute(this._healthCheck, arguments);
+  }
+  _healthCheck(options, cb) {
     const params = {};
 
     if (!cb && typeof options === "function") {
@@ -179,6 +288,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -190,6 +300,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -200,15 +312,21 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -231,6 +349,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   getJobsForWorkflow(workflowName, options, cb) {
+    return this._hystrixCommand.execute(this._getJobsForWorkflow, arguments);
+  }
+  _getJobsForWorkflow(workflowName, options, cb) {
     const params = {};
     params["workflowName"] = workflowName;
 
@@ -286,6 +407,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -297,6 +419,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -307,19 +431,27 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 404:
-              rejecter(new Errors.NotFound(body || {}));
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -342,6 +474,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   startJobForWorkflow(input, options, cb) {
+    return this._hystrixCommand.execute(this._startJobForWorkflow, arguments);
+  }
+  _startJobForWorkflow(input, options, cb) {
     const params = {};
     params["input"] = input;
 
@@ -397,6 +532,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -408,6 +544,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -418,19 +556,27 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 404:
-              rejecter(new Errors.NotFound(body || {}));
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -455,6 +601,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   CancelJob(params, options, cb) {
+    return this._hystrixCommand.execute(this._CancelJob, arguments);
+  }
+  _CancelJob(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -511,6 +660,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -522,6 +672,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -532,19 +684,27 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 404:
-              rejecter(new Errors.NotFound(body || {}));
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -567,6 +727,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   GetJob(jobId, options, cb) {
+    return this._hystrixCommand.execute(this._GetJob, arguments);
+  }
+  _GetJob(jobId, options, cb) {
     const params = {};
     params["jobId"] = jobId;
 
@@ -624,6 +787,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -635,6 +799,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -645,19 +811,27 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 404:
-              rejecter(new Errors.NotFound(body || {}));
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -679,6 +853,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   postStateResource(NewStateResource, options, cb) {
+    return this._hystrixCommand.execute(this._postStateResource, arguments);
+  }
+  _postStateResource(NewStateResource, options, cb) {
     const params = {};
     params["NewStateResource"] = NewStateResource;
 
@@ -734,6 +911,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -745,6 +923,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -755,15 +935,21 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -788,6 +974,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   deleteStateResource(params, options, cb) {
+    return this._hystrixCommand.execute(this._deleteStateResource, arguments);
+  }
+  _deleteStateResource(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -846,6 +1035,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -857,6 +1047,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -867,19 +1059,27 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 404:
-              rejecter(new Errors.NotFound(body || {}));
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -904,6 +1104,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   getStateResource(params, options, cb) {
+    return this._hystrixCommand.execute(this._getStateResource, arguments);
+  }
+  _getStateResource(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -962,6 +1165,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -973,6 +1177,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -983,19 +1189,27 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 404:
-              rejecter(new Errors.NotFound(body || {}));
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -1020,6 +1234,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   putStateResource(params, options, cb) {
+    return this._hystrixCommand.execute(this._putStateResource, arguments);
+  }
+  _putStateResource(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -1080,6 +1297,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -1091,6 +1309,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -1101,15 +1321,21 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -1131,6 +1357,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   getWorkflows(options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflows, arguments);
+  }
+  _getWorkflows(options, cb) {
     const params = {};
 
     if (!cb && typeof options === "function") {
@@ -1183,6 +1412,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -1194,6 +1424,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -1204,15 +1436,21 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -1234,6 +1472,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   newWorkflow(NewWorkflowRequest, options, cb) {
+    return this._hystrixCommand.execute(this._newWorkflow, arguments);
+  }
+  _newWorkflow(NewWorkflowRequest, options, cb) {
     const params = {};
     params["NewWorkflowRequest"] = NewWorkflowRequest;
 
@@ -1289,6 +1530,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -1300,6 +1542,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -1310,15 +1554,21 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -1343,6 +1593,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   getWorkflowVersionsByName(params, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowVersionsByName, arguments);
+  }
+  _getWorkflowVersionsByName(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -1401,6 +1654,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -1412,6 +1666,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -1422,19 +1678,27 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 404:
-              rejecter(new Errors.NotFound(body || {}));
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -1459,6 +1723,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   updateWorkflow(params, options, cb) {
+    return this._hystrixCommand.execute(this._updateWorkflow, arguments);
+  }
+  _updateWorkflow(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -1515,6 +1782,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -1526,6 +1794,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -1536,19 +1806,27 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 404:
-              rejecter(new Errors.NotFound(body || {}));
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -1573,6 +1851,9 @@ class WorkflowManager {
    * @reject {Error}
    */
   getWorkflowByNameAndVersion(params, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowByNameAndVersion, arguments);
+  }
+  _getWorkflowByNameAndVersion(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -1631,6 +1912,7 @@ class WorkflowManager {
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
   
       let retries = 0;
       (function requestOnce() {
@@ -1642,6 +1924,8 @@ class WorkflowManager {
             return;
           }
           if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
             rejecter(err);
             return;
           }
@@ -1652,19 +1936,27 @@ class WorkflowManager {
               break;
             
             case 400:
-              rejecter(new Errors.BadRequest(body || {}));
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 404:
-              rejecter(new Errors.NotFound(body || {}));
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             case 500:
-              rejecter(new Errors.InternalError(body || {}));
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
             
             default:
-              rejecter(new Error("Received unexpected statusCode " + response.statusCode));
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
               return;
           }
         });
@@ -1690,3 +1982,5 @@ module.exports.RetryPolicies = {
  * @alias module:workflow-manager.Errors
  */
 module.exports.Errors = Errors;
+
+module.exports.DefaultCircuitOptions = defaultCircuitOptions;
