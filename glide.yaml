@@ -24,5 +24,6 @@ import:
   subpackages:
   - logger
 - package: github.com/golang/mock
+  version: master
   subpackages:
   - gomock
