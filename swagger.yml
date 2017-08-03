@@ -2,7 +2,12 @@ swagger: '2.0'
 info:
   title: workflow-manager
   description: Minimal Workflow orchestrator for AWS Batch
-  version: 0.3.2
+  # when changing the version here, make sure to
+  # 1. re-run `make generate` to generate clients and server
+  # 2. merge the new clients, and, after merging, tag the commit with the version:
+  #    git tag -a vX.Y.Z -m "vX.Y.Z"
+  #    git push origin --tags
+  version: 0.3.3
   x-npm-package: workflow-manager
 schemes:
   - http

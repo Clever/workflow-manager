@@ -1,3 +1,21 @@
+## Modules
+
+<dl>
+<dt><a href="#module_workflow-manager">workflow-manager</a></dt>
+<dd><p>workflow-manager client library.</p>
+</dd>
+</dl>
+
+## Functions
+
+<dl>
+<dt><a href="#responseLog">responseLog()</a></dt>
+<dd><p>Request status log is used to
+to output the status of a request returned
+by the client.</p>
+</dd>
+</dl>
+
 <a name="module_workflow-manager"></a>
 
 ## workflow-manager
@@ -31,6 +49,7 @@ workflow-manager client library.
                 * [.BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest) ⇐ <code>Error</code>
                 * [.InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError) ⇐ <code>Error</code>
                 * [.NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound) ⇐ <code>Error</code>
+            * [.DefaultCircuitOptions](#module_workflow-manager--WorkflowManager.DefaultCircuitOptions)
 
 <a name="exp_module_workflow-manager--WorkflowManager"></a>
 
@@ -51,6 +70,13 @@ Create a new client object.
 | [options.discovery] | <code>bool</code> |  | Use clever-discovery to locate the server. Must provide this or the address argument |
 | [options.timeout] | <code>number</code> |  | The timeout to use for all client requests, in milliseconds. This can be overridden on a per-request basis. |
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | <code>RetryPolicies.Single</code> | The logic to determine which requests to retry, as well as how many times to retry. |
+| [options.logger] | <code>module:kayvee.Logger</code> | <code>logger.New(&quot;workflow-manager-wagclient&quot;)</code> | The Kayvee  logger to use in the client. |
+| [options.circuit] | <code>Object</code> |  | Options for constructing the client's circuit breaker. |
+| [options.circuit.forceClosed] | <code>bool</code> |  | When set to true the circuit will always be closed. Default: true. |
+| [options.circuit.maxConcurrentRequests] | <code>number</code> |  | the maximum number of concurrent requests the client can make at the same time. Default: 100. |
+| [options.circuit.requestVolumeThreshold] | <code>number</code> |  | The minimum number of requests needed before a circuit can be tripped due to health. Default: 20. |
+| [options.circuit.sleepWindow] | <code>number</code> |  | how long, in milliseconds, to wait after a circuit opens before testing for recovery. Default: 5000. |
+| [options.circuit.errorPercentThreshold] | <code>number</code> |  | the threshold to place on the rolling error rate. Once the error rate exceeds this percentage, the circuit opens. Default: 90. |
 
 <a name="module_workflow-manager--WorkflowManager+healthCheck"></a>
 
@@ -411,3 +437,17 @@ NotFound
 | --- | --- |
 | message | <code>string</code> | 
 
+<a name="module_workflow-manager--WorkflowManager.DefaultCircuitOptions"></a>
+
+#### WorkflowManager.DefaultCircuitOptions
+Default circuit breaker options.
+
+**Kind**: static constant of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
+<a name="responseLog"></a>
+
+## responseLog()
+Request status log is used to
+to output the status of a request returned
+by the client.
+
+**Kind**: global function  
