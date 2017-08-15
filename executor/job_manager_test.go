@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store/memory"
@@ -63,7 +64,7 @@ func TestUpdateJobStatus(t *testing.T) {
 	input := []string{"test-start-input"}
 
 	job, err := jm.CreateJob(wf, input, "", "")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	t.Log("Job is QUEUED till a task starts RUNNING")
 	assert.Equal(t, resources.Queued, job.Status)
@@ -75,7 +76,7 @@ func TestUpdateJobStatus(t *testing.T) {
 	}
 	err = jm.UpdateJobStatus(job)
 	t.Log("Job is RUNNING when a task starts RUNNING")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, resources.Running, job.Status)
 
 	// mark one task as failed
@@ -85,7 +86,7 @@ func TestUpdateJobStatus(t *testing.T) {
 	}
 	err = jm.UpdateJobStatus(job)
 	t.Log("Job is FAILED if a task is FAILED")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, job.Status, resources.Failed)
 
 	// mark one task as success. should not mean success
@@ -95,7 +96,7 @@ func TestUpdateJobStatus(t *testing.T) {
 	}
 	err = jm.UpdateJobStatus(job)
 	t.Log("One task SUCCESS does not result in job SUCCESS")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotEqual(t, job.Status, resources.Succeeded)
 
 	// mark all tasks as success. should mean job success
@@ -104,7 +105,7 @@ func TestUpdateJobStatus(t *testing.T) {
 	}
 	err = jm.UpdateJobStatus(job)
 	t.Log("Job is SUCCESSFUL if all tasks are SUCCESSFUL")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, job.Status, resources.Succeeded)
 
 	// mark one task as failed, others are successful. Still means failed
@@ -112,18 +113,20 @@ func TestUpdateJobStatus(t *testing.T) {
 		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusFailed)
 		break
 	}
+	job.Status = resources.Running
 	err = jm.UpdateJobStatus(job)
 	t.Log("Job is FAILED if any task FAILS")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, job.Status, resources.Failed)
 
 	// mark tasks as aborted, this should still mean the job is failed
 	for _, task := range job.Tasks {
 		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusAborted)
 	}
+	job.Status = resources.Running
 	err = jm.UpdateJobStatus(job)
 	t.Log("Job is FAILED if all tasks are aborted")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, job.Status, resources.Failed)
 
 	// mark a task as user-aborted, this should still mean the job is cancelled
@@ -131,9 +134,34 @@ func TestUpdateJobStatus(t *testing.T) {
 		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusUserAborted)
 		break
 	}
+	job.Status = resources.Running
 	err = jm.UpdateJobStatus(job)
 	t.Log("Job is CANCELLED if any task is user aborted")
+	assert.NoError(t, err)
+	assert.Equal(t, job.Status, resources.Cancelled)
+
+	t.Log("Jobs in a final'd state still return status after tasks no longer exists")
+	states := map[string]resources.State{
+		"only-state": &resources.WorkerState{
+			NameStr:         "only-state",
+			NextStr:         "",
+			ResourceStr:     "fake-test-resource-1",
+			DependenciesArr: []string{},
+			End:             true,
+		},
+	}
+	wf, err = resources.NewWorkflowDefinition("test-worfklow", "description", time.Now().Format(time.RFC3339Nano), states)
+	job, err = jm.CreateJob(wf, input, "", "")
 	assert.Nil(t, err)
+
+	job.Status = resources.Cancelled
+	// NOTE: the task is NOT added to the mockClient, so it is unknown
+	for _, task := range job.Tasks {
+		task.Status = resources.TaskStatusUserAborted
+	}
+
+	err = jm.UpdateJobStatus(job)
+	assert.NoError(t, err)
 	assert.Equal(t, job.Status, resources.Cancelled)
 }
 
@@ -168,7 +196,16 @@ func TestCancelUpdates(t *testing.T) {
 
 	// UpdateStatus ensures that job is still marked as Cancelled
 	err = jm.UpdateJobStatus(job)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
+	assert.Equal(t, resources.Cancelled, job.Status)
+
+	t.Log("Canceled jobs don't un-cancel")
+	// This depends on the previous case above it
+	for _, task := range job.Tasks {
+		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusSucceeded)
+	}
+	err = jm.UpdateJobStatus(job)
+	assert.NoError(t, err)
 	assert.Equal(t, resources.Cancelled, job.Status)
 }
 

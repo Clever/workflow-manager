@@ -33,7 +33,13 @@ func NewBatchJobManager(executor Executor, store store.Store) BatchJobManager {
 
 // UpdateJobStatus ensures that the status of the tasks is in-sync with AWS Batch and sets Job status
 func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
-	previousStatus := job.Status
+	// Because batch only keeps a 24hr history of tasks, don't look them up if
+	// they are already in a final state. NOTE: job status should already be in
+	// its final state as well at this point since it gets updated after tasks
+	// statuses are read from batch
+	if job.IsDone() {
+		return nil
+	}
 
 	// copy current status
 	taskStatus := map[string]resources.TaskStatus{}
@@ -47,12 +53,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 		return fmt.Errorf("Failed to update status for %d tasks. errors: %s", len(errs), errs)
 	}
 
-	if job.Status == resources.Cancelled {
-		// if a job is cancelled, just return the updated task status
-		// JobStatus should remain cancelled
-		return nil
-	}
-	// if no task status has changed skip store updates
+	// If no task status has changed then there is no need to update the job status
 	noChanges := true
 	for _, task := range job.Tasks {
 		if task.Status != taskStatus[task.ID] {
@@ -61,6 +62,11 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	}
 	if noChanges {
 		return nil
+	}
+
+	// If the job has been canceled, do not update its status to something else
+	if job.Status == resources.Cancelled {
+		return jm.store.UpdateJob(*job)
 	}
 
 	jobSuccess := true
@@ -88,6 +94,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 		}
 	}
 
+	previousStatus := job.Status
 	if jobCancelled {
 		job.Status = resources.Cancelled
 	} else if jobFailed {
@@ -131,9 +138,7 @@ func (jm BatchJobManager) CreateJob(def resources.WorkflowDefinition, input []st
 
 func (jm BatchJobManager) pollUpdateStatus(job *resources.Job) {
 	for {
-		if job.Status == resources.Cancelled ||
-			job.Status == resources.Failed ||
-			job.Status == resources.Succeeded {
+		if job.IsDone() {
 			// no need to poll anymore
 			log.InfoD("job-polling-stop", logger.M{
 				"id":       job.ID,
@@ -169,8 +174,6 @@ func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 	}
 
 	errs := jm.executor.Cancel(tasks, reason)
-	jm.store.UpdateJob(*job)
-
 	if len(errs) < len(tasks) {
 		// TODO: this assumes that a workflow is linear. One task cancellation
 		// will lead to all subsequent tasks failing
@@ -178,8 +181,10 @@ func (jm BatchJobManager) CancelJob(job *resources.Job, reason string) error {
 		job.Status = resources.Cancelled
 		logJobStatusChange(job, previousStatus)
 	}
+	jm.store.UpdateJob(*job)
+
 	if len(errs) > 0 {
-		return fmt.Errorf("%d of %d tasks were not cancelled", len(errs), len(tasks))
+		return fmt.Errorf("%d of %d tasks were not canceled", len(errs), len(tasks))
 	}
 
 	return nil

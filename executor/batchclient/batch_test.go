@@ -51,6 +51,16 @@ func TestJobToTaskDetail(t *testing.T) {
 	assert.Equal(t, taskDetail.CreatedAt.UTC().Format(time.RFC3339Nano), "2017-03-28T00:45:46.376Z")
 	assert.Equal(t, taskDetail.StartedAt.UTC().Format(time.RFC3339Nano), "2017-03-28T00:46:48.178Z")
 	assert.Equal(t, taskDetail.StoppedAt, time.Time{})
+
+	t.Log("Sets task status correctly when user has canceled it")
+	jobDetail.Status = aws.String(batch.JobStatusFailed)
+	jobDetail.StatusReason = aws.String("ABORTED_BY_USER: your message here")
+	jobDetail.StartedAt = nil
+
+	taskDetail, err = be.jobToTaskDetail(jobDetail)
+	assert.NoError(t, err)
+	assert.NotNil(t, taskDetail)
+	assert.Equal(t, taskDetail.Status, resources.TaskStatusUserAborted)
 }
 
 func TestSubmitJobToCustomQueue(t *testing.T) {

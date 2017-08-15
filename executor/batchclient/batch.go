@@ -149,7 +149,7 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.TaskStatus {
 		return resources.TaskStatusSucceeded
 	case batch.JobStatusFailed:
 		if job.StartedAt == nil {
-			if strings.HasPrefix(string(resources.TaskStatusUserAborted), statusReason) {
+			if strings.HasPrefix(statusReason, string(resources.TaskStatusUserAborted)) {
 				return resources.TaskStatusUserAborted
 			} else {
 				return resources.TaskStatusAborted

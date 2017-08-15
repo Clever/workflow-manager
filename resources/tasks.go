@@ -48,10 +48,13 @@ func NewTask(id, name, state string, stateResource StateResource, input []string
 	}
 }
 
-// IsComplete can be used check if a task is completed
-// true if failed or succeded
-func (t *Task) IsComplete() bool {
-	return (t.Status == TaskStatusFailed || t.Status == TaskStatusSucceeded)
+// IsDone can be used check if a task's state is expected to change
+// true if the task is in a final state; false if its status might still change
+func (t *Task) IsDone() bool {
+	return (t.Status == TaskStatusFailed ||
+		t.Status == TaskStatusSucceeded ||
+		t.Status == TaskStatusAborted ||
+		t.Status == TaskStatusUserAborted)
 }
 
 func (t *Task) SetStatus(status TaskStatus) {
