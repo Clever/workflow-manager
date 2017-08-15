@@ -70,3 +70,17 @@ func (j *Job) StatusToInt() int {
 		return 0
 	}
 }
+
+// IsDone can be used check if a job's state is expected to change
+// true if the job is in a final state; false if its status might still change
+func (j *Job) IsDone() bool {
+	// Look at the individual tasks states as well as the job status
+	// since the job status can be updated before the tasks have transitioned
+	// into a final state
+	for _, task := range j.Tasks {
+		if !task.IsDone() {
+			return false
+		}
+	}
+	return (j.Status == Cancelled || j.Status == Failed || j.Status == Succeeded)
+}

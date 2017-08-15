@@ -209,8 +209,8 @@ func (wm WorkflowManager) GetJobsForWorkflow(ctx context.Context, input *models.
 }
 
 // GetJob returns current details about a Job with the given jobId
-func (wm WorkflowManager) GetJob(ctx context.Context, jobId string) (*models.Job, error) {
-	job, err := wm.store.GetJob(jobId)
+func (wm WorkflowManager) GetJob(ctx context.Context, jobID string) (*models.Job, error) {
+	job, err := wm.store.GetJob(jobID)
 	if err != nil {
 		return &models.Job{}, err
 	}
@@ -271,7 +271,7 @@ func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDe
 	for _, s := range states {
 		if !s.IsEnd() {
 			if _, ok := states[s.Next()]; !ok {
-				return resources.WorkflowDefinition{}, fmt.Errorf("%s.Next=%s, but %s not defined.",
+				return resources.WorkflowDefinition{}, fmt.Errorf("%s.Next=%s, but %s not defined",
 					s.Name(), s.Next(), s.Next())
 			}
 			states[s.Next()].AddDependency(s)
