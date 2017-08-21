@@ -20,9 +20,9 @@ func TestJobToTaskDetail(t *testing.T) {
 		JobDefinition: aws.String("arn:aws:batch:us-east-1:58111111125:job-definition/batchcli:1"),
 		JobId:         aws.String("5a4a8864-2b4e-4c7f-84c1-e3aae28b4ebd"),
 		Container: &batch.ContainerDetail{
-			MountPoints:          []*batch.MountPoint{},
-			Image:                aws.String("clever/batchcli:999999"),
-			ContainerInstanceArn: aws.String("arn:aws:ecs:us-east-1:589690932525:container-instance/460bbb01-93aa-4b5f-9740-0c1aed552691"),
+			MountPoints: []*batch.MountPoint{},
+			Image:       aws.String("clever/batchcli:999999"),
+			TaskArn:     aws.String("arn:aws:ecs:us-east-1:589690932525:task/97be0e7f-38f6-4675-9bac-82d36a3170d1"),
 			Environment: []*batch.KeyValuePair{
 				&batch.KeyValuePair{
 					Name:  aws.String("_BATCH_DEPENDENCIES"),

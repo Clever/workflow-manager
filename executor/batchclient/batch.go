@@ -109,8 +109,8 @@ func (be BatchExecutor) jobToTaskDetail(job *batch.JobDetail) (resources.TaskDet
 	if job.StoppedAt != nil {
 		stoppedAt = time.Unix(0, *job.StoppedAt*msToNs)
 	}
-	if job.Container != nil && job.Container.ContainerInstanceArn != nil {
-		containerArn = *job.Container.ContainerInstanceArn
+	if job.Container != nil && job.Container.TaskArn != nil {
+		containerArn = *job.Container.TaskArn
 	}
 
 	return resources.TaskDetail{
