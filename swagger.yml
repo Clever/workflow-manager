@@ -7,7 +7,7 @@ info:
   # 2. merge the new clients, and, after merging, tag the commit with the version:
   #    git tag -a vX.Y.Z -m "vX.Y.Z"
   #    git push origin --tags
-  version: 0.3.4
+  version: 0.3.5
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -380,7 +380,7 @@ definitions:
         type: string
       statusReason:
         type: string
-      Container:
+      ecsTaskId:
         type: string
 
   JobInput:

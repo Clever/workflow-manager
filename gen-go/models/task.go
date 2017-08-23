@@ -13,11 +13,11 @@ import (
 // swagger:model Task
 type Task struct {
 
-	// container
-	Container string `json:"Container,omitempty"`
-
 	// created at
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
+
+	// ecs task Id
+	EcsTaskID string `json:"ecsTaskId,omitempty"`
 
 	// id
 	ID string `json:"id,omitempty"`

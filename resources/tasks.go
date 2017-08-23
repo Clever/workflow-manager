@@ -19,7 +19,7 @@ type TaskDetail struct {
 	CreatedAt    time.Time
 	StartedAt    time.Time
 	StoppedAt    time.Time
-	ContainerId  string // identification string for the running container
+	EcsTaskID    string // identification string for the running ECS task
 	StatusReason string
 	Status       TaskStatus
 }
@@ -80,7 +80,7 @@ func (t *Task) SetDetail(detail TaskDetail) {
 	t.CreatedAt = detail.CreatedAt
 	t.StartedAt = detail.StartedAt
 	t.StoppedAt = detail.StoppedAt
-	t.ContainerId = detail.ContainerId
+	t.EcsTaskID = detail.EcsTaskID
 	t.Status = detail.Status
 	t.StatusReason = detail.StatusReason
 }
