@@ -380,7 +380,7 @@ definitions:
         type: string
       statusReason:
         type: string
-      Container:
+      ecsTaskId:
         type: string
 
   JobInput:
