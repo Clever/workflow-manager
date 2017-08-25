@@ -164,7 +164,7 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.TaskStatus {
 }
 
 // SubmitJob queues a task using the AWS Batch API client and returns the taskID
-func (be BatchExecutor) SubmitJob(name string, definition string, dependencies []string, input []string, queue string) (string, error) {
+func (be BatchExecutor) SubmitJob(name string, definition string, dependencies []string, input []string, queue string, attempts int64) (string, error) {
 	jobQueue, err := be.getJobQueue(queue)
 	if err != nil {
 		return "", err
@@ -204,6 +204,12 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 			Environment: environment,
 		},
 		DependsOn: jobDeps,
+	}
+
+	if attempts != 0 {
+		params.RetryStrategy = &batch.RetryStrategy{
+			Attempts: aws.Int64(int64(attempts)),
+		}
 	}
 
 	output, err := be.client.SubmitJob(params)

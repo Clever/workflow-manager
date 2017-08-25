@@ -86,7 +86,7 @@ func TestSubmitJobToCustomQueue(t *testing.T) {
 	mockClient.EXPECT().SubmitJob(gomock.Any()).Return(&batch.SubmitJobOutput{
 		JobId: aws.String("job-id"),
 	}, nil)
-	out, err := be.SubmitJob(name, definition, dependencies, input, "")
+	out, err := be.SubmitJob(name, definition, dependencies, input, "", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "job-id", out)
 
@@ -94,11 +94,11 @@ func TestSubmitJobToCustomQueue(t *testing.T) {
 	mockClient.EXPECT().SubmitJob(gomock.Any()).Return(&batch.SubmitJobOutput{
 		JobId: aws.String("job-id"),
 	}, nil)
-	out, err = be.SubmitJob(name, definition, dependencies, input, "custom")
+	out, err = be.SubmitJob(name, definition, dependencies, input, "custom", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "job-id", out)
 
 	t.Log("errors if you submit job to custom queue that does not exist")
-	_, err = be.SubmitJob(name, definition, dependencies, input, "invalid-queue")
+	_, err = be.SubmitJob(name, definition, dependencies, input, "invalid-queue", 0)
 	assert.Error(t, err)
 }

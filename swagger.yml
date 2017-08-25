@@ -318,6 +318,29 @@ definitions:
         type: string
       end:
         type: boolean
+      retry:
+        type: array
+        maxLength: 1 # expand once we support more than just errorEquals States.ALL
+        items:
+          $ref: '#/definitions/Retrier'
+
+  Retrier:
+    type: object
+    properties:
+      errorEquals:
+        type: array
+        items:
+          $ref: '#/definitions/ErrorEquals'
+      maxAttempts:
+        type: integer
+        minimum: 0
+        maximum: 10
+
+  ErrorEquals:
+    type: string
+    enum:
+      - "States.ALL"
+    default: "States.ALL"
 
   Workflow:
     type: object
