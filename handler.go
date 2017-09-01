@@ -283,7 +283,7 @@ func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDe
 
 func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
 	states := []*models.State{}
-	for _, s := range wf.States() {
+	for _, s := range wf.OrderedStates() {
 		states = append(states, &models.State{
 			Resource: s.Resource(),
 			Name:     s.Name(),
