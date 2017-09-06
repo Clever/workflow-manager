@@ -5,6 +5,7 @@ package models
 
 import (
 	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 
 	"github.com/go-openapi/errors"
 )
@@ -15,6 +16,9 @@ type Task struct {
 
 	// container
 	Container string `json:"Container,omitempty"`
+
+	// attempts
+	Attempts []*TaskAttempt `json:"attempts"`
 
 	// created at
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
@@ -42,8 +46,37 @@ type Task struct {
 func (m *Task) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateAttempts(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Task) validateAttempts(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Attempts) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Attempts); i++ {
+
+		if swag.IsZero(m.Attempts[i]) { // not required
+			continue
+		}
+
+		if m.Attempts[i] != nil {
+
+			if err := m.Attempts[i].Validate(formats); err != nil {
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }

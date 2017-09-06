@@ -405,6 +405,28 @@ definitions:
         type: string
       Container:
         type: string
+      attempts:
+        type: array
+        items:
+          $ref: '#/definitions/TaskAttempt'
+
+  TaskAttempt:
+    type: object
+    properties:
+      startedAt:
+        type: string
+        format: date-time
+      stoppedAt:
+        type: string
+        format: date-time
+      containerInstanceARN:
+        type: string
+      taskARN:
+        type: string
+      reason:
+        type: string
+      exitCode:
+        type: integer
 
   JobInput:
     type: object

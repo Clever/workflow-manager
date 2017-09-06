@@ -315,6 +315,7 @@ func apiJobFromStore(job resources.Job) *models.Job {
 			Status:       string(task.Status),
 			StatusReason: task.StatusReason,
 			Container:    task.ContainerId,
+			Attempts:     task.Attempts,
 		})
 	}
 

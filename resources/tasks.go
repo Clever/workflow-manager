@@ -1,6 +1,10 @@
 package resources
 
-import "time"
+import (
+	"time"
+
+	"github.com/Clever/workflow-manager/gen-go/models"
+)
 
 type TaskStatus string
 
@@ -22,6 +26,7 @@ type TaskDetail struct {
 	ContainerId  string // identification string for the running container
 	StatusReason string
 	Status       TaskStatus
+	Attempts     []*models.TaskAttempt
 }
 
 // Task represents an active State and as part of a Job
@@ -83,4 +88,5 @@ func (t *Task) SetDetail(detail TaskDetail) {
 	t.ContainerId = detail.ContainerId
 	t.Status = detail.Status
 	t.StatusReason = detail.StatusReason
+	t.Attempts = detail.Attempts
 }

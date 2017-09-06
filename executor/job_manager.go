@@ -43,8 +43,10 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 
 	// copy current status
 	taskStatus := map[string]resources.TaskStatus{}
+	taskAttempts := map[string]int{}
 	for _, task := range job.Tasks {
 		taskStatus[task.ID] = task.Status
+		taskAttempts[task.ID] = len(task.Attempts)
 	}
 
 	// fetch new status from batch
@@ -56,7 +58,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	// If no task status has changed then there is no need to update the job status
 	noChanges := true
 	for _, task := range job.Tasks {
-		if task.Status != taskStatus[task.ID] {
+		if task.Status != taskStatus[task.ID] || len(task.Attempts) != taskAttempts[task.ID] {
 			noChanges = false
 		}
 	}
