@@ -129,23 +129,23 @@ paths:
   # TODO: Rename /jobs => /workflows
   /jobs:
     post:
-      summary: Start a job for a given WorkflowDefinition
-      operationId: startJobForWorkflowDefinition
+      summary: Start a Workflow
+      operationId: startWorkflow
       parameters:
         - name: input
           in: body
           schema:
-            $ref: "#/definitions/JobInput"
+            $ref: "#/definitions/WorkflowInput"
       responses:
         200:
-          description: Respond with Job Id and Name
+          description: Responds with Workflow Id and Name
           schema:
-            $ref: "#/definitions/Job"
+            $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
     get:
-      summary: Get summary of all active jobs for a given WorkflowDefinition
-      operationId: getJobsForWorkflowDefinition
+      summary: Get summary of all active Workflows for a given WorkflowDefinition
+      operationId: getWorkflows
       parameters:
         - name: workflowDefinitionName
           in: query
@@ -153,35 +153,35 @@ paths:
           required: true
       responses:
         200:
-          description: Job
+          description: Workflow
           schema:
             type: array
             items:
-              $ref: "#/definitions/Job"
+              $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
 
-  /jobs/{jobId}:
+  /jobs/{workflowId}:
     get:
-      summary: Get details for the given jobId
-      operationId: GetJob
+      summary: Get details for a single Workflow, given a workflowId
+      operationId: getWorkflowByID
       parameters:
-        - name: jobId
+        - name: workflowId
           in: path
           type: string
           required: true
       responses:
         200:
-          description: Job
+          description: Workflow
           schema:
-            $ref: "#/definitions/Job"
+            $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
     delete:
-      summary: Cancel job with the jobId
-      operationId: CancelJob
+      summary: Cancel workflow with the given workflowId
+      operationId: CancelWorkflow
       parameters:
-        - name: jobId
+        - name: workflowId
           in: path
           type: string
           required: true
@@ -365,8 +365,7 @@ definitions:
         items:
           $ref: '#/definitions/State'
 
-  # TODO: Rename Job => Workflow
-  Job:
+  Workflow:
     type: object
     properties:
       id:
@@ -432,7 +431,7 @@ definitions:
       exitCode:
         type: integer
 
-  JobInput:
+  WorkflowInput:
     type: object
     properties:
       workflowDefinition:
