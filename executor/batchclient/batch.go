@@ -6,10 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/batch"
 	"github.com/aws/aws-sdk-go/service/batch/batchiface"
+	"github.com/go-openapi/strfmt"
 )
 
 // DependenciesEnvVarName is injected for every task
@@ -113,6 +115,34 @@ func (be BatchExecutor) jobToTaskDetail(job *batch.JobDetail) (resources.TaskDet
 		containerArn = *job.Container.TaskArn
 	}
 
+	attempts := []*models.TaskAttempt{}
+	if len(job.Attempts) > 0 {
+		for _, jattempt := range job.Attempts {
+			attempt := &models.TaskAttempt{}
+			if jattempt.StartedAt != nil {
+				attempt.StartedAt = strfmt.DateTime(time.Unix(0, *jattempt.StartedAt*msToNs))
+			}
+			if jattempt.StoppedAt != nil {
+				attempt.StoppedAt = strfmt.DateTime(time.Unix(0, *jattempt.StoppedAt*msToNs))
+			}
+			if jattempt.Container != nil {
+				if jattempt.Container.ContainerInstanceArn != nil {
+					attempt.ContainerInstanceARN = *jattempt.Container.ContainerInstanceArn
+				}
+				if jattempt.Container.TaskArn != nil {
+					attempt.TaskARN = *jattempt.Container.TaskArn
+				}
+				if jattempt.Container.Reason != nil {
+					attempt.Reason = *jattempt.Container.Reason
+				}
+				if jattempt.Container.ExitCode != nil {
+					attempt.ExitCode = *jattempt.Container.ExitCode
+				}
+			}
+			attempts = append(attempts, attempt)
+		}
+	}
+
 	return resources.TaskDetail{
 		StatusReason: statusReason,
 		Status:       be.taskStatus(job),
@@ -120,6 +150,7 @@ func (be BatchExecutor) jobToTaskDetail(job *batch.JobDetail) (resources.TaskDet
 		StartedAt:    startedAt,
 		StoppedAt:    stoppedAt,
 		ContainerId:  containerArn,
+		Attempts:     attempts,
 	}, nil
 }
 
@@ -164,7 +195,7 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.TaskStatus {
 }
 
 // SubmitJob queues a task using the AWS Batch API client and returns the taskID
-func (be BatchExecutor) SubmitJob(name string, definition string, dependencies []string, input []string, queue string) (string, error) {
+func (be BatchExecutor) SubmitJob(name string, definition string, dependencies []string, input []string, queue string, attempts int64) (string, error) {
 	jobQueue, err := be.getJobQueue(queue)
 	if err != nil {
 		return "", err
@@ -204,6 +235,12 @@ func (be BatchExecutor) SubmitJob(name string, definition string, dependencies [
 			Environment: environment,
 		},
 		DependsOn: jobDeps,
+	}
+
+	if attempts != 0 {
+		params.RetryStrategy = &batch.RetryStrategy{
+			Attempts: aws.Int64(int64(attempts)),
+		}
 	}
 
 	output, err := be.client.SubmitJob(params)

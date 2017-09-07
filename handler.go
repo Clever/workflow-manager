@@ -256,7 +256,7 @@ func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDe
 		if s.Type != "" && s.Type != "Task" {
 			return resources.WorkflowDefinition{}, fmt.Errorf("Only States of `type=Task` are supported")
 		}
-		workerState, err := resources.NewWorkerState(s.Name, s.Next, s.Resource, s.End)
+		workerState, err := resources.NewWorkerState(s.Name, s.Next, s.Resource, s.End, s.Retry)
 		if err != nil {
 			return resources.WorkflowDefinition{}, err
 		}
@@ -290,6 +290,7 @@ func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
 			Next:     s.Next(),
 			End:      s.IsEnd(),
 			Type:     s.Type(),
+			Retry:    s.Retry(),
 		})
 	}
 
@@ -314,6 +315,7 @@ func apiJobFromStore(job resources.Job) *models.Job {
 			Status:       string(task.Status),
 			StatusReason: task.StatusReason,
 			Container:    task.ContainerId,
+			Attempts:     task.Attempts,
 		})
 	}
 

@@ -5,6 +5,7 @@ package models
 
 import (
 	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 
 	"github.com/go-openapi/errors"
 )
@@ -28,6 +29,10 @@ type State struct {
 	// resource
 	Resource string `json:"resource,omitempty"`
 
+	// retry
+	// Max Length: 1
+	Retry []*Retrier `json:"retry"`
+
 	// type
 	Type string `json:"type,omitempty"`
 }
@@ -36,8 +41,37 @@ type State struct {
 func (m *State) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateRetry(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *State) validateRetry(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Retry) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Retry); i++ {
+
+		if swag.IsZero(m.Retry[i]) { // not required
+			continue
+		}
+
+		if m.Retry[i] != nil {
+
+			if err := m.Retry[i].Validate(formats); err != nil {
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }

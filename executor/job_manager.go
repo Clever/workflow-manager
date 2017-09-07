@@ -43,8 +43,10 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 
 	// copy current status
 	taskStatus := map[string]resources.TaskStatus{}
+	taskAttempts := map[string]int{}
 	for _, task := range job.Tasks {
 		taskStatus[task.ID] = task.Status
+		taskAttempts[task.ID] = len(task.Attempts)
 	}
 
 	// fetch new status from batch
@@ -56,7 +58,7 @@ func (jm BatchJobManager) UpdateJobStatus(job *resources.Job) error {
 	// If no task status has changed then there is no need to update the job status
 	noChanges := true
 	for _, task := range job.Tasks {
-		if task.Status != taskStatus[task.ID] {
+		if task.Status != taskStatus[task.ID] || len(task.Attempts) != taskAttempts[task.ID] {
 			noChanges = false
 		}
 	}
@@ -222,7 +224,18 @@ func (jm BatchJobManager) scheduleTasks(job *resources.Job,
 		if i == 0 {
 			taskInput = input
 		}
-		taskID, err = jm.executor.SubmitJob(taskName, taskDefinition, deps, taskInput, queue)
+
+		// determine if the state has a retry strategy
+		// currently we just support a retry strategy corresponding to a number of attempts
+		var attempts int64
+		if len(state.Retry()) == 1 {
+			retrier := state.Retry()[0]
+			if retrier.MaxAttempts != nil {
+				attempts = *retrier.MaxAttempts
+			}
+		}
+
+		taskID, err = jm.executor.SubmitJob(taskName, taskDefinition, deps, taskInput, queue, attempts)
 		if err != nil {
 			// TODO: cancel jobs that have already been posted for idempotency
 			return err

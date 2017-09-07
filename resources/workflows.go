@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/toposort"
 )
 
@@ -16,6 +17,7 @@ type State interface {
 	Next() string
 	Resource() string
 	IsEnd() bool
+	Retry() []*models.Retrier
 
 	// State metadata
 	Dependencies() []string
@@ -135,13 +137,14 @@ func orderStates(states map[string]State) ([]State, error) {
 	return orderedStates, nil
 }
 
-// WorkerState implements the State interface for workers runnin in containers
+// WorkerState implements the State interface for workers running in containers
 type WorkerState struct {
 	NameStr         string
 	NextStr         string
 	ResourceStr     string
 	DependenciesArr []string
 	End             bool
+	Retriers        []*models.Retrier
 }
 
 // Currently the way we persist worker state is via GOB encoding, since it is the
@@ -152,7 +155,7 @@ func init() {
 }
 
 // NewWorkerState creates a new struct
-func NewWorkerState(name, next, resource string, end bool) (*WorkerState, error) {
+func NewWorkerState(name, next, resource string, end bool, retriers []*models.Retrier) (*WorkerState, error) {
 	if end && next != "" {
 		return &WorkerState{}, fmt.Errorf("End state can not have a next")
 	}
@@ -166,6 +169,7 @@ func NewWorkerState(name, next, resource string, end bool) (*WorkerState, error)
 		ResourceStr:     resource,
 		DependenciesArr: []string{},
 		End:             end,
+		Retriers:        retriers,
 	}, nil
 }
 
@@ -193,6 +197,11 @@ func (ws *WorkerState) AddDependency(s State) {
 // IsEnd returns true if this State is the last one for the workflow
 func (ws *WorkerState) IsEnd() bool {
 	return ws.End
+}
+
+// Retry returns the retry policy for the state.
+func (ws *WorkerState) Retry() []*models.Retrier {
+	return ws.Retriers
 }
 
 // Resource is the name of the resource that needs to be executed as

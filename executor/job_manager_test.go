@@ -15,7 +15,7 @@ type mockBatchClient struct {
 	tasks map[string]*resources.Task
 }
 
-func (be *mockBatchClient) SubmitJob(name string, definition string, dependencies, input []string, queue string) (string, error) {
+func (be *mockBatchClient) SubmitJob(name string, definition string, dependencies, input []string, queue string, attempts int64) (string, error) {
 	for _, d := range dependencies {
 		if _, ok := be.tasks[d]; !ok {
 			return "", fmt.Errorf("Dependency %s not found", d)
