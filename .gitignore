@@ -11,3 +11,4 @@ vendor
 build
 bin
 dynamo-local
+workflow-manager
