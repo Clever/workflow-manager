@@ -29,8 +29,8 @@ type Job struct {
 	// tasks
 	Tasks []*Task `json:"tasks"`
 
-	// workflow
-	Workflow *Workflow `json:"workflow,omitempty"`
+	// workflow definition
+	WorkflowDefinition *WorkflowDefinition `json:"workflowDefinition,omitempty"`
 }
 
 // Validate validates this job
@@ -42,7 +42,7 @@ func (m *Job) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateWorkflow(formats); err != nil {
+	if err := m.validateWorkflowDefinition(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -77,15 +77,15 @@ func (m *Job) validateTasks(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Job) validateWorkflow(formats strfmt.Registry) error {
+func (m *Job) validateWorkflowDefinition(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Workflow) { // not required
+	if swag.IsZero(m.WorkflowDefinition) { // not required
 		return nil
 	}
 
-	if m.Workflow != nil {
+	if m.WorkflowDefinition != nil {
 
-		if err := m.Workflow.Validate(formats); err != nil {
+		if err := m.WorkflowDefinition.Validate(formats); err != nil {
 			return err
 		}
 	}

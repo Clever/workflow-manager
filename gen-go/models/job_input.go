@@ -23,15 +23,15 @@ type JobInput struct {
 	// queue
 	Queue string `json:"queue,omitempty"`
 
-	// workflow
-	Workflow *WorkflowRef `json:"workflow,omitempty"`
+	// workflow definition
+	WorkflowDefinition *WorkflowDefinitionRef `json:"workflowDefinition,omitempty"`
 }
 
 // Validate validates this job input
 func (m *JobInput) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateWorkflow(formats); err != nil {
+	if err := m.validateWorkflowDefinition(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -42,15 +42,15 @@ func (m *JobInput) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *JobInput) validateWorkflow(formats strfmt.Registry) error {
+func (m *JobInput) validateWorkflowDefinition(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Workflow) { // not required
+	if swag.IsZero(m.WorkflowDefinition) { // not required
 		return nil
 	}
 
-	if m.Workflow != nil {
+	if m.WorkflowDefinition != nil {
 
-		if err := m.Workflow.Validate(formats); err != nil {
+		if err := m.WorkflowDefinition.Validate(formats); err != nil {
 			return err
 		}
 	}

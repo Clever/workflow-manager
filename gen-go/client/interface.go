@@ -19,23 +19,23 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	HealthCheck(ctx context.Context) error
 
-	// GetJobsForWorkflow makes a GET request to /jobs
+	// GetJobsForWorkflowDefinition makes a GET request to /jobs
 	//
 	// 200: []models.Job
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetJobsForWorkflow(ctx context.Context, i *models.GetJobsForWorkflowInput) ([]models.Job, error)
+	GetJobsForWorkflowDefinition(ctx context.Context, i *models.GetJobsForWorkflowDefinitionInput) ([]models.Job, error)
 
-	// StartJobForWorkflow makes a POST request to /jobs
+	// StartJobForWorkflowDefinition makes a POST request to /jobs
 	//
 	// 200: *models.Job
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	StartJobForWorkflow(ctx context.Context, i *models.JobInput) (*models.Job, error)
+	StartJobForWorkflowDefinition(ctx context.Context, i *models.JobInput) (*models.Job, error)
 
 	// CancelJob makes a DELETE request to /jobs/{jobId}
 	//
@@ -89,46 +89,46 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error)
 
-	// GetWorkflows makes a GET request to /workflows
-	// Get the latest versions of all available workflows
-	// 200: []models.Workflow
+	// GetWorkflowDefinitions makes a GET request to /workflows
+	// Get the latest versions of all available WorkflowDefinitions
+	// 200: []models.WorkflowDefinition
 	// 400: *models.BadRequest
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflows(ctx context.Context) ([]models.Workflow, error)
+	GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error)
 
-	// NewWorkflow makes a POST request to /workflows
+	// NewWorkflowDefinition makes a POST request to /workflows
 	//
-	// 201: *models.Workflow
+	// 201: *models.WorkflowDefinition
 	// 400: *models.BadRequest
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.Workflow, error)
+	NewWorkflowDefinition(ctx context.Context, i *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error)
 
-	// GetWorkflowVersionsByName makes a GET request to /workflows/{name}
+	// GetWorkflowDefinitionVersionsByName makes a GET request to /workflows/{name}
 	//
-	// 200: []models.Workflow
+	// 200: []models.WorkflowDefinition
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflowVersionsByName(ctx context.Context, i *models.GetWorkflowVersionsByNameInput) ([]models.Workflow, error)
+	GetWorkflowDefinitionVersionsByName(ctx context.Context, i *models.GetWorkflowDefinitionVersionsByNameInput) ([]models.WorkflowDefinition, error)
 
-	// UpdateWorkflow makes a PUT request to /workflows/{name}
+	// UpdateWorkflowDefinition makes a PUT request to /workflows/{name}
 	//
-	// 201: *models.Workflow
+	// 201: *models.WorkflowDefinition
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	UpdateWorkflow(ctx context.Context, i *models.UpdateWorkflowInput) (*models.Workflow, error)
+	UpdateWorkflowDefinition(ctx context.Context, i *models.UpdateWorkflowDefinitionInput) (*models.WorkflowDefinition, error)
 
-	// GetWorkflowByNameAndVersion makes a GET request to /workflows/{name}/{version}
+	// GetWorkflowDefinitionByNameAndVersion makes a GET request to /workflows/{name}/{version}
 	//
-	// 200: *models.Workflow
+	// 200: *models.WorkflowDefinition
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflowByNameAndVersion(ctx context.Context, i *models.GetWorkflowByNameAndVersionInput) (*models.Workflow, error)
+	GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error)
 }

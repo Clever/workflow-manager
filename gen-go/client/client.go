@@ -230,14 +230,14 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 	}
 }
 
-// GetJobsForWorkflow makes a GET request to /jobs
+// GetJobsForWorkflowDefinition makes a GET request to /jobs
 //
 // 200: []models.Job
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetJobsForWorkflow(ctx context.Context, i *models.GetJobsForWorkflowInput) ([]models.Job, error) {
+func (c *WagClient) GetJobsForWorkflowDefinition(ctx context.Context, i *models.GetJobsForWorkflowDefinitionInput) ([]models.Job, error) {
 	headers := make(map[string]string)
 
 	var body []byte
@@ -255,10 +255,10 @@ func (c *WagClient) GetJobsForWorkflow(ctx context.Context, i *models.GetJobsFor
 		return nil, err
 	}
 
-	return c.doGetJobsForWorkflowRequest(ctx, req, headers)
+	return c.doGetJobsForWorkflowDefinitionRequest(ctx, req, headers)
 }
 
-func (c *WagClient) doGetJobsForWorkflowRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Job, error) {
+func (c *WagClient) doGetJobsForWorkflowDefinitionRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Job, error) {
 	client := &http.Client{Transport: c.transport}
 
 	for field, value := range headers {
@@ -266,7 +266,7 @@ func (c *WagClient) doGetJobsForWorkflowRequest(ctx context.Context, req *http.R
 	}
 
 	// Add the opname for doers like tracing
-	ctx = context.WithValue(ctx, opNameCtx{}, "getJobsForWorkflow")
+	ctx = context.WithValue(ctx, opNameCtx{}, "getJobsForWorkflowDefinition")
 	req = req.WithContext(ctx)
 	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
 	// until we've finished all the processing of the request object. Otherwise we'll cancel
@@ -339,14 +339,14 @@ func (c *WagClient) doGetJobsForWorkflowRequest(ctx context.Context, req *http.R
 	}
 }
 
-// StartJobForWorkflow makes a POST request to /jobs
+// StartJobForWorkflowDefinition makes a POST request to /jobs
 //
 // 200: *models.Job
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) StartJobForWorkflow(ctx context.Context, i *models.JobInput) (*models.Job, error) {
+func (c *WagClient) StartJobForWorkflowDefinition(ctx context.Context, i *models.JobInput) (*models.Job, error) {
 	headers := make(map[string]string)
 
 	var body []byte
@@ -369,10 +369,10 @@ func (c *WagClient) StartJobForWorkflow(ctx context.Context, i *models.JobInput)
 		return nil, err
 	}
 
-	return c.doStartJobForWorkflowRequest(ctx, req, headers)
+	return c.doStartJobForWorkflowDefinitionRequest(ctx, req, headers)
 }
 
-func (c *WagClient) doStartJobForWorkflowRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Job, error) {
+func (c *WagClient) doStartJobForWorkflowDefinitionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Job, error) {
 	client := &http.Client{Transport: c.transport}
 
 	for field, value := range headers {
@@ -380,7 +380,7 @@ func (c *WagClient) doStartJobForWorkflowRequest(ctx context.Context, req *http.
 	}
 
 	// Add the opname for doers like tracing
-	ctx = context.WithValue(ctx, opNameCtx{}, "startJobForWorkflow")
+	ctx = context.WithValue(ctx, opNameCtx{}, "startJobForWorkflowDefinition")
 	req = req.WithContext(ctx)
 	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
 	// until we've finished all the processing of the request object. Otherwise we'll cancel
@@ -1106,13 +1106,13 @@ func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Req
 	}
 }
 
-// GetWorkflows makes a GET request to /workflows
-// Get the latest versions of all available workflows
-// 200: []models.Workflow
+// GetWorkflowDefinitions makes a GET request to /workflows
+// Get the latest versions of all available WorkflowDefinitions
+// 200: []models.WorkflowDefinition
 // 400: *models.BadRequest
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetWorkflows(ctx context.Context) ([]models.Workflow, error) {
+func (c *WagClient) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
 	headers := make(map[string]string)
 
 	var body []byte
@@ -1124,10 +1124,10 @@ func (c *WagClient) GetWorkflows(ctx context.Context) ([]models.Workflow, error)
 		return nil, err
 	}
 
-	return c.doGetWorkflowsRequest(ctx, req, headers)
+	return c.doGetWorkflowDefinitionsRequest(ctx, req, headers)
 }
 
-func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Workflow, error) {
+func (c *WagClient) doGetWorkflowDefinitionsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
 
 	for field, value := range headers {
@@ -1135,7 +1135,7 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 	}
 
 	// Add the opname for doers like tracing
-	ctx = context.WithValue(ctx, opNameCtx{}, "getWorkflows")
+	ctx = context.WithValue(ctx, opNameCtx{}, "getWorkflowDefinitions")
 	req = req.WithContext(ctx)
 	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
 	// until we've finished all the processing of the request object. Otherwise we'll cancel
@@ -1172,7 +1172,7 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 
 	case 200:
 
-		var output []models.Workflow
+		var output []models.WorkflowDefinition
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
 			return nil, err
 		}
@@ -1200,13 +1200,13 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 	}
 }
 
-// NewWorkflow makes a POST request to /workflows
+// NewWorkflowDefinition makes a POST request to /workflows
 //
-// 201: *models.Workflow
+// 201: *models.WorkflowDefinition
 // 400: *models.BadRequest
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) NewWorkflow(ctx context.Context, i *models.NewWorkflowRequest) (*models.Workflow, error) {
+func (c *WagClient) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	headers := make(map[string]string)
 
 	var body []byte
@@ -1229,10 +1229,10 @@ func (c *WagClient) NewWorkflow(ctx context.Context, i *models.NewWorkflowReques
 		return nil, err
 	}
 
-	return c.doNewWorkflowRequest(ctx, req, headers)
+	return c.doNewWorkflowDefinitionRequest(ctx, req, headers)
 }
 
-func (c *WagClient) doNewWorkflowRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
+func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
 
 	for field, value := range headers {
@@ -1240,7 +1240,7 @@ func (c *WagClient) doNewWorkflowRequest(ctx context.Context, req *http.Request,
 	}
 
 	// Add the opname for doers like tracing
-	ctx = context.WithValue(ctx, opNameCtx{}, "newWorkflow")
+	ctx = context.WithValue(ctx, opNameCtx{}, "newWorkflowDefinition")
 	req = req.WithContext(ctx)
 	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
 	// until we've finished all the processing of the request object. Otherwise we'll cancel
@@ -1277,7 +1277,7 @@ func (c *WagClient) doNewWorkflowRequest(ctx context.Context, req *http.Request,
 
 	case 201:
 
-		var output models.Workflow
+		var output models.WorkflowDefinition
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
 			return nil, err
 		}
@@ -1305,14 +1305,14 @@ func (c *WagClient) doNewWorkflowRequest(ctx context.Context, req *http.Request,
 	}
 }
 
-// GetWorkflowVersionsByName makes a GET request to /workflows/{name}
+// GetWorkflowDefinitionVersionsByName makes a GET request to /workflows/{name}
 //
-// 200: []models.Workflow
+// 200: []models.WorkflowDefinition
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetWorkflowVersionsByName(ctx context.Context, i *models.GetWorkflowVersionsByNameInput) ([]models.Workflow, error) {
+func (c *WagClient) GetWorkflowDefinitionVersionsByName(ctx context.Context, i *models.GetWorkflowDefinitionVersionsByNameInput) ([]models.WorkflowDefinition, error) {
 	headers := make(map[string]string)
 
 	var body []byte
@@ -1330,10 +1330,10 @@ func (c *WagClient) GetWorkflowVersionsByName(ctx context.Context, i *models.Get
 		return nil, err
 	}
 
-	return c.doGetWorkflowVersionsByNameRequest(ctx, req, headers)
+	return c.doGetWorkflowDefinitionVersionsByNameRequest(ctx, req, headers)
 }
 
-func (c *WagClient) doGetWorkflowVersionsByNameRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Workflow, error) {
+func (c *WagClient) doGetWorkflowDefinitionVersionsByNameRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
 
 	for field, value := range headers {
@@ -1341,7 +1341,7 @@ func (c *WagClient) doGetWorkflowVersionsByNameRequest(ctx context.Context, req 
 	}
 
 	// Add the opname for doers like tracing
-	ctx = context.WithValue(ctx, opNameCtx{}, "getWorkflowVersionsByName")
+	ctx = context.WithValue(ctx, opNameCtx{}, "getWorkflowDefinitionVersionsByName")
 	req = req.WithContext(ctx)
 	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
 	// until we've finished all the processing of the request object. Otherwise we'll cancel
@@ -1378,7 +1378,7 @@ func (c *WagClient) doGetWorkflowVersionsByNameRequest(ctx context.Context, req 
 
 	case 200:
 
-		var output []models.Workflow
+		var output []models.WorkflowDefinition
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
 			return nil, err
 		}
@@ -1414,14 +1414,14 @@ func (c *WagClient) doGetWorkflowVersionsByNameRequest(ctx context.Context, req 
 	}
 }
 
-// UpdateWorkflow makes a PUT request to /workflows/{name}
+// UpdateWorkflowDefinition makes a PUT request to /workflows/{name}
 //
-// 201: *models.Workflow
+// 201: *models.WorkflowDefinition
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) UpdateWorkflow(ctx context.Context, i *models.UpdateWorkflowInput) (*models.Workflow, error) {
+func (c *WagClient) UpdateWorkflowDefinition(ctx context.Context, i *models.UpdateWorkflowDefinitionInput) (*models.WorkflowDefinition, error) {
 	headers := make(map[string]string)
 
 	var body []byte
@@ -1433,10 +1433,10 @@ func (c *WagClient) UpdateWorkflow(ctx context.Context, i *models.UpdateWorkflow
 
 	path = c.basePath + path
 
-	if i.NewWorkflowRequest != nil {
+	if i.NewWorkflowDefinitionRequest != nil {
 
 		var err error
-		body, err = json.Marshal(i.NewWorkflowRequest)
+		body, err = json.Marshal(i.NewWorkflowDefinitionRequest)
 
 		if err != nil {
 			return nil, err
@@ -1450,10 +1450,10 @@ func (c *WagClient) UpdateWorkflow(ctx context.Context, i *models.UpdateWorkflow
 		return nil, err
 	}
 
-	return c.doUpdateWorkflowRequest(ctx, req, headers)
+	return c.doUpdateWorkflowDefinitionRequest(ctx, req, headers)
 }
 
-func (c *WagClient) doUpdateWorkflowRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
+func (c *WagClient) doUpdateWorkflowDefinitionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
 
 	for field, value := range headers {
@@ -1461,7 +1461,7 @@ func (c *WagClient) doUpdateWorkflowRequest(ctx context.Context, req *http.Reque
 	}
 
 	// Add the opname for doers like tracing
-	ctx = context.WithValue(ctx, opNameCtx{}, "updateWorkflow")
+	ctx = context.WithValue(ctx, opNameCtx{}, "updateWorkflowDefinition")
 	req = req.WithContext(ctx)
 	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
 	// until we've finished all the processing of the request object. Otherwise we'll cancel
@@ -1498,7 +1498,7 @@ func (c *WagClient) doUpdateWorkflowRequest(ctx context.Context, req *http.Reque
 
 	case 201:
 
-		var output models.Workflow
+		var output models.WorkflowDefinition
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
 			return nil, err
 		}
@@ -1534,14 +1534,14 @@ func (c *WagClient) doUpdateWorkflowRequest(ctx context.Context, req *http.Reque
 	}
 }
 
-// GetWorkflowByNameAndVersion makes a GET request to /workflows/{name}/{version}
+// GetWorkflowDefinitionByNameAndVersion makes a GET request to /workflows/{name}/{version}
 //
-// 200: *models.Workflow
+// 200: *models.WorkflowDefinition
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetWorkflowByNameAndVersion(ctx context.Context, i *models.GetWorkflowByNameAndVersionInput) (*models.Workflow, error) {
+func (c *WagClient) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
 	headers := make(map[string]string)
 
 	var body []byte
@@ -1559,10 +1559,10 @@ func (c *WagClient) GetWorkflowByNameAndVersion(ctx context.Context, i *models.G
 		return nil, err
 	}
 
-	return c.doGetWorkflowByNameAndVersionRequest(ctx, req, headers)
+	return c.doGetWorkflowDefinitionByNameAndVersionRequest(ctx, req, headers)
 }
 
-func (c *WagClient) doGetWorkflowByNameAndVersionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
+func (c *WagClient) doGetWorkflowDefinitionByNameAndVersionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
 
 	for field, value := range headers {
@@ -1570,7 +1570,7 @@ func (c *WagClient) doGetWorkflowByNameAndVersionRequest(ctx context.Context, re
 	}
 
 	// Add the opname for doers like tracing
-	ctx = context.WithValue(ctx, opNameCtx{}, "getWorkflowByNameAndVersion")
+	ctx = context.WithValue(ctx, opNameCtx{}, "getWorkflowDefinitionByNameAndVersion")
 	req = req.WithContext(ctx)
 	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
 	// until we've finished all the processing of the request object. Otherwise we'll cancel
@@ -1607,7 +1607,7 @@ func (c *WagClient) doGetWorkflowByNameAndVersionRequest(ctx context.Context, re
 
 	case 200:
 
-		var output models.Workflow
+		var output models.WorkflowDefinition
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
 			return nil, err
 		}

@@ -38,24 +38,24 @@ func (i HealthCheckInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
-// GetJobsForWorkflowInput holds the input parameters for a getJobsForWorkflow operation.
-type GetJobsForWorkflowInput struct {
-	WorkflowName string
+// GetJobsForWorkflowDefinitionInput holds the input parameters for a getJobsForWorkflowDefinition operation.
+type GetJobsForWorkflowDefinitionInput struct {
+	WorkflowDefinitionName string
 }
 
-// Validate returns an error if any of the GetJobsForWorkflowInput parameters don't satisfy the
+// Validate returns an error if any of the GetJobsForWorkflowDefinitionInput parameters don't satisfy the
 // requirements from the swagger yml file.
-func (i GetJobsForWorkflowInput) Validate() error {
+func (i GetJobsForWorkflowDefinitionInput) Validate() error {
 
 	return nil
 }
 
 // Path returns the URI path for the input.
-func (i GetJobsForWorkflowInput) Path() (string, error) {
+func (i GetJobsForWorkflowDefinitionInput) Path() (string, error) {
 	path := "/jobs"
 	urlVals := url.Values{}
 
-	urlVals.Add("workflowName", i.WorkflowName)
+	urlVals.Add("workflowDefinitionName", i.WorkflowDefinitionName)
 
 	return path + "?" + urlVals.Encode(), nil
 }
@@ -243,39 +243,39 @@ func (i PutStateResourceInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
-// GetWorkflowsInput holds the input parameters for a getWorkflows operation.
-type GetWorkflowsInput struct {
+// GetWorkflowDefinitionsInput holds the input parameters for a getWorkflowDefinitions operation.
+type GetWorkflowDefinitionsInput struct {
 }
 
-// Validate returns an error if any of the GetWorkflowsInput parameters don't satisfy the
+// Validate returns an error if any of the GetWorkflowDefinitionsInput parameters don't satisfy the
 // requirements from the swagger yml file.
-func (i GetWorkflowsInput) Validate() error {
+func (i GetWorkflowDefinitionsInput) Validate() error {
 	return nil
 }
 
 // Path returns the URI path for the input.
-func (i GetWorkflowsInput) Path() (string, error) {
+func (i GetWorkflowDefinitionsInput) Path() (string, error) {
 	path := "/workflows"
 	urlVals := url.Values{}
 
 	return path + "?" + urlVals.Encode(), nil
 }
 
-// GetWorkflowVersionsByNameInput holds the input parameters for a getWorkflowVersionsByName operation.
-type GetWorkflowVersionsByNameInput struct {
+// GetWorkflowDefinitionVersionsByNameInput holds the input parameters for a getWorkflowDefinitionVersionsByName operation.
+type GetWorkflowDefinitionVersionsByNameInput struct {
 	Name   string
 	Latest *bool
 }
 
-// Validate returns an error if any of the GetWorkflowVersionsByNameInput parameters don't satisfy the
+// Validate returns an error if any of the GetWorkflowDefinitionVersionsByNameInput parameters don't satisfy the
 // requirements from the swagger yml file.
-func (i GetWorkflowVersionsByNameInput) Validate() error {
+func (i GetWorkflowDefinitionVersionsByNameInput) Validate() error {
 
 	return nil
 }
 
 // Path returns the URI path for the input.
-func (i GetWorkflowVersionsByNameInput) Path() (string, error) {
+func (i GetWorkflowDefinitionVersionsByNameInput) Path() (string, error) {
 	path := "/workflows/{name}"
 	urlVals := url.Values{}
 
@@ -295,17 +295,17 @@ func (i GetWorkflowVersionsByNameInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
-// UpdateWorkflowInput holds the input parameters for a updateWorkflow operation.
-type UpdateWorkflowInput struct {
-	NewWorkflowRequest *NewWorkflowRequest
-	Name               string
+// UpdateWorkflowDefinitionInput holds the input parameters for a updateWorkflowDefinition operation.
+type UpdateWorkflowDefinitionInput struct {
+	NewWorkflowDefinitionRequest *NewWorkflowDefinitionRequest
+	Name                         string
 }
 
-// Validate returns an error if any of the UpdateWorkflowInput parameters don't satisfy the
+// Validate returns an error if any of the UpdateWorkflowDefinitionInput parameters don't satisfy the
 // requirements from the swagger yml file.
-func (i UpdateWorkflowInput) Validate() error {
+func (i UpdateWorkflowDefinitionInput) Validate() error {
 
-	if err := i.NewWorkflowRequest.Validate(nil); err != nil {
+	if err := i.NewWorkflowDefinitionRequest.Validate(nil); err != nil {
 		return err
 	}
 
@@ -313,7 +313,7 @@ func (i UpdateWorkflowInput) Validate() error {
 }
 
 // Path returns the URI path for the input.
-func (i UpdateWorkflowInput) Path() (string, error) {
+func (i UpdateWorkflowDefinitionInput) Path() (string, error) {
 	path := "/workflows/{name}"
 	urlVals := url.Values{}
 
@@ -329,21 +329,21 @@ func (i UpdateWorkflowInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
-// GetWorkflowByNameAndVersionInput holds the input parameters for a getWorkflowByNameAndVersion operation.
-type GetWorkflowByNameAndVersionInput struct {
+// GetWorkflowDefinitionByNameAndVersionInput holds the input parameters for a getWorkflowDefinitionByNameAndVersion operation.
+type GetWorkflowDefinitionByNameAndVersionInput struct {
 	Name    string
 	Version int64
 }
 
-// Validate returns an error if any of the GetWorkflowByNameAndVersionInput parameters don't satisfy the
+// Validate returns an error if any of the GetWorkflowDefinitionByNameAndVersionInput parameters don't satisfy the
 // requirements from the swagger yml file.
-func (i GetWorkflowByNameAndVersionInput) Validate() error {
+func (i GetWorkflowDefinitionByNameAndVersionInput) Validate() error {
 
 	return nil
 }
 
 // Path returns the URI path for the input.
-func (i GetWorkflowByNameAndVersionInput) Path() (string, error) {
+func (i GetWorkflowDefinitionByNameAndVersionInput) Path() (string, error) {
 	path := "/workflows/{name}/{version}"
 	urlVals := url.Values{}
 

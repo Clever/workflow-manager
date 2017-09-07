@@ -335,7 +335,7 @@ class WorkflowManager {
   }
 
   /**
-   * @param {string} workflowName
+   * @param {string} workflowDefinitionName
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -348,12 +348,12 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getJobsForWorkflow(workflowName, options, cb) {
-    return this._hystrixCommand.execute(this._getJobsForWorkflow, arguments);
+  getJobsForWorkflowDefinition(workflowDefinitionName, options, cb) {
+    return this._hystrixCommand.execute(this._getJobsForWorkflowDefinition, arguments);
   }
-  _getJobsForWorkflow(workflowName, options, cb) {
+  _getJobsForWorkflowDefinition(workflowDefinitionName, options, cb) {
     const params = {};
-    params["workflowName"] = workflowName;
+    params["workflowDefinitionName"] = workflowDefinitionName;
 
     if (!cb && typeof options === "function") {
       cb = options;
@@ -385,7 +385,7 @@ class WorkflowManager {
       const headers = {};
 
       const query = {};
-      query["workflowName"] = params.workflowName;
+      query["workflowDefinitionName"] = params.workflowDefinitionName;
   
 
       if (span) {
@@ -473,10 +473,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  startJobForWorkflow(input, options, cb) {
-    return this._hystrixCommand.execute(this._startJobForWorkflow, arguments);
+  startJobForWorkflowDefinition(input, options, cb) {
+    return this._hystrixCommand.execute(this._startJobForWorkflowDefinition, arguments);
   }
-  _startJobForWorkflow(input, options, cb) {
+  _startJobForWorkflowDefinition(input, options, cb) {
     const params = {};
     params["input"] = input;
 
@@ -1344,7 +1344,7 @@ class WorkflowManager {
   }
 
   /**
-   * Get the latest versions of all available workflows
+   * Get the latest versions of all available WorkflowDefinitions
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -1356,10 +1356,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflows(options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflows, arguments);
+  getWorkflowDefinitions(options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowDefinitions, arguments);
   }
-  _getWorkflows(options, cb) {
+  _getWorkflowDefinitions(options, cb) {
     const params = {};
 
     if (!cb && typeof options === "function") {
@@ -1459,7 +1459,7 @@ class WorkflowManager {
   }
 
   /**
-   * @param NewWorkflowRequest
+   * @param NewWorkflowDefinitionRequest
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -1471,12 +1471,12 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  newWorkflow(NewWorkflowRequest, options, cb) {
-    return this._hystrixCommand.execute(this._newWorkflow, arguments);
+  newWorkflowDefinition(NewWorkflowDefinitionRequest, options, cb) {
+    return this._hystrixCommand.execute(this._newWorkflowDefinition, arguments);
   }
-  _newWorkflow(NewWorkflowRequest, options, cb) {
+  _newWorkflowDefinition(NewWorkflowDefinitionRequest, options, cb) {
     const params = {};
-    params["NewWorkflowRequest"] = NewWorkflowRequest;
+    params["NewWorkflowDefinitionRequest"] = NewWorkflowDefinitionRequest;
 
     if (!cb && typeof options === "function") {
       cb = options;
@@ -1525,7 +1525,7 @@ class WorkflowManager {
         useQuerystring: true,
       };
   
-      requestOptions.body = params.NewWorkflowRequest;
+      requestOptions.body = params.NewWorkflowDefinitionRequest;
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -1592,10 +1592,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflowVersionsByName(params, options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflowVersionsByName, arguments);
+  getWorkflowDefinitionVersionsByName(params, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowDefinitionVersionsByName, arguments);
   }
-  _getWorkflowVersionsByName(params, options, cb) {
+  _getWorkflowDefinitionVersionsByName(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -1708,7 +1708,7 @@ class WorkflowManager {
 
   /**
    * @param {Object} params
-   * @param [params.NewWorkflowRequest]
+   * @param [params.NewWorkflowDefinitionRequest]
    * @param {string} params.name
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
@@ -1722,10 +1722,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  updateWorkflow(params, options, cb) {
-    return this._hystrixCommand.execute(this._updateWorkflow, arguments);
+  updateWorkflowDefinition(params, options, cb) {
+    return this._hystrixCommand.execute(this._updateWorkflowDefinition, arguments);
   }
-  _updateWorkflow(params, options, cb) {
+  _updateWorkflowDefinition(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -1777,7 +1777,7 @@ class WorkflowManager {
         useQuerystring: true,
       };
   
-      requestOptions.body = params.NewWorkflowRequest;
+      requestOptions.body = params.NewWorkflowDefinitionRequest;
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -1850,10 +1850,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflowByNameAndVersion(params, options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflowByNameAndVersion, arguments);
+  getWorkflowDefinitionByNameAndVersion(params, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowDefinitionByNameAndVersion, arguments);
   }
-  _getWorkflowByNameAndVersion(params, options, cb) {
+  _getWorkflowDefinitionByNameAndVersion(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;

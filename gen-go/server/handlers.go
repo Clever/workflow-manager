@@ -122,9 +122,9 @@ func newHealthCheckInput(r *http.Request) (*models.HealthCheckInput, error) {
 	return &input, nil
 }
 
-// statusCodeForGetJobsForWorkflow returns the status code corresponding to the returned
+// statusCodeForGetJobsForWorkflowDefinition returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForGetJobsForWorkflow(obj interface{}) int {
+func statusCodeForGetJobsForWorkflowDefinition(obj interface{}) int {
 
 	switch obj.(type) {
 
@@ -157,9 +157,9 @@ func statusCodeForGetJobsForWorkflow(obj interface{}) int {
 	}
 }
 
-func (h handler) GetJobsForWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) GetJobsForWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newGetJobsForWorkflowInput(r)
+	input, err := newGetJobsForWorkflowDefinitionInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
@@ -174,7 +174,7 @@ func (h handler) GetJobsForWorkflowHandler(ctx context.Context, w http.ResponseW
 		return
 	}
 
-	resp, err := h.GetJobsForWorkflow(ctx, input)
+	resp, err := h.GetJobsForWorkflowDefinition(ctx, input)
 
 	// Success types that return an array should never return nil so let's make this easier
 	// for consumers by converting nil arrays to empty arrays
@@ -187,7 +187,7 @@ func (h handler) GetJobsForWorkflowHandler(ctx context.Context, w http.ResponseW
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForGetJobsForWorkflow(err)
+		statusCode := statusCodeForGetJobsForWorkflowDefinition(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -204,39 +204,39 @@ func (h handler) GetJobsForWorkflowHandler(ctx context.Context, w http.ResponseW
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForGetJobsForWorkflow(resp))
+	w.WriteHeader(statusCodeForGetJobsForWorkflowDefinition(resp))
 	w.Write(respBytes)
 
 }
 
-// newGetJobsForWorkflowInput takes in an http.Request an returns the input struct.
-func newGetJobsForWorkflowInput(r *http.Request) (*models.GetJobsForWorkflowInput, error) {
-	var input models.GetJobsForWorkflowInput
+// newGetJobsForWorkflowDefinitionInput takes in an http.Request an returns the input struct.
+func newGetJobsForWorkflowDefinitionInput(r *http.Request) (*models.GetJobsForWorkflowDefinitionInput, error) {
+	var input models.GetJobsForWorkflowDefinitionInput
 
 	var err error
 	_ = err
 
-	workflowNameStrs := r.URL.Query()["workflowName"]
-	if len(workflowNameStrs) == 0 {
+	workflowDefinitionNameStrs := r.URL.Query()["workflowDefinitionName"]
+	if len(workflowDefinitionNameStrs) == 0 {
 		return nil, errors.New("parameter must be specified")
 	}
 
-	if len(workflowNameStrs) > 0 {
-		var workflowNameTmp string
-		workflowNameStr := workflowNameStrs[0]
-		workflowNameTmp, err = workflowNameStr, error(nil)
+	if len(workflowDefinitionNameStrs) > 0 {
+		var workflowDefinitionNameTmp string
+		workflowDefinitionNameStr := workflowDefinitionNameStrs[0]
+		workflowDefinitionNameTmp, err = workflowDefinitionNameStr, error(nil)
 		if err != nil {
 			return nil, err
 		}
-		input.WorkflowName = workflowNameTmp
+		input.WorkflowDefinitionName = workflowDefinitionNameTmp
 	}
 
 	return &input, nil
 }
 
-// statusCodeForStartJobForWorkflow returns the status code corresponding to the returned
+// statusCodeForStartJobForWorkflowDefinition returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForStartJobForWorkflow(obj interface{}) int {
+func statusCodeForStartJobForWorkflowDefinition(obj interface{}) int {
 
 	switch obj.(type) {
 
@@ -269,9 +269,9 @@ func statusCodeForStartJobForWorkflow(obj interface{}) int {
 	}
 }
 
-func (h handler) StartJobForWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) StartJobForWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newStartJobForWorkflowInput(r)
+	input, err := newStartJobForWorkflowDefinitionInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
@@ -286,14 +286,14 @@ func (h handler) StartJobForWorkflowHandler(ctx context.Context, w http.Response
 		return
 	}
 
-	resp, err := h.StartJobForWorkflow(ctx, input)
+	resp, err := h.StartJobForWorkflowDefinition(ctx, input)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForStartJobForWorkflow(err)
+		statusCode := statusCodeForStartJobForWorkflowDefinition(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -310,13 +310,13 @@ func (h handler) StartJobForWorkflowHandler(ctx context.Context, w http.Response
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForStartJobForWorkflow(resp))
+	w.WriteHeader(statusCodeForStartJobForWorkflowDefinition(resp))
 	w.Write(respBytes)
 
 }
 
-// newStartJobForWorkflowInput takes in an http.Request an returns the input struct.
-func newStartJobForWorkflowInput(r *http.Request) (*models.JobInput, error) {
+// newStartJobForWorkflowDefinitionInput takes in an http.Request an returns the input struct.
+func newStartJobForWorkflowDefinitionInput(r *http.Request) (*models.JobInput, error) {
 	var input models.JobInput
 
 	var err error
@@ -980,13 +980,13 @@ func newPutStateResourceInput(r *http.Request) (*models.PutStateResourceInput, e
 	return &input, nil
 }
 
-// statusCodeForGetWorkflows returns the status code corresponding to the returned
+// statusCodeForGetWorkflowDefinitions returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForGetWorkflows(obj interface{}) int {
+func statusCodeForGetWorkflowDefinitions(obj interface{}) int {
 
 	switch obj.(type) {
 
-	case *[]models.Workflow:
+	case *[]models.WorkflowDefinition:
 		return 200
 
 	case *models.BadRequest:
@@ -995,7 +995,7 @@ func statusCodeForGetWorkflows(obj interface{}) int {
 	case *models.InternalError:
 		return 500
 
-	case []models.Workflow:
+	case []models.WorkflowDefinition:
 		return 200
 
 	case models.BadRequest:
@@ -1009,14 +1009,14 @@ func statusCodeForGetWorkflows(obj interface{}) int {
 	}
 }
 
-func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) GetWorkflowDefinitionsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	resp, err := h.GetWorkflows(ctx)
+	resp, err := h.GetWorkflowDefinitions(ctx)
 
 	// Success types that return an array should never return nil so let's make this easier
 	// for consumers by converting nil arrays to empty arrays
 	if resp == nil {
-		resp = []models.Workflow{}
+		resp = []models.WorkflowDefinition{}
 	}
 
 	if err != nil {
@@ -1024,7 +1024,7 @@ func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter,
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForGetWorkflows(err)
+		statusCode := statusCodeForGetWorkflowDefinitions(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -1041,14 +1041,14 @@ func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForGetWorkflows(resp))
+	w.WriteHeader(statusCodeForGetWorkflowDefinitions(resp))
 	w.Write(respBytes)
 
 }
 
-// newGetWorkflowsInput takes in an http.Request an returns the input struct.
-func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
-	var input models.GetWorkflowsInput
+// newGetWorkflowDefinitionsInput takes in an http.Request an returns the input struct.
+func newGetWorkflowDefinitionsInput(r *http.Request) (*models.GetWorkflowDefinitionsInput, error) {
+	var input models.GetWorkflowDefinitionsInput
 
 	var err error
 	_ = err
@@ -1056,9 +1056,9 @@ func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
 	return &input, nil
 }
 
-// statusCodeForNewWorkflow returns the status code corresponding to the returned
+// statusCodeForNewWorkflowDefinition returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForNewWorkflow(obj interface{}) int {
+func statusCodeForNewWorkflowDefinition(obj interface{}) int {
 
 	switch obj.(type) {
 
@@ -1068,7 +1068,7 @@ func statusCodeForNewWorkflow(obj interface{}) int {
 	case *models.InternalError:
 		return 500
 
-	case *models.Workflow:
+	case *models.WorkflowDefinition:
 		return 201
 
 	case models.BadRequest:
@@ -1077,7 +1077,7 @@ func statusCodeForNewWorkflow(obj interface{}) int {
 	case models.InternalError:
 		return 500
 
-	case models.Workflow:
+	case models.WorkflowDefinition:
 		return 201
 
 	default:
@@ -1085,9 +1085,9 @@ func statusCodeForNewWorkflow(obj interface{}) int {
 	}
 }
 
-func (h handler) NewWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newNewWorkflowInput(r)
+	input, err := newNewWorkflowDefinitionInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
@@ -1102,14 +1102,14 @@ func (h handler) NewWorkflowHandler(ctx context.Context, w http.ResponseWriter, 
 		return
 	}
 
-	resp, err := h.NewWorkflow(ctx, input)
+	resp, err := h.NewWorkflowDefinition(ctx, input)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForNewWorkflow(err)
+		statusCode := statusCodeForNewWorkflowDefinition(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -1126,14 +1126,14 @@ func (h handler) NewWorkflowHandler(ctx context.Context, w http.ResponseWriter, 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForNewWorkflow(resp))
+	w.WriteHeader(statusCodeForNewWorkflowDefinition(resp))
 	w.Write(respBytes)
 
 }
 
-// newNewWorkflowInput takes in an http.Request an returns the input struct.
-func newNewWorkflowInput(r *http.Request) (*models.NewWorkflowRequest, error) {
-	var input models.NewWorkflowRequest
+// newNewWorkflowDefinitionInput takes in an http.Request an returns the input struct.
+func newNewWorkflowDefinitionInput(r *http.Request) (*models.NewWorkflowDefinitionRequest, error) {
+	var input models.NewWorkflowDefinitionRequest
 
 	var err error
 	_ = err
@@ -1149,13 +1149,13 @@ func newNewWorkflowInput(r *http.Request) (*models.NewWorkflowRequest, error) {
 	return &input, nil
 }
 
-// statusCodeForGetWorkflowVersionsByName returns the status code corresponding to the returned
+// statusCodeForGetWorkflowDefinitionVersionsByName returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForGetWorkflowVersionsByName(obj interface{}) int {
+func statusCodeForGetWorkflowDefinitionVersionsByName(obj interface{}) int {
 
 	switch obj.(type) {
 
-	case *[]models.Workflow:
+	case *[]models.WorkflowDefinition:
 		return 200
 
 	case *models.BadRequest:
@@ -1167,7 +1167,7 @@ func statusCodeForGetWorkflowVersionsByName(obj interface{}) int {
 	case *models.NotFound:
 		return 404
 
-	case []models.Workflow:
+	case []models.WorkflowDefinition:
 		return 200
 
 	case models.BadRequest:
@@ -1184,9 +1184,9 @@ func statusCodeForGetWorkflowVersionsByName(obj interface{}) int {
 	}
 }
 
-func (h handler) GetWorkflowVersionsByNameHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) GetWorkflowDefinitionVersionsByNameHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newGetWorkflowVersionsByNameInput(r)
+	input, err := newGetWorkflowDefinitionVersionsByNameInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
@@ -1201,12 +1201,12 @@ func (h handler) GetWorkflowVersionsByNameHandler(ctx context.Context, w http.Re
 		return
 	}
 
-	resp, err := h.GetWorkflowVersionsByName(ctx, input)
+	resp, err := h.GetWorkflowDefinitionVersionsByName(ctx, input)
 
 	// Success types that return an array should never return nil so let's make this easier
 	// for consumers by converting nil arrays to empty arrays
 	if resp == nil {
-		resp = []models.Workflow{}
+		resp = []models.WorkflowDefinition{}
 	}
 
 	if err != nil {
@@ -1214,7 +1214,7 @@ func (h handler) GetWorkflowVersionsByNameHandler(ctx context.Context, w http.Re
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForGetWorkflowVersionsByName(err)
+		statusCode := statusCodeForGetWorkflowDefinitionVersionsByName(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -1231,14 +1231,14 @@ func (h handler) GetWorkflowVersionsByNameHandler(ctx context.Context, w http.Re
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForGetWorkflowVersionsByName(resp))
+	w.WriteHeader(statusCodeForGetWorkflowDefinitionVersionsByName(resp))
 	w.Write(respBytes)
 
 }
 
-// newGetWorkflowVersionsByNameInput takes in an http.Request an returns the input struct.
-func newGetWorkflowVersionsByNameInput(r *http.Request) (*models.GetWorkflowVersionsByNameInput, error) {
-	var input models.GetWorkflowVersionsByNameInput
+// newGetWorkflowDefinitionVersionsByNameInput takes in an http.Request an returns the input struct.
+func newGetWorkflowDefinitionVersionsByNameInput(r *http.Request) (*models.GetWorkflowDefinitionVersionsByNameInput, error) {
+	var input models.GetWorkflowDefinitionVersionsByNameInput
 
 	var err error
 	_ = err
@@ -1277,9 +1277,9 @@ func newGetWorkflowVersionsByNameInput(r *http.Request) (*models.GetWorkflowVers
 	return &input, nil
 }
 
-// statusCodeForUpdateWorkflow returns the status code corresponding to the returned
+// statusCodeForUpdateWorkflowDefinition returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForUpdateWorkflow(obj interface{}) int {
+func statusCodeForUpdateWorkflowDefinition(obj interface{}) int {
 
 	switch obj.(type) {
 
@@ -1292,7 +1292,7 @@ func statusCodeForUpdateWorkflow(obj interface{}) int {
 	case *models.NotFound:
 		return 404
 
-	case *models.Workflow:
+	case *models.WorkflowDefinition:
 		return 201
 
 	case models.BadRequest:
@@ -1304,7 +1304,7 @@ func statusCodeForUpdateWorkflow(obj interface{}) int {
 	case models.NotFound:
 		return 404
 
-	case models.Workflow:
+	case models.WorkflowDefinition:
 		return 201
 
 	default:
@@ -1312,9 +1312,9 @@ func statusCodeForUpdateWorkflow(obj interface{}) int {
 	}
 }
 
-func (h handler) UpdateWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) UpdateWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newUpdateWorkflowInput(r)
+	input, err := newUpdateWorkflowDefinitionInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
@@ -1329,14 +1329,14 @@ func (h handler) UpdateWorkflowHandler(ctx context.Context, w http.ResponseWrite
 		return
 	}
 
-	resp, err := h.UpdateWorkflow(ctx, input)
+	resp, err := h.UpdateWorkflowDefinition(ctx, input)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForUpdateWorkflow(err)
+		statusCode := statusCodeForUpdateWorkflowDefinition(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -1353,14 +1353,14 @@ func (h handler) UpdateWorkflowHandler(ctx context.Context, w http.ResponseWrite
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForUpdateWorkflow(resp))
+	w.WriteHeader(statusCodeForUpdateWorkflowDefinition(resp))
 	w.Write(respBytes)
 
 }
 
-// newUpdateWorkflowInput takes in an http.Request an returns the input struct.
-func newUpdateWorkflowInput(r *http.Request) (*models.UpdateWorkflowInput, error) {
-	var input models.UpdateWorkflowInput
+// newUpdateWorkflowDefinitionInput takes in an http.Request an returns the input struct.
+func newUpdateWorkflowDefinitionInput(r *http.Request) (*models.UpdateWorkflowDefinitionInput, error) {
+	var input models.UpdateWorkflowDefinitionInput
 
 	var err error
 	_ = err
@@ -1368,8 +1368,8 @@ func newUpdateWorkflowInput(r *http.Request) (*models.UpdateWorkflowInput, error
 	data, err := ioutil.ReadAll(r.Body)
 
 	if len(data) > 0 {
-		input.NewWorkflowRequest = &models.NewWorkflowRequest{}
-		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewWorkflowRequest); err != nil {
+		input.NewWorkflowDefinitionRequest = &models.NewWorkflowDefinitionRequest{}
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewWorkflowDefinitionRequest); err != nil {
 			return nil, err
 		}
 	}
@@ -1393,9 +1393,9 @@ func newUpdateWorkflowInput(r *http.Request) (*models.UpdateWorkflowInput, error
 	return &input, nil
 }
 
-// statusCodeForGetWorkflowByNameAndVersion returns the status code corresponding to the returned
+// statusCodeForGetWorkflowDefinitionByNameAndVersion returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForGetWorkflowByNameAndVersion(obj interface{}) int {
+func statusCodeForGetWorkflowDefinitionByNameAndVersion(obj interface{}) int {
 
 	switch obj.(type) {
 
@@ -1408,7 +1408,7 @@ func statusCodeForGetWorkflowByNameAndVersion(obj interface{}) int {
 	case *models.NotFound:
 		return 404
 
-	case *models.Workflow:
+	case *models.WorkflowDefinition:
 		return 200
 
 	case models.BadRequest:
@@ -1420,7 +1420,7 @@ func statusCodeForGetWorkflowByNameAndVersion(obj interface{}) int {
 	case models.NotFound:
 		return 404
 
-	case models.Workflow:
+	case models.WorkflowDefinition:
 		return 200
 
 	default:
@@ -1428,9 +1428,9 @@ func statusCodeForGetWorkflowByNameAndVersion(obj interface{}) int {
 	}
 }
 
-func (h handler) GetWorkflowByNameAndVersionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) GetWorkflowDefinitionByNameAndVersionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newGetWorkflowByNameAndVersionInput(r)
+	input, err := newGetWorkflowDefinitionByNameAndVersionInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
@@ -1445,14 +1445,14 @@ func (h handler) GetWorkflowByNameAndVersionHandler(ctx context.Context, w http.
 		return
 	}
 
-	resp, err := h.GetWorkflowByNameAndVersion(ctx, input)
+	resp, err := h.GetWorkflowDefinitionByNameAndVersion(ctx, input)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForGetWorkflowByNameAndVersion(err)
+		statusCode := statusCodeForGetWorkflowDefinitionByNameAndVersion(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -1469,14 +1469,14 @@ func (h handler) GetWorkflowByNameAndVersionHandler(ctx context.Context, w http.
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForGetWorkflowByNameAndVersion(resp))
+	w.WriteHeader(statusCodeForGetWorkflowDefinitionByNameAndVersion(resp))
 	w.Write(respBytes)
 
 }
 
-// newGetWorkflowByNameAndVersionInput takes in an http.Request an returns the input struct.
-func newGetWorkflowByNameAndVersionInput(r *http.Request) (*models.GetWorkflowByNameAndVersionInput, error) {
-	var input models.GetWorkflowByNameAndVersionInput
+// newGetWorkflowDefinitionByNameAndVersionInput takes in an http.Request an returns the input struct.
+func newGetWorkflowDefinitionByNameAndVersionInput(r *http.Request) (*models.GetWorkflowDefinitionByNameAndVersionInput, error) {
+	var input models.GetWorkflowDefinitionByNameAndVersionInput
 
 	var err error
 	_ = err

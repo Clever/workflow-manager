@@ -27,19 +27,19 @@ workflow-manager client library.
         * [new WorkflowManager(options)](#new_module_workflow-manager--WorkflowManager_new)
         * _instance_
             * [.healthCheck([options], [cb])](#module_workflow-manager--WorkflowManager+healthCheck) ⇒ <code>Promise</code>
-            * [.getJobsForWorkflow(workflowName, [options], [cb])](#module_workflow-manager--WorkflowManager+getJobsForWorkflow) ⇒ <code>Promise</code>
-            * [.startJobForWorkflow(input, [options], [cb])](#module_workflow-manager--WorkflowManager+startJobForWorkflow) ⇒ <code>Promise</code>
+            * [.getJobsForWorkflowDefinition(workflowDefinitionName, [options], [cb])](#module_workflow-manager--WorkflowManager+getJobsForWorkflowDefinition) ⇒ <code>Promise</code>
+            * [.startJobForWorkflowDefinition(input, [options], [cb])](#module_workflow-manager--WorkflowManager+startJobForWorkflowDefinition) ⇒ <code>Promise</code>
             * [.CancelJob(params, [options], [cb])](#module_workflow-manager--WorkflowManager+CancelJob) ⇒ <code>Promise</code>
             * [.GetJob(jobId, [options], [cb])](#module_workflow-manager--WorkflowManager+GetJob) ⇒ <code>Promise</code>
             * [.postStateResource(NewStateResource, [options], [cb])](#module_workflow-manager--WorkflowManager+postStateResource) ⇒ <code>Promise</code>
             * [.deleteStateResource(params, [options], [cb])](#module_workflow-manager--WorkflowManager+deleteStateResource) ⇒ <code>Promise</code>
             * [.getStateResource(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getStateResource) ⇒ <code>Promise</code>
             * [.putStateResource(params, [options], [cb])](#module_workflow-manager--WorkflowManager+putStateResource) ⇒ <code>Promise</code>
-            * [.getWorkflows([options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflows) ⇒ <code>Promise</code>
-            * [.newWorkflow(NewWorkflowRequest, [options], [cb])](#module_workflow-manager--WorkflowManager+newWorkflow) ⇒ <code>Promise</code>
-            * [.getWorkflowVersionsByName(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowVersionsByName) ⇒ <code>Promise</code>
-            * [.updateWorkflow(params, [options], [cb])](#module_workflow-manager--WorkflowManager+updateWorkflow) ⇒ <code>Promise</code>
-            * [.getWorkflowByNameAndVersion(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowByNameAndVersion) ⇒ <code>Promise</code>
+            * [.getWorkflowDefinitions([options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowDefinitions) ⇒ <code>Promise</code>
+            * [.newWorkflowDefinition(NewWorkflowDefinitionRequest, [options], [cb])](#module_workflow-manager--WorkflowManager+newWorkflowDefinition) ⇒ <code>Promise</code>
+            * [.getWorkflowDefinitionVersionsByName(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowDefinitionVersionsByName) ⇒ <code>Promise</code>
+            * [.updateWorkflowDefinition(params, [options], [cb])](#module_workflow-manager--WorkflowManager+updateWorkflowDefinition) ⇒ <code>Promise</code>
+            * [.getWorkflowDefinitionByNameAndVersion(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowDefinitionByNameAndVersion) ⇒ <code>Promise</code>
         * _static_
             * [.RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)
                 * [.Exponential](#module_workflow-manager--WorkflowManager.RetryPolicies.Exponential)
@@ -97,9 +97,9 @@ Checks if the service is healthy
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
-<a name="module_workflow-manager--WorkflowManager+getJobsForWorkflow"></a>
+<a name="module_workflow-manager--WorkflowManager+getJobsForWorkflowDefinition"></a>
 
-#### workflowManager.getJobsForWorkflow(workflowName, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.getJobsForWorkflowDefinition(workflowDefinitionName, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object[]</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -109,16 +109,16 @@ Checks if the service is healthy
 
 | Param | Type | Description |
 | --- | --- | --- |
-| workflowName | <code>string</code> |  |
+| workflowDefinitionName | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
-<a name="module_workflow-manager--WorkflowManager+startJobForWorkflow"></a>
+<a name="module_workflow-manager--WorkflowManager+startJobForWorkflowDefinition"></a>
 
-#### workflowManager.startJobForWorkflow(input, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.startJobForWorkflowDefinition(input, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -256,10 +256,10 @@ Checks if the service is healthy
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
-<a name="module_workflow-manager--WorkflowManager+getWorkflows"></a>
+<a name="module_workflow-manager--WorkflowManager+getWorkflowDefinitions"></a>
 
-#### workflowManager.getWorkflows([options], [cb]) ⇒ <code>Promise</code>
-Get the latest versions of all available workflows
+#### workflowManager.getWorkflowDefinitions([options], [cb]) ⇒ <code>Promise</code>
+Get the latest versions of all available WorkflowDefinitions
 
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object[]</code>  
@@ -275,9 +275,9 @@ Get the latest versions of all available workflows
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
-<a name="module_workflow-manager--WorkflowManager+newWorkflow"></a>
+<a name="module_workflow-manager--WorkflowManager+newWorkflowDefinition"></a>
 
-#### workflowManager.newWorkflow(NewWorkflowRequest, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.newWorkflowDefinition(NewWorkflowDefinitionRequest, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -286,16 +286,16 @@ Get the latest versions of all available workflows
 
 | Param | Type | Description |
 | --- | --- | --- |
-| NewWorkflowRequest |  |  |
+| NewWorkflowDefinitionRequest |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
-<a name="module_workflow-manager--WorkflowManager+getWorkflowVersionsByName"></a>
+<a name="module_workflow-manager--WorkflowManager+getWorkflowDefinitionVersionsByName"></a>
 
-#### workflowManager.getWorkflowVersionsByName(params, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.getWorkflowDefinitionVersionsByName(params, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object[]</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -314,9 +314,9 @@ Get the latest versions of all available workflows
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> |  | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |  |
 
-<a name="module_workflow-manager--WorkflowManager+updateWorkflow"></a>
+<a name="module_workflow-manager--WorkflowManager+updateWorkflowDefinition"></a>
 
-#### workflowManager.updateWorkflow(params, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.updateWorkflowDefinition(params, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -327,7 +327,7 @@ Get the latest versions of all available workflows
 | Param | Type | Description |
 | --- | --- | --- |
 | params | <code>Object</code> |  |
-| [params.NewWorkflowRequest] |  |  |
+| [params.NewWorkflowDefinitionRequest] |  |  |
 | params.name | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
@@ -335,9 +335,9 @@ Get the latest versions of all available workflows
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
-<a name="module_workflow-manager--WorkflowManager+getWorkflowByNameAndVersion"></a>
+<a name="module_workflow-manager--WorkflowManager+getWorkflowDefinitionByNameAndVersion"></a>
 
-#### workflowManager.getWorkflowByNameAndVersion(params, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.getWorkflowDefinitionByNameAndVersion(params, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
