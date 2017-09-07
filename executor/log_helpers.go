@@ -10,7 +10,7 @@ var log = logger.New("workflow-manager")
 func logTaskStatus(task *resources.Task, job *resources.Job) {
 	log.InfoD("task-status", logger.M{
 		"id":       job.ID,
-		"workflow": job.Workflow.Name(),
+		"workflow": job.WorkflowDefinition.Name(),
 		"state":    task.State,
 		"status":   task.Status,
 		// 0 -> running; 1 -> failed;
@@ -27,8 +27,8 @@ func logJobStatusChange(job *resources.Job, previousStatus resources.JobStatus) 
 
 	log.InfoD("job-status-change", logger.M{
 		"id":               job.ID,
-		"workflow":         job.Workflow.Name(),
-		"workflow-version": job.Workflow.Version(),
+		"workflow":         job.WorkflowDefinition.Name(),
+		"workflow-version": job.WorkflowDefinition.Version(),
 		"previous-status":  previousStatus,
 		"status":           job.Status,
 		// 0 -> running; 1 -> failed; -1 -> cancelled

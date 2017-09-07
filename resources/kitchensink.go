@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// KitchenSinkWorkflow returns a Workflow resource to use for tests
-func KitchenSinkWorkflow(t *testing.T) WorkflowDefinition {
+// KitchenSinkWorkflowDefinition returns a WorkflowDefinition resource to use for tests
+func KitchenSinkWorkflowDefinition(t *testing.T) WorkflowDefinition {
 
 	states := map[string]State{
 		"start-state": &WorkerState{

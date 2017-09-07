@@ -60,7 +60,7 @@ func TestUpdateJobStatus(t *testing.T) {
 		mockClient,
 		memory.New(),
 	}
-	wf := resources.KitchenSinkWorkflow(t)
+	wf := resources.KitchenSinkWorkflowDefinition(t)
 	input := []string{"test-start-input"}
 
 	job, err := jm.CreateJob(wf, input, "", "")
@@ -175,7 +175,7 @@ func TestCancelUpdates(t *testing.T) {
 		mockClient,
 		memory.New(),
 	}
-	wf := resources.KitchenSinkWorkflow(t)
+	wf := resources.KitchenSinkWorkflowDefinition(t)
 	input := []string{"test-start-input"}
 
 	job, err := jm.CreateJob(wf, input, "", "")
@@ -221,14 +221,14 @@ func TestCreateJob(t *testing.T) {
 		store,
 	}
 
-	wf := resources.KitchenSinkWorkflow(t)
+	wf := resources.KitchenSinkWorkflowDefinition(t)
 	input := []string{"test-start-input", "arg2"}
 
 	t.Log("CreateJob without namespace")
 	job, err := jm.CreateJob(wf, input, "", "")
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(job.Tasks), len(job.Workflow.States()))
+	assert.Equal(t, len(job.Tasks), len(job.WorkflowDefinition.States()))
 
 	t.Log("Input data is passed to the first task only")
 	assert.NotEmpty(t, job.Tasks[0].Input, mockClient.tasks[job.Tasks[0].ID].Input)
@@ -272,7 +272,7 @@ func TestGetStateResources(t *testing.T) {
 		mockClient,
 		store,
 	}
-	wf := resources.KitchenSinkWorkflow(t)
+	wf := resources.KitchenSinkWorkflowDefinition(t)
 	input := []string{"test-start-input", "arg2"}
 
 	t.Log("Works without providing a namespace for CreateJob")

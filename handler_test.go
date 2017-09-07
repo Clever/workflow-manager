@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestNewWorkflowFromRequest tests the newWorkflowFromRequest helper
-func TestNewWorkflowFromRequest(t *testing.T) {
-	workflowReq := models.NewWorkflowRequest{
+// TestNewWorkflowDefinitionFromRequest tests the newWorkflowFromRequest helper
+func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
+	workflowReq := models.NewWorkflowDefinitionRequest{
 		Name:    "test-workflow",
 		StartAt: "start-state",
 		States: []*models.State{
@@ -34,7 +34,7 @@ func TestNewWorkflowFromRequest(t *testing.T) {
 		},
 	}
 
-	wf, err := newWorkflowFromRequest(workflowReq)
+	wf, err := newWorkflowDefinitionFromRequest(workflowReq)
 	t.Log("No error converting from new workflow request to resource")
 	assert.Nil(t, err)
 

@@ -16,25 +16,25 @@ const (
 	Cancelled JobStatus = "CANCELLED"
 )
 
-// Job contains information about a running Workflow
+// Job contains information about a running instance of a WorkflowDefinition
 type Job struct {
-	ID          string // GUID for the job
-	CreatedAt   time.Time
-	LastUpdated time.Time
-	Workflow    WorkflowDefinition // Workflow executed as part of this job
-	Input       []string           // Starting input for the job
-	Tasks       []*Task            // list of states submitted as tasks
-	Status      JobStatus
+	ID                 string // GUID for the job
+	CreatedAt          time.Time
+	LastUpdated        time.Time
+	WorkflowDefinition WorkflowDefinition // WorkflowDefinition executed as part of this job
+	Input              []string           // Starting input for the job
+	Tasks              []*Task            // list of states submitted as tasks
+	Status             JobStatus
 }
 
-// NewJob creates a new Job struct for a Workflow
+// NewJob creates a new Job struct for a WorkflowDefinition
 func NewJob(wf WorkflowDefinition, input []string) *Job {
 	return &Job{
-		ID:        uuid.NewV4().String(),
-		Workflow:  wf,
-		Input:     input,
-		Status:    Queued,
-		CreatedAt: time.Now(),
+		ID:                 uuid.NewV4().String(),
+		WorkflowDefinition: wf,
+		Input:              input,
+		Status:             Queued,
+		CreatedAt:          time.Now(),
 	}
 }
 

@@ -29,7 +29,7 @@ func New() MemoryStore {
 	}
 }
 
-func (s MemoryStore) SaveWorkflow(def resources.WorkflowDefinition) error {
+func (s MemoryStore) SaveWorkflowDefinition(def resources.WorkflowDefinition) error {
 
 	if _, ok := s.workflows[def.Name()]; ok {
 		return store.NewConflict(def.Name())
@@ -39,8 +39,8 @@ func (s MemoryStore) SaveWorkflow(def resources.WorkflowDefinition) error {
 	return nil
 }
 
-func (s MemoryStore) UpdateWorkflow(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error) {
-	last, err := s.LatestWorkflow(def.Name())
+func (s MemoryStore) UpdateWorkflowDefinition(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error) {
+	last, err := s.LatestWorkflowDefinition(def.Name())
 	if err != nil {
 		return def, err
 	}
@@ -52,13 +52,13 @@ func (s MemoryStore) UpdateWorkflow(def resources.WorkflowDefinition) (resources
 	return newVersion, nil
 }
 
-// GetWorkflows returns the latest version of all stored workflow definitions
-func (s MemoryStore) GetWorkflows() ([]resources.WorkflowDefinition, error) {
+// GetWorkflowDefinitions returns the latest version of all stored workflow definitions
+func (s MemoryStore) GetWorkflowDefinitions() ([]resources.WorkflowDefinition, error) {
 	workflows := []resources.WorkflowDefinition{}
 	// for each workflow definition
-	for _, versionedWorkflows := range s.workflows {
+	for _, versionedWorkflowDefinitions := range s.workflows {
 		// for each version of a workflow definition
-		for _, workflow := range versionedWorkflows {
+		for _, workflow := range versionedWorkflowDefinitions {
 			workflows = append(workflows, workflow)
 		}
 	}
@@ -66,8 +66,8 @@ func (s MemoryStore) GetWorkflows() ([]resources.WorkflowDefinition, error) {
 	return workflows, nil
 }
 
-// GetWorkflowVersions gets all versions of a workflow definition
-func (s MemoryStore) GetWorkflowVersions(name string) ([]resources.WorkflowDefinition, error) {
+// GetWorkflowDefinitionVersions gets all versions of a workflow definition
+func (s MemoryStore) GetWorkflowDefinitionVersions(name string) ([]resources.WorkflowDefinition, error) {
 	workflows, ok := s.workflows[name]
 	if !ok {
 		return []resources.WorkflowDefinition{}, store.NewNotFound(name)
@@ -76,7 +76,7 @@ func (s MemoryStore) GetWorkflowVersions(name string) ([]resources.WorkflowDefin
 	return workflows, nil
 }
 
-func (s MemoryStore) GetWorkflow(name string, version int) (resources.WorkflowDefinition, error) {
+func (s MemoryStore) GetWorkflowDefinition(name string, version int) (resources.WorkflowDefinition, error) {
 	if _, ok := s.workflows[name]; !ok {
 		return resources.WorkflowDefinition{}, store.NewNotFound(name)
 	}
@@ -88,12 +88,12 @@ func (s MemoryStore) GetWorkflow(name string, version int) (resources.WorkflowDe
 	return s.workflows[name][version], nil
 }
 
-func (s MemoryStore) LatestWorkflow(name string) (resources.WorkflowDefinition, error) {
+func (s MemoryStore) LatestWorkflowDefinition(name string) (resources.WorkflowDefinition, error) {
 	if _, ok := s.workflows[name]; !ok {
 		return resources.WorkflowDefinition{}, store.NewNotFound(name)
 	}
 
-	return s.GetWorkflow(name, len(s.workflows[name])-1)
+	return s.GetWorkflowDefinition(name, len(s.workflows[name])-1)
 }
 
 func (s MemoryStore) SaveStateResource(res resources.StateResource) error {
@@ -152,10 +152,10 @@ func (s MemoryStore) UpdateJob(job resources.Job) error {
 	return nil
 }
 
-func (s MemoryStore) GetJobsForWorkflow(workflowName string) ([]resources.Job, error) {
+func (s MemoryStore) GetJobsForWorkflowDefinition(workflowName string) ([]resources.Job, error) {
 	jobs := []resources.Job{}
 	for _, job := range s.jobs {
-		if job.Workflow.Name() == workflowName {
+		if job.WorkflowDefinition.Name() == workflowName {
 			jobs = append(jobs, job)
 		}
 	}

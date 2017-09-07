@@ -52,11 +52,11 @@ func main() {
 	db := dynamodbstore.New(svc, c.DynamoPrefix)
 	batch := batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.DefaultBatchQueue, c.CustomBatchQueues)
 
-	wm := WorkflowManager{
+	h := Handler{
 		store:   db,
 		manager: executor.NewBatchJobManager(batch, db),
 	}
-	s := server.New(wm, *addr)
+	s := server.New(h, *addr)
 
 	if err := s.Serve(); err != nil {
 		log.Fatal(err)

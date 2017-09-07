@@ -143,9 +143,10 @@ func (jm BatchJobManager) pollUpdateStatus(job *resources.Job) {
 		if job.IsDone() {
 			// no need to poll anymore
 			log.InfoD("job-polling-stop", logger.M{
-				"id":       job.ID,
-				"status":   job.Status,
-				"workflow": job.Workflow.Name(),
+				"id":     job.ID,
+				"status": job.Status,
+				// TODO: update logs from workflow=>workflow-definition (including kvconfig.yml routing)
+				"workflow": job.WorkflowDefinition.Name(),
 			})
 			break
 		}
@@ -153,7 +154,7 @@ func (jm BatchJobManager) pollUpdateStatus(job *resources.Job) {
 			log.ErrorD("job-polling-error", logger.M{
 				"id":       job.ID,
 				"status":   job.Status,
-				"workflow": job.Workflow.Name(),
+				"workflow": job.WorkflowDefinition.Name(),
 				"error":    err.Error(),
 			})
 		}
@@ -197,7 +198,7 @@ func (jm BatchJobManager) scheduleTasks(job *resources.Job,
 
 	tasks := map[string]*resources.Task{}
 
-	for i, state := range job.Workflow.OrderedStates() {
+	for i, state := range job.WorkflowDefinition.OrderedStates() {
 		deps := []string{}
 
 		for _, d := range state.Dependencies() {
@@ -219,7 +220,7 @@ func (jm BatchJobManager) scheduleTasks(job *resources.Job,
 		}
 		taskDefinition := stateResources[state.Name()].URI
 
-		// TODO: use job.Workflow.StartAt
+		// TODO: use job.WorkflowDefinition.StartAt
 		// if first job pass in an input
 		if i == 0 {
 			taskInput = input
@@ -262,7 +263,7 @@ func (jm BatchJobManager) getStateResources(job *resources.Job,
 
 	if namespace == "" {
 		// assume State.Resource is a URI
-		for _, state := range job.Workflow.States() {
+		for _, state := range job.WorkflowDefinition.States() {
 			stateResources[state.Name()] = resources.NewBatchResource(
 				state.Name(),
 				"",
@@ -276,7 +277,7 @@ func (jm BatchJobManager) getStateResources(job *resources.Job,
 	// fetch each of the StateResource objects using the namespace
 	// and State.Resource name.
 	// Could be faster with the store supporting a BatchGetStateResource([]names, namespace)
-	for _, state := range job.Workflow.OrderedStates() {
+	for _, state := range job.WorkflowDefinition.OrderedStates() {
 		stateResource, err := jm.store.GetStateResource(state.Resource(), namespace)
 		if err != nil {
 			return stateResources, fmt.Errorf("StateResource `%s:%s` Not Found: %s",
