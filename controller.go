@@ -11,14 +11,14 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// Handler implements the wag server
-type Handler struct {
+// controller implements the wag server
+type controller struct {
 	store   store.Store
 	manager executor.JobManager
 }
 
 // HealthCheck returns 200 if workflow-manager can respond to requests
-func (h Handler) HealthCheck(ctx context.Context) error {
+func (c controller) HealthCheck(ctx context.Context) error {
 	// TODO: check that dependency clients are initialized and working
 	// 1. AWS Batch
 	// 2. DB
@@ -26,7 +26,7 @@ func (h Handler) HealthCheck(ctx context.Context) error {
 }
 
 // NewWorkflowDefinition creates a new workflow
-func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowReq *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
+func (c controller) NewWorkflowDefinition(ctx context.Context, workflowReq *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	//TODO: validate states
 	if len(workflowReq.States) == 0 {
 		return &models.WorkflowDefinition{}, fmt.Errorf("Must define at least one state")
@@ -40,7 +40,7 @@ func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowReq *models.
 		return &models.WorkflowDefinition{}, err
 	}
 
-	if err := h.store.SaveWorkflowDefinition(workflow); err != nil {
+	if err := c.store.SaveWorkflowDefinition(workflow); err != nil {
 		return &models.WorkflowDefinition{}, err
 	}
 
@@ -48,7 +48,7 @@ func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowReq *models.
 }
 
 // UpdateWorkflowDefinition creates a new revision for an existing workflow
-func (h Handler) UpdateWorkflowDefinition(ctx context.Context, input *models.UpdateWorkflowDefinitionInput) (*models.WorkflowDefinition, error) {
+func (c controller) UpdateWorkflowDefinition(ctx context.Context, input *models.UpdateWorkflowDefinitionInput) (*models.WorkflowDefinition, error) {
 	workflowReq := input.NewWorkflowDefinitionRequest
 	if workflowReq == nil || workflowReq.Name != input.Name {
 		return &models.WorkflowDefinition{}, fmt.Errorf("Name in path must match WorkflowDefinition object")
@@ -62,7 +62,7 @@ func (h Handler) UpdateWorkflowDefinition(ctx context.Context, input *models.Upd
 		return &models.WorkflowDefinition{}, err
 	}
 
-	workflow, err = h.store.UpdateWorkflowDefinition(workflow)
+	workflow, err = c.store.UpdateWorkflowDefinition(workflow)
 	if err != nil {
 		return &models.WorkflowDefinition{}, err
 	}
@@ -71,8 +71,8 @@ func (h Handler) UpdateWorkflowDefinition(ctx context.Context, input *models.Upd
 }
 
 // GetWorkflowDefinitions retrieves a list of the latest version of each workflow
-func (h Handler) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
-	workflows, err := h.store.GetWorkflowDefinitions()
+func (c controller) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
+	workflows, err := c.store.GetWorkflowDefinitions()
 
 	if err != nil {
 		return []models.WorkflowDefinition{}, err
@@ -88,9 +88,9 @@ func (h Handler) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowD
 // GetWorkflowDefinitionVersionsByName fetches either:
 //  1. A list of all versions of a workflow by name
 //  2. The most recent version of a workflow by name
-func (h Handler) GetWorkflowDefinitionVersionsByName(ctx context.Context, input *models.GetWorkflowDefinitionVersionsByNameInput) ([]models.WorkflowDefinition, error) {
+func (c controller) GetWorkflowDefinitionVersionsByName(ctx context.Context, input *models.GetWorkflowDefinitionVersionsByNameInput) ([]models.WorkflowDefinition, error) {
 	if *input.Latest == true {
-		workflow, err := h.store.LatestWorkflowDefinition(input.Name)
+		workflow, err := c.store.LatestWorkflowDefinition(input.Name)
 		if err != nil {
 			return []models.WorkflowDefinition{}, err
 		}
@@ -98,7 +98,7 @@ func (h Handler) GetWorkflowDefinitionVersionsByName(ctx context.Context, input 
 	}
 
 	apiWorkflowDefinitions := []models.WorkflowDefinition{}
-	workflows, err := h.store.GetWorkflowDefinitionVersions(input.Name)
+	workflows, err := c.store.GetWorkflowDefinitionVersions(input.Name)
 	if err != nil {
 		return []models.WorkflowDefinition{}, err
 	}
@@ -111,8 +111,8 @@ func (h Handler) GetWorkflowDefinitionVersionsByName(ctx context.Context, input 
 }
 
 // GetWorkflowDefinitionByNameAndVersion allows fetching an existing WorkflowDefinition by providing it's name and version
-func (h Handler) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, input *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
-	workflow, err := h.store.GetWorkflowDefinition(input.Name, int(input.Version))
+func (c controller) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, input *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
+	workflow, err := c.store.GetWorkflowDefinition(input.Name, int(input.Version))
 	if err != nil {
 		return &models.WorkflowDefinition{}, err
 	}
@@ -120,9 +120,9 @@ func (h Handler) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, inpu
 }
 
 // PostStateResource creates a new state resource
-func (h Handler) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
+func (c controller) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
 	stateResource := resources.NewBatchResource(i.Name, i.Namespace, i.URI)
-	if err := h.store.SaveStateResource(stateResource); err != nil {
+	if err := c.store.SaveStateResource(stateResource); err != nil {
 		return &models.StateResource{}, err
 	}
 
@@ -130,7 +130,7 @@ func (h Handler) PostStateResource(ctx context.Context, i *models.NewStateResour
 }
 
 // PutStateResource creates or updates a state resource
-func (h Handler) PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error) {
+func (c controller) PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error) {
 	if i.Name != i.NewStateResource.Name {
 		return &models.StateResource{}, models.BadRequest{
 			Message: "StateResource.Name does not match name in path",
@@ -144,7 +144,7 @@ func (h Handler) PutStateResource(ctx context.Context, i *models.PutStateResourc
 
 	stateResource := resources.NewBatchResource(
 		i.NewStateResource.Name, i.NewStateResource.Namespace, i.NewStateResource.URI)
-	if err := h.store.SaveStateResource(stateResource); err != nil {
+	if err := c.store.SaveStateResource(stateResource); err != nil {
 		return &models.StateResource{}, err
 	}
 
@@ -152,8 +152,8 @@ func (h Handler) PutStateResource(ctx context.Context, i *models.PutStateResourc
 }
 
 // GetStateResource fetches a StateResource given a name and namespace
-func (h Handler) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
-	stateResource, err := h.store.GetStateResource(i.Name, i.Namespace)
+func (c controller) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
+	stateResource, err := c.store.GetStateResource(i.Name, i.Namespace)
 	if err != nil {
 		return &models.StateResource{}, err
 	}
@@ -162,18 +162,18 @@ func (h Handler) GetStateResource(ctx context.Context, i *models.GetStateResourc
 }
 
 // DeleteStateResource removes a StateResource given a name and namespace
-func (h Handler) DeleteStateResource(ctx context.Context, i *models.DeleteStateResourceInput) error {
-	return h.store.DeleteStateResource(i.Name, i.Namespace)
+func (c controller) DeleteStateResource(ctx context.Context, i *models.DeleteStateResourceInput) error {
+	return c.store.DeleteStateResource(i.Name, i.Namespace)
 }
 
 // StartJobForWorkflowDefinition starts a new Job for the given workflow
-func (h Handler) StartJobForWorkflowDefinition(ctx context.Context, input *models.JobInput) (*models.Job, error) {
+func (c controller) StartJobForWorkflowDefinition(ctx context.Context, input *models.JobInput) (*models.Job, error) {
 	var workflow resources.WorkflowDefinition
 	var err error
 	if input.WorkflowDefinition.Revision < 0 {
-		workflow, err = h.store.LatestWorkflowDefinition(input.WorkflowDefinition.Name)
+		workflow, err = c.store.LatestWorkflowDefinition(input.WorkflowDefinition.Name)
 	} else {
-		workflow, err = h.store.GetWorkflowDefinition(input.WorkflowDefinition.Name, int(input.WorkflowDefinition.Revision))
+		workflow, err = c.store.GetWorkflowDefinition(input.WorkflowDefinition.Name, int(input.WorkflowDefinition.Revision))
 	}
 	if err != nil {
 		return &models.Job{}, err
@@ -185,7 +185,7 @@ func (h Handler) StartJobForWorkflowDefinition(ctx context.Context, input *model
 		data = jsonToArgs(input.Data)
 	}
 
-	job, err := h.manager.CreateJob(workflow, data, input.Namespace, input.Queue)
+	job, err := c.manager.CreateJob(workflow, data, input.Namespace, input.Queue)
 	if err != nil {
 		return &models.Job{}, err
 	}
@@ -194,28 +194,28 @@ func (h Handler) StartJobForWorkflowDefinition(ctx context.Context, input *model
 }
 
 // GetJobsForWorkflowDefinition returns a summary of all active jobs for the given workflow
-func (h Handler) GetJobsForWorkflowDefinition(ctx context.Context, input *models.GetJobsForWorkflowDefinitionInput) ([]models.Job, error) {
-	jobs, err := h.store.GetJobsForWorkflowDefinition(input.WorkflowDefinitionName)
+func (c controller) GetJobsForWorkflowDefinition(ctx context.Context, input *models.GetJobsForWorkflowDefinitionInput) ([]models.Job, error) {
+	jobs, err := c.store.GetJobsForWorkflowDefinition(input.WorkflowDefinitionName)
 	if err != nil {
 		return []models.Job{}, err
 	}
 
 	results := []models.Job{}
 	for _, job := range jobs {
-		h.manager.UpdateJobStatus(&job)
+		c.manager.UpdateJobStatus(&job)
 		results = append(results, *apiJobFromStore(job))
 	}
 	return results, nil
 }
 
 // GetJob returns current details about a Job with the given jobId
-func (h Handler) GetJob(ctx context.Context, jobID string) (*models.Job, error) {
-	job, err := h.store.GetJob(jobID)
+func (c controller) GetJob(ctx context.Context, jobID string) (*models.Job, error) {
+	job, err := c.store.GetJob(jobID)
 	if err != nil {
 		return &models.Job{}, err
 	}
 
-	err = h.manager.UpdateJobStatus(&job)
+	err = c.manager.UpdateJobStatus(&job)
 	if err != nil {
 		return &models.Job{}, err
 	}
@@ -225,13 +225,13 @@ func (h Handler) GetJob(ctx context.Context, jobID string) (*models.Job, error) 
 
 // CancelJob cancels all the tasks currently running or queued for the Job and
 // marks the job as cancelled
-func (h Handler) CancelJob(ctx context.Context, input *models.CancelJobInput) error {
-	job, err := h.store.GetJob(input.JobId)
+func (c controller) CancelJob(ctx context.Context, input *models.CancelJobInput) error {
+	job, err := c.store.GetJob(input.JobId)
 	if err != nil {
 		return err
 	}
 
-	return h.manager.CancelJob(&job, input.Reason.Reason)
+	return c.manager.CancelJob(&job, input.Reason.Reason)
 }
 
 func jsonToArgs(data []interface{}) []string {
