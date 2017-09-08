@@ -380,7 +380,7 @@ definitions:
         $ref: '#/definitions/WorkflowDefinition'
       status:
         type: string
-      tasks:
+      jobs:
         type: array
         items:
           $ref: '#/definitions/Job'
