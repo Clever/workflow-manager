@@ -38,90 +38,6 @@ func (i HealthCheckInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
-// GetWorkflowsInput holds the input parameters for a getWorkflows operation.
-type GetWorkflowsInput struct {
-	WorkflowDefinitionName string
-}
-
-// Validate returns an error if any of the GetWorkflowsInput parameters don't satisfy the
-// requirements from the swagger yml file.
-func (i GetWorkflowsInput) Validate() error {
-
-	return nil
-}
-
-// Path returns the URI path for the input.
-func (i GetWorkflowsInput) Path() (string, error) {
-	path := "/jobs"
-	urlVals := url.Values{}
-
-	urlVals.Add("workflowDefinitionName", i.WorkflowDefinitionName)
-
-	return path + "?" + urlVals.Encode(), nil
-}
-
-// CancelWorkflowInput holds the input parameters for a CancelWorkflow operation.
-type CancelWorkflowInput struct {
-	WorkflowId string
-	Reason     *CancelReason
-}
-
-// Validate returns an error if any of the CancelWorkflowInput parameters don't satisfy the
-// requirements from the swagger yml file.
-func (i CancelWorkflowInput) Validate() error {
-
-	if err := i.Reason.Validate(nil); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Path returns the URI path for the input.
-func (i CancelWorkflowInput) Path() (string, error) {
-	path := "/jobs/{workflowId}"
-	urlVals := url.Values{}
-
-	pathworkflowId := i.WorkflowId
-	if pathworkflowId == "" {
-		err := fmt.Errorf("workflowId cannot be empty because it's a path parameter")
-		if err != nil {
-			return "", err
-		}
-	}
-	path = strings.Replace(path, "{workflowId}", pathworkflowId, -1)
-
-	return path + "?" + urlVals.Encode(), nil
-}
-
-// GetWorkflowByIDInput holds the input parameters for a getWorkflowByID operation.
-type GetWorkflowByIDInput struct {
-	WorkflowId string
-}
-
-// ValidateGetWorkflowByIDInput returns an error if the input parameter doesn't
-// satisfy the requirements in the swagger yml file.
-func ValidateGetWorkflowByIDInput(workflowId string) error {
-
-	return nil
-}
-
-// GetWorkflowByIDInputPath returns the URI path for the input.
-func GetWorkflowByIDInputPath(workflowId string) (string, error) {
-	path := "/jobs/{workflowId}"
-	urlVals := url.Values{}
-
-	pathworkflowId := workflowId
-	if pathworkflowId == "" {
-		err := fmt.Errorf("workflowId cannot be empty because it's a path parameter")
-		if err != nil {
-			return "", err
-		}
-	}
-	path = strings.Replace(path, "{workflowId}", pathworkflowId, -1)
-
-	return path + "?" + urlVals.Encode(), nil
-}
-
 // DeleteStateResourceInput holds the input parameters for a deleteStateResource operation.
 type DeleteStateResourceInput struct {
 	Namespace string
@@ -255,7 +171,7 @@ func (i GetWorkflowDefinitionsInput) Validate() error {
 
 // Path returns the URI path for the input.
 func (i GetWorkflowDefinitionsInput) Path() (string, error) {
-	path := "/workflows"
+	path := "/workflow-definitions"
 	urlVals := url.Values{}
 
 	return path + "?" + urlVals.Encode(), nil
@@ -276,7 +192,7 @@ func (i GetWorkflowDefinitionVersionsByNameInput) Validate() error {
 
 // Path returns the URI path for the input.
 func (i GetWorkflowDefinitionVersionsByNameInput) Path() (string, error) {
-	path := "/workflows/{name}"
+	path := "/workflow-definitions/{name}"
 	urlVals := url.Values{}
 
 	pathname := i.Name
@@ -314,7 +230,7 @@ func (i UpdateWorkflowDefinitionInput) Validate() error {
 
 // Path returns the URI path for the input.
 func (i UpdateWorkflowDefinitionInput) Path() (string, error) {
-	path := "/workflows/{name}"
+	path := "/workflow-definitions/{name}"
 	urlVals := url.Values{}
 
 	pathname := i.Name
@@ -344,7 +260,7 @@ func (i GetWorkflowDefinitionByNameAndVersionInput) Validate() error {
 
 // Path returns the URI path for the input.
 func (i GetWorkflowDefinitionByNameAndVersionInput) Path() (string, error) {
-	path := "/workflows/{name}/{version}"
+	path := "/workflow-definitions/{name}/{version}"
 	urlVals := url.Values{}
 
 	pathname := i.Name
@@ -364,6 +280,90 @@ func (i GetWorkflowDefinitionByNameAndVersionInput) Path() (string, error) {
 		}
 	}
 	path = strings.Replace(path, "{version}", pathversion, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// GetWorkflowsInput holds the input parameters for a getWorkflows operation.
+type GetWorkflowsInput struct {
+	WorkflowDefinitionName string
+}
+
+// Validate returns an error if any of the GetWorkflowsInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetWorkflowsInput) Validate() error {
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i GetWorkflowsInput) Path() (string, error) {
+	path := "/workflows"
+	urlVals := url.Values{}
+
+	urlVals.Add("workflowDefinitionName", i.WorkflowDefinitionName)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// CancelWorkflowInput holds the input parameters for a CancelWorkflow operation.
+type CancelWorkflowInput struct {
+	WorkflowId string
+	Reason     *CancelReason
+}
+
+// Validate returns an error if any of the CancelWorkflowInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i CancelWorkflowInput) Validate() error {
+
+	if err := i.Reason.Validate(nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i CancelWorkflowInput) Path() (string, error) {
+	path := "/workflows/{workflowId}"
+	urlVals := url.Values{}
+
+	pathworkflowId := i.WorkflowId
+	if pathworkflowId == "" {
+		err := fmt.Errorf("workflowId cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{workflowId}", pathworkflowId, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// GetWorkflowByIDInput holds the input parameters for a getWorkflowByID operation.
+type GetWorkflowByIDInput struct {
+	WorkflowId string
+}
+
+// ValidateGetWorkflowByIDInput returns an error if the input parameter doesn't
+// satisfy the requirements in the swagger yml file.
+func ValidateGetWorkflowByIDInput(workflowId string) error {
+
+	return nil
+}
+
+// GetWorkflowByIDInputPath returns the URI path for the input.
+func GetWorkflowByIDInputPath(workflowId string) (string, error) {
+	path := "/workflows/{workflowId}"
+	urlVals := url.Values{}
+
+	pathworkflowId := workflowId
+	if pathworkflowId == "" {
+		err := fmt.Errorf("workflowId cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{workflowId}", pathworkflowId, -1)
 
 	return path + "?" + urlVals.Encode(), nil
 }
