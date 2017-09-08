@@ -383,10 +383,9 @@ definitions:
       tasks:
         type: array
         items:
-          $ref: '#/definitions/Task'
+          $ref: '#/definitions/Job'
 
-  # TODO: Rename Task => Job
-  Task:
+  Job:
     type: object
     properties:
       id:
@@ -411,9 +410,9 @@ definitions:
       attempts:
         type: array
         items:
-          $ref: '#/definitions/TaskAttempt'
+          $ref: '#/definitions/JobAttempt'
 
-  TaskAttempt:
+  JobAttempt:
     type: object
     properties:
       startedAt:
