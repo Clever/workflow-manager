@@ -7,7 +7,7 @@ info:
   # 2. merge the new clients, and, after merging, tag the commit with the version:
   #    git tag -a vX.Y.Z -m "vX.Y.Z"
   #    git push origin --tags
-  version: 0.3.4
+  version: 0.4.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -37,8 +37,7 @@ paths:
         200:
           description: OK response
 
-  # TODO: Rename /workflows => /workflow-definitions
-  /workflows:
+  /workflow-definitions:
     get:
       operationId: getWorkflowDefinitions
       description: Get the latest versions of all available WorkflowDefinitions
@@ -63,7 +62,7 @@ paths:
           schema:
             $ref: '#/definitions/WorkflowDefinition'
 
-  /workflows/{name}:
+  /workflow-definitions/{name}:
     get:
       summary: List WorkflowDefinition Versions by Name
       operationId: getWorkflowDefinitionVersionsByName
@@ -106,7 +105,7 @@ paths:
         404:
           $ref: "#/responses/NotFound"
 
-  /workflows/{name}/{version}:
+  /workflow-definitions/{name}/{version}:
     get:
       summary: Get a WorkflowDefinition by Name and Version
       operationId: getWorkflowDefinitionByNameAndVersion
@@ -126,8 +125,7 @@ paths:
             $ref: "#/definitions/WorkflowDefinition"
         404:
           $ref: "#/responses/NotFound"
-  # TODO: Rename /jobs => /workflows
-  /jobs:
+  /workflows:
     post:
       summary: Start a Workflow
       operationId: startWorkflow
@@ -161,7 +159,7 @@ paths:
         404:
           $ref: "#/responses/NotFound"
 
-  /jobs/{workflowId}:
+  /workflows/{workflowId}:
     get:
       summary: Get details for a single Workflow, given a workflowId
       operationId: getWorkflowByID
