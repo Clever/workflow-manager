@@ -37,8 +37,9 @@ func (d DynamoDB) workflowDefinitionsTable() string {
 	return fmt.Sprintf("%s-workflows", d.tableNamePrefix)
 }
 
-// jobsTable returns the name of the table that stores jobs.
-func (d DynamoDB) jobsTable() string {
+// workflowsTable returns the name of the table that stores workflows.
+func (d DynamoDB) workflowsTable() string {
+	// TODO: Actually rename table internally
 	return fmt.Sprintf("%s-jobs", d.tableNamePrefix)
 }
 
@@ -118,17 +119,17 @@ func (d DynamoDB) InitTables() error {
 		return err
 	}
 
-	// create jobs table from job ID -> job object
+	// create workflows table from workflow ID -> workflow object
 	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
 		AttributeDefinitions: append(
-			ddbJobPrimaryKey{}.AttributeDefinitions(),
-			ddbJobSecondaryKeyWorkflowDefinitionCreatedAt{}.AttributeDefinitions()...,
+			ddbWorkflowPrimaryKey{}.AttributeDefinitions(),
+			ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.AttributeDefinitions()...,
 		),
-		KeySchema: ddbJobPrimaryKey{}.KeySchema(),
+		KeySchema: ddbWorkflowPrimaryKey{}.KeySchema(),
 		GlobalSecondaryIndexes: []*dynamodb.GlobalSecondaryIndex{
 			{
-				IndexName: aws.String(ddbJobSecondaryKeyWorkflowDefinitionCreatedAt{}.Name()),
-				KeySchema: ddbJobSecondaryKeyWorkflowDefinitionCreatedAt{}.KeySchema(),
+				IndexName: aws.String(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.Name()),
+				KeySchema: ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.KeySchema(),
 				Projection: &dynamodb.Projection{
 					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
 				},
@@ -142,7 +143,7 @@ func (d DynamoDB) InitTables() error {
 			ReadCapacityUnits:  aws.Int64(1),
 			WriteCapacityUnits: aws.Int64(1),
 		},
-		TableName: aws.String(d.jobsTable()),
+		TableName: aws.String(d.workflowsTable()),
 	}); err != nil {
 		return err
 	}
@@ -392,17 +393,17 @@ func (d DynamoDB) DeleteStateResource(name, namespace string) error {
 	return nil
 }
 
-// SaveJob saves a job to dynamo.
-func (d DynamoDB) SaveJob(job resources.Job) error {
-	job.CreatedAt = time.Now()
-	job.LastUpdated = job.CreatedAt
+// SaveWorkflow saves a workflow to dynamo.
+func (d DynamoDB) SaveWorkflow(workflow resources.Workflow) error {
+	workflow.CreatedAt = time.Now()
+	workflow.LastUpdated = workflow.CreatedAt
 
-	data, err := EncodeJob(job)
+	data, err := EncodeWorkflow(workflow)
 	if err != nil {
 		return err
 	}
 	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
-		TableName: aws.String(d.jobsTable()),
+		TableName: aws.String(d.workflowsTable()),
 		Item:      data,
 		ExpressionAttributeNames: map[string]*string{
 			"#I": aws.String("id"),
@@ -412,22 +413,22 @@ func (d DynamoDB) SaveJob(job resources.Job) error {
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
-				return store.NewConflict(job.ID)
+				return store.NewConflict(workflow.ID)
 			}
 		}
 	}
 	return err
 }
 
-func (d DynamoDB) UpdateJob(job resources.Job) error {
-	job.LastUpdated = time.Now()
+func (d DynamoDB) UpdateWorkflow(workflow resources.Workflow) error {
+	workflow.LastUpdated = time.Now()
 
-	data, err := EncodeJob(job)
+	data, err := EncodeWorkflow(workflow)
 	if err != nil {
 		return err
 	}
 	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
-		TableName: aws.String(d.jobsTable()),
+		TableName: aws.String(d.workflowsTable()),
 		Item:      data,
 		ExpressionAttributeNames: map[string]*string{
 			"#I": aws.String("id"),
@@ -437,81 +438,82 @@ func (d DynamoDB) UpdateJob(job resources.Job) error {
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
-				return store.NewNotFound(job.ID)
+				return store.NewNotFound(workflow.ID)
 			}
 		}
 	}
 	return err
 }
 
-// populateJob fills in the workflow object contained in a job
-func (d DynamoDB) populateJob(job *resources.Job) error {
-	wf, err := d.GetWorkflowDefinition(job.WorkflowDefinition.Name(), job.WorkflowDefinition.Version())
+// populateWorkflow fills in the workflow object contained in a workflow
+func (d DynamoDB) populateWorkflow(workflow *resources.Workflow) error {
+	wf, err := d.GetWorkflowDefinition(workflow.WorkflowDefinition.Name(), workflow.WorkflowDefinition.Version())
 	if err != nil {
-		return fmt.Errorf("error getting workflow for job %s: %s", job.ID, err)
+		return fmt.Errorf("error getting WorkflowDefinition for Workflow %s: %s", workflow.ID, err)
 	}
-	job.WorkflowDefinition = wf
+	workflow.WorkflowDefinition = wf
 	return nil
 }
 
-func (d DynamoDB) GetJob(id string) (resources.Job, error) {
-	key, err := dynamodbattribute.MarshalMap(ddbJobPrimaryKey{
+// GetWorkflowByID
+func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
+	key, err := dynamodbattribute.MarshalMap(ddbWorkflowPrimaryKey{
 		ID: id,
 	})
 	if err != nil {
-		return resources.Job{}, err
+		return resources.Workflow{}, err
 	}
 	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
 		Key:            key,
-		TableName:      aws.String(d.jobsTable()),
+		TableName:      aws.String(d.workflowsTable()),
 		ConsistentRead: aws.Bool(true),
 	})
 	if err != nil {
-		return resources.Job{}, err
+		return resources.Workflow{}, err
 	}
 
 	if len(res.Item) == 0 {
-		return resources.Job{}, store.NewNotFound(id)
+		return resources.Workflow{}, store.NewNotFound(id)
 	}
 
-	job, err := DecodeJob(res.Item)
+	workflow, err := DecodeWorkflow(res.Item)
 	if err != nil {
-		return resources.Job{}, err
+		return resources.Workflow{}, err
 	}
 
-	if err := d.populateJob(&job); err != nil {
-		return resources.Job{}, err
+	if err := d.populateWorkflow(&workflow); err != nil {
+		return resources.Workflow{}, err
 	}
 
-	return job, nil
+	return workflow, nil
 }
 
-// GetJobsForWorkflowDefinition returns the last 10 jobs for a workflow.
-// It uses a global secondary index on the workflow name + created time for a job.
-func (d DynamoDB) GetJobsForWorkflowDefinition(workflowName string) ([]resources.Job, error) {
-	var jobs []resources.Job
-	query := ddbJobSecondaryKeyWorkflowDefinitionCreatedAt{
+// GetWorkflows returns the last 10 workflows for a workflow.
+// It uses a global secondary index on the workflow name + created time for a workflow.
+func (d DynamoDB) GetWorkflows(workflowName string) ([]resources.Workflow, error) {
+	var workflows []resources.Workflow
+	query := ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
 		WorkflowDefinitionName: workflowName,
 	}.ConstructQuery()
 
-	query.TableName = aws.String(d.jobsTable())
+	query.TableName = aws.String(d.workflowsTable())
 	query.Limit = aws.Int64(10)
 	query.ScanIndexForward = aws.Bool(false) // descending order
 
 	res, err := d.ddb.Query(query)
 	if err != nil {
-		return jobs, err
+		return workflows, err
 	}
 
 	for _, item := range res.Items {
-		job, err := DecodeJob(item)
+		workflow, err := DecodeWorkflow(item)
 		if err != nil {
-			return jobs, err
+			return workflows, err
 		}
-		if err := d.populateJob(&job); err != nil {
-			return jobs, err
+		if err := d.populateWorkflow(&workflow); err != nil {
+			return workflows, err
 		}
-		jobs = append(jobs, job)
+		workflows = append(workflows, workflow)
 	}
-	return jobs, nil
+	return workflows, nil
 }

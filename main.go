@@ -54,7 +54,7 @@ func main() {
 
 	ctrl := controller{
 		store:   db,
-		manager: executor.NewBatchJobManager(batch, db),
+		manager: executor.NewBatchWorkflowManager(batch, db),
 	}
 	s := server.New(ctrl, *addr)
 

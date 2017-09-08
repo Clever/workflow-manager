@@ -135,76 +135,76 @@ func DeleteStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 	}
 }
 
-func SaveJob(s store.Store, t *testing.T) func(t *testing.T) {
+func SaveWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf))
-		job := resources.NewJob(wf, []string{"input"})
-		require.Nil(t, s.SaveJob(*job))
+		workflow := resources.NewWorkflow(wf, []string{"input"})
+		require.Nil(t, s.SaveWorkflow(*workflow))
 		// TODO: test behavior when workflow is invalid, e.g. breaks a length limit on a field / array
 	}
 }
 
-func UpdateJob(s store.Store, t *testing.T) func(t *testing.T) {
+func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf))
-		job := resources.NewJob(wf, []string{"input"})
-		require.Nil(t, s.SaveJob(*job))
+		workflow := resources.NewWorkflow(wf, []string{"input"})
+		require.Nil(t, s.SaveWorkflow(*workflow))
 
-		updatedJob, err := s.GetJob(job.ID)
+		updatedWorkflow, err := s.GetWorkflowByID(workflow.ID)
 		require.Nil(t, err)
-		updatedJob.Status = resources.Succeeded
-		require.Nil(t, s.UpdateJob(updatedJob))
+		updatedWorkflow.Status = resources.Succeeded
+		require.Nil(t, s.UpdateWorkflow(updatedWorkflow))
 
-		savedJob, err := s.GetJob(job.ID)
+		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
 		require.Nil(t, err)
-		require.Equal(t, savedJob.Status, resources.Succeeded)
-		require.WithinDuration(t, savedJob.CreatedAt, time.Now(), 1*time.Second)
-		require.WithinDuration(t, savedJob.LastUpdated, time.Now(), 1*time.Second)
-		require.True(t, savedJob.LastUpdated.After(savedJob.CreatedAt))
-		require.NotEqual(t, savedJob.LastUpdated, savedJob.CreatedAt)
+		require.Equal(t, savedWorkflow.Status, resources.Succeeded)
+		require.WithinDuration(t, savedWorkflow.CreatedAt, time.Now(), 1*time.Second)
+		require.WithinDuration(t, savedWorkflow.LastUpdated, time.Now(), 1*time.Second)
+		require.True(t, savedWorkflow.LastUpdated.After(savedWorkflow.CreatedAt))
+		require.NotEqual(t, savedWorkflow.LastUpdated, savedWorkflow.CreatedAt)
 	}
 }
 
-func GetJob(s store.Store, t *testing.T) func(t *testing.T) {
+func GetWorkflowByID(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf))
-		job := resources.NewJob(wf, []string{"input"})
-		require.Nil(t, s.SaveJob(*job))
+		workflow := resources.NewWorkflow(wf, []string{"input"})
+		require.Nil(t, s.SaveWorkflow(*workflow))
 
-		savedJob, err := s.GetJob(job.ID)
+		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
 		require.Nil(t, err)
-		require.WithinDuration(t, savedJob.CreatedAt, time.Now(), 1*time.Second)
-		require.Equal(t, savedJob.CreatedAt, savedJob.LastUpdated)
+		require.WithinDuration(t, savedWorkflow.CreatedAt, time.Now(), 1*time.Second)
+		require.Equal(t, savedWorkflow.CreatedAt, savedWorkflow.LastUpdated)
 	}
 }
 
-func GetJobsForWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
+func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf1 := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf1))
 		wf2 := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf2))
-		var job1IDs, job2IDs []string
-		for len(job1IDs) < 2 {
-			job1 := resources.NewJob(wf1, []string{"input"})
-			job1IDs = append([]string{job1.ID}, job1IDs...) // newest first
-			require.Nil(t, s.SaveJob(*job1))
+		var workflow1IDs, workflow2IDs []string
+		for len(workflow1IDs) < 2 {
+			workflow1 := resources.NewWorkflow(wf1, []string{"input"})
+			workflow1IDs = append([]string{workflow1.ID}, workflow1IDs...) // newest first
+			require.Nil(t, s.SaveWorkflow(*workflow1))
 
-			job2 := resources.NewJob(wf2, []string{"input"})
-			job2IDs = append([]string{job2.ID}, job2IDs...)
-			require.Nil(t, s.SaveJob(*job2))
+			workflow2 := resources.NewWorkflow(wf2, []string{"input"})
+			workflow2IDs = append([]string{workflow2.ID}, workflow2IDs...)
+			require.Nil(t, s.SaveWorkflow(*workflow2))
 		}
 
-		jobs, err := s.GetJobsForWorkflowDefinition(wf2.Name())
+		workflows, err := s.GetWorkflows(wf2.Name())
 		require.Nil(t, err)
-		require.Equal(t, len(jobs), len(job2IDs))
-		var gotJob2IDs []string
-		for _, j := range jobs {
-			gotJob2IDs = append(gotJob2IDs, j.ID)
+		require.Equal(t, len(workflows), len(workflow2IDs))
+		var gotWorkflow2IDs []string
+		for _, j := range workflows {
+			gotWorkflow2IDs = append(gotWorkflow2IDs, j.ID)
 		}
-		require.Equal(t, job2IDs, gotJob2IDs)
+		require.Equal(t, workflow2IDs, gotWorkflow2IDs)
 	}
 }

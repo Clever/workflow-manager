@@ -9,54 +9,54 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-// ddbJob represents the job as stored in dynamo.
+// ddbWorkflow represents the workflow as stored in dynamo.
 // Use this to make PutItem queries.
-type ddbJob struct {
-	ddbJobPrimaryKey
-	ddbJobSecondaryKeyWorkflowDefinitionCreatedAt
+type ddbWorkflow struct {
+	ddbWorkflowPrimaryKey
+	ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt
 	CreatedAt          time.Time
 	LastUpdated        time.Time                       `dynamodbav:"lastUpdated"`
 	WorkflowDefinition ddbWorkflowDefinitionPrimaryKey `dynamodbav:"workflow"`
 	Input              []string                        `dynamodbav:"input"`
 	Tasks              []*resources.Task               `dynamodbav:"tasks"`
-	Status             resources.JobStatus             `dynamodbav:"status"`
+	Status             resources.WorkflowStatus        `dynamodbav:"status"`
 }
 
-// EncodeJob encodes a Job as a dynamo attribute map.
-func EncodeJob(job resources.Job) (map[string]*dynamodb.AttributeValue, error) {
-	return dynamodbattribute.MarshalMap(ddbJob{
-		ddbJobPrimaryKey: ddbJobPrimaryKey{
-			ID: job.ID,
+// EncodeWorkflow encodes a Workflow as a dynamo attribute map.
+func EncodeWorkflow(workflow resources.Workflow) (map[string]*dynamodb.AttributeValue, error) {
+	return dynamodbattribute.MarshalMap(ddbWorkflow{
+		ddbWorkflowPrimaryKey: ddbWorkflowPrimaryKey{
+			ID: workflow.ID,
 		},
-		ddbJobSecondaryKeyWorkflowDefinitionCreatedAt: ddbJobSecondaryKeyWorkflowDefinitionCreatedAt{
-			WorkflowDefinitionName: job.WorkflowDefinition.Name(),
-			CreatedAt:              &job.CreatedAt,
+		ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt: ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
+			WorkflowDefinitionName: workflow.WorkflowDefinition.Name(),
+			CreatedAt:              &workflow.CreatedAt,
 		},
-		CreatedAt:   job.CreatedAt,
-		LastUpdated: job.LastUpdated,
+		CreatedAt:   workflow.CreatedAt,
+		LastUpdated: workflow.LastUpdated,
 		WorkflowDefinition: ddbWorkflowDefinitionPrimaryKey{
-			Name:    job.WorkflowDefinition.Name(),
-			Version: job.WorkflowDefinition.Version(),
+			Name:    workflow.WorkflowDefinition.Name(),
+			Version: workflow.WorkflowDefinition.Version(),
 		},
-		Input:  job.Input,
-		Tasks:  job.Tasks,
-		Status: job.Status,
+		Input:  workflow.Input,
+		Tasks:  workflow.Tasks,
+		Status: workflow.Status,
 	})
 }
 
-// DecodeJob translates a job stored in dynamodb to a Job object.
-func DecodeJob(m map[string]*dynamodb.AttributeValue) (resources.Job, error) {
-	var dj ddbJob
+// DecodeWorkflow translates a workflow stored in dynamodb to a Workflow object.
+func DecodeWorkflow(m map[string]*dynamodb.AttributeValue) (resources.Workflow, error) {
+	var dj ddbWorkflow
 	if err := dynamodbattribute.UnmarshalMap(m, &dj); err != nil {
-		return resources.Job{}, err
+		return resources.Workflow{}, err
 	}
 
 	wfpk := ddbWorkflowDefinitionPrimaryKey{
 		Name:    dj.WorkflowDefinition.Name,
 		Version: dj.WorkflowDefinition.Version,
 	}
-	return resources.Job{
-		ID:          dj.ddbJobPrimaryKey.ID,
+	return resources.Workflow{
+		ID:          dj.ddbWorkflowPrimaryKey.ID,
 		CreatedAt:   dj.CreatedAt,
 		LastUpdated: dj.LastUpdated,
 		WorkflowDefinition: resources.WorkflowDefinition{
@@ -69,14 +69,14 @@ func DecodeJob(m map[string]*dynamodb.AttributeValue) (resources.Job, error) {
 	}, nil
 }
 
-// ddbJobPrimaryKey represents the primary + global secondary keys of the jobs table.
+// ddbWorkflowPrimaryKey represents the primary + global secondary keys of the workflows table.
 // Use this to make GetItem queries.
-type ddbJobPrimaryKey struct {
+type ddbWorkflowPrimaryKey struct {
 	// ID is the primary key
 	ID string `dynamodbav:"id"`
 }
 
-func (pk ddbJobPrimaryKey) AttributeDefinitions() []*dynamodb.AttributeDefinition {
+func (pk ddbWorkflowPrimaryKey) AttributeDefinitions() []*dynamodb.AttributeDefinition {
 	return []*dynamodb.AttributeDefinition{
 		{
 			AttributeName: aws.String("id"),
@@ -85,7 +85,7 @@ func (pk ddbJobPrimaryKey) AttributeDefinitions() []*dynamodb.AttributeDefinitio
 	}
 }
 
-func (pk ddbJobPrimaryKey) KeySchema() []*dynamodb.KeySchemaElement {
+func (pk ddbWorkflowPrimaryKey) KeySchema() []*dynamodb.KeySchemaElement {
 	return []*dynamodb.KeySchemaElement{
 		{
 			AttributeName: aws.String("id"),
@@ -94,18 +94,18 @@ func (pk ddbJobPrimaryKey) KeySchema() []*dynamodb.KeySchemaElement {
 	}
 }
 
-// ddbJobWorkflowDefinitionCreatedAtKey is a global secondary index that allows us to query
-// for all jobs for a particular workflow, sorted by when they were created.
-type ddbJobSecondaryKeyWorkflowDefinitionCreatedAt struct {
+// ddbWorkflowWorkflowDefinitionCreatedAtKey is a global secondary index that allows us to query
+// for all workflows for a particular workflow, sorted by when they were created.
+type ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt struct {
 	WorkflowDefinitionName string     `dynamodbav:"_gsi-wn,omitempty"`
 	CreatedAt              *time.Time `dynamodbav:"_gsi-ca,omitempty"`
 }
 
-func (sk ddbJobSecondaryKeyWorkflowDefinitionCreatedAt) Name() string {
+func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) Name() string {
 	return "workflowname-createdat"
 }
 
-func (sk ddbJobSecondaryKeyWorkflowDefinitionCreatedAt) AttributeDefinitions() []*dynamodb.AttributeDefinition {
+func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) AttributeDefinitions() []*dynamodb.AttributeDefinition {
 	return []*dynamodb.AttributeDefinition{
 		{
 			AttributeName: aws.String("_gsi-wn"),
@@ -118,7 +118,7 @@ func (sk ddbJobSecondaryKeyWorkflowDefinitionCreatedAt) AttributeDefinitions() [
 	}
 }
 
-func (sk ddbJobSecondaryKeyWorkflowDefinitionCreatedAt) ConstructQuery() *dynamodb.QueryInput {
+func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) ConstructQuery() *dynamodb.QueryInput {
 	return &dynamodb.QueryInput{
 		IndexName: aws.String(sk.Name()),
 		ExpressionAttributeNames: map[string]*string{
@@ -133,7 +133,7 @@ func (sk ddbJobSecondaryKeyWorkflowDefinitionCreatedAt) ConstructQuery() *dynamo
 	}
 }
 
-func (pk ddbJobSecondaryKeyWorkflowDefinitionCreatedAt) KeySchema() []*dynamodb.KeySchemaElement {
+func (pk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) KeySchema() []*dynamodb.KeySchemaElement {
 	return []*dynamodb.KeySchemaElement{
 		{
 			AttributeName: aws.String("_gsi-wn"),

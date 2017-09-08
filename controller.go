@@ -11,10 +11,10 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// controller implements the wag server
+// controller implements the wag Controller
 type controller struct {
 	store   store.Store
-	manager executor.JobManager
+	manager executor.WorkflowManager
 }
 
 // HealthCheck returns 200 if workflow-manager can respond to requests
@@ -166,8 +166,8 @@ func (c controller) DeleteStateResource(ctx context.Context, i *models.DeleteSta
 	return c.store.DeleteStateResource(i.Name, i.Namespace)
 }
 
-// StartJobForWorkflowDefinition starts a new Job for the given workflow
-func (c controller) StartJobForWorkflowDefinition(ctx context.Context, input *models.JobInput) (*models.Job, error) {
+// StartWorkflow starts a new Workflow for the given WorkflowDefinition
+func (c controller) StartWorkflow(ctx context.Context, input *models.WorkflowInput) (*models.Workflow, error) {
 	var workflow resources.WorkflowDefinition
 	var err error
 	if input.WorkflowDefinition.Revision < 0 {
@@ -176,7 +176,7 @@ func (c controller) StartJobForWorkflowDefinition(ctx context.Context, input *mo
 		workflow, err = c.store.GetWorkflowDefinition(input.WorkflowDefinition.Name, int(input.WorkflowDefinition.Revision))
 	}
 	if err != nil {
-		return &models.Job{}, err
+		return &models.Workflow{}, err
 	}
 
 	var data []string
@@ -185,53 +185,53 @@ func (c controller) StartJobForWorkflowDefinition(ctx context.Context, input *mo
 		data = jsonToArgs(input.Data)
 	}
 
-	job, err := c.manager.CreateJob(workflow, data, input.Namespace, input.Queue)
+	job, err := c.manager.CreateWorkflow(workflow, data, input.Namespace, input.Queue)
 	if err != nil {
-		return &models.Job{}, err
+		return &models.Workflow{}, err
 	}
 
-	return apiJobFromStore(*job), nil
+	return apiWorkflowFromStore(*job), nil
 }
 
-// GetJobsForWorkflowDefinition returns a summary of all active jobs for the given workflow
-func (c controller) GetJobsForWorkflowDefinition(ctx context.Context, input *models.GetJobsForWorkflowDefinitionInput) ([]models.Job, error) {
-	jobs, err := c.store.GetJobsForWorkflowDefinition(input.WorkflowDefinitionName)
+// GetWorkflows returns a summary of all active jobs for the given workflow
+func (c controller) GetWorkflows(ctx context.Context, input *models.GetWorkflowsInput) ([]models.Workflow, error) {
+	jobs, err := c.store.GetWorkflows(input.WorkflowDefinitionName)
 	if err != nil {
-		return []models.Job{}, err
+		return []models.Workflow{}, err
 	}
 
-	results := []models.Job{}
+	results := []models.Workflow{}
 	for _, job := range jobs {
-		c.manager.UpdateJobStatus(&job)
-		results = append(results, *apiJobFromStore(job))
+		c.manager.UpdateWorkflowStatus(&job)
+		results = append(results, *apiWorkflowFromStore(job))
 	}
 	return results, nil
 }
 
-// GetJob returns current details about a Job with the given jobId
-func (c controller) GetJob(ctx context.Context, jobID string) (*models.Job, error) {
-	job, err := c.store.GetJob(jobID)
+// GetWorkflow returns current details about a Workflow with the given jobId
+func (c controller) GetWorkflowByID(ctx context.Context, jobID string) (*models.Workflow, error) {
+	job, err := c.store.GetWorkflowByID(jobID)
 	if err != nil {
-		return &models.Job{}, err
+		return &models.Workflow{}, err
 	}
 
-	err = c.manager.UpdateJobStatus(&job)
+	err = c.manager.UpdateWorkflowStatus(&job)
 	if err != nil {
-		return &models.Job{}, err
+		return &models.Workflow{}, err
 	}
 
-	return apiJobFromStore(job), nil
+	return apiWorkflowFromStore(job), nil
 }
 
-// CancelJob cancels all the tasks currently running or queued for the Job and
+// CancelWorkflow cancels all the tasks currently running or queued for the Workflow and
 // marks the job as cancelled
-func (c controller) CancelJob(ctx context.Context, input *models.CancelJobInput) error {
-	job, err := c.store.GetJob(input.JobId)
+func (c controller) CancelWorkflow(ctx context.Context, input *models.CancelWorkflowInput) error {
+	job, err := c.store.GetWorkflowByID(input.WorkflowId)
 	if err != nil {
 		return err
 	}
 
-	return c.manager.CancelJob(&job, input.Reason.Reason)
+	return c.manager.CancelWorkflow(&job, input.Reason.Reason)
 }
 
 func jsonToArgs(data []interface{}) []string {
@@ -303,7 +303,7 @@ func apiWorkflowDefinitionFromStore(wf resources.WorkflowDefinition) *models.Wor
 	}
 }
 
-func apiJobFromStore(job resources.Job) *models.Job {
+func apiWorkflowFromStore(job resources.Workflow) *models.Workflow {
 	tasks := []*models.Task{}
 	for _, task := range job.Tasks {
 		tasks = append(tasks, &models.Task{
@@ -319,7 +319,7 @@ func apiJobFromStore(job resources.Job) *models.Job {
 		})
 	}
 
-	return &models.Job{
+	return &models.Workflow{
 		ID:                 job.ID,
 		CreatedAt:          strfmt.DateTime(job.CreatedAt),
 		LastUpdated:        strfmt.DateTime(job.LastUpdated),

@@ -20,10 +20,10 @@ type Store interface {
 	GetStateResource(name, namespace string) (resources.StateResource, error)
 	DeleteStateResource(name, namespace string) error
 
-	SaveJob(job resources.Job) error
-	UpdateJob(job resources.Job) error
-	GetJob(id string) (resources.Job, error)
-	GetJobsForWorkflowDefinition(workflowName string) ([]resources.Job, error)
+	SaveWorkflow(workflow resources.Workflow) error
+	UpdateWorkflow(workflow resources.Workflow) error
+	GetWorkflowByID(id string) (resources.Workflow, error)
+	GetWorkflows(workflowName string) ([]resources.Workflow, error)
 }
 
 type ConflictError struct {

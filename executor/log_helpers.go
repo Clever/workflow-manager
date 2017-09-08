@@ -7,10 +7,10 @@ import (
 
 var log = logger.New("workflow-manager")
 
-func logTaskStatus(task *resources.Task, job *resources.Job) {
+func logTaskStatus(task *resources.Task, workflow *resources.Workflow) {
 	log.InfoD("task-status", logger.M{
-		"id":       job.ID,
-		"workflow": job.WorkflowDefinition.Name(),
+		"id":       workflow.ID,
+		"workflow": workflow.WorkflowDefinition.Name(),
 		"state":    task.State,
 		"status":   task.Status,
 		// 0 -> running; 1 -> failed;
@@ -19,19 +19,20 @@ func logTaskStatus(task *resources.Task, job *resources.Job) {
 	})
 }
 
-func logJobStatusChange(job *resources.Job, previousStatus resources.JobStatus) {
+func logWorkflowStatusChange(workflow *resources.Workflow, previousStatus resources.WorkflowStatus) {
 	// If the status was not changed, ignore logging
-	if previousStatus == job.Status {
+	if previousStatus == workflow.Status {
 		return
 	}
 
+	// TODO: Update job=>workflow, and kvconfig.yml routing too
 	log.InfoD("job-status-change", logger.M{
-		"id":               job.ID,
-		"workflow":         job.WorkflowDefinition.Name(),
-		"workflow-version": job.WorkflowDefinition.Version(),
+		"id":               workflow.ID,
+		"workflow":         workflow.WorkflowDefinition.Name(),
+		"workflow-version": workflow.WorkflowDefinition.Version(),
 		"previous-status":  previousStatus,
-		"status":           job.Status,
+		"status":           workflow.Status,
 		// 0 -> running; 1 -> failed; -1 -> cancelled
-		"value": job.StatusToInt(),
+		"value": workflow.StatusToInt(),
 	})
 }
