@@ -27,7 +27,7 @@ type Workflow struct {
 	Status string `json:"status,omitempty"`
 
 	// tasks
-	Tasks []*Task `json:"tasks"`
+	Tasks []*Job `json:"tasks"`
 
 	// workflow definition
 	WorkflowDefinition *WorkflowDefinition `json:"workflowDefinition,omitempty"`

@@ -10,15 +10,15 @@ import (
 	"github.com/go-openapi/errors"
 )
 
-// Task task
-// swagger:model Task
-type Task struct {
+// Job job
+// swagger:model Job
+type Job struct {
 
 	// container
 	Container string `json:"Container,omitempty"`
 
 	// attempts
-	Attempts []*TaskAttempt `json:"attempts"`
+	Attempts []*JobAttempt `json:"attempts"`
 
 	// created at
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
@@ -42,8 +42,8 @@ type Task struct {
 	StoppedAt strfmt.DateTime `json:"stoppedAt,omitempty"`
 }
 
-// Validate validates this task
-func (m *Task) Validate(formats strfmt.Registry) error {
+// Validate validates this job
+func (m *Job) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAttempts(formats); err != nil {
@@ -57,7 +57,7 @@ func (m *Task) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Task) validateAttempts(formats strfmt.Registry) error {
+func (m *Job) validateAttempts(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Attempts) { // not required
 		return nil
