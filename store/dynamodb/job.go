@@ -14,11 +14,12 @@ import (
 type ddbWorkflow struct {
 	ddbWorkflowPrimaryKey
 	ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt
-	CreatedAt          time.Time
-	LastUpdated        time.Time                       `dynamodbav:"lastUpdated"`
+	CreatedAt   time.Time
+	LastUpdated time.Time `dynamodbav:"lastUpdated"`
+	// TODO: Rename tables (INFRA-2483)
 	WorkflowDefinition ddbWorkflowDefinitionPrimaryKey `dynamodbav:"workflow"`
 	Input              []string                        `dynamodbav:"input"`
-	Tasks              []*resources.Task               `dynamodbav:"tasks"`
+	Jobs               []*resources.Job                `dynamodbav:"tasks"`
 	Status             resources.WorkflowStatus        `dynamodbav:"status"`
 }
 
@@ -39,7 +40,7 @@ func EncodeWorkflow(workflow resources.Workflow) (map[string]*dynamodb.Attribute
 			Version: workflow.WorkflowDefinition.Version(),
 		},
 		Input:  workflow.Input,
-		Tasks:  workflow.Tasks,
+		Jobs:   workflow.Jobs,
 		Status: workflow.Status,
 	})
 }
@@ -64,7 +65,7 @@ func DecodeWorkflow(m map[string]*dynamodb.AttributeValue) (resources.Workflow, 
 			VersionInt: wfpk.Version,
 		},
 		Input:  dj.Input,
-		Tasks:  dj.Tasks,
+		Jobs:   dj.Jobs,
 		Status: dj.Status,
 	}, nil
 }

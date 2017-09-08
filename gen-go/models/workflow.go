@@ -20,14 +20,14 @@ type Workflow struct {
 	// id
 	ID string `json:"id,omitempty"`
 
+	// jobs
+	Jobs []*Job `json:"jobs"`
+
 	// last updated
 	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
 
 	// status
 	Status string `json:"status,omitempty"`
-
-	// tasks
-	Tasks []*Job `json:"tasks"`
 
 	// workflow definition
 	WorkflowDefinition *WorkflowDefinition `json:"workflowDefinition,omitempty"`
@@ -37,7 +37,7 @@ type Workflow struct {
 func (m *Workflow) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateTasks(formats); err != nil {
+	if err := m.validateJobs(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -53,21 +53,21 @@ func (m *Workflow) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Workflow) validateTasks(formats strfmt.Registry) error {
+func (m *Workflow) validateJobs(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Tasks) { // not required
+	if swag.IsZero(m.Jobs) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.Tasks); i++ {
+	for i := 0; i < len(m.Jobs); i++ {
 
-		if swag.IsZero(m.Tasks[i]) { // not required
+		if swag.IsZero(m.Jobs[i]) { // not required
 			continue
 		}
 
-		if m.Tasks[i] != nil {
+		if m.Jobs[i] != nil {
 
-			if err := m.Tasks[i].Validate(formats); err != nil {
+			if err := m.Jobs[i].Validate(formats); err != nil {
 				return err
 			}
 		}

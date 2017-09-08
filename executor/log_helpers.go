@@ -7,15 +7,16 @@ import (
 
 var log = logger.New("workflow-manager")
 
-func logTaskStatus(task *resources.Task, workflow *resources.Workflow) {
+func logJobStatus(job *resources.Job, workflow *resources.Workflow) {
+	// TODO: INFRA-2483 - Rename task => job and update kvconfig.yml routing
 	log.InfoD("task-status", logger.M{
 		"id":       workflow.ID,
 		"workflow": workflow.WorkflowDefinition.Name(),
-		"state":    task.State,
-		"status":   task.Status,
+		"state":    job.State,
+		"status":   job.Status,
 		// 0 -> running; 1 -> failed;
 		// -1 -> cancelled by user; -2 -> abort due to dependecy failure
-		"value": task.StatusToInt(),
+		"value": job.StatusToInt(),
 	})
 }
 
@@ -25,7 +26,7 @@ func logWorkflowStatusChange(workflow *resources.Workflow, previousStatus resour
 		return
 	}
 
-	// TODO: Update job=>workflow, and kvconfig.yml routing too
+	// TODO: INFRA-2483 - Rename job=>workflow and kvconfig.yml routing too
 	log.InfoD("job-status-change", logger.M{
 		"id":               workflow.ID,
 		"workflow":         workflow.WorkflowDefinition.Name(),

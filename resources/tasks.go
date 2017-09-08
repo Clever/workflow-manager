@@ -6,32 +6,32 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 )
 
-type TaskStatus string
+type JobStatus string
 
 const (
-	TaskStatusCreated     TaskStatus = "CREATED"             // initialized
-	TaskStatusQueued      TaskStatus = "QUEUED"              // submitted to queue
-	TaskStatusWaiting     TaskStatus = "WAITING_FOR_DEPS"    // waiting for dependencies
-	TaskStatusRunning     TaskStatus = "RUNNING"             // running
-	TaskStatusSucceeded   TaskStatus = "SUCCEEDED"           // completed successfully
-	TaskStatusFailed      TaskStatus = "FAILED"              // failed
-	TaskStatusAborted     TaskStatus = "ABORTED_DEPS_FAILED" // aborted due to a dependency failure
-	TaskStatusUserAborted TaskStatus = "ABORTED_BY_USER"     // aborted due to user action
+	JobStatusCreated     JobStatus = "CREATED"             // initialized
+	JobStatusQueued      JobStatus = "QUEUED"              // submitted to queue
+	JobStatusWaiting     JobStatus = "WAITING_FOR_DEPS"    // waiting for dependencies
+	JobStatusRunning     JobStatus = "RUNNING"             // running
+	JobStatusSucceeded   JobStatus = "SUCCEEDED"           // completed successfully
+	JobStatusFailed      JobStatus = "FAILED"              // failed
+	JobStatusAborted     JobStatus = "ABORTED_DEPS_FAILED" // aborted due to a dependency failure
+	JobStatusUserAborted JobStatus = "ABORTED_BY_USER"     // aborted due to user action
 )
 
-type TaskDetail struct {
+type JobDetail struct {
 	CreatedAt    time.Time
 	StartedAt    time.Time
 	StoppedAt    time.Time
 	ContainerId  string // identification string for the running container
 	StatusReason string
-	Status       TaskStatus
-	Attempts     []*models.TaskAttempt
+	Status       JobStatus
+	Attempts     []*models.JobAttempt
 }
 
-// Task represents an active State and as part of a Job
-type Task struct {
-	TaskDetail
+// Job represents an active State and as part of a Job
+type Job struct {
+	JobDetail
 	ID            string
 	Name          string
 	Input         []string
@@ -39,41 +39,41 @@ type Task struct {
 	StateResource StateResource
 }
 
-// NewTask creates a new Task
-func NewTask(id, name, state string, stateResource StateResource, input []string) *Task {
-	return &Task{
+// NewJob creates a new Job
+func NewJob(id, name, state string, stateResource StateResource, input []string) *Job {
+	return &Job{
 		ID:            id,
 		Name:          name,
 		Input:         input,
 		State:         state,
 		StateResource: stateResource,
-		TaskDetail: TaskDetail{
-			Status: TaskStatusCreated,
+		JobDetail: JobDetail{
+			Status: JobStatusCreated,
 		},
 	}
 }
 
 // IsDone can be used check if a task's state is expected to change
 // true if the task is in a final state; false if its status might still change
-func (t *Task) IsDone() bool {
-	return (t.Status == TaskStatusFailed ||
-		t.Status == TaskStatusSucceeded ||
-		t.Status == TaskStatusAborted ||
-		t.Status == TaskStatusUserAborted)
+func (job *Job) IsDone() bool {
+	return (job.Status == JobStatusFailed ||
+		job.Status == JobStatusSucceeded ||
+		job.Status == JobStatusAborted ||
+		job.Status == JobStatusUserAborted)
 }
 
-func (t *Task) SetStatus(status TaskStatus) {
-	t.Status = status
+func (job *Job) SetStatus(status JobStatus) {
+	job.Status = status
 }
 
-func (t *Task) StatusToInt() int {
-	switch t.Status {
+func (job *Job) StatusToInt() int {
+	switch job.Status {
 	// non-completion return non-zero
-	case TaskStatusFailed:
+	case JobStatusFailed:
 		return 1
-	case TaskStatusUserAborted:
+	case JobStatusUserAborted:
 		return -1
-	case TaskStatusAborted:
+	case JobStatusAborted:
 		return -2
 	// states in path to completion return zero
 	default:
@@ -81,12 +81,12 @@ func (t *Task) StatusToInt() int {
 	}
 }
 
-func (t *Task) SetDetail(detail TaskDetail) {
-	t.CreatedAt = detail.CreatedAt
-	t.StartedAt = detail.StartedAt
-	t.StoppedAt = detail.StoppedAt
-	t.ContainerId = detail.ContainerId
-	t.Status = detail.Status
-	t.StatusReason = detail.StatusReason
-	t.Attempts = detail.Attempts
+func (job *Job) SetDetail(detail JobDetail) {
+	job.CreatedAt = detail.CreatedAt
+	job.StartedAt = detail.StartedAt
+	job.StoppedAt = detail.StoppedAt
+	job.ContainerId = detail.ContainerId
+	job.Status = detail.Status
+	job.StatusReason = detail.StatusReason
+	job.Attempts = detail.Attempts
 }

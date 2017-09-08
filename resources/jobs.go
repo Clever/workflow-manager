@@ -23,7 +23,7 @@ type Workflow struct {
 	LastUpdated        time.Time
 	WorkflowDefinition WorkflowDefinition // WorkflowDefinition executed as part of this workflow
 	Input              []string           // Starting input for the workflow
-	Tasks              []*Task            // list of states submitted as tasks
+	Jobs               []*Job             // list of states submitted as jobs
 	Status             WorkflowStatus
 }
 
@@ -38,14 +38,14 @@ func NewWorkflow(wf WorkflowDefinition, input []string) *Workflow {
 	}
 }
 
-// AddTask adds a new task (representing a State) to the Workflow
-func (w *Workflow) AddTask(t *Task) error {
+// AddJob adds a new job (representing a State) to the Workflow
+func (w *Workflow) AddJob(t *Job) error {
 	// TODO: run validation
-	// 1. ensure this task actually corresponds to a State
+	// 1. ensure this job actually corresponds to a State
 	// 2. should have a 1:1 mapping with State unless RETRY
 
-	// for now just keep track of the taskIds
-	w.Tasks = append(w.Tasks, t)
+	// for now just keep track of the jobIds
+	w.Jobs = append(w.Jobs, t)
 
 	return nil
 }
@@ -74,11 +74,11 @@ func (w *Workflow) StatusToInt() int {
 // IsDone can be used check if a workflow's state is expected to change
 // true if the workflow is in a final state; false if its status might still change
 func (w *Workflow) IsDone() bool {
-	// Look at the individual tasks states as well as the workflow status
-	// since the workflow status can be updated before the tasks have transitioned
+	// Look at the individual jobs states as well as the workflow status
+	// since the workflow status can be updated before the jobs have transitioned
 	// into a final state
-	for _, task := range w.Tasks {
-		if !task.IsDone() {
+	for _, job := range w.Jobs {
+		if !job.IsDone() {
 			return false
 		}
 	}

@@ -31,34 +31,34 @@ func NewBatchWorkflowManager(executor Executor, store store.Store) BatchWorkflow
 	}
 }
 
-// UpdateWorkflowStatus ensures that the status of the tasks is in-sync with AWS Batch and sets Workflow status
+// UpdateWorkflowStatus ensures that the status of the jobs is in-sync with AWS Batch and sets Workflow status
 func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow) error {
-	// Because batch only keeps a 24hr history of tasks, don't look them up if
+	// Because batch only keeps a 24hr history of jobs, don't look them up if
 	// they are already in a final state. NOTE: workflow status should already be in
-	// its final state as well at this point since it gets updated after tasks
+	// its final state as well at this point since it gets updated after jobs
 	// statuses are read from batch
 	if workflow.IsDone() {
 		return nil
 	}
 
 	// copy current status
-	taskStatus := map[string]resources.TaskStatus{}
-	taskAttempts := map[string]int{}
-	for _, task := range workflow.Tasks {
-		taskStatus[task.ID] = task.Status
-		taskAttempts[task.ID] = len(task.Attempts)
+	jobStatus := map[string]resources.JobStatus{}
+	jobAttempts := map[string]int{}
+	for _, job := range workflow.Jobs {
+		jobStatus[job.ID] = job.Status
+		jobAttempts[job.ID] = len(job.Attempts)
 	}
 
 	// fetch new status from batch
-	errs := wm.executor.Status(workflow.Tasks)
+	errs := wm.executor.Status(workflow.Jobs)
 	if len(errs) > 0 {
-		return fmt.Errorf("Failed to update status for %d tasks. errors: %s", len(errs), errs)
+		return fmt.Errorf("Failed to update status for %d jobs. errors: %s", len(errs), errs)
 	}
 
-	// If no task status has changed then there is no need to update the workflow status
+	// If no job status has changed then there is no need to update the workflow status
 	noChanges := true
-	for _, task := range workflow.Tasks {
-		if task.Status != taskStatus[task.ID] || len(task.Attempts) != taskAttempts[task.ID] {
+	for _, job := range workflow.Jobs {
+		if job.Status != jobStatus[job.ID] || len(job.Attempts) != jobAttempts[job.ID] {
 			noChanges = false
 		}
 	}
@@ -75,23 +75,23 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 	workflowRunning := false
 	workflowFailed := false
 	workflowCancelled := false
-	for _, task := range workflow.Tasks {
-		logTaskStatus(task, workflow)
-		if task.Status != resources.TaskStatusSucceeded {
-			// all tasks should be successful for workflow success
+	for _, job := range workflow.Jobs {
+		logJobStatus(job, workflow)
+		if job.Status != resources.JobStatusSucceeded {
+			// all jobs should be successful for workflow success
 			workflowSuccess = false
 		}
-		if task.Status == resources.TaskStatusRunning {
-			// any task running means running
+		if job.Status == resources.JobStatusRunning {
+			// any job running means running
 			workflowRunning = true
 		}
-		if task.Status == resources.TaskStatusFailed ||
-			task.Status == resources.TaskStatusAborted {
-			// any task failure results in the workflow being failed
+		if job.Status == resources.JobStatusFailed ||
+			job.Status == resources.JobStatusAborted {
+			// any job failure results in the workflow being failed
 			workflowFailed = true
 		}
-		if task.Status == resources.TaskStatusUserAborted {
-			// if any task is aborted by user, we should mark the workflow as cancelled
+		if job.Status == resources.JobStatusUserAborted {
+			// if any job is aborted by user, we should mark the workflow as cancelled
 			workflowCancelled = true
 		}
 	}
@@ -122,17 +122,17 @@ func (wm BatchWorkflowManager) CreateWorkflow(def resources.WorkflowDefinition, 
 		return &resources.Workflow{}, err
 	}
 
-	err = wm.scheduleTasks(workflow, stateResources, input, queue)
+	err = wm.scheduleJobs(workflow, stateResources, input, queue)
 	if err != nil {
 		return &resources.Workflow{}, err
 	}
 
 	// TODO: fails we should either
-	// 1. reconcile somehow with the scheduled tasks
-	// 2. kill the running tasks so that we don't have orphan tasks in AWS Batch
+	// 1. reconcile somehow with the scheduled jobs
+	// 2. kill the running jobs so that we don't have orphan jobs in AWS Batch
 	err = wm.store.SaveWorkflow(*workflow)
 
-	// TODO: remove this polling and replace by ECS task event processing
+	// TODO: remove this polling and replace by ECS job event processing
 	go wm.pollUpdateStatus(workflow)
 
 	return workflow, err
@@ -163,23 +163,23 @@ func (wm BatchWorkflowManager) pollUpdateStatus(workflow *resources.Workflow) {
 }
 
 func (wm BatchWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reason string) error {
-	// TODO: don't cancel already succeeded tasks
-	tasks := []*resources.Task{}
-	for _, task := range workflow.Tasks {
-		switch task.Status {
-		case resources.TaskStatusCreated,
-			resources.TaskStatusQueued,
-			resources.TaskStatusRunning,
-			resources.TaskStatusWaiting:
+	// TODO: don't cancel already succeeded jobs
+	jobs := []*resources.Job{}
+	for _, job := range workflow.Jobs {
+		switch job.Status {
+		case resources.JobStatusCreated,
+			resources.JobStatusQueued,
+			resources.JobStatusRunning,
+			resources.JobStatusWaiting:
 
-			tasks = append(tasks, task)
+			jobs = append(jobs, job)
 		}
 	}
 
-	errs := wm.executor.Cancel(tasks, reason)
-	if len(errs) < len(tasks) {
-		// TODO: this assumes that a workflow is linear. One task cancellation
-		// will lead to all subsequent tasks failing
+	errs := wm.executor.Cancel(jobs, reason)
+	if len(errs) < len(jobs) {
+		// TODO: this assumes that a workflow is linear. One job cancellation
+		// will lead to all subsequent jobs failing
 		previousStatus := workflow.Status
 		workflow.Status = resources.Cancelled
 		logWorkflowStatusChange(workflow, previousStatus)
@@ -187,43 +187,43 @@ func (wm BatchWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reas
 	wm.store.UpdateWorkflow(*workflow)
 
 	if len(errs) > 0 {
-		return fmt.Errorf("%d of %d tasks were not canceled", len(errs), len(tasks))
+		return fmt.Errorf("%d of %d jobs were not canceled", len(errs), len(jobs))
 	}
 
 	return nil
 }
 
-func (wm BatchWorkflowManager) scheduleTasks(workflow *resources.Workflow,
+func (wm BatchWorkflowManager) scheduleJobs(workflow *resources.Workflow,
 	stateResources map[string]resources.StateResource, input []string, queue string) error {
 
-	tasks := map[string]*resources.Task{}
+	jobs := map[string]*resources.Job{}
 
 	for i, state := range workflow.WorkflowDefinition.OrderedStates() {
 		deps := []string{}
 
 		for _, d := range state.Dependencies() {
-			if _, ok := tasks[d]; !ok {
-				return fmt.Errorf("Failed to start state %s. Dependency task for `%s` not found", state.Name(), d)
+			if _, ok := jobs[d]; !ok {
+				return fmt.Errorf("Failed to start state %s. Dependency job for `%s` not found", state.Name(), d)
 			}
-			deps = append(deps, tasks[d].ID)
+			deps = append(deps, jobs[d].ID)
 		}
-		var taskID, taskName string
-		var taskInput []string
+		var jobID, jobName string
+		var jobInput []string
 		var err error
 		// TODO: this should be limited to 50 characters due to a bug in the interaction between Batch
 		// and ECS. {namespace--app} for now, to enable easy parsing across workflows
 		if stateResources[state.Name()].Namespace == "" {
-			taskName = fmt.Sprintf("default--%s", stateResources[state.Name()].Name)
+			jobName = fmt.Sprintf("default--%s", stateResources[state.Name()].Name)
 		} else {
-			taskName = fmt.Sprintf("%s--%s",
+			jobName = fmt.Sprintf("%s--%s",
 				stateResources[state.Name()].Namespace, stateResources[state.Name()].Name)
 		}
-		taskDefinition := stateResources[state.Name()].URI
+		jobDefinition := stateResources[state.Name()].URI
 
 		// TODO: use workflow.WorkflowDefinition.StartAt
 		// if first workflow pass in an input
 		if i == 0 {
-			taskInput = input
+			jobInput = input
 		}
 
 		// determine if the state has a retry strategy
@@ -236,15 +236,15 @@ func (wm BatchWorkflowManager) scheduleTasks(workflow *resources.Workflow,
 			}
 		}
 
-		taskID, err = wm.executor.SubmitWorkflow(taskName, taskDefinition, deps, taskInput, queue, attempts)
+		jobID, err = wm.executor.SubmitWorkflow(jobName, jobDefinition, deps, jobInput, queue, attempts)
 		if err != nil {
 			// TODO: cancel workflows that have already been posted for idempotency
 			return err
 		}
-		// create a Task with the Id returned by AWS
-		task := resources.NewTask(taskID, taskName, state.Name(), stateResources[state.Name()], taskInput)
-		tasks[state.Name()] = task
-		workflow.AddTask(task)
+		// create a Job with the Id returned by AWS
+		job := resources.NewJob(jobID, jobName, state.Name(), stateResources[state.Name()], jobInput)
+		jobs[state.Name()] = job
+		workflow.AddJob(job)
 	}
 
 	return nil

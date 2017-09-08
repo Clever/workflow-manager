@@ -12,41 +12,41 @@ import (
 )
 
 type mockBatchClient struct {
-	tasks map[string]*resources.Task
+	jobs map[string]*resources.Job
 }
 
 func (be *mockBatchClient) SubmitWorkflow(name string, definition string, dependencies, input []string, queue string, attempts int64) (string, error) {
 	for _, d := range dependencies {
-		if _, ok := be.tasks[d]; !ok {
+		if _, ok := be.jobs[d]; !ok {
 			return "", fmt.Errorf("Dependency %s not found", d)
 		}
 	}
-	taskID := uuid.NewV4().String()
-	be.tasks[taskID] = &resources.Task{
-		ID:    taskID,
+	jobID := uuid.NewV4().String()
+	be.jobs[jobID] = &resources.Job{
+		ID:    jobID,
 		Name:  name,
 		Input: input,
 	}
 
-	return taskID, nil
+	return jobID, nil
 }
 
-func (be *mockBatchClient) Status(tasks []*resources.Task) []error {
+func (be *mockBatchClient) Status(jobs []*resources.Job) []error {
 	errs := []error{}
-	for _, t := range tasks {
-		if _, ok := be.tasks[t.ID]; !ok {
+	for _, t := range jobs {
+		if _, ok := be.jobs[t.ID]; !ok {
 			errs = append(errs, fmt.Errorf("%s", t.ID))
 		} else {
-			t.SetStatus(be.tasks[t.ID].Status)
+			t.SetStatus(be.jobs[t.ID].Status)
 		}
 	}
 	return errs
 }
 
-func (be *mockBatchClient) Cancel(tasks []*resources.Task, reason string) []error {
-	// mark first task as Cancelled
-	if len(tasks) > 0 {
-		tasks[0].Status = resources.TaskStatusUserAborted
+func (be *mockBatchClient) Cancel(jobs []*resources.Job, reason string) []error {
+	// mark first job as Cancelled
+	if len(jobs) > 0 {
+		jobs[0].Status = resources.JobStatusUserAborted
 	}
 
 	return nil
@@ -54,7 +54,7 @@ func (be *mockBatchClient) Cancel(tasks []*resources.Task, reason string) []erro
 
 func TestUpdateWorkflowStatus(t *testing.T) {
 	mockClient := &mockBatchClient{
-		map[string]*resources.Task{},
+		map[string]*resources.Job{},
 	}
 	jm := BatchWorkflowManager{
 		mockClient,
@@ -66,81 +66,81 @@ func TestUpdateWorkflowStatus(t *testing.T) {
 	workflow, err := jm.CreateWorkflow(wf, input, "", "")
 	assert.NoError(t, err)
 
-	t.Log("Workflow is QUEUED till a task starts RUNNING")
+	t.Log("Workflow is QUEUED till a job starts RUNNING")
 	assert.Equal(t, resources.Queued, workflow.Status)
 
-	// mark one task as running
-	for _, task := range workflow.Tasks {
-		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusRunning)
+	// mark one job as running
+	for _, job := range workflow.Jobs {
+		mockClient.jobs[job.ID].SetStatus(resources.JobStatusRunning)
 		break
 	}
 	err = jm.UpdateWorkflowStatus(workflow)
-	t.Log("Workflow is RUNNING when a task starts RUNNING")
+	t.Log("Workflow is RUNNING when a job starts RUNNING")
 	assert.NoError(t, err)
 	assert.Equal(t, resources.Running, workflow.Status)
 
-	// mark one task as failed
-	for _, task := range workflow.Tasks {
-		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusFailed)
+	// mark one job as failed
+	for _, job := range workflow.Jobs {
+		mockClient.jobs[job.ID].SetStatus(resources.JobStatusFailed)
 		break
 	}
 	err = jm.UpdateWorkflowStatus(workflow)
-	t.Log("Workflow is FAILED if a task is FAILED")
+	t.Log("Workflow is FAILED if a job is FAILED")
 	assert.NoError(t, err)
 	assert.Equal(t, workflow.Status, resources.Failed)
 
-	// mark one task as success. should not mean success
-	for _, task := range workflow.Tasks {
-		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusSucceeded)
+	// mark one job as success. should not mean success
+	for _, job := range workflow.Jobs {
+		mockClient.jobs[job.ID].SetStatus(resources.JobStatusSucceeded)
 		break
 	}
 	err = jm.UpdateWorkflowStatus(workflow)
-	t.Log("One task SUCCESS does not result in workflow SUCCESS")
+	t.Log("One job SUCCESS does not result in workflow SUCCESS")
 	assert.NoError(t, err)
 	assert.NotEqual(t, workflow.Status, resources.Succeeded)
 
-	// mark all tasks as success. should mean workflow success
-	for _, task := range workflow.Tasks {
-		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusSucceeded)
+	// mark all jobs as success. should mean workflow success
+	for _, job := range workflow.Jobs {
+		mockClient.jobs[job.ID].SetStatus(resources.JobStatusSucceeded)
 	}
 	err = jm.UpdateWorkflowStatus(workflow)
-	t.Log("Workflow is SUCCESSFUL if all tasks are SUCCESSFUL")
+	t.Log("Workflow is SUCCESSFUL if all jobs are SUCCESSFUL")
 	assert.NoError(t, err)
 	assert.Equal(t, workflow.Status, resources.Succeeded)
 
-	// mark one task as failed, others are successful. Still means failed
-	for _, task := range workflow.Tasks {
-		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusFailed)
+	// mark one job as failed, others are successful. Still means failed
+	for _, job := range workflow.Jobs {
+		mockClient.jobs[job.ID].SetStatus(resources.JobStatusFailed)
 		break
 	}
 	workflow.Status = resources.Running
 	err = jm.UpdateWorkflowStatus(workflow)
-	t.Log("Workflow is FAILED if any task FAILS")
+	t.Log("Workflow is FAILED if any job FAILS")
 	assert.NoError(t, err)
 	assert.Equal(t, workflow.Status, resources.Failed)
 
-	// mark tasks as aborted, this should still mean the workflow is failed
-	for _, task := range workflow.Tasks {
-		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusAborted)
+	// mark jobs as aborted, this should still mean the workflow is failed
+	for _, job := range workflow.Jobs {
+		mockClient.jobs[job.ID].SetStatus(resources.JobStatusAborted)
 	}
 	workflow.Status = resources.Running
 	err = jm.UpdateWorkflowStatus(workflow)
-	t.Log("Workflow is FAILED if all tasks are aborted")
+	t.Log("Workflow is FAILED if all jobs are aborted")
 	assert.NoError(t, err)
 	assert.Equal(t, workflow.Status, resources.Failed)
 
-	// mark a task as user-aborted, this should still mean the workflow is cancelled
-	for _, task := range workflow.Tasks {
-		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusUserAborted)
+	// mark a job as user-aborted, this should still mean the workflow is cancelled
+	for _, job := range workflow.Jobs {
+		mockClient.jobs[job.ID].SetStatus(resources.JobStatusUserAborted)
 		break
 	}
 	workflow.Status = resources.Running
 	err = jm.UpdateWorkflowStatus(workflow)
-	t.Log("Workflow is CANCELLED if any task is user aborted")
+	t.Log("Workflow is CANCELLED if any job is user aborted")
 	assert.NoError(t, err)
 	assert.Equal(t, workflow.Status, resources.Cancelled)
 
-	t.Log("Workflows in a final'd state still return status after tasks no longer exists")
+	t.Log("Workflows in a final'd state still return status after jobs no longer exists")
 	states := map[string]resources.State{
 		"only-state": &resources.WorkerState{
 			NameStr:         "only-state",
@@ -155,9 +155,9 @@ func TestUpdateWorkflowStatus(t *testing.T) {
 	assert.Nil(t, err)
 
 	workflow.Status = resources.Cancelled
-	// NOTE: the task is NOT added to the mockClient, so it is unknown
-	for _, task := range workflow.Tasks {
-		task.Status = resources.TaskStatusUserAborted
+	// NOTE: the job is NOT added to the mockClient, so it is unknown
+	for _, job := range workflow.Jobs {
+		job.Status = resources.JobStatusUserAborted
 	}
 
 	err = jm.UpdateWorkflowStatus(workflow)
@@ -169,7 +169,7 @@ func TestUpdateWorkflowStatus(t *testing.T) {
 // and that the following updates behave as expected
 func TestCancelUpdates(t *testing.T) {
 	mockClient := &mockBatchClient{
-		map[string]*resources.Task{},
+		map[string]*resources.Job{},
 	}
 	jm := BatchWorkflowManager{
 		mockClient,
@@ -181,9 +181,9 @@ func TestCancelUpdates(t *testing.T) {
 	workflow, err := jm.CreateWorkflow(wf, input, "", "")
 	assert.Nil(t, err)
 
-	// mark all tasks as running
-	for _, task := range workflow.Tasks {
-		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusRunning)
+	// mark all jobs as running
+	for _, job := range workflow.Jobs {
+		mockClient.jobs[job.ID].SetStatus(resources.JobStatusRunning)
 	}
 	err = jm.UpdateWorkflowStatus(workflow)
 	assert.NotEqual(t, resources.Cancelled, workflow.Status)
@@ -201,19 +201,19 @@ func TestCancelUpdates(t *testing.T) {
 
 	t.Log("Canceled workflows don't un-cancel")
 	// This depends on the previous case above it
-	for _, task := range workflow.Tasks {
-		mockClient.tasks[task.ID].SetStatus(resources.TaskStatusSucceeded)
+	for _, job := range workflow.Jobs {
+		mockClient.jobs[job.ID].SetStatus(resources.JobStatusSucceeded)
 	}
 	err = jm.UpdateWorkflowStatus(workflow)
 	assert.NoError(t, err)
 	assert.Equal(t, resources.Cancelled, workflow.Status)
 }
 
-// TestCreateWorkflow tests that tasks are created for a workflow in the right order
+// TestCreateWorkflow tests that jobs are created for a workflow in the right order
 // with the appropriate settings
 func TestCreateWorkflow(t *testing.T) {
 	mockClient := &mockBatchClient{
-		map[string]*resources.Task{},
+		map[string]*resources.Job{},
 	}
 	store := memory.New()
 	jm := BatchWorkflowManager{
@@ -228,12 +228,12 @@ func TestCreateWorkflow(t *testing.T) {
 	workflow, err := jm.CreateWorkflow(wf, input, "", "")
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(workflow.Tasks), len(workflow.WorkflowDefinition.States()))
+	assert.Equal(t, len(workflow.Jobs), len(workflow.WorkflowDefinition.States()))
 
-	t.Log("Input data is passed to the first task only")
-	assert.NotEmpty(t, workflow.Tasks[0].Input, mockClient.tasks[workflow.Tasks[0].ID].Input)
-	assert.Empty(t, workflow.Tasks[1].Input, mockClient.tasks[workflow.Tasks[1].ID].Input)
-	assert.Equal(t, workflow.Tasks[0].Input, mockClient.tasks[workflow.Tasks[0].ID].Input)
+	t.Log("Input data is passed to the first job only")
+	assert.NotEmpty(t, workflow.Jobs[0].Input, mockClient.jobs[workflow.Jobs[0].ID].Input)
+	assert.Empty(t, workflow.Jobs[1].Input, mockClient.jobs[workflow.Jobs[1].ID].Input)
+	assert.Equal(t, workflow.Jobs[0].Input, mockClient.jobs[workflow.Jobs[0].ID].Input)
 
 	t.Log("CreateWorkflow using namespaces")
 	for _, i := range []int{1, 2, 3} {
@@ -245,7 +245,7 @@ func TestCreateWorkflow(t *testing.T) {
 
 	workflow, err = jm.CreateWorkflow(wf, input, "my-env", "")
 	assert.Nil(t, err)
-	assert.Equal(t, workflow.Tasks[0].Input, mockClient.tasks[workflow.Tasks[0].ID].Input)
+	assert.Equal(t, workflow.Jobs[0].Input, mockClient.jobs[workflow.Jobs[0].ID].Input)
 
 	t.Log("CreateWorkflow using specific queue")
 	for _, i := range []int{1, 2, 3} {
@@ -257,7 +257,7 @@ func TestCreateWorkflow(t *testing.T) {
 
 	workflow, err = jm.CreateWorkflow(wf, input, "", "custom-queue")
 	assert.Nil(t, err)
-	assert.Equal(t, workflow.Tasks[0].Input, mockClient.tasks[workflow.Tasks[0].ID].Input)
+	assert.Equal(t, workflow.Jobs[0].Input, mockClient.jobs[workflow.Jobs[0].ID].Input)
 
 }
 
@@ -265,7 +265,7 @@ func TestCreateWorkflow(t *testing.T) {
 // for a Worflow.
 func TestGetStateResources(t *testing.T) {
 	mockClient := &mockBatchClient{
-		map[string]*resources.Task{},
+		map[string]*resources.Job{},
 	}
 	store := memory.New()
 	jm := BatchWorkflowManager{

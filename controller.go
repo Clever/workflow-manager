@@ -223,7 +223,7 @@ func (c controller) GetWorkflowByID(ctx context.Context, jobID string) (*models.
 	return apiWorkflowFromStore(job), nil
 }
 
-// CancelWorkflow cancels all the tasks currently running or queued for the Workflow and
+// CancelWorkflow cancels all the jobs currently running or queued for the Workflow and
 // marks the job as cancelled
 func (c controller) CancelWorkflow(ctx context.Context, input *models.CancelWorkflowInput) error {
 	job, err := c.store.GetWorkflowByID(input.WorkflowId)
@@ -253,6 +253,7 @@ func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (
 
 	states := map[string]resources.State{}
 	for _, s := range req.States {
+		// TODO: Task=>Job? (INFRA-2483)
 		if s.Type != "" && s.Type != "Task" {
 			return resources.WorkflowDefinition{}, fmt.Errorf("Only States of `type=Task` are supported")
 		}
@@ -303,29 +304,29 @@ func apiWorkflowDefinitionFromStore(wf resources.WorkflowDefinition) *models.Wor
 	}
 }
 
-func apiWorkflowFromStore(job resources.Workflow) *models.Workflow {
-	tasks := []*models.Task{}
-	for _, task := range job.Tasks {
-		tasks = append(tasks, &models.Task{
-			ID:           task.ID,
-			CreatedAt:    strfmt.DateTime(task.CreatedAt),
-			StartedAt:    strfmt.DateTime(task.StartedAt),
-			StoppedAt:    strfmt.DateTime(task.StoppedAt),
-			State:        task.State,
-			Status:       string(task.Status),
-			StatusReason: task.StatusReason,
-			Container:    task.ContainerId,
-			Attempts:     task.Attempts,
+func apiWorkflowFromStore(workflow resources.Workflow) *models.Workflow {
+	jobs := []*models.Job{}
+	for _, job := range workflow.Jobs {
+		jobs = append(jobs, &models.Job{
+			ID:           job.ID,
+			CreatedAt:    strfmt.DateTime(job.CreatedAt),
+			StartedAt:    strfmt.DateTime(job.StartedAt),
+			StoppedAt:    strfmt.DateTime(job.StoppedAt),
+			State:        job.State,
+			Status:       string(job.Status),
+			StatusReason: job.StatusReason,
+			Container:    job.ContainerId,
+			Attempts:     job.Attempts,
 		})
 	}
 
 	return &models.Workflow{
-		ID:                 job.ID,
-		CreatedAt:          strfmt.DateTime(job.CreatedAt),
-		LastUpdated:        strfmt.DateTime(job.LastUpdated),
-		Tasks:              tasks,
-		WorkflowDefinition: apiWorkflowDefinitionFromStore(job.WorkflowDefinition),
-		Status:             string(job.Status),
+		ID:                 workflow.ID,
+		CreatedAt:          strfmt.DateTime(workflow.CreatedAt),
+		LastUpdated:        strfmt.DateTime(workflow.LastUpdated),
+		Jobs:               jobs,
+		WorkflowDefinition: apiWorkflowDefinitionFromStore(workflow.WorkflowDefinition),
+		Status:             string(workflow.Status),
 	}
 }
 
