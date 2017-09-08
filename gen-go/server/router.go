@@ -113,30 +113,30 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 	})
 
 	router.Methods("GET").Path("/jobs").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "getJobsForWorkflowDefinition")
-		h.GetJobsForWorkflowDefinitionHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "getJobsForWorkflowDefinition")
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflows")
+		h.GetWorkflowsHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflows")
 		r = r.WithContext(ctx)
 	})
 
 	router.Methods("POST").Path("/jobs").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "startJobForWorkflowDefinition")
-		h.StartJobForWorkflowDefinitionHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "startJobForWorkflowDefinition")
+		logger.FromContext(r.Context()).AddContext("op", "startWorkflow")
+		h.StartWorkflowHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "startWorkflow")
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("DELETE").Path("/jobs/{jobId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "CancelJob")
-		h.CancelJobHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "CancelJob")
+	router.Methods("DELETE").Path("/jobs/{workflowId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "CancelWorkflow")
+		h.CancelWorkflowHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "CancelWorkflow")
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("GET").Path("/jobs/{jobId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "GetJob")
-		h.GetJobHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "GetJob")
+	router.Methods("GET").Path("/jobs/{workflowId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflowByID")
+		h.GetWorkflowByIDHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflowByID")
 		r = r.WithContext(ctx)
 	})
 

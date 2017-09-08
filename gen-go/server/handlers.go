@@ -122,13 +122,13 @@ func newHealthCheckInput(r *http.Request) (*models.HealthCheckInput, error) {
 	return &input, nil
 }
 
-// statusCodeForGetJobsForWorkflowDefinition returns the status code corresponding to the returned
+// statusCodeForGetWorkflows returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForGetJobsForWorkflowDefinition(obj interface{}) int {
+func statusCodeForGetWorkflows(obj interface{}) int {
 
 	switch obj.(type) {
 
-	case *[]models.Job:
+	case *[]models.Workflow:
 		return 200
 
 	case *models.BadRequest:
@@ -140,7 +140,7 @@ func statusCodeForGetJobsForWorkflowDefinition(obj interface{}) int {
 	case *models.NotFound:
 		return 404
 
-	case []models.Job:
+	case []models.Workflow:
 		return 200
 
 	case models.BadRequest:
@@ -157,9 +157,9 @@ func statusCodeForGetJobsForWorkflowDefinition(obj interface{}) int {
 	}
 }
 
-func (h handler) GetJobsForWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newGetJobsForWorkflowDefinitionInput(r)
+	input, err := newGetWorkflowsInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
@@ -174,12 +174,12 @@ func (h handler) GetJobsForWorkflowDefinitionHandler(ctx context.Context, w http
 		return
 	}
 
-	resp, err := h.GetJobsForWorkflowDefinition(ctx, input)
+	resp, err := h.GetWorkflows(ctx, input)
 
 	// Success types that return an array should never return nil so let's make this easier
 	// for consumers by converting nil arrays to empty arrays
 	if resp == nil {
-		resp = []models.Job{}
+		resp = []models.Workflow{}
 	}
 
 	if err != nil {
@@ -187,7 +187,7 @@ func (h handler) GetJobsForWorkflowDefinitionHandler(ctx context.Context, w http
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForGetJobsForWorkflowDefinition(err)
+		statusCode := statusCodeForGetWorkflows(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -204,14 +204,14 @@ func (h handler) GetJobsForWorkflowDefinitionHandler(ctx context.Context, w http
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForGetJobsForWorkflowDefinition(resp))
+	w.WriteHeader(statusCodeForGetWorkflows(resp))
 	w.Write(respBytes)
 
 }
 
-// newGetJobsForWorkflowDefinitionInput takes in an http.Request an returns the input struct.
-func newGetJobsForWorkflowDefinitionInput(r *http.Request) (*models.GetJobsForWorkflowDefinitionInput, error) {
-	var input models.GetJobsForWorkflowDefinitionInput
+// newGetWorkflowsInput takes in an http.Request an returns the input struct.
+func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
+	var input models.GetWorkflowsInput
 
 	var err error
 	_ = err
@@ -234,9 +234,9 @@ func newGetJobsForWorkflowDefinitionInput(r *http.Request) (*models.GetJobsForWo
 	return &input, nil
 }
 
-// statusCodeForStartJobForWorkflowDefinition returns the status code corresponding to the returned
+// statusCodeForStartWorkflow returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForStartJobForWorkflowDefinition(obj interface{}) int {
+func statusCodeForStartWorkflow(obj interface{}) int {
 
 	switch obj.(type) {
 
@@ -246,11 +246,11 @@ func statusCodeForStartJobForWorkflowDefinition(obj interface{}) int {
 	case *models.InternalError:
 		return 500
 
-	case *models.Job:
-		return 200
-
 	case *models.NotFound:
 		return 404
+
+	case *models.Workflow:
+		return 200
 
 	case models.BadRequest:
 		return 400
@@ -258,20 +258,20 @@ func statusCodeForStartJobForWorkflowDefinition(obj interface{}) int {
 	case models.InternalError:
 		return 500
 
-	case models.Job:
-		return 200
-
 	case models.NotFound:
 		return 404
+
+	case models.Workflow:
+		return 200
 
 	default:
 		return -1
 	}
 }
 
-func (h handler) StartJobForWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newStartJobForWorkflowDefinitionInput(r)
+	input, err := newStartWorkflowInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
@@ -286,14 +286,14 @@ func (h handler) StartJobForWorkflowDefinitionHandler(ctx context.Context, w htt
 		return
 	}
 
-	resp, err := h.StartJobForWorkflowDefinition(ctx, input)
+	resp, err := h.StartWorkflow(ctx, input)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForStartJobForWorkflowDefinition(err)
+		statusCode := statusCodeForStartWorkflow(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -310,14 +310,14 @@ func (h handler) StartJobForWorkflowDefinitionHandler(ctx context.Context, w htt
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForStartJobForWorkflowDefinition(resp))
+	w.WriteHeader(statusCodeForStartWorkflow(resp))
 	w.Write(respBytes)
 
 }
 
-// newStartJobForWorkflowDefinitionInput takes in an http.Request an returns the input struct.
-func newStartJobForWorkflowDefinitionInput(r *http.Request) (*models.JobInput, error) {
-	var input models.JobInput
+// newStartWorkflowInput takes in an http.Request an returns the input struct.
+func newStartWorkflowInput(r *http.Request) (*models.WorkflowInput, error) {
+	var input models.WorkflowInput
 
 	var err error
 	_ = err
@@ -333,9 +333,9 @@ func newStartJobForWorkflowDefinitionInput(r *http.Request) (*models.JobInput, e
 	return &input, nil
 }
 
-// statusCodeForCancelJob returns the status code corresponding to the returned
+// statusCodeForCancelWorkflow returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForCancelJob(obj interface{}) int {
+func statusCodeForCancelWorkflow(obj interface{}) int {
 
 	switch obj.(type) {
 
@@ -362,9 +362,9 @@ func statusCodeForCancelJob(obj interface{}) int {
 	}
 }
 
-func (h handler) CancelJobHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) CancelWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	input, err := newCancelJobInput(r)
+	input, err := newCancelWorkflowInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
@@ -379,14 +379,14 @@ func (h handler) CancelJobHandler(ctx context.Context, w http.ResponseWriter, r 
 		return
 	}
 
-	err = h.CancelJob(ctx, input)
+	err = h.CancelWorkflow(ctx, input)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForCancelJob(err)
+		statusCode := statusCodeForCancelWorkflow(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -400,27 +400,27 @@ func (h handler) CancelJobHandler(ctx context.Context, w http.ResponseWriter, r 
 
 }
 
-// newCancelJobInput takes in an http.Request an returns the input struct.
-func newCancelJobInput(r *http.Request) (*models.CancelJobInput, error) {
-	var input models.CancelJobInput
+// newCancelWorkflowInput takes in an http.Request an returns the input struct.
+func newCancelWorkflowInput(r *http.Request) (*models.CancelWorkflowInput, error) {
+	var input models.CancelWorkflowInput
 
 	var err error
 	_ = err
 
-	jobIdStr := mux.Vars(r)["jobId"]
-	if len(jobIdStr) == 0 {
+	workflowIdStr := mux.Vars(r)["workflowId"]
+	if len(workflowIdStr) == 0 {
 		return nil, errors.New("parameter must be specified")
 	}
-	jobIdStrs := []string{jobIdStr}
+	workflowIdStrs := []string{workflowIdStr}
 
-	if len(jobIdStrs) > 0 {
-		var jobIdTmp string
-		jobIdStr := jobIdStrs[0]
-		jobIdTmp, err = jobIdStr, error(nil)
+	if len(workflowIdStrs) > 0 {
+		var workflowIdTmp string
+		workflowIdStr := workflowIdStrs[0]
+		workflowIdTmp, err = workflowIdStr, error(nil)
 		if err != nil {
 			return nil, err
 		}
-		input.JobId = jobIdTmp
+		input.WorkflowId = workflowIdTmp
 	}
 
 	data, err := ioutil.ReadAll(r.Body)
@@ -438,9 +438,9 @@ func newCancelJobInput(r *http.Request) (*models.CancelJobInput, error) {
 	return &input, nil
 }
 
-// statusCodeForGetJob returns the status code corresponding to the returned
+// statusCodeForGetWorkflowByID returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
-func statusCodeForGetJob(obj interface{}) int {
+func statusCodeForGetWorkflowByID(obj interface{}) int {
 
 	switch obj.(type) {
 
@@ -450,11 +450,11 @@ func statusCodeForGetJob(obj interface{}) int {
 	case *models.InternalError:
 		return 500
 
-	case *models.Job:
-		return 200
-
 	case *models.NotFound:
 		return 404
+
+	case *models.Workflow:
+		return 200
 
 	case models.BadRequest:
 		return 400
@@ -462,27 +462,27 @@ func statusCodeForGetJob(obj interface{}) int {
 	case models.InternalError:
 		return 500
 
-	case models.Job:
-		return 200
-
 	case models.NotFound:
 		return 404
+
+	case models.Workflow:
+		return 200
 
 	default:
 		return -1
 	}
 }
 
-func (h handler) GetJobHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	jobId, err := newGetJobInput(r)
+	workflowId, err := newGetWorkflowByIDInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
 		return
 	}
 
-	err = models.ValidateGetJobInput(jobId)
+	err = models.ValidateGetWorkflowByIDInput(workflowId)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -490,14 +490,14 @@ func (h handler) GetJobHandler(ctx context.Context, w http.ResponseWriter, r *ht
 		return
 	}
 
-	resp, err := h.GetJob(ctx, jobId)
+	resp, err := h.GetWorkflowByID(ctx, workflowId)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
 		}
-		statusCode := statusCodeForGetJob(err)
+		statusCode := statusCodeForGetWorkflowByID(err)
 		if statusCode == -1 {
 			err = models.InternalError{Message: err.Error()}
 			statusCode = 500
@@ -514,19 +514,19 @@ func (h handler) GetJobHandler(ctx context.Context, w http.ResponseWriter, r *ht
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCodeForGetJob(resp))
+	w.WriteHeader(statusCodeForGetWorkflowByID(resp))
 	w.Write(respBytes)
 
 }
 
-// newGetJobInput takes in an http.Request an returns the jobId parameter
+// newGetWorkflowByIDInput takes in an http.Request an returns the workflowId parameter
 // that it contains. It returns an error if the request doesn't contain the parameter.
-func newGetJobInput(r *http.Request) (string, error) {
-	jobId := mux.Vars(r)["jobId"]
-	if len(jobId) == 0 {
-		return "", errors.New("Parameter jobId must be specified")
+func newGetWorkflowByIDInput(r *http.Request) (string, error) {
+	workflowId := mux.Vars(r)["workflowId"]
+	if len(workflowId) == 0 {
+		return "", errors.New("Parameter workflowId must be specified")
 	}
-	return jobId, nil
+	return workflowId, nil
 }
 
 // statusCodeForPostStateResource returns the status code corresponding to the returned

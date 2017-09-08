@@ -10,9 +10,9 @@ import (
 	"github.com/go-openapi/errors"
 )
 
-// JobInput job input
-// swagger:model JobInput
-type JobInput struct {
+// WorkflowInput workflow input
+// swagger:model WorkflowInput
+type WorkflowInput struct {
 
 	// data
 	Data []interface{} `json:"data"`
@@ -27,8 +27,8 @@ type JobInput struct {
 	WorkflowDefinition *WorkflowDefinitionRef `json:"workflowDefinition,omitempty"`
 }
 
-// Validate validates this job input
-func (m *JobInput) Validate(formats strfmt.Registry) error {
+// Validate validates this workflow input
+func (m *WorkflowInput) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateWorkflowDefinition(formats); err != nil {
@@ -42,7 +42,7 @@ func (m *JobInput) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *JobInput) validateWorkflowDefinition(formats strfmt.Registry) error {
+func (m *WorkflowInput) validateWorkflowDefinition(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.WorkflowDefinition) { // not required
 		return nil

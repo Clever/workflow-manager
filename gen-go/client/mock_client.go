@@ -40,47 +40,47 @@ func (_mr *_MockClientRecorder) HealthCheck(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "HealthCheck", arg0)
 }
 
-func (_m *MockClient) GetJobsForWorkflowDefinition(ctx context.Context, i *models.GetJobsForWorkflowDefinitionInput) ([]models.Job, error) {
-	ret := _m.ctrl.Call(_m, "GetJobsForWorkflowDefinition", ctx, i)
-	ret0, _ := ret[0].([]models.Job)
+func (_m *MockClient) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error) {
+	ret := _m.ctrl.Call(_m, "GetWorkflows", ctx, i)
+	ret0, _ := ret[0].([]models.Workflow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-func (_mr *_MockClientRecorder) GetJobsForWorkflowDefinition(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetJobsForWorkflowDefinition", arg0, arg1)
+func (_mr *_MockClientRecorder) GetWorkflows(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflows", arg0, arg1)
 }
 
-func (_m *MockClient) StartJobForWorkflowDefinition(ctx context.Context, i *models.JobInput) (*models.Job, error) {
-	ret := _m.ctrl.Call(_m, "StartJobForWorkflowDefinition", ctx, i)
-	ret0, _ := ret[0].(*models.Job)
+func (_m *MockClient) StartWorkflow(ctx context.Context, i *models.WorkflowInput) (*models.Workflow, error) {
+	ret := _m.ctrl.Call(_m, "StartWorkflow", ctx, i)
+	ret0, _ := ret[0].(*models.Workflow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-func (_mr *_MockClientRecorder) StartJobForWorkflowDefinition(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "StartJobForWorkflowDefinition", arg0, arg1)
+func (_mr *_MockClientRecorder) StartWorkflow(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "StartWorkflow", arg0, arg1)
 }
 
-func (_m *MockClient) CancelJob(ctx context.Context, i *models.CancelJobInput) error {
-	ret := _m.ctrl.Call(_m, "CancelJob", ctx, i)
+func (_m *MockClient) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowInput) error {
+	ret := _m.ctrl.Call(_m, "CancelWorkflow", ctx, i)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-func (_mr *_MockClientRecorder) CancelJob(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "CancelJob", arg0, arg1)
+func (_mr *_MockClientRecorder) CancelWorkflow(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "CancelWorkflow", arg0, arg1)
 }
 
-func (_m *MockClient) GetJob(ctx context.Context, jobId string) (*models.Job, error) {
-	ret := _m.ctrl.Call(_m, "GetJob", ctx, jobId)
-	ret0, _ := ret[0].(*models.Job)
+func (_m *MockClient) GetWorkflowByID(ctx context.Context, workflowId string) (*models.Workflow, error) {
+	ret := _m.ctrl.Call(_m, "GetWorkflowByID", ctx, workflowId)
+	ret0, _ := ret[0].(*models.Workflow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-func (_mr *_MockClientRecorder) GetJob(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetJob", arg0, arg1)
+func (_mr *_MockClientRecorder) GetWorkflowByID(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflowByID", arg0, arg1)
 }
 
 func (_m *MockClient) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {

@@ -348,10 +348,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getJobsForWorkflowDefinition(workflowDefinitionName, options, cb) {
-    return this._hystrixCommand.execute(this._getJobsForWorkflowDefinition, arguments);
+  getWorkflows(workflowDefinitionName, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflows, arguments);
   }
-  _getJobsForWorkflowDefinition(workflowDefinitionName, options, cb) {
+  _getWorkflows(workflowDefinitionName, options, cb) {
     const params = {};
     params["workflowDefinitionName"] = workflowDefinitionName;
 
@@ -473,10 +473,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  startJobForWorkflowDefinition(input, options, cb) {
-    return this._hystrixCommand.execute(this._startJobForWorkflowDefinition, arguments);
+  startWorkflow(input, options, cb) {
+    return this._hystrixCommand.execute(this._startWorkflow, arguments);
   }
-  _startJobForWorkflowDefinition(input, options, cb) {
+  _startWorkflow(input, options, cb) {
     const params = {};
     params["input"] = input;
 
@@ -586,7 +586,7 @@ class WorkflowManager {
 
   /**
    * @param {Object} params
-   * @param {string} params.jobId
+   * @param {string} params.workflowId
    * @param params.reason
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
@@ -600,10 +600,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  CancelJob(params, options, cb) {
-    return this._hystrixCommand.execute(this._CancelJob, arguments);
+  CancelWorkflow(params, options, cb) {
+    return this._hystrixCommand.execute(this._CancelWorkflow, arguments);
   }
-  _CancelJob(params, options, cb) {
+  _CancelWorkflow(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -632,8 +632,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
-      if (!params.jobId) {
-        rejecter(new Error("jobId must be non-empty because it's a path parameter"));
+      if (!params.workflowId) {
+        rejecter(new Error("workflowId must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -641,13 +641,13 @@ class WorkflowManager {
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("DELETE /jobs/{jobId}");
+        span.logEvent("DELETE /jobs/{workflowId}");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "DELETE",
-        uri: this.address + "/jobs/" + params.jobId + "",
+        uri: this.address + "/jobs/" + params.workflowId + "",
         json: true,
         timeout,
         headers,
@@ -713,7 +713,7 @@ class WorkflowManager {
   }
 
   /**
-   * @param {string} jobId
+   * @param {string} workflowId
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -726,12 +726,12 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  GetJob(jobId, options, cb) {
-    return this._hystrixCommand.execute(this._GetJob, arguments);
+  getWorkflowByID(workflowId, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowByID, arguments);
   }
-  _GetJob(jobId, options, cb) {
+  _getWorkflowByID(workflowId, options, cb) {
     const params = {};
-    params["jobId"] = jobId;
+    params["workflowId"] = workflowId;
 
     if (!cb && typeof options === "function") {
       cb = options;
@@ -761,8 +761,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
-      if (!params.jobId) {
-        rejecter(new Error("jobId must be non-empty because it's a path parameter"));
+      if (!params.workflowId) {
+        rejecter(new Error("workflowId must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -770,13 +770,13 @@ class WorkflowManager {
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("GET /jobs/{jobId}");
+        span.logEvent("GET /jobs/{workflowId}");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
-        uri: this.address + "/jobs/" + params.jobId + "",
+        uri: this.address + "/jobs/" + params.workflowId + "",
         json: true,
         timeout,
         headers,

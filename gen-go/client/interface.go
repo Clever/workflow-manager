@@ -19,41 +19,41 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	HealthCheck(ctx context.Context) error
 
-	// GetJobsForWorkflowDefinition makes a GET request to /jobs
+	// GetWorkflows makes a GET request to /jobs
 	//
-	// 200: []models.Job
+	// 200: []models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetJobsForWorkflowDefinition(ctx context.Context, i *models.GetJobsForWorkflowDefinitionInput) ([]models.Job, error)
+	GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error)
 
-	// StartJobForWorkflowDefinition makes a POST request to /jobs
+	// StartWorkflow makes a POST request to /jobs
 	//
-	// 200: *models.Job
+	// 200: *models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	StartJobForWorkflowDefinition(ctx context.Context, i *models.JobInput) (*models.Job, error)
+	StartWorkflow(ctx context.Context, i *models.WorkflowInput) (*models.Workflow, error)
 
-	// CancelJob makes a DELETE request to /jobs/{jobId}
+	// CancelWorkflow makes a DELETE request to /jobs/{workflowId}
 	//
 	// 200: nil
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	CancelJob(ctx context.Context, i *models.CancelJobInput) error
+	CancelWorkflow(ctx context.Context, i *models.CancelWorkflowInput) error
 
-	// GetJob makes a GET request to /jobs/{jobId}
+	// GetWorkflowByID makes a GET request to /jobs/{workflowId}
 	//
-	// 200: *models.Job
+	// 200: *models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetJob(ctx context.Context, jobId string) (*models.Job, error)
+	GetWorkflowByID(ctx context.Context, workflowId string) (*models.Workflow, error)
 
 	// PostStateResource makes a POST request to /state-resources
 	//
