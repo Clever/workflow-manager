@@ -15,7 +15,7 @@ import (
 type JobInput struct {
 
 	// data
-	Data []interface{} `json:"data"`
+	Data []string `json:"data"`
 
 	// namespace
 	Namespace string `json:"namespace,omitempty"`
@@ -31,6 +31,11 @@ type JobInput struct {
 func (m *JobInput) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateData(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if err := m.validateWorkflow(formats); err != nil {
 		// prop
 		res = append(res, err)
@@ -39,6 +44,15 @@ func (m *JobInput) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *JobInput) validateData(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Data) { // not required
+		return nil
+	}
+
 	return nil
 }
 

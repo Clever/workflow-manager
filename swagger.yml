@@ -435,6 +435,8 @@ definitions:
         $ref: '#/definitions/WorkflowRef'
       data:
         type: array
+        items:
+          type: string
       namespace:
         type: string
       queue:

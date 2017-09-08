@@ -179,10 +179,9 @@ func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models
 		return &models.Job{}, err
 	}
 
-	var data []string
+	data := []string{}
 	if input.Data != nil {
-		// convert from []interface{} to []string (i.e. flattened json string array)
-		data = jsonToArgs(input.Data)
+		data = input.Data
 	}
 
 	job, err := wm.manager.CreateJob(workflow, data, input.Namespace, input.Queue)
@@ -232,16 +231,6 @@ func (wm WorkflowManager) CancelJob(ctx context.Context, input *models.CancelJob
 	}
 
 	return wm.manager.CancelJob(&job, input.Reason.Reason)
-}
-
-func jsonToArgs(data []interface{}) []string {
-	args := []string{}
-	for _, v := range data {
-		if arg, ok := v.(string); ok {
-			args = append(args, arg)
-		}
-	}
-	return args
 }
 
 // TODO: the functions below should probably just be functions on the respective resources.<Struct>
