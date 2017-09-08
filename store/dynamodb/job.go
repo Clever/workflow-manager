@@ -14,12 +14,11 @@ import (
 type ddbWorkflow struct {
 	ddbWorkflowPrimaryKey
 	ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt
-	CreatedAt   time.Time
-	LastUpdated time.Time `dynamodbav:"lastUpdated"`
-	// TODO: Rename tables (INFRA-2483)
-	WorkflowDefinition ddbWorkflowDefinitionPrimaryKey `dynamodbav:"workflow"`
+	CreatedAt          time.Time
+	LastUpdated        time.Time                       `dynamodbav:"lastUpdated"`
+	WorkflowDefinition ddbWorkflowDefinitionPrimaryKey `dynamodbav:"workflow-definition"`
 	Input              []string                        `dynamodbav:"input"`
-	Jobs               []*resources.Job                `dynamodbav:"tasks"`
+	Jobs               []*resources.Job                `dynamodbav:"jobs"`
 	Status             resources.WorkflowStatus        `dynamodbav:"status"`
 }
 

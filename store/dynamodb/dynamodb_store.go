@@ -27,20 +27,17 @@ func New(ddb dynamodbiface.DynamoDBAPI, tableNamePrefix string) DynamoDB {
 
 // latestWorkflowDefinitionsTable returns the name of the table that stores the latest version of every WorkflowDefinition
 func (d DynamoDB) latestWorkflowDefinitionsTable() string {
-	// TODO: Actually rename table internally
-	return fmt.Sprintf("%s-latest-workflows", d.tableNamePrefix)
+	return fmt.Sprintf("%s-latest-workflow-definitions", d.tableNamePrefix)
 }
 
 // workflowDefinitionsTable returns the name of the table that stores all WorkflowDefinitions
 func (d DynamoDB) workflowDefinitionsTable() string {
-	// TODO: Actually rename table internally
-	return fmt.Sprintf("%s-workflows", d.tableNamePrefix)
+	return fmt.Sprintf("%s-workflow-definitions", d.tableNamePrefix)
 }
 
 // workflowsTable returns the name of the table that stores workflows.
 func (d DynamoDB) workflowsTable() string {
-	// TODO: Actually rename table internally
-	return fmt.Sprintf("%s-jobs", d.tableNamePrefix)
+	return fmt.Sprintf("%s-workflows", d.tableNamePrefix)
 }
 
 // stateResourcesTable returns the name of the table that stores stateResources.
