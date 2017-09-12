@@ -26,13 +26,12 @@ func logWorkflowStatusChange(workflow *resources.Workflow, previousStatus resour
 		return
 	}
 
-	// TODO: INFRA-2483 - Rename job=>workflow and kvconfig.yml routing too
-	log.InfoD("job-status-change", logger.M{
-		"id":               workflow.ID,
-		"workflow":         workflow.WorkflowDefinition.Name(),
-		"workflow-version": workflow.WorkflowDefinition.Version(),
-		"previous-status":  previousStatus,
-		"status":           workflow.Status,
+	log.InfoD("workflow-status-change", logger.M{
+		"id":              workflow.ID,
+		"name":            workflow.WorkflowDefinition.Name(),
+		"version":         workflow.WorkflowDefinition.Version(),
+		"previous-status": previousStatus,
+		"status":          workflow.Status,
 		// 0 -> running; 1 -> failed; -1 -> cancelled
 		"value": workflow.StatusToInt(),
 	})
