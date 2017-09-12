@@ -3,84 +3,90 @@ package resources
 import (
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/Clever/workflow-manager/gen-go/models"
 )
 
-type WorkflowStatus string
+type JobStatus string
 
 const (
-	Queued    WorkflowStatus = "QUEUED"
-	Running   WorkflowStatus = "RUNNING"
-	Failed    WorkflowStatus = "FAILED"
-	Succeeded WorkflowStatus = "SUCCEEDED"
-	Cancelled WorkflowStatus = "CANCELLED"
+	JobStatusCreated     JobStatus = "CREATED"             // initialized
+	JobStatusQueued      JobStatus = "QUEUED"              // submitted to queue
+	JobStatusWaiting     JobStatus = "WAITING_FOR_DEPS"    // waiting for dependencies
+	JobStatusRunning     JobStatus = "RUNNING"             // running
+	JobStatusSucceeded   JobStatus = "SUCCEEDED"           // completed successfully
+	JobStatusFailed      JobStatus = "FAILED"              // failed
+	JobStatusAborted     JobStatus = "ABORTED_DEPS_FAILED" // aborted due to a dependency failure
+	JobStatusUserAborted JobStatus = "ABORTED_BY_USER"     // aborted due to user action
 )
 
-// Workflow contains information about a running instance of a WorkflowDefinition
-type Workflow struct {
-	ID                 string // GUID for the workflow
-	CreatedAt          time.Time
-	LastUpdated        time.Time
-	WorkflowDefinition WorkflowDefinition // WorkflowDefinition executed as part of this workflow
-	Input              []string           // Starting input for the workflow
-	Jobs               []*Job             // list of states submitted as jobs
-	Status             WorkflowStatus
+type JobDetail struct {
+	CreatedAt    time.Time
+	StartedAt    time.Time
+	StoppedAt    time.Time
+	ContainerId  string // identification string for the running container
+	StatusReason string
+	Status       JobStatus
+	Attempts     []*models.JobAttempt
 }
 
-// NewWorkflow creates a new Workflow struct for a WorkflowDefinition
-func NewWorkflow(wf WorkflowDefinition, input []string) *Workflow {
-	return &Workflow{
-		ID:                 uuid.NewV4().String(),
-		WorkflowDefinition: wf,
-		Input:              input,
-		Status:             Queued,
-		CreatedAt:          time.Now(),
+// Job represents an active State and as part of a Job
+type Job struct {
+	JobDetail
+	ID            string
+	Name          string
+	Input         []string
+	State         string
+	StateResource StateResource
+}
+
+// NewJob creates a new Job
+func NewJob(id, name, state string, stateResource StateResource, input []string) *Job {
+	return &Job{
+		ID:            id,
+		Name:          name,
+		Input:         input,
+		State:         state,
+		StateResource: stateResource,
+		JobDetail: JobDetail{
+			Status: JobStatusCreated,
+		},
 	}
 }
 
-// AddJob adds a new job (representing a State) to the Workflow
-func (w *Workflow) AddJob(t *Job) error {
-	// TODO: run validation
-	// 1. ensure this job actually corresponds to a State
-	// 2. should have a 1:1 mapping with State unless RETRY
-
-	// for now just keep track of the jobIds
-	w.Jobs = append(w.Jobs, t)
-
-	return nil
+// IsDone can be used check if a task's state is expected to change
+// true if the task is in a final state; false if its status might still change
+func (job *Job) IsDone() bool {
+	return (job.Status == JobStatusFailed ||
+		job.Status == JobStatusSucceeded ||
+		job.Status == JobStatusAborted ||
+		job.Status == JobStatusUserAborted)
 }
 
-// StatusToInt converts the current WorkflowStatus to an
-// integer. This is useful for generating metrics.
-func (w *Workflow) StatusToInt() int {
-	switch w.Status {
+func (job *Job) SetStatus(status JobStatus) {
+	job.Status = status
+}
+
+func (job *Job) StatusToInt() int {
+	switch job.Status {
 	// non-completion return non-zero
-	case Cancelled:
-		return -1
-	case Failed:
+	case JobStatusFailed:
 		return 1
+	case JobStatusUserAborted:
+		return -1
+	case JobStatusAborted:
+		return -2
 	// states in path to completion return zero
-	case Queued:
-		return 0
-	case Running:
-		return 0
-	case Succeeded:
-		return 0
 	default:
 		return 0
 	}
 }
 
-// IsDone can be used check if a workflow's state is expected to change
-// true if the workflow is in a final state; false if its status might still change
-func (w *Workflow) IsDone() bool {
-	// Look at the individual jobs states as well as the workflow status
-	// since the workflow status can be updated before the jobs have transitioned
-	// into a final state
-	for _, job := range w.Jobs {
-		if !job.IsDone() {
-			return false
-		}
-	}
-	return (w.Status == Cancelled || w.Status == Failed || w.Status == Succeeded)
+func (job *Job) SetDetail(detail JobDetail) {
+	job.CreatedAt = detail.CreatedAt
+	job.StartedAt = detail.StartedAt
+	job.StoppedAt = detail.StoppedAt
+	job.ContainerId = detail.ContainerId
+	job.Status = detail.Status
+	job.StatusReason = detail.StatusReason
+	job.Attempts = detail.Attempts
 }
