@@ -7,7 +7,7 @@ info:
   # 2. merge the new clients, and, after merging, tag the commit with the version:
   #    git tag -a vX.Y.Z -m "vX.Y.Z"
   #    git push origin --tags
-  version: 0.3.4
+  version: 0.4.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -37,35 +37,35 @@ paths:
         200:
           description: OK response
 
-  /workflows:
+  /workflow-definitions:
     get:
-      operationId: getWorkflows
-      description: Get the latest versions of all available workflows
+      operationId: getWorkflowDefinitions
+      description: Get the latest versions of all available WorkflowDefinitions
       responses:
         200:
-          description: Successfully fetched all workflows
+          description: Successfully fetched all WorkflowDefinitions
           schema:
             type: array
             items:
-              $ref: '#/definitions/Workflow'
+              $ref: '#/definitions/WorkflowDefinition'
     post:
-      operationId: newWorkflow
-      summary: Create a new workflow
+      operationId: newWorkflowDefinition
+      summary: Create a new WorkflowDefinition
       parameters:
-        - name: NewWorkflowRequest
+        - name: NewWorkflowDefinitionRequest
           in: body
           schema:
-            $ref: '#/definitions/NewWorkflowRequest'
+            $ref: '#/definitions/NewWorkflowDefinitionRequest'
       responses:
         201:
-          description: Successful creation of a new workflow
+          description: Successful creation of a new WorkflowDefinition
           schema:
-            $ref: '#/definitions/Workflow'
+            $ref: '#/definitions/WorkflowDefinition'
 
-  /workflows/{name}:
+  /workflow-definitions/{name}:
     get:
-      summary: List Workflow Versions by Name
-      operationId: getWorkflowVersionsByName
+      summary: List WorkflowDefinition Versions by Name
+      operationId: getWorkflowDefinitionVersionsByName
       parameters:
         - name: name
           in: path
@@ -78,37 +78,37 @@ paths:
           default: true
       responses:
         200:
-          description: Workflows
+          description: WorkflowDefinitions
           schema:
             type: array
             items:
-              $ref: "#/definitions/Workflow"
+              $ref: "#/definitions/WorkflowDefinition"
         404:
           $ref: "#/responses/NotFound"
     put:
-      operationId: updateWorkflow
-      summary: Update an exiting workflow
+      operationId: updateWorkflowDefinition
+      summary: Update an exiting WorkflowDefinition
       parameters:
-        - name: NewWorkflowRequest
+        - name: NewWorkflowDefinitionRequest
           in: body
           schema:
-            $ref: '#/definitions/NewWorkflowRequest'
+            $ref: '#/definitions/NewWorkflowDefinitionRequest'
         - name: name
           in: path
           type: string
           required: true
       responses:
         201:
-          description: Successful creation of a new workflow
+          description: Successful creation of a new WorkflowDefinition
           schema:
-            $ref: '#/definitions/Workflow'
+            $ref: '#/definitions/WorkflowDefinition'
         404:
           $ref: "#/responses/NotFound"
 
-  /workflows/{name}/{version}:
+  /workflow-definitions/{name}/{version}:
     get:
-      summary: Get a Workflow by Name and Version
-      operationId: getWorkflowByNameAndVersion
+      summary: Get a WorkflowDefinition by Name and Version
+      operationId: getWorkflowDefinitionByNameAndVersion
       parameters:
         - name: name
           in: path
@@ -120,66 +120,66 @@ paths:
           required: true
       responses:
         200:
-          description: Workflows
+          description: WorkflowDefinition
           schema:
-            $ref: "#/definitions/Workflow"
+            $ref: "#/definitions/WorkflowDefinition"
         404:
           $ref: "#/responses/NotFound"
-  /jobs:
+  /workflows:
     post:
-      summary: Start a job for a workflow
-      operationId: startJobForWorkflow
+      summary: Start a Workflow
+      operationId: startWorkflow
       parameters:
         - name: input
           in: body
           schema:
-            $ref: "#/definitions/JobInput"
+            $ref: "#/definitions/WorkflowInput"
       responses:
         200:
-          description: Respond with Job Id and Name
+          description: Responds with Workflow Id and Name
           schema:
-            $ref: "#/definitions/Job"
+            $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
     get:
-      summary: Get summary of all active jobs for workflow
-      operationId: getJobsForWorkflow
+      summary: Get summary of all active Workflows for a given WorkflowDefinition
+      operationId: getWorkflows
       parameters:
-        - name: workflowName
+        - name: workflowDefinitionName
           in: query
           type: string
           required: true
       responses:
         200:
-          description: Job
+          description: Workflow
           schema:
             type: array
             items:
-              $ref: "#/definitions/Job"
+              $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
 
-  /jobs/{jobId}:
+  /workflows/{workflowId}:
     get:
-      summary: Get details for the given jobId
-      operationId: GetJob
+      summary: Get details for a single Workflow, given a workflowId
+      operationId: getWorkflowByID
       parameters:
-        - name: jobId
+        - name: workflowId
           in: path
           type: string
           required: true
       responses:
         200:
-          description: Job
+          description: Workflow
           schema:
-            $ref: "#/definitions/Job"
+            $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
     delete:
-      summary: Cancel job with the jobId
-      operationId: CancelJob
+      summary: Cancel workflow with the given workflowId
+      operationId: CancelWorkflow
       parameters:
-        - name: jobId
+        - name: workflowId
           in: path
           type: string
           required: true
@@ -289,7 +289,7 @@ definitions:
       message:
         type: string
 
-  NewWorkflowRequest:
+  NewWorkflowDefinitionRequest:
     type: object
     properties:
       name:
@@ -342,7 +342,7 @@ definitions:
       - "States.ALL"
     default: "States.ALL"
 
-  Workflow:
+  WorkflowDefinition:
     type: object
     properties:
       id:
@@ -363,7 +363,7 @@ definitions:
         items:
           $ref: '#/definitions/State'
 
-  Job:
+  Workflow:
     type: object
     properties:
       id:
@@ -374,16 +374,16 @@ definitions:
       lastUpdated:
         type: string
         format: date-time
-      workflow:
-        $ref: '#/definitions/Workflow'
+      workflowDefinition:
+        $ref: '#/definitions/WorkflowDefinition'
       status:
         type: string
-      tasks:
+      jobs:
         type: array
         items:
-          $ref: '#/definitions/Task'
+          $ref: '#/definitions/Job'
 
-  Task:
+  Job:
     type: object
     properties:
       id:
@@ -408,9 +408,9 @@ definitions:
       attempts:
         type: array
         items:
-          $ref: '#/definitions/TaskAttempt'
+          $ref: '#/definitions/JobAttempt'
 
-  TaskAttempt:
+  JobAttempt:
     type: object
     properties:
       startedAt:
@@ -428,11 +428,11 @@ definitions:
       exitCode:
         type: integer
 
-  JobInput:
+  WorkflowInput:
     type: object
     properties:
-      workflow:
-        $ref: '#/definitions/WorkflowRef'
+      workflowDefinition:
+        $ref: '#/definitions/WorkflowDefinitionRef'
       data:
         type: array
       namespace:
@@ -440,7 +440,7 @@ definitions:
       queue:
         type: string
 
-  WorkflowRef:
+  WorkflowDefinitionRef:
     type: object
     properties:
       name:

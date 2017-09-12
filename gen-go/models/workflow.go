@@ -17,30 +17,32 @@ type Workflow struct {
 	// created at
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
-	// description
-	Description string `json:"description,omitempty"`
-
 	// id
 	ID string `json:"id,omitempty"`
 
-	// name
-	Name string `json:"name,omitempty"`
+	// jobs
+	Jobs []*Job `json:"jobs"`
 
-	// revision
-	Revision int64 `json:"revision,omitempty"`
+	// last updated
+	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
 
-	// start at
-	StartAt string `json:"startAt,omitempty"`
+	// status
+	Status string `json:"status,omitempty"`
 
-	// states
-	States []*State `json:"states"`
+	// workflow definition
+	WorkflowDefinition *WorkflowDefinition `json:"workflowDefinition,omitempty"`
 }
 
 // Validate validates this workflow
 func (m *Workflow) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateStates(formats); err != nil {
+	if err := m.validateJobs(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateWorkflowDefinition(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -51,25 +53,41 @@ func (m *Workflow) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Workflow) validateStates(formats strfmt.Registry) error {
+func (m *Workflow) validateJobs(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.States) { // not required
+	if swag.IsZero(m.Jobs) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.States); i++ {
+	for i := 0; i < len(m.Jobs); i++ {
 
-		if swag.IsZero(m.States[i]) { // not required
+		if swag.IsZero(m.Jobs[i]) { // not required
 			continue
 		}
 
-		if m.States[i] != nil {
+		if m.Jobs[i] != nil {
 
-			if err := m.States[i].Validate(formats); err != nil {
+			if err := m.Jobs[i].Validate(formats); err != nil {
 				return err
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *Workflow) validateWorkflowDefinition(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.WorkflowDefinition) { // not required
+		return nil
+	}
+
+	if m.WorkflowDefinition != nil {
+
+		if err := m.WorkflowDefinition.Validate(formats); err != nil {
+			return err
+		}
 	}
 
 	return nil

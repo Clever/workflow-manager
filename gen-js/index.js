@@ -335,511 +335,6 @@ class WorkflowManager {
   }
 
   /**
-   * @param {string} workflowName
-   * @param {object} [options]
-   * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
-   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
-   * @param {function} [cb]
-   * @returns {Promise}
-   * @fulfill {Object[]}
-   * @reject {module:workflow-manager.Errors.BadRequest}
-   * @reject {module:workflow-manager.Errors.NotFound}
-   * @reject {module:workflow-manager.Errors.InternalError}
-   * @reject {Error}
-   */
-  getJobsForWorkflow(workflowName, options, cb) {
-    return this._hystrixCommand.execute(this._getJobsForWorkflow, arguments);
-  }
-  _getJobsForWorkflow(workflowName, options, cb) {
-    const params = {};
-    params["workflowName"] = workflowName;
-
-    if (!cb && typeof options === "function") {
-      cb = options;
-      options = undefined;
-    }
-
-    return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
-      if (!options) {
-        options = {};
-      }
-
-      const timeout = options.timeout || this.timeout;
-      const span = options.span;
-
-      const headers = {};
-
-      const query = {};
-      query["workflowName"] = params.workflowName;
-  
-
-      if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("GET /jobs");
-        span.setTag("span.kind", "client");
-      }
-
-      const requestOptions = {
-        method: "GET",
-        uri: this.address + "/jobs",
-        json: true,
-        timeout,
-        headers,
-        qs: query,
-        useQuerystring: true,
-      };
-  
-
-      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
-      const backoffs = retryPolicy.backoffs();
-      const logger = this.logger;
-  
-      let retries = 0;
-      (function requestOnce() {
-        request(requestOptions, (err, response, body) => {
-          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
-            const backoff = backoffs[retries];
-            retries += 1;
-            setTimeout(requestOnce, backoff);
-            return;
-          }
-          if (err) {
-            err._fromRequest = true;
-            responseLog(logger, requestOptions, response, err)
-            rejecter(err);
-            return;
-          }
-
-          switch (response.statusCode) {
-            case 200:
-              resolver(body);
-              break;
-            
-            case 400:
-              var err = new Errors.BadRequest(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            case 404:
-              var err = new Errors.NotFound(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            case 500:
-              var err = new Errors.InternalError(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            default:
-              var err = new Error("Received unexpected statusCode " + response.statusCode);
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-          }
-        });
-      }());
-    });
-  }
-
-  /**
-   * @param input
-   * @param {object} [options]
-   * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
-   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
-   * @param {function} [cb]
-   * @returns {Promise}
-   * @fulfill {Object}
-   * @reject {module:workflow-manager.Errors.BadRequest}
-   * @reject {module:workflow-manager.Errors.NotFound}
-   * @reject {module:workflow-manager.Errors.InternalError}
-   * @reject {Error}
-   */
-  startJobForWorkflow(input, options, cb) {
-    return this._hystrixCommand.execute(this._startJobForWorkflow, arguments);
-  }
-  _startJobForWorkflow(input, options, cb) {
-    const params = {};
-    params["input"] = input;
-
-    if (!cb && typeof options === "function") {
-      cb = options;
-      options = undefined;
-    }
-
-    return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
-      if (!options) {
-        options = {};
-      }
-
-      const timeout = options.timeout || this.timeout;
-      const span = options.span;
-
-      const headers = {};
-
-      const query = {};
-
-      if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("POST /jobs");
-        span.setTag("span.kind", "client");
-      }
-
-      const requestOptions = {
-        method: "POST",
-        uri: this.address + "/jobs",
-        json: true,
-        timeout,
-        headers,
-        qs: query,
-        useQuerystring: true,
-      };
-  
-      requestOptions.body = params.input;
-  
-
-      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
-      const backoffs = retryPolicy.backoffs();
-      const logger = this.logger;
-  
-      let retries = 0;
-      (function requestOnce() {
-        request(requestOptions, (err, response, body) => {
-          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
-            const backoff = backoffs[retries];
-            retries += 1;
-            setTimeout(requestOnce, backoff);
-            return;
-          }
-          if (err) {
-            err._fromRequest = true;
-            responseLog(logger, requestOptions, response, err)
-            rejecter(err);
-            return;
-          }
-
-          switch (response.statusCode) {
-            case 200:
-              resolver(body);
-              break;
-            
-            case 400:
-              var err = new Errors.BadRequest(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            case 404:
-              var err = new Errors.NotFound(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            case 500:
-              var err = new Errors.InternalError(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            default:
-              var err = new Error("Received unexpected statusCode " + response.statusCode);
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-          }
-        });
-      }());
-    });
-  }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.jobId
-   * @param params.reason
-   * @param {object} [options]
-   * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
-   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
-   * @param {function} [cb]
-   * @returns {Promise}
-   * @fulfill {undefined}
-   * @reject {module:workflow-manager.Errors.BadRequest}
-   * @reject {module:workflow-manager.Errors.NotFound}
-   * @reject {module:workflow-manager.Errors.InternalError}
-   * @reject {Error}
-   */
-  CancelJob(params, options, cb) {
-    return this._hystrixCommand.execute(this._CancelJob, arguments);
-  }
-  _CancelJob(params, options, cb) {
-    if (!cb && typeof options === "function") {
-      cb = options;
-      options = undefined;
-    }
-
-    return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
-      if (!options) {
-        options = {};
-      }
-
-      const timeout = options.timeout || this.timeout;
-      const span = options.span;
-
-      const headers = {};
-      if (!params.jobId) {
-        rejecter(new Error("jobId must be non-empty because it's a path parameter"));
-        return;
-      }
-
-      const query = {};
-
-      if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("DELETE /jobs/{jobId}");
-        span.setTag("span.kind", "client");
-      }
-
-      const requestOptions = {
-        method: "DELETE",
-        uri: this.address + "/jobs/" + params.jobId + "",
-        json: true,
-        timeout,
-        headers,
-        qs: query,
-        useQuerystring: true,
-      };
-  
-      requestOptions.body = params.reason;
-  
-
-      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
-      const backoffs = retryPolicy.backoffs();
-      const logger = this.logger;
-  
-      let retries = 0;
-      (function requestOnce() {
-        request(requestOptions, (err, response, body) => {
-          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
-            const backoff = backoffs[retries];
-            retries += 1;
-            setTimeout(requestOnce, backoff);
-            return;
-          }
-          if (err) {
-            err._fromRequest = true;
-            responseLog(logger, requestOptions, response, err)
-            rejecter(err);
-            return;
-          }
-
-          switch (response.statusCode) {
-            case 200:
-              resolver();
-              break;
-            
-            case 400:
-              var err = new Errors.BadRequest(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            case 404:
-              var err = new Errors.NotFound(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            case 500:
-              var err = new Errors.InternalError(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            default:
-              var err = new Error("Received unexpected statusCode " + response.statusCode);
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-          }
-        });
-      }());
-    });
-  }
-
-  /**
-   * @param {string} jobId
-   * @param {object} [options]
-   * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
-   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
-   * @param {function} [cb]
-   * @returns {Promise}
-   * @fulfill {Object}
-   * @reject {module:workflow-manager.Errors.BadRequest}
-   * @reject {module:workflow-manager.Errors.NotFound}
-   * @reject {module:workflow-manager.Errors.InternalError}
-   * @reject {Error}
-   */
-  GetJob(jobId, options, cb) {
-    return this._hystrixCommand.execute(this._GetJob, arguments);
-  }
-  _GetJob(jobId, options, cb) {
-    const params = {};
-    params["jobId"] = jobId;
-
-    if (!cb && typeof options === "function") {
-      cb = options;
-      options = undefined;
-    }
-
-    return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
-      if (!options) {
-        options = {};
-      }
-
-      const timeout = options.timeout || this.timeout;
-      const span = options.span;
-
-      const headers = {};
-      if (!params.jobId) {
-        rejecter(new Error("jobId must be non-empty because it's a path parameter"));
-        return;
-      }
-
-      const query = {};
-
-      if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("GET /jobs/{jobId}");
-        span.setTag("span.kind", "client");
-      }
-
-      const requestOptions = {
-        method: "GET",
-        uri: this.address + "/jobs/" + params.jobId + "",
-        json: true,
-        timeout,
-        headers,
-        qs: query,
-        useQuerystring: true,
-      };
-  
-
-      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
-      const backoffs = retryPolicy.backoffs();
-      const logger = this.logger;
-  
-      let retries = 0;
-      (function requestOnce() {
-        request(requestOptions, (err, response, body) => {
-          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
-            const backoff = backoffs[retries];
-            retries += 1;
-            setTimeout(requestOnce, backoff);
-            return;
-          }
-          if (err) {
-            err._fromRequest = true;
-            responseLog(logger, requestOptions, response, err)
-            rejecter(err);
-            return;
-          }
-
-          switch (response.statusCode) {
-            case 200:
-              resolver(body);
-              break;
-            
-            case 400:
-              var err = new Errors.BadRequest(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            case 404:
-              var err = new Errors.NotFound(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            case 500:
-              var err = new Errors.InternalError(body || {});
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-            
-            default:
-              var err = new Error("Received unexpected statusCode " + response.statusCode);
-              responseLog(logger, requestOptions, response, err);
-              rejecter(err);
-              return;
-          }
-        });
-      }());
-    });
-  }
-
-  /**
    * @param NewStateResource
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
@@ -1344,7 +839,7 @@ class WorkflowManager {
   }
 
   /**
-   * Get the latest versions of all available workflows
+   * Get the latest versions of all available WorkflowDefinitions
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -1356,10 +851,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflows(options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflows, arguments);
+  getWorkflowDefinitions(options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowDefinitions, arguments);
   }
-  _getWorkflows(options, cb) {
+  _getWorkflowDefinitions(options, cb) {
     const params = {};
 
     if (!cb && typeof options === "function") {
@@ -1395,13 +890,13 @@ class WorkflowManager {
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("GET /workflows");
+        span.logEvent("GET /workflow-definitions");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
-        uri: this.address + "/workflows",
+        uri: this.address + "/workflow-definitions",
         json: true,
         timeout,
         headers,
@@ -1459,7 +954,7 @@ class WorkflowManager {
   }
 
   /**
-   * @param NewWorkflowRequest
+   * @param NewWorkflowDefinitionRequest
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -1471,12 +966,12 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  newWorkflow(NewWorkflowRequest, options, cb) {
-    return this._hystrixCommand.execute(this._newWorkflow, arguments);
+  newWorkflowDefinition(NewWorkflowDefinitionRequest, options, cb) {
+    return this._hystrixCommand.execute(this._newWorkflowDefinition, arguments);
   }
-  _newWorkflow(NewWorkflowRequest, options, cb) {
+  _newWorkflowDefinition(NewWorkflowDefinitionRequest, options, cb) {
     const params = {};
-    params["NewWorkflowRequest"] = NewWorkflowRequest;
+    params["NewWorkflowDefinitionRequest"] = NewWorkflowDefinitionRequest;
 
     if (!cb && typeof options === "function") {
       cb = options;
@@ -1511,13 +1006,13 @@ class WorkflowManager {
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("POST /workflows");
+        span.logEvent("POST /workflow-definitions");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "POST",
-        uri: this.address + "/workflows",
+        uri: this.address + "/workflow-definitions",
         json: true,
         timeout,
         headers,
@@ -1525,7 +1020,7 @@ class WorkflowManager {
         useQuerystring: true,
       };
   
-      requestOptions.body = params.NewWorkflowRequest;
+      requestOptions.body = params.NewWorkflowDefinitionRequest;
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -1592,10 +1087,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflowVersionsByName(params, options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflowVersionsByName, arguments);
+  getWorkflowDefinitionVersionsByName(params, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowDefinitionVersionsByName, arguments);
   }
-  _getWorkflowVersionsByName(params, options, cb) {
+  _getWorkflowDefinitionVersionsByName(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -1637,13 +1132,13 @@ class WorkflowManager {
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("GET /workflows/{name}");
+        span.logEvent("GET /workflow-definitions/{name}");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
-        uri: this.address + "/workflows/" + params.name + "",
+        uri: this.address + "/workflow-definitions/" + params.name + "",
         json: true,
         timeout,
         headers,
@@ -1708,7 +1203,7 @@ class WorkflowManager {
 
   /**
    * @param {Object} params
-   * @param [params.NewWorkflowRequest]
+   * @param [params.NewWorkflowDefinitionRequest]
    * @param {string} params.name
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
@@ -1722,10 +1217,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  updateWorkflow(params, options, cb) {
-    return this._hystrixCommand.execute(this._updateWorkflow, arguments);
+  updateWorkflowDefinition(params, options, cb) {
+    return this._hystrixCommand.execute(this._updateWorkflowDefinition, arguments);
   }
-  _updateWorkflow(params, options, cb) {
+  _updateWorkflowDefinition(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -1763,13 +1258,13 @@ class WorkflowManager {
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("PUT /workflows/{name}");
+        span.logEvent("PUT /workflow-definitions/{name}");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "PUT",
-        uri: this.address + "/workflows/" + params.name + "",
+        uri: this.address + "/workflow-definitions/" + params.name + "",
         json: true,
         timeout,
         headers,
@@ -1777,7 +1272,7 @@ class WorkflowManager {
         useQuerystring: true,
       };
   
-      requestOptions.body = params.NewWorkflowRequest;
+      requestOptions.body = params.NewWorkflowDefinitionRequest;
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -1850,10 +1345,10 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflowByNameAndVersion(params, options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflowByNameAndVersion, arguments);
+  getWorkflowDefinitionByNameAndVersion(params, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowDefinitionByNameAndVersion, arguments);
   }
-  _getWorkflowByNameAndVersion(params, options, cb) {
+  _getWorkflowDefinitionByNameAndVersion(params, options, cb) {
     if (!cb && typeof options === "function") {
       cb = options;
       options = undefined;
@@ -1895,13 +1390,518 @@ class WorkflowManager {
 
       if (span) {
         opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
-        span.logEvent("GET /workflows/{name}/{version}");
+        span.logEvent("GET /workflow-definitions/{name}/{version}");
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
-        uri: this.address + "/workflows/" + params.name + "/" + params.version + "",
+        uri: this.address + "/workflow-definitions/" + params.name + "/" + params.version + "",
+        json: true,
+        timeout,
+        headers,
+        qs: query,
+        useQuerystring: true,
+      };
+  
+
+      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
+      const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
+  
+      let retries = 0;
+      (function requestOnce() {
+        request(requestOptions, (err, response, body) => {
+          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
+            const backoff = backoffs[retries];
+            retries += 1;
+            setTimeout(requestOnce, backoff);
+            return;
+          }
+          if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
+            rejecter(err);
+            return;
+          }
+
+          switch (response.statusCode) {
+            case 200:
+              resolver(body);
+              break;
+            
+            case 400:
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 404:
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 500:
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            default:
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+          }
+        });
+      }());
+    });
+  }
+
+  /**
+   * @param {string} workflowDefinitionName
+   * @param {object} [options]
+   * @param {number} [options.timeout] - A request specific timeout
+   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
+   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
+   * @param {function} [cb]
+   * @returns {Promise}
+   * @fulfill {Object[]}
+   * @reject {module:workflow-manager.Errors.BadRequest}
+   * @reject {module:workflow-manager.Errors.NotFound}
+   * @reject {module:workflow-manager.Errors.InternalError}
+   * @reject {Error}
+   */
+  getWorkflows(workflowDefinitionName, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflows, arguments);
+  }
+  _getWorkflows(workflowDefinitionName, options, cb) {
+    const params = {};
+    params["workflowDefinitionName"] = workflowDefinitionName;
+
+    if (!cb && typeof options === "function") {
+      cb = options;
+      options = undefined;
+    }
+
+    return new Promise((resolve, reject) => {
+      const rejecter = (err) => {
+        reject(err);
+        if (cb) {
+          cb(err);
+        }
+      };
+      const resolver = (data) => {
+        resolve(data);
+        if (cb) {
+          cb(null, data);
+        }
+      };
+
+
+      if (!options) {
+        options = {};
+      }
+
+      const timeout = options.timeout || this.timeout;
+      const span = options.span;
+
+      const headers = {};
+
+      const query = {};
+      query["workflowDefinitionName"] = params.workflowDefinitionName;
+  
+
+      if (span) {
+        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        span.logEvent("GET /workflows");
+        span.setTag("span.kind", "client");
+      }
+
+      const requestOptions = {
+        method: "GET",
+        uri: this.address + "/workflows",
+        json: true,
+        timeout,
+        headers,
+        qs: query,
+        useQuerystring: true,
+      };
+  
+
+      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
+      const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
+  
+      let retries = 0;
+      (function requestOnce() {
+        request(requestOptions, (err, response, body) => {
+          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
+            const backoff = backoffs[retries];
+            retries += 1;
+            setTimeout(requestOnce, backoff);
+            return;
+          }
+          if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
+            rejecter(err);
+            return;
+          }
+
+          switch (response.statusCode) {
+            case 200:
+              resolver(body);
+              break;
+            
+            case 400:
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 404:
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 500:
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            default:
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+          }
+        });
+      }());
+    });
+  }
+
+  /**
+   * @param input
+   * @param {object} [options]
+   * @param {number} [options.timeout] - A request specific timeout
+   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
+   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
+   * @param {function} [cb]
+   * @returns {Promise}
+   * @fulfill {Object}
+   * @reject {module:workflow-manager.Errors.BadRequest}
+   * @reject {module:workflow-manager.Errors.NotFound}
+   * @reject {module:workflow-manager.Errors.InternalError}
+   * @reject {Error}
+   */
+  startWorkflow(input, options, cb) {
+    return this._hystrixCommand.execute(this._startWorkflow, arguments);
+  }
+  _startWorkflow(input, options, cb) {
+    const params = {};
+    params["input"] = input;
+
+    if (!cb && typeof options === "function") {
+      cb = options;
+      options = undefined;
+    }
+
+    return new Promise((resolve, reject) => {
+      const rejecter = (err) => {
+        reject(err);
+        if (cb) {
+          cb(err);
+        }
+      };
+      const resolver = (data) => {
+        resolve(data);
+        if (cb) {
+          cb(null, data);
+        }
+      };
+
+
+      if (!options) {
+        options = {};
+      }
+
+      const timeout = options.timeout || this.timeout;
+      const span = options.span;
+
+      const headers = {};
+
+      const query = {};
+
+      if (span) {
+        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        span.logEvent("POST /workflows");
+        span.setTag("span.kind", "client");
+      }
+
+      const requestOptions = {
+        method: "POST",
+        uri: this.address + "/workflows",
+        json: true,
+        timeout,
+        headers,
+        qs: query,
+        useQuerystring: true,
+      };
+  
+      requestOptions.body = params.input;
+  
+
+      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
+      const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
+  
+      let retries = 0;
+      (function requestOnce() {
+        request(requestOptions, (err, response, body) => {
+          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
+            const backoff = backoffs[retries];
+            retries += 1;
+            setTimeout(requestOnce, backoff);
+            return;
+          }
+          if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
+            rejecter(err);
+            return;
+          }
+
+          switch (response.statusCode) {
+            case 200:
+              resolver(body);
+              break;
+            
+            case 400:
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 404:
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 500:
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            default:
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+          }
+        });
+      }());
+    });
+  }
+
+  /**
+   * @param {Object} params
+   * @param {string} params.workflowId
+   * @param params.reason
+   * @param {object} [options]
+   * @param {number} [options.timeout] - A request specific timeout
+   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
+   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
+   * @param {function} [cb]
+   * @returns {Promise}
+   * @fulfill {undefined}
+   * @reject {module:workflow-manager.Errors.BadRequest}
+   * @reject {module:workflow-manager.Errors.NotFound}
+   * @reject {module:workflow-manager.Errors.InternalError}
+   * @reject {Error}
+   */
+  CancelWorkflow(params, options, cb) {
+    return this._hystrixCommand.execute(this._CancelWorkflow, arguments);
+  }
+  _CancelWorkflow(params, options, cb) {
+    if (!cb && typeof options === "function") {
+      cb = options;
+      options = undefined;
+    }
+
+    return new Promise((resolve, reject) => {
+      const rejecter = (err) => {
+        reject(err);
+        if (cb) {
+          cb(err);
+        }
+      };
+      const resolver = (data) => {
+        resolve(data);
+        if (cb) {
+          cb(null, data);
+        }
+      };
+
+
+      if (!options) {
+        options = {};
+      }
+
+      const timeout = options.timeout || this.timeout;
+      const span = options.span;
+
+      const headers = {};
+      if (!params.workflowId) {
+        rejecter(new Error("workflowId must be non-empty because it's a path parameter"));
+        return;
+      }
+
+      const query = {};
+
+      if (span) {
+        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        span.logEvent("DELETE /workflows/{workflowId}");
+        span.setTag("span.kind", "client");
+      }
+
+      const requestOptions = {
+        method: "DELETE",
+        uri: this.address + "/workflows/" + params.workflowId + "",
+        json: true,
+        timeout,
+        headers,
+        qs: query,
+        useQuerystring: true,
+      };
+  
+      requestOptions.body = params.reason;
+  
+
+      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
+      const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
+  
+      let retries = 0;
+      (function requestOnce() {
+        request(requestOptions, (err, response, body) => {
+          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
+            const backoff = backoffs[retries];
+            retries += 1;
+            setTimeout(requestOnce, backoff);
+            return;
+          }
+          if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
+            rejecter(err);
+            return;
+          }
+
+          switch (response.statusCode) {
+            case 200:
+              resolver();
+              break;
+            
+            case 400:
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 404:
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 500:
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            default:
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+          }
+        });
+      }());
+    });
+  }
+
+  /**
+   * @param {string} workflowId
+   * @param {object} [options]
+   * @param {number} [options.timeout] - A request specific timeout
+   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
+   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
+   * @param {function} [cb]
+   * @returns {Promise}
+   * @fulfill {Object}
+   * @reject {module:workflow-manager.Errors.BadRequest}
+   * @reject {module:workflow-manager.Errors.NotFound}
+   * @reject {module:workflow-manager.Errors.InternalError}
+   * @reject {Error}
+   */
+  getWorkflowByID(workflowId, options, cb) {
+    return this._hystrixCommand.execute(this._getWorkflowByID, arguments);
+  }
+  _getWorkflowByID(workflowId, options, cb) {
+    const params = {};
+    params["workflowId"] = workflowId;
+
+    if (!cb && typeof options === "function") {
+      cb = options;
+      options = undefined;
+    }
+
+    return new Promise((resolve, reject) => {
+      const rejecter = (err) => {
+        reject(err);
+        if (cb) {
+          cb(err);
+        }
+      };
+      const resolver = (data) => {
+        resolve(data);
+        if (cb) {
+          cb(null, data);
+        }
+      };
+
+
+      if (!options) {
+        options = {};
+      }
+
+      const timeout = options.timeout || this.timeout;
+      const span = options.span;
+
+      const headers = {};
+      if (!params.workflowId) {
+        rejecter(new Error("workflowId must be non-empty because it's a path parameter"));
+        return;
+      }
+
+      const query = {};
+
+      if (span) {
+        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        span.logEvent("GET /workflows/{workflowId}");
+        span.setTag("span.kind", "client");
+      }
+
+      const requestOptions = {
+        method: "GET",
+        uri: this.address + "/workflows/" + params.workflowId + "",
         json: true,
         timeout,
         headers,

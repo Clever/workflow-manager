@@ -24,8 +24,8 @@ type State interface {
 	AddDependency(State)
 }
 
-// Workflow defines an interface for defining a flow of States
-type Workflow interface {
+// WorkflowIface defines an interface for defining a flow of States
+type WorkflowIface interface {
 	Name() string
 	Version() int
 	CreatedAt() time.Time

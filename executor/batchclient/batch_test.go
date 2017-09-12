@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestJobToTaskDetail(t *testing.T) {
-	t.Log("Converts AWS Batch JobDetail to resources.TaskDetail")
-	jobDetail := &batch.JobDetail{
+func TestGetJobDetailFromBatch(t *testing.T) {
+	t.Log("Converts AWS Batch JobDetail to resources.JobDetail")
+	batchJobDetail := &batch.JobDetail{
 		Status:        aws.String("SUCCEEDED"),
 		StatusReason:  aws.String("Essential container in task exited"),
 		JobDefinition: aws.String("arn:aws:batch:us-east-1:58111111125:job-definition/batchcli:1"),
@@ -43,27 +43,27 @@ func TestJobToTaskDetail(t *testing.T) {
 		client:       nil,
 	}
 
-	taskDetail, err := be.jobToTaskDetail(jobDetail)
+	jobDetail, err := be.getJobDetailFromBatch(batchJobDetail)
 	assert.Nil(t, err)
-	assert.NotNil(t, taskDetail)
+	assert.NotNil(t, jobDetail)
 
-	assert.Equal(t, taskDetail.Status, resources.TaskStatusSucceeded)
-	assert.Equal(t, taskDetail.CreatedAt.UTC().Format(time.RFC3339Nano), "2017-03-28T00:45:46.376Z")
-	assert.Equal(t, taskDetail.StartedAt.UTC().Format(time.RFC3339Nano), "2017-03-28T00:46:48.178Z")
-	assert.Equal(t, taskDetail.StoppedAt, time.Time{})
+	assert.Equal(t, jobDetail.Status, resources.JobStatusSucceeded)
+	assert.Equal(t, jobDetail.CreatedAt.UTC().Format(time.RFC3339Nano), "2017-03-28T00:45:46.376Z")
+	assert.Equal(t, jobDetail.StartedAt.UTC().Format(time.RFC3339Nano), "2017-03-28T00:46:48.178Z")
+	assert.Equal(t, jobDetail.StoppedAt, time.Time{})
 
 	t.Log("Sets task status correctly when user has canceled it")
-	jobDetail.Status = aws.String(batch.JobStatusFailed)
-	jobDetail.StatusReason = aws.String("ABORTED_BY_USER: your message here")
-	jobDetail.StartedAt = nil
+	batchJobDetail.Status = aws.String(batch.JobStatusFailed)
+	batchJobDetail.StatusReason = aws.String("ABORTED_BY_USER: your message here")
+	batchJobDetail.StartedAt = nil
 
-	taskDetail, err = be.jobToTaskDetail(jobDetail)
+	jobDetail, err = be.getJobDetailFromBatch(batchJobDetail)
 	assert.NoError(t, err)
-	assert.NotNil(t, taskDetail)
-	assert.Equal(t, taskDetail.Status, resources.TaskStatusUserAborted)
+	assert.NotNil(t, jobDetail)
+	assert.Equal(t, jobDetail.Status, resources.JobStatusUserAborted)
 }
 
-func TestSubmitJobToCustomQueue(t *testing.T) {
+func TestSubmitWorkflowToCustomQueue(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockClient := mock_batchiface.NewMockBatchAPI(mockCtrl)
@@ -86,7 +86,7 @@ func TestSubmitJobToCustomQueue(t *testing.T) {
 	mockClient.EXPECT().SubmitJob(gomock.Any()).Return(&batch.SubmitJobOutput{
 		JobId: aws.String("job-id"),
 	}, nil)
-	out, err := be.SubmitJob(name, definition, dependencies, input, "", 0)
+	out, err := be.SubmitWorkflow(name, definition, dependencies, input, "", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "job-id", out)
 
@@ -94,11 +94,11 @@ func TestSubmitJobToCustomQueue(t *testing.T) {
 	mockClient.EXPECT().SubmitJob(gomock.Any()).Return(&batch.SubmitJobOutput{
 		JobId: aws.String("job-id"),
 	}, nil)
-	out, err = be.SubmitJob(name, definition, dependencies, input, "custom", 0)
+	out, err = be.SubmitWorkflow(name, definition, dependencies, input, "custom", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "job-id", out)
 
 	t.Log("errors if you submit job to custom queue that does not exist")
-	_, err = be.SubmitJob(name, definition, dependencies, input, "invalid-queue", 0)
+	_, err = be.SubmitWorkflow(name, definition, dependencies, input, "invalid-queue", 0)
 	assert.Error(t, err)
 }

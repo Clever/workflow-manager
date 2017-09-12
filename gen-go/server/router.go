@@ -112,34 +112,6 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("GET").Path("/jobs").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "getJobsForWorkflow")
-		h.GetJobsForWorkflowHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "getJobsForWorkflow")
-		r = r.WithContext(ctx)
-	})
-
-	router.Methods("POST").Path("/jobs").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "startJobForWorkflow")
-		h.StartJobForWorkflowHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "startJobForWorkflow")
-		r = r.WithContext(ctx)
-	})
-
-	router.Methods("DELETE").Path("/jobs/{jobId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "CancelJob")
-		h.CancelJobHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "CancelJob")
-		r = r.WithContext(ctx)
-	})
-
-	router.Methods("GET").Path("/jobs/{jobId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "GetJob")
-		h.GetJobHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "GetJob")
-		r = r.WithContext(ctx)
-	})
-
 	router.Methods("POST").Path("/state-resources").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "postStateResource")
 		h.PostStateResourceHandler(r.Context(), w, r)
@@ -168,6 +140,41 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
+	router.Methods("GET").Path("/workflow-definitions").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflowDefinitions")
+		h.GetWorkflowDefinitionsHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflowDefinitions")
+		r = r.WithContext(ctx)
+	})
+
+	router.Methods("POST").Path("/workflow-definitions").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "newWorkflowDefinition")
+		h.NewWorkflowDefinitionHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "newWorkflowDefinition")
+		r = r.WithContext(ctx)
+	})
+
+	router.Methods("GET").Path("/workflow-definitions/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflowDefinitionVersionsByName")
+		h.GetWorkflowDefinitionVersionsByNameHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflowDefinitionVersionsByName")
+		r = r.WithContext(ctx)
+	})
+
+	router.Methods("PUT").Path("/workflow-definitions/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "updateWorkflowDefinition")
+		h.UpdateWorkflowDefinitionHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "updateWorkflowDefinition")
+		r = r.WithContext(ctx)
+	})
+
+	router.Methods("GET").Path("/workflow-definitions/{name}/{version}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflowDefinitionByNameAndVersion")
+		h.GetWorkflowDefinitionByNameAndVersionHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflowDefinitionByNameAndVersion")
+		r = r.WithContext(ctx)
+	})
+
 	router.Methods("GET").Path("/workflows").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "getWorkflows")
 		h.GetWorkflowsHandler(r.Context(), w, r)
@@ -176,30 +183,23 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 	})
 
 	router.Methods("POST").Path("/workflows").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "newWorkflow")
-		h.NewWorkflowHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "newWorkflow")
+		logger.FromContext(r.Context()).AddContext("op", "startWorkflow")
+		h.StartWorkflowHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "startWorkflow")
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("GET").Path("/workflows/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "getWorkflowVersionsByName")
-		h.GetWorkflowVersionsByNameHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "getWorkflowVersionsByName")
+	router.Methods("DELETE").Path("/workflows/{workflowId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "CancelWorkflow")
+		h.CancelWorkflowHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "CancelWorkflow")
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("PUT").Path("/workflows/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "updateWorkflow")
-		h.UpdateWorkflowHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "updateWorkflow")
-		r = r.WithContext(ctx)
-	})
-
-	router.Methods("GET").Path("/workflows/{name}/{version}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "getWorkflowByNameAndVersion")
-		h.GetWorkflowByNameAndVersionHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "getWorkflowByNameAndVersion")
+	router.Methods("GET").Path("/workflows/{workflowId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getWorkflowByID")
+		h.GetWorkflowByIDHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getWorkflowByID")
 		r = r.WithContext(ctx)
 	})
 

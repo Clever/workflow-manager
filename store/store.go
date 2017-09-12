@@ -9,21 +9,21 @@ import (
 
 // WorkflowStore defines the interface for persistence of Workflow defintions
 type Store interface {
-	SaveWorkflow(def resources.WorkflowDefinition) error
-	UpdateWorkflow(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error)
-	GetWorkflows() ([]resources.WorkflowDefinition, error)
-	GetWorkflowVersions(name string) ([]resources.WorkflowDefinition, error)
-	GetWorkflow(name string, version int) (resources.WorkflowDefinition, error)
-	LatestWorkflow(name string) (resources.WorkflowDefinition, error)
+	SaveWorkflowDefinition(def resources.WorkflowDefinition) error
+	UpdateWorkflowDefinition(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error)
+	GetWorkflowDefinitions() ([]resources.WorkflowDefinition, error)
+	GetWorkflowDefinitionVersions(name string) ([]resources.WorkflowDefinition, error)
+	GetWorkflowDefinition(name string, version int) (resources.WorkflowDefinition, error)
+	LatestWorkflowDefinition(name string) (resources.WorkflowDefinition, error)
 
 	SaveStateResource(res resources.StateResource) error
 	GetStateResource(name, namespace string) (resources.StateResource, error)
 	DeleteStateResource(name, namespace string) error
 
-	SaveJob(job resources.Job) error
-	UpdateJob(job resources.Job) error
-	GetJob(id string) (resources.Job, error)
-	GetJobsForWorkflow(workflowName string) ([]resources.Job, error)
+	SaveWorkflow(workflow resources.Workflow) error
+	UpdateWorkflow(workflow resources.Workflow) error
+	GetWorkflowByID(id string) (resources.Workflow, error)
+	GetWorkflows(workflowName string) ([]resources.Workflow, error)
 }
 
 type ConflictError struct {

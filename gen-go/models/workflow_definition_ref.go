@@ -9,9 +9,9 @@ import (
 	"github.com/go-openapi/errors"
 )
 
-// WorkflowRef workflow ref
-// swagger:model WorkflowRef
-type WorkflowRef struct {
+// WorkflowDefinitionRef workflow definition ref
+// swagger:model WorkflowDefinitionRef
+type WorkflowDefinitionRef struct {
 
 	// name
 	Name string `json:"name,omitempty"`
@@ -20,8 +20,8 @@ type WorkflowRef struct {
 	Revision int64 `json:"revision,omitempty"`
 }
 
-// Validate validates this workflow ref
-func (m *WorkflowRef) Validate(formats strfmt.Registry) error {
+// Validate validates this workflow definition ref
+func (m *WorkflowDefinitionRef) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if len(res) > 0 {

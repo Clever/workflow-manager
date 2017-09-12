@@ -6,54 +6,54 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type JobStatus string
+type WorkflowStatus string
 
 const (
-	Queued    JobStatus = "QUEUED"
-	Running   JobStatus = "RUNNING"
-	Failed    JobStatus = "FAILED"
-	Succeeded JobStatus = "SUCCEEDED"
-	Cancelled JobStatus = "CANCELLED"
+	Queued    WorkflowStatus = "QUEUED"
+	Running   WorkflowStatus = "RUNNING"
+	Failed    WorkflowStatus = "FAILED"
+	Succeeded WorkflowStatus = "SUCCEEDED"
+	Cancelled WorkflowStatus = "CANCELLED"
 )
 
-// Job contains information about a running Workflow
-type Job struct {
-	ID          string // GUID for the job
-	CreatedAt   time.Time
-	LastUpdated time.Time
-	Workflow    WorkflowDefinition // Workflow executed as part of this job
-	Input       []string           // Starting input for the job
-	Tasks       []*Task            // list of states submitted as tasks
-	Status      JobStatus
+// Workflow contains information about a running instance of a WorkflowDefinition
+type Workflow struct {
+	ID                 string // GUID for the workflow
+	CreatedAt          time.Time
+	LastUpdated        time.Time
+	WorkflowDefinition WorkflowDefinition // WorkflowDefinition executed as part of this workflow
+	Input              []string           // Starting input for the workflow
+	Jobs               []*Job             // list of states submitted as jobs
+	Status             WorkflowStatus
 }
 
-// NewJob creates a new Job struct for a Workflow
-func NewJob(wf WorkflowDefinition, input []string) *Job {
-	return &Job{
-		ID:        uuid.NewV4().String(),
-		Workflow:  wf,
-		Input:     input,
-		Status:    Queued,
-		CreatedAt: time.Now(),
+// NewWorkflow creates a new Workflow struct for a WorkflowDefinition
+func NewWorkflow(wf WorkflowDefinition, input []string) *Workflow {
+	return &Workflow{
+		ID:                 uuid.NewV4().String(),
+		WorkflowDefinition: wf,
+		Input:              input,
+		Status:             Queued,
+		CreatedAt:          time.Now(),
 	}
 }
 
-// AddTask adds a new task (representing a State) to the Job
-func (j *Job) AddTask(t *Task) error {
+// AddJob adds a new job (representing a State) to the Workflow
+func (w *Workflow) AddJob(t *Job) error {
 	// TODO: run validation
-	// 1. ensure this task actually corresponds to a State
+	// 1. ensure this job actually corresponds to a State
 	// 2. should have a 1:1 mapping with State unless RETRY
 
-	// for now just keep track of the taskIds
-	j.Tasks = append(j.Tasks, t)
+	// for now just keep track of the jobIds
+	w.Jobs = append(w.Jobs, t)
 
 	return nil
 }
 
-// StatusToInt converts the current JobStatus to an
+// StatusToInt converts the current WorkflowStatus to an
 // integer. This is useful for generating metrics.
-func (j *Job) StatusToInt() int {
-	switch j.Status {
+func (w *Workflow) StatusToInt() int {
+	switch w.Status {
 	// non-completion return non-zero
 	case Cancelled:
 		return -1
@@ -71,16 +71,16 @@ func (j *Job) StatusToInt() int {
 	}
 }
 
-// IsDone can be used check if a job's state is expected to change
-// true if the job is in a final state; false if its status might still change
-func (j *Job) IsDone() bool {
-	// Look at the individual tasks states as well as the job status
-	// since the job status can be updated before the tasks have transitioned
+// IsDone can be used check if a workflow's state is expected to change
+// true if the workflow is in a final state; false if its status might still change
+func (w *Workflow) IsDone() bool {
+	// Look at the individual jobs states as well as the workflow status
+	// since the workflow status can be updated before the jobs have transitioned
 	// into a final state
-	for _, task := range j.Tasks {
-		if !task.IsDone() {
+	for _, job := range w.Jobs {
+		if !job.IsDone() {
 			return false
 		}
 	}
-	return (j.Status == Cancelled || j.Status == Failed || j.Status == Succeeded)
+	return (w.Status == Cancelled || w.Status == Failed || w.Status == Succeeded)
 }

@@ -14,35 +14,39 @@ import (
 // swagger:model Job
 type Job struct {
 
+	// container
+	Container string `json:"Container,omitempty"`
+
+	// attempts
+	Attempts []*JobAttempt `json:"attempts"`
+
 	// created at
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
 	// id
 	ID string `json:"id,omitempty"`
 
-	// last updated
-	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
+	// started at
+	StartedAt strfmt.DateTime `json:"startedAt,omitempty"`
+
+	// state
+	State string `json:"state,omitempty"`
 
 	// status
 	Status string `json:"status,omitempty"`
 
-	// tasks
-	Tasks []*Task `json:"tasks"`
+	// status reason
+	StatusReason string `json:"statusReason,omitempty"`
 
-	// workflow
-	Workflow *Workflow `json:"workflow,omitempty"`
+	// stopped at
+	StoppedAt strfmt.DateTime `json:"stoppedAt,omitempty"`
 }
 
 // Validate validates this job
 func (m *Job) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateTasks(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateWorkflow(formats); err != nil {
+	if err := m.validateAttempts(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -53,41 +57,25 @@ func (m *Job) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Job) validateTasks(formats strfmt.Registry) error {
+func (m *Job) validateAttempts(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Tasks) { // not required
+	if swag.IsZero(m.Attempts) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.Tasks); i++ {
+	for i := 0; i < len(m.Attempts); i++ {
 
-		if swag.IsZero(m.Tasks[i]) { // not required
+		if swag.IsZero(m.Attempts[i]) { // not required
 			continue
 		}
 
-		if m.Tasks[i] != nil {
+		if m.Attempts[i] != nil {
 
-			if err := m.Tasks[i].Validate(formats); err != nil {
+			if err := m.Attempts[i].Validate(formats); err != nil {
 				return err
 			}
 		}
 
-	}
-
-	return nil
-}
-
-func (m *Job) validateWorkflow(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Workflow) { // not required
-		return nil
-	}
-
-	if m.Workflow != nil {
-
-		if err := m.Workflow.Validate(formats); err != nil {
-			return err
-		}
 	}
 
 	return nil

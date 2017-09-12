@@ -9,9 +9,9 @@ import (
 	"github.com/go-openapi/errors"
 )
 
-// TaskAttempt task attempt
-// swagger:model TaskAttempt
-type TaskAttempt struct {
+// JobAttempt job attempt
+// swagger:model JobAttempt
+type JobAttempt struct {
 
 	// container instance a r n
 	ContainerInstanceARN string `json:"containerInstanceARN,omitempty"`
@@ -32,8 +32,8 @@ type TaskAttempt struct {
 	TaskARN string `json:"taskARN,omitempty"`
 }
 
-// Validate validates this task attempt
-func (m *TaskAttempt) Validate(formats strfmt.Registry) error {
+// Validate validates this job attempt
+func (m *JobAttempt) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if len(res) > 0 {

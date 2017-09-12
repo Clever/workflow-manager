@@ -11,118 +11,118 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// WorkflowManager implements the wag server
-type WorkflowManager struct {
+// Handler implements the wag Controller
+type Handler struct {
 	store   store.Store
-	manager executor.JobManager
+	manager executor.WorkflowManager
 }
 
 // HealthCheck returns 200 if workflow-manager can respond to requests
-func (wm WorkflowManager) HealthCheck(ctx context.Context) error {
+func (h Handler) HealthCheck(ctx context.Context) error {
 	// TODO: check that dependency clients are initialized and working
 	// 1. AWS Batch
 	// 2. DB
 	return nil
 }
 
-// NewWorkflow creates a new workflow
-func (wm WorkflowManager) NewWorkflow(ctx context.Context, workflowReq *models.NewWorkflowRequest) (*models.Workflow, error) {
+// NewWorkflowDefinition creates a new workflow
+func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowReq *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	//TODO: validate states
 	if len(workflowReq.States) == 0 {
-		return &models.Workflow{}, fmt.Errorf("Must define at least one state")
+		return &models.WorkflowDefinition{}, fmt.Errorf("Must define at least one state")
 	}
 	if workflowReq.Name == "" {
-		return &models.Workflow{}, fmt.Errorf("Workflow `name` is required")
+		return &models.WorkflowDefinition{}, fmt.Errorf("WorkflowDefinition `name` is required")
 	}
 
-	workflow, err := newWorkflowFromRequest(*workflowReq)
+	workflow, err := newWorkflowDefinitionFromRequest(*workflowReq)
 	if err != nil {
-		return &models.Workflow{}, err
+		return &models.WorkflowDefinition{}, err
 	}
 
-	if err := wm.store.SaveWorkflow(workflow); err != nil {
-		return &models.Workflow{}, err
+	if err := h.store.SaveWorkflowDefinition(workflow); err != nil {
+		return &models.WorkflowDefinition{}, err
 	}
 
-	return apiWorkflowFromStore(workflow), nil
+	return apiWorkflowDefinitionFromStore(workflow), nil
 }
 
-// UpdateWorkflow creates a new revision for an existing workflow
-func (wm WorkflowManager) UpdateWorkflow(ctx context.Context, input *models.UpdateWorkflowInput) (*models.Workflow, error) {
-	workflowReq := input.NewWorkflowRequest
+// UpdateWorkflowDefinition creates a new revision for an existing workflow
+func (h Handler) UpdateWorkflowDefinition(ctx context.Context, input *models.UpdateWorkflowDefinitionInput) (*models.WorkflowDefinition, error) {
+	workflowReq := input.NewWorkflowDefinitionRequest
 	if workflowReq == nil || workflowReq.Name != input.Name {
-		return &models.Workflow{}, fmt.Errorf("Name in path must match Workflow object")
+		return &models.WorkflowDefinition{}, fmt.Errorf("Name in path must match WorkflowDefinition object")
 	}
 	if len(workflowReq.States) == 0 {
-		return &models.Workflow{}, fmt.Errorf("Must define at least one state")
+		return &models.WorkflowDefinition{}, fmt.Errorf("Must define at least one state")
 	}
 
-	workflow, err := newWorkflowFromRequest(*workflowReq)
+	workflow, err := newWorkflowDefinitionFromRequest(*workflowReq)
 	if err != nil {
-		return &models.Workflow{}, err
+		return &models.WorkflowDefinition{}, err
 	}
 
-	workflow, err = wm.store.UpdateWorkflow(workflow)
+	workflow, err = h.store.UpdateWorkflowDefinition(workflow)
 	if err != nil {
-		return &models.Workflow{}, err
+		return &models.WorkflowDefinition{}, err
 	}
 
-	return apiWorkflowFromStore(workflow), nil
+	return apiWorkflowDefinitionFromStore(workflow), nil
 }
 
-// GetWorkflows retrieves a list of the latest version of each workflow
-func (wm WorkflowManager) GetWorkflows(ctx context.Context) ([]models.Workflow, error) {
-	workflows, err := wm.store.GetWorkflows()
+// GetWorkflowDefinitions retrieves a list of the latest version of each workflow
+func (h Handler) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
+	workflows, err := h.store.GetWorkflowDefinitions()
 
 	if err != nil {
-		return []models.Workflow{}, err
+		return []models.WorkflowDefinition{}, err
 	}
-	apiWorkflows := []models.Workflow{}
+	apiWorkflowDefinitions := []models.WorkflowDefinition{}
 	for _, workflow := range workflows {
-		apiWorkflow := apiWorkflowFromStore(workflow)
-		apiWorkflows = append(apiWorkflows, *apiWorkflow)
+		apiWorkflowDefinition := apiWorkflowDefinitionFromStore(workflow)
+		apiWorkflowDefinitions = append(apiWorkflowDefinitions, *apiWorkflowDefinition)
 	}
-	return apiWorkflows, nil
+	return apiWorkflowDefinitions, nil
 }
 
-// GetWorkflowVersionsByName fetches either:
+// GetWorkflowDefinitionVersionsByName fetches either:
 //  1. A list of all versions of a workflow by name
 //  2. The most recent version of a workflow by name
-func (wm WorkflowManager) GetWorkflowVersionsByName(ctx context.Context, input *models.GetWorkflowVersionsByNameInput) ([]models.Workflow, error) {
+func (h Handler) GetWorkflowDefinitionVersionsByName(ctx context.Context, input *models.GetWorkflowDefinitionVersionsByNameInput) ([]models.WorkflowDefinition, error) {
 	if *input.Latest == true {
-		workflow, err := wm.store.LatestWorkflow(input.Name)
+		workflow, err := h.store.LatestWorkflowDefinition(input.Name)
 		if err != nil {
-			return []models.Workflow{}, err
+			return []models.WorkflowDefinition{}, err
 		}
-		return []models.Workflow{*(apiWorkflowFromStore(workflow))}, nil
+		return []models.WorkflowDefinition{*(apiWorkflowDefinitionFromStore(workflow))}, nil
 	}
 
-	apiWorkflows := []models.Workflow{}
-	workflows, err := wm.store.GetWorkflowVersions(input.Name)
+	apiWorkflowDefinitions := []models.WorkflowDefinition{}
+	workflows, err := h.store.GetWorkflowDefinitionVersions(input.Name)
 	if err != nil {
-		return []models.Workflow{}, err
+		return []models.WorkflowDefinition{}, err
 	}
 	for _, workflow := range workflows {
-		apiWorkflow := apiWorkflowFromStore(workflow)
-		apiWorkflows = append(apiWorkflows, *apiWorkflow)
+		apiWorkflowDefinition := apiWorkflowDefinitionFromStore(workflow)
+		apiWorkflowDefinitions = append(apiWorkflowDefinitions, *apiWorkflowDefinition)
 	}
 
-	return apiWorkflows, nil
+	return apiWorkflowDefinitions, nil
 }
 
-// GetWorkflowByNameAndVersion allows fetching an existing Workflow by providing it's name and version
-func (wm WorkflowManager) GetWorkflowByNameAndVersion(ctx context.Context, input *models.GetWorkflowByNameAndVersionInput) (*models.Workflow, error) {
-	workflow, err := wm.store.GetWorkflow(input.Name, int(input.Version))
+// GetWorkflowDefinitionByNameAndVersion allows fetching an existing WorkflowDefinition by providing it's name and version
+func (h Handler) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, input *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
+	workflow, err := h.store.GetWorkflowDefinition(input.Name, int(input.Version))
 	if err != nil {
-		return &models.Workflow{}, err
+		return &models.WorkflowDefinition{}, err
 	}
-	return apiWorkflowFromStore(workflow), nil
+	return apiWorkflowDefinitionFromStore(workflow), nil
 }
 
 // PostStateResource creates a new state resource
-func (wm WorkflowManager) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
+func (h Handler) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
 	stateResource := resources.NewBatchResource(i.Name, i.Namespace, i.URI)
-	if err := wm.store.SaveStateResource(stateResource); err != nil {
+	if err := h.store.SaveStateResource(stateResource); err != nil {
 		return &models.StateResource{}, err
 	}
 
@@ -130,7 +130,7 @@ func (wm WorkflowManager) PostStateResource(ctx context.Context, i *models.NewSt
 }
 
 // PutStateResource creates or updates a state resource
-func (wm WorkflowManager) PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error) {
+func (h Handler) PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error) {
 	if i.Name != i.NewStateResource.Name {
 		return &models.StateResource{}, models.BadRequest{
 			Message: "StateResource.Name does not match name in path",
@@ -144,7 +144,7 @@ func (wm WorkflowManager) PutStateResource(ctx context.Context, i *models.PutSta
 
 	stateResource := resources.NewBatchResource(
 		i.NewStateResource.Name, i.NewStateResource.Namespace, i.NewStateResource.URI)
-	if err := wm.store.SaveStateResource(stateResource); err != nil {
+	if err := h.store.SaveStateResource(stateResource); err != nil {
 		return &models.StateResource{}, err
 	}
 
@@ -152,8 +152,8 @@ func (wm WorkflowManager) PutStateResource(ctx context.Context, i *models.PutSta
 }
 
 // GetStateResource fetches a StateResource given a name and namespace
-func (wm WorkflowManager) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
-	stateResource, err := wm.store.GetStateResource(i.Name, i.Namespace)
+func (h Handler) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
+	stateResource, err := h.store.GetStateResource(i.Name, i.Namespace)
 	if err != nil {
 		return &models.StateResource{}, err
 	}
@@ -162,21 +162,21 @@ func (wm WorkflowManager) GetStateResource(ctx context.Context, i *models.GetSta
 }
 
 // DeleteStateResource removes a StateResource given a name and namespace
-func (wm WorkflowManager) DeleteStateResource(ctx context.Context, i *models.DeleteStateResourceInput) error {
-	return wm.store.DeleteStateResource(i.Name, i.Namespace)
+func (h Handler) DeleteStateResource(ctx context.Context, i *models.DeleteStateResourceInput) error {
+	return h.store.DeleteStateResource(i.Name, i.Namespace)
 }
 
-// StartJobForWorkflow starts a new Job for the given workflow
-func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models.JobInput) (*models.Job, error) {
-	var workflow resources.WorkflowDefinition
+// StartWorkflow starts a new Workflow for the given WorkflowDefinition
+func (h Handler) StartWorkflow(ctx context.Context, input *models.WorkflowInput) (*models.Workflow, error) {
+	var workflowDefinition resources.WorkflowDefinition
 	var err error
-	if input.Workflow.Revision < 0 {
-		workflow, err = wm.store.LatestWorkflow(input.Workflow.Name)
+	if input.WorkflowDefinition.Revision < 0 {
+		workflowDefinition, err = h.store.LatestWorkflowDefinition(input.WorkflowDefinition.Name)
 	} else {
-		workflow, err = wm.store.GetWorkflow(input.Workflow.Name, int(input.Workflow.Revision))
+		workflowDefinition, err = h.store.GetWorkflowDefinition(input.WorkflowDefinition.Name, int(input.WorkflowDefinition.Revision))
 	}
 	if err != nil {
-		return &models.Job{}, err
+		return &models.Workflow{}, err
 	}
 
 	var data []string
@@ -185,53 +185,53 @@ func (wm WorkflowManager) StartJobForWorkflow(ctx context.Context, input *models
 		data = jsonToArgs(input.Data)
 	}
 
-	job, err := wm.manager.CreateJob(workflow, data, input.Namespace, input.Queue)
+	workflow, err := h.manager.CreateWorkflow(workflowDefinition, data, input.Namespace, input.Queue)
 	if err != nil {
-		return &models.Job{}, err
+		return &models.Workflow{}, err
 	}
 
-	return apiJobFromStore(*job), nil
+	return apiWorkflowFromStore(*workflow), nil
 }
 
-// GetJobsForWorkflow returns a summary of all active jobs for the given workflow
-func (wm WorkflowManager) GetJobsForWorkflow(ctx context.Context, input *models.GetJobsForWorkflowInput) ([]models.Job, error) {
-	jobs, err := wm.store.GetJobsForWorkflow(input.WorkflowName)
+// GetWorkflows returns a summary of all active workflows for the given workflow
+func (h Handler) GetWorkflows(ctx context.Context, input *models.GetWorkflowsInput) ([]models.Workflow, error) {
+	workflows, err := h.store.GetWorkflows(input.WorkflowDefinitionName)
 	if err != nil {
-		return []models.Job{}, err
+		return []models.Workflow{}, err
 	}
 
-	results := []models.Job{}
-	for _, job := range jobs {
-		wm.manager.UpdateJobStatus(&job)
-		results = append(results, *apiJobFromStore(job))
+	results := []models.Workflow{}
+	for _, workflow := range workflows {
+		h.manager.UpdateWorkflowStatus(&workflow)
+		results = append(results, *apiWorkflowFromStore(workflow))
 	}
 	return results, nil
 }
 
-// GetJob returns current details about a Job with the given jobId
-func (wm WorkflowManager) GetJob(ctx context.Context, jobID string) (*models.Job, error) {
-	job, err := wm.store.GetJob(jobID)
+// GetWorkflowByID returns current details about a Workflow with the given workflowId
+func (h Handler) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
+	workflow, err := h.store.GetWorkflowByID(workflowID)
 	if err != nil {
-		return &models.Job{}, err
+		return &models.Workflow{}, err
 	}
 
-	err = wm.manager.UpdateJobStatus(&job)
+	err = h.manager.UpdateWorkflowStatus(&workflow)
 	if err != nil {
-		return &models.Job{}, err
+		return &models.Workflow{}, err
 	}
 
-	return apiJobFromStore(job), nil
+	return apiWorkflowFromStore(workflow), nil
 }
 
-// CancelJob cancels all the tasks currently running or queued for the Job and
-// marks the job as cancelled
-func (wm WorkflowManager) CancelJob(ctx context.Context, input *models.CancelJobInput) error {
-	job, err := wm.store.GetJob(input.JobId)
+// CancelWorkflow cancels all the jobs currently running or queued for the Workflow and
+// marks the workflow as cancelled
+func (h Handler) CancelWorkflow(ctx context.Context, input *models.CancelWorkflowInput) error {
+	workflow, err := h.store.GetWorkflowByID(input.WorkflowId)
 	if err != nil {
 		return err
 	}
 
-	return wm.manager.CancelJob(&job, input.Reason.Reason)
+	return h.manager.CancelWorkflow(&workflow, input.Reason.Reason)
 }
 
 func jsonToArgs(data []interface{}) []string {
@@ -246,13 +246,14 @@ func jsonToArgs(data []interface{}) []string {
 
 // TODO: the functions below should probably just be functions on the respective resources.<Struct>
 
-func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDefinition, error) {
+func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (resources.WorkflowDefinition, error) {
 	if req.StartAt == "" {
 		return resources.WorkflowDefinition{}, fmt.Errorf("startAt is a required field")
 	}
 
 	states := map[string]resources.State{}
 	for _, s := range req.States {
+		// TODO: Task=>Job? (INFRA-2483)
 		if s.Type != "" && s.Type != "Task" {
 			return resources.WorkflowDefinition{}, fmt.Errorf("Only States of `type=Task` are supported")
 		}
@@ -281,7 +282,7 @@ func newWorkflowFromRequest(req models.NewWorkflowRequest) (resources.WorkflowDe
 	return resources.NewWorkflowDefinition(req.Name, req.Description, req.StartAt, states)
 }
 
-func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
+func apiWorkflowDefinitionFromStore(wf resources.WorkflowDefinition) *models.WorkflowDefinition {
 	states := []*models.State{}
 	for _, s := range wf.OrderedStates() {
 		states = append(states, &models.State{
@@ -294,7 +295,7 @@ func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
 		})
 	}
 
-	return &models.Workflow{
+	return &models.WorkflowDefinition{
 		Name:      wf.Name(),
 		Revision:  int64(wf.Version()),
 		StartAt:   wf.StartAt().Name(),
@@ -303,29 +304,29 @@ func apiWorkflowFromStore(wf resources.Workflow) *models.Workflow {
 	}
 }
 
-func apiJobFromStore(job resources.Job) *models.Job {
-	tasks := []*models.Task{}
-	for _, task := range job.Tasks {
-		tasks = append(tasks, &models.Task{
-			ID:           task.ID,
-			CreatedAt:    strfmt.DateTime(task.CreatedAt),
-			StartedAt:    strfmt.DateTime(task.StartedAt),
-			StoppedAt:    strfmt.DateTime(task.StoppedAt),
-			State:        task.State,
-			Status:       string(task.Status),
-			StatusReason: task.StatusReason,
-			Container:    task.ContainerId,
-			Attempts:     task.Attempts,
+func apiWorkflowFromStore(workflow resources.Workflow) *models.Workflow {
+	jobs := []*models.Job{}
+	for _, job := range workflow.Jobs {
+		jobs = append(jobs, &models.Job{
+			ID:           job.ID,
+			CreatedAt:    strfmt.DateTime(job.CreatedAt),
+			StartedAt:    strfmt.DateTime(job.StartedAt),
+			StoppedAt:    strfmt.DateTime(job.StoppedAt),
+			State:        job.State,
+			Status:       string(job.Status),
+			StatusReason: job.StatusReason,
+			Container:    job.ContainerId,
+			Attempts:     job.Attempts,
 		})
 	}
 
-	return &models.Job{
-		ID:          job.ID,
-		CreatedAt:   strfmt.DateTime(job.CreatedAt),
-		LastUpdated: strfmt.DateTime(job.LastUpdated),
-		Tasks:       tasks,
-		Workflow:    apiWorkflowFromStore(job.Workflow),
-		Status:      string(job.Status),
+	return &models.Workflow{
+		ID:                 workflow.ID,
+		CreatedAt:          strfmt.DateTime(workflow.CreatedAt),
+		LastUpdated:        strfmt.DateTime(workflow.LastUpdated),
+		Jobs:               jobs,
+		WorkflowDefinition: apiWorkflowDefinitionFromStore(workflow.WorkflowDefinition),
+		Status:             string(workflow.Status),
 	}
 }
 
