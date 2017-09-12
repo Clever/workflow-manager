@@ -19,12 +19,12 @@ routes:
       # 0 for ongoing; 1 for failed; -1 for cancelled
       value_field: "value"
       stat_type: "gauge"
-  task-status-alerts:
+  job-status-alerts:
     matchers:
-      title: ["task-status"]
+      title: ["job-status"]
     output:
       type: "alerts"
-      series: "workflows.task-error"
+      series: "workflows.job-error"
       dimensions: ["id", "workflow", "state"]
       # 1 for failed; -1 for user abort; -2 for deps_abort
       # 0 for ongoing

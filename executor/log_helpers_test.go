@@ -24,12 +24,12 @@ func TestDataResultsRouting(t *testing.T) {
 	counts := mocklog.RuleCounts()
 	assert.Equal(0, len(counts))
 
-	t.Log("matches 'task-status-alerts'")
+	t.Log("matches 'job-status-alerts'")
 	logJobStatus(&resources.Job{}, &resources.Workflow{})
 	counts = mocklog.RuleCounts()
 	assert.Equal(1, len(counts))
-	assert.Contains(counts, "task-status-alerts")
-	assert.Equal(counts["task-status-alerts"], 1)
+	assert.Contains(counts, "job-status-alerts")
+	assert.Equal(counts["job-status-alerts"], 1)
 
 	t.Log("matches 'workflow-status-change'")
 	logWorkflowStatusChange(&resources.Workflow{}, resources.Running)
