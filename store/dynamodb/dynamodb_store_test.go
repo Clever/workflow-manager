@@ -23,18 +23,6 @@ func TestDynamoDBStore(t *testing.T) {
 	if err := s.InitTables(); err != nil {
 		t.Fatal(err)
 	}
-	// TODO: Refactor this and other store tests so that they run the same tests, looping over store type
-	// See github.com/clever/stealth for an example
 
-	t.Run("GetWorkflowDefinitions", tests.GetWorkflowDefinitions(s, t))
-	t.Run("UpdateWorkflowDefinition", tests.UpdateWorkflowDefinition(s, t))
-	t.Run("GetWorkflowDefinition", tests.GetWorkflowDefinition(s, t))
-	t.Run("SaveWorkflowDefinition", tests.SaveWorkflowDefinition(s, t))
-	t.Run("SaveStateResource", tests.SaveStateResource(s, t))
-	t.Run("GetStateResource", tests.GetStateResource(s, t))
-	t.Run("DeleteStateResource", tests.DeleteStateResource(s, t))
-	t.Run("SaveWorkflow", tests.SaveWorkflow(s, t))
-	t.Run("UpdateWorkflow", tests.UpdateWorkflow(s, t))
-	t.Run("GetWorkflowByID", tests.GetWorkflowByID(s, t))
-	t.Run("GetWorkflows", tests.GetWorkflows(s, t))
+	tests.RunStoreTests(s, t)
 }

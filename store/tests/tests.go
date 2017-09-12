@@ -10,6 +10,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func RunStoreTests(s store.Store, t *testing.T) {
+	t.Run("GetWorkflowDefinitions", GetWorkflowDefinitions(s, t))
+	t.Run("UpdateWorkflowDefinition", UpdateWorkflowDefinition(s, t))
+	t.Run("GetWorkflowDefinition", GetWorkflowDefinition(s, t))
+	t.Run("SaveWorkflowDefinition", SaveWorkflowDefinition(s, t))
+	t.Run("SaveStateResource", SaveStateResource(s, t))
+	t.Run("GetStateResource", GetStateResource(s, t))
+	t.Run("DeleteStateResource", DeleteStateResource(s, t))
+	t.Run("SaveWorkflow", SaveWorkflow(s, t))
+	t.Run("UpdateWorkflow", UpdateWorkflow(s, t))
+	t.Run("GetWorkflowByID", GetWorkflowByID(s, t))
+	t.Run("GetWorkflows", GetWorkflows(s, t))
+}
+
 func UpdateWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		// create kitchensink workflow

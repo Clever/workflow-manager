@@ -24,16 +24,6 @@ type State interface {
 	AddDependency(State)
 }
 
-// WorkflowIface defines an interface for defining a flow of States
-type WorkflowIface interface {
-	Name() string
-	Version() int
-	CreatedAt() time.Time
-	StartAt() State
-	States() map[string]State
-	OrderedStates() []State
-}
-
 // WorkflowDefinition defines a named ordered set of
 // states. Currently does NOT define a DAG.
 type WorkflowDefinition struct {
