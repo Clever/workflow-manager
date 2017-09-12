@@ -1,7 +1,7 @@
 routes:
 
   # matchers for tracking Jobs/Workflows/Tasks; prefix with `workflows.`
-  
+
   job-status-metrics:
     matchers:
       title: ["job-status-change"]
@@ -17,7 +17,7 @@ routes:
       series: "workflows.job-error"
       dimensions: ["id", "workflow", "workflow-version"]
       # 0 for ongoing; 1 for failed; -1 for cancelled
-      value_field: "value" 
+      value_field: "value"
       stat_type: "gauge"
   task-status-alerts:
     matchers:
@@ -32,7 +32,7 @@ routes:
       stat_type: "gauge"
 
   # workflow-manager related matchers; prefix with workflow-mananger
-  
+
   job-polling-alerts:
     matchers:
       title: ["job-polling-error"]
