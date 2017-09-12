@@ -1,30 +1,30 @@
 routes:
 
   # matchers for tracking Jobs/Workflows/Tasks; prefix with `workflows.`
-  
-  job-status-metrics:
+
+  workflow-status-metrics:
     matchers:
-      title: ["job-status-change"]
+      title: ["workflow-status-change"]
     output:
       type: "metrics"
-      series: "workflows.job-status"
-      dimensions: ["id", "workflow", "workflow-version", "status"]
+      series: "workflows.workflow-status"
+      dimensions: ["id", "name", "version", "status"]
+  workflow-status-alerts:
+    matchers:
+      title: ["workflow-status-change"]
+    output:
+      type: "alerts"
+      series: "workflows.workflow-error"
+      dimensions: ["id", "name", "version"]
+      # 0 for ongoing; 1 for failed; -1 for cancelled
+      value_field: "value"
+      stat_type: "gauge"
   job-status-alerts:
     matchers:
-      title: ["job-status-change"]
+      title: ["job-status"]
     output:
       type: "alerts"
       series: "workflows.job-error"
-      dimensions: ["id", "workflow", "workflow-version"]
-      # 0 for ongoing; 1 for failed; -1 for cancelled
-      value_field: "value" 
-      stat_type: "gauge"
-  task-status-alerts:
-    matchers:
-      title: ["task-status"]
-    output:
-      type: "alerts"
-      series: "workflows.task-error"
       dimensions: ["id", "workflow", "state"]
       # 1 for failed; -1 for user abort; -2 for deps_abort
       # 0 for ongoing
@@ -32,12 +32,11 @@ routes:
       stat_type: "gauge"
 
   # workflow-manager related matchers; prefix with workflow-mananger
-  
-  job-polling-alerts:
+  workflow-polling-alerts:
     matchers:
-      title: ["job-polling-error"]
+      title: ["workflow-polling-error"]
     output:
       type: "alerts"
-      series: "workflow-manager.job-polling-error"
-      dimensions: ["id", "status", "workflow"]
+      series: "workflow-manager.workflow-polling-error"
+      dimensions: ["id", "status", "name"]
       stat_type: "counter"
