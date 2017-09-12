@@ -32,12 +32,11 @@ routes:
       stat_type: "gauge"
 
   # workflow-manager related matchers; prefix with workflow-mananger
-
-  job-polling-alerts:
+  workflow-polling-alerts:
     matchers:
-      title: ["job-polling-error"]
+      title: ["workflow-polling-error"]
     output:
       type: "alerts"
-      series: "workflow-manager.job-polling-error"
-      dimensions: ["id", "status", "workflow"]
+      series: "workflow-manager.workflow-polling-error"
+      dimensions: ["id", "status", "name"]
       stat_type: "counter"

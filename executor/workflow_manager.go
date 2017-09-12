@@ -142,20 +142,19 @@ func (wm BatchWorkflowManager) pollUpdateStatus(workflow *resources.Workflow) {
 	for {
 		if workflow.IsDone() {
 			// no need to poll anymore
-			log.InfoD("job-polling-stop", logger.M{
+			log.InfoD("workflow-polling-stop", logger.M{
 				"id":     workflow.ID,
 				"status": workflow.Status,
-				// TODO: update logs from workflow=>workflow-definition (including kvconfig.yml routing)
-				"workflow": workflow.WorkflowDefinition.Name(),
+				"name":   workflow.WorkflowDefinition.Name(),
 			})
 			break
 		}
 		if err := wm.UpdateWorkflowStatus(workflow); err != nil {
-			log.ErrorD("job-polling-error", logger.M{
-				"id":       workflow.ID,
-				"status":   workflow.Status,
-				"workflow": workflow.WorkflowDefinition.Name(),
-				"error":    err.Error(),
+			log.ErrorD("workflow-polling-error", logger.M{
+				"id":     workflow.ID,
+				"status": workflow.Status,
+				"name":   workflow.WorkflowDefinition.Name(),
+				"error":  err.Error(),
 			})
 		}
 		time.Sleep(time.Minute)
