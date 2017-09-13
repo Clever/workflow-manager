@@ -20,11 +20,20 @@ type Workflow struct {
 	// id
 	ID string `json:"id,omitempty"`
 
+	// input
+	Input []interface{} `json:"input"`
+
 	// jobs
 	Jobs []*Job `json:"jobs"`
 
 	// last updated
 	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
+
+	// namespace
+	Namespace string `json:"namespace,omitempty"`
+
+	// queue
+	Queue string `json:"queue,omitempty"`
 
 	// status
 	Status string `json:"status,omitempty"`

@@ -329,6 +329,9 @@ func apiWorkflowFromStore(workflow resources.Workflow) *models.Workflow {
 		Jobs:               jobs,
 		WorkflowDefinition: apiWorkflowDefinitionFromStore(workflow.WorkflowDefinition),
 		Status:             string(workflow.Status),
+		Namespace:          workflow.Namespace,
+		Queue:              workflow.Queue,
+		Input:              workflow.Input,
 	}
 }
 

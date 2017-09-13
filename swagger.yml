@@ -382,6 +382,13 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Job'
+      namespace:
+        type: string
+      queue:
+        type: string
+      # input here represents just the "data" portion of the WorkflowInput
+      input:
+        type: array
 
   Job:
     type: object
