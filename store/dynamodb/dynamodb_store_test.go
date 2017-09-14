@@ -19,7 +19,11 @@ func TestDynamoDBStore(t *testing.T) {
 			Credentials: credentials.NewStaticCredentials("id", "secret", "token"),
 		},
 	})))
-	s := New(svc, "test")
+	s := New(svc, TableConfig{
+		PrefixStateResources:      "test",
+		PrefixWorkflowDefinitions: "test",
+		PrefixWorkflows:           "test",
+	})
 	if err := s.InitTables(); err != nil {
 		t.Fatal(err)
 	}

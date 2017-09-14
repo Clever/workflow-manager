@@ -22,11 +22,13 @@ import (
 
 // Config contains the configuration for the workflow-manager app
 type Config struct {
-	AWSRegion         string
-	DefaultBatchQueue string
-	CustomBatchQueues map[string]string
-	DynamoRegion      string
-	DynamoPrefix      string
+	AWSRegion                       string
+	DefaultBatchQueue               string
+	CustomBatchQueues               map[string]string
+	DynamoPrefixStateResources      string
+	DynamoPrefixWorkflowDefinitions string
+	DynamoPrefixWorkflows           string
+	DynamoRegion                    string
 }
 
 func setupRouting() {
@@ -49,7 +51,11 @@ func main() {
 	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{Region: aws.String(c.DynamoRegion)},
 	})))
-	db := dynamodbstore.New(svc, c.DynamoPrefix)
+	db := dynamodbstore.New(svc, dynamodbstore.TableConfig{
+		PrefixStateResources:      c.DynamoPrefixStateResources,
+		PrefixWorkflowDefinitions: c.DynamoPrefixWorkflowDefinitions,
+		PrefixWorkflows:           c.DynamoPrefixWorkflows,
+	})
 	batch := batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.DefaultBatchQueue, c.CustomBatchQueues)
 
 	h := Handler{
@@ -75,35 +81,29 @@ func awsSession(c Config) *session.Session {
 }
 
 func loadConfig() Config {
-	region := os.Getenv("AWS_REGION")
-	defaultQueue := os.Getenv("DEFAULT_BATCH_QUEUE")
 	customQueues := os.Getenv("CUSTOM_BATCH_QUEUES")
-	dynamoPrefix := os.Getenv("AWS_DYNAMO_PREFIX")
-	dynamoRegion := os.Getenv("AWS_DYNAMO_REGION")
-
-	if region == "" {
-		region = "us-east-1"
-	}
-
-	if defaultQueue == "" {
-		defaultQueue = "default"
-	}
-
 	customQueuesMap, err := parseCustomQueues(customQueues)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if dynamoPrefix == "" {
-		dynamoPrefix = "workflow-manager-test"
-	}
-
 	return Config{
-		AWSRegion:         region,
-		DefaultBatchQueue: defaultQueue,
+		AWSRegion:         getEnvVarOrDefault("AWS_REGION", "us-east-1"),
+		DefaultBatchQueue: getEnvVarOrDefault("DEFAULT_BATCH_QUEUE", "default"),
 		CustomBatchQueues: customQueuesMap,
-		DynamoPrefix:      dynamoPrefix,
-		DynamoRegion:      dynamoRegion,
+		DynamoPrefixStateResources: getEnvVarOrDefault(
+			"AWS_DYNAMO_PREFIX_STATE_RESOURCES",
+			"workflow-manager-test",
+		),
+		DynamoPrefixWorkflowDefinitions: getEnvVarOrDefault(
+			"AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS",
+			"workflow-manager-test",
+		),
+		DynamoPrefixWorkflows: getEnvVarOrDefault(
+			"AWS_DYNAMO_PREFIX_WORKFLOWS",
+			"workflow-manager-test",
+		),
+		DynamoRegion: os.Getenv("AWS_DYNAMO_REGION"),
 	}
 }
 
@@ -117,4 +117,13 @@ func parseCustomQueues(s string) (map[string]string, error) {
 		return map[string]string{}, err
 	}
 	return output, nil
+}
+
+func getEnvVarOrDefault(envVarName, defaultIfEmpty string) string {
+	value := os.Getenv(envVarName)
+	if value == "" {
+		value = defaultIfEmpty
+	}
+
+	return value
 }

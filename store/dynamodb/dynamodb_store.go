@@ -14,35 +14,41 @@ import (
 )
 
 type DynamoDB struct {
-	ddb             dynamodbiface.DynamoDBAPI
-	tableNamePrefix string
+	ddb         dynamodbiface.DynamoDBAPI
+	tableConfig TableConfig
 }
 
-func New(ddb dynamodbiface.DynamoDBAPI, tableNamePrefix string) DynamoDB {
+type TableConfig struct {
+	PrefixStateResources      string
+	PrefixWorkflowDefinitions string
+	PrefixWorkflows           string
+}
+
+func New(ddb dynamodbiface.DynamoDBAPI, tableConfig TableConfig) DynamoDB {
 	return DynamoDB{
-		ddb:             ddb,
-		tableNamePrefix: tableNamePrefix,
+		ddb:         ddb,
+		tableConfig: tableConfig,
 	}
 }
 
 // latestWorkflowDefinitionsTable returns the name of the table that stores the latest version of every WorkflowDefinition
 func (d DynamoDB) latestWorkflowDefinitionsTable() string {
-	return fmt.Sprintf("%s-latest-workflow-definitions", d.tableNamePrefix)
+	return fmt.Sprintf("%s-latest-workflow-definitions", d.tableConfig.PrefixWorkflowDefinitions)
 }
 
 // workflowDefinitionsTable returns the name of the table that stores all WorkflowDefinitions
 func (d DynamoDB) workflowDefinitionsTable() string {
-	return fmt.Sprintf("%s-workflow-definitions", d.tableNamePrefix)
+	return fmt.Sprintf("%s-workflow-definitions", d.tableConfig.PrefixWorkflowDefinitions)
 }
 
 // workflowsTable returns the name of the table that stores workflows.
 func (d DynamoDB) workflowsTable() string {
-	return fmt.Sprintf("%s-workflows", d.tableNamePrefix)
+	return fmt.Sprintf("%s-workflows", d.tableConfig.PrefixWorkflows)
 }
 
 // stateResourcesTable returns the name of the table that stores stateResources.
 func (d DynamoDB) stateResourcesTable() string {
-	return fmt.Sprintf("%s-state-resources", d.tableNamePrefix)
+	return fmt.Sprintf("%s-state-resources", d.tableConfig.PrefixStateResources)
 }
 
 // dynamoItemsToWorkflowDefinitions takes the Items from a Query or Scan result and decodes it into an array of workflow definitions
