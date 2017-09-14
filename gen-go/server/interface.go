@@ -112,7 +112,7 @@ type Controller interface {
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	StartWorkflow(ctx context.Context, i *models.StartWorkflowParams) (*models.Workflow, error)
+	StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error)
 
 	// CancelWorkflow handles DELETE requests to /workflows/{workflowId}
 	//

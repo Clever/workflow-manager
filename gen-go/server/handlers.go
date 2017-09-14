@@ -1303,8 +1303,8 @@ func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter
 }
 
 // newStartWorkflowInput takes in an http.Request an returns the input struct.
-func newStartWorkflowInput(r *http.Request) (*models.StartWorkflowParams, error) {
-	var input models.StartWorkflowParams
+func newStartWorkflowInput(r *http.Request) (*models.StartWorkflowRequest, error) {
+	var input models.StartWorkflowRequest
 
 	var err error
 	_ = err

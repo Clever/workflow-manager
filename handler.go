@@ -167,19 +167,23 @@ func (h Handler) DeleteStateResource(ctx context.Context, i *models.DeleteStateR
 }
 
 // StartWorkflow starts a new Workflow for the given WorkflowDefinition
-func (h Handler) StartWorkflow(ctx context.Context, params *models.StartWorkflowParams) (*models.Workflow, error) {
+func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowRequest) (*models.Workflow, error) {
 	var workflowDefinition resources.WorkflowDefinition
 	var err error
-	if params.WorkflowDefinition.Version < 0 {
-		workflowDefinition, err = h.store.LatestWorkflowDefinition(params.WorkflowDefinition.Name)
+	if req.WorkflowDefinition.Version < 0 {
+		workflowDefinition, err = h.store.LatestWorkflowDefinition(req.WorkflowDefinition.Name)
 	} else {
-		workflowDefinition, err = h.store.GetWorkflowDefinition(params.WorkflowDefinition.Name, int(params.WorkflowDefinition.Version))
+		workflowDefinition, err = h.store.GetWorkflowDefinition(req.WorkflowDefinition.Name, int(req.WorkflowDefinition.Version))
 	}
 	if err != nil {
 		return &models.Workflow{}, err
 	}
 
-	workflow, err := h.manager.CreateWorkflow(workflowDefinition, params.Input, params.Namespace, params.Queue)
+	if req.Queue == nil {
+		return &models.Workflow{}, fmt.Errorf("workflow queue cannot be nil")
+	}
+	workflow, err := h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, *req.Queue)
+
 	if err != nil {
 		return &models.Workflow{}, err
 	}

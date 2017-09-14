@@ -213,6 +213,7 @@ func TestCancelUpdates(t *testing.T) {
 
 // TestCreateWorkflow tests that jobs are created for a workflow in the right order
 // with the appropriate settings
+// @todo - panic "concurrent map writes"
 func TestCreateWorkflow(t *testing.T) {
 	mockClient := &mockBatchClient{
 		map[string]*resources.Job{},
@@ -302,7 +303,6 @@ func TestGetStateResources(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, stateResources["start-state"].Name, "fake-resource-1")
 	assert.Equal(t, stateResources["start-state"].Namespace, "my-env")
-	// @todo stateresources add queue or input?
 	assert.Equal(t, stateResources["start-state"].URI, "arn:batch:jobdefinition:1")
 	assert.Equal(t, stateResources["start-state"].Type, resources.AWSBatchJobDefinition)
 }

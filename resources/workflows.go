@@ -30,7 +30,7 @@ type Workflow struct {
 }
 
 // NewWorkflow creates a new Workflow struct for a WorkflowDefinition
-func NewWorkflow(wf WorkflowDefinition, input []string, namespace string, queue string) *Workflow { // @todo just take entire input piece?
+func NewWorkflow(wf WorkflowDefinition, input []string, namespace string, queue string) *Workflow {
 	return &Workflow{
 		ID:                 uuid.NewV4().String(),
 		WorkflowDefinition: wf,
@@ -38,7 +38,7 @@ func NewWorkflow(wf WorkflowDefinition, input []string, namespace string, queue 
 		Status:             Queued,
 		CreatedAt:          time.Now(),
 		Namespace:          namespace,
-		Queue:              queue, // @todo or from namespace? at what stage?
+		Queue:              queue,
 	}
 }
 

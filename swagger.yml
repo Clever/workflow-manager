@@ -125,18 +125,20 @@ paths:
             $ref: "#/definitions/WorkflowDefinition"
         404:
           $ref: "#/responses/NotFound"
+
   /workflows:
     post:
       summary: Start a Workflow
       operationId: startWorkflow
       parameters:
-        - name: params
+        - name: StartWorkflowRequest
+          description: Parameters for starting a workflow (workflow definition, input, and optionally namespace and queue)
           in: body
           schema:
-            $ref: "#/definitions/StartWorkflowParams"
+            $ref: "#/definitions/StartWorkflowRequest"
       responses:
         200:
-          description: Responds with Workflow Id and Name
+          description: Responds with Workflow details including Id, Status, Jobs, Input, Namespace, and WorkflowDefinition
           schema:
             $ref: "#/definitions/Workflow"
         404:
@@ -444,7 +446,7 @@ definitions:
       exitCode:
         type: integer
 
-  StartWorkflowParams:
+  StartWorkflowRequest:
     type: object
     properties:
       workflowDefinition:

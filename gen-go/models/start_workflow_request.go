@@ -10,9 +10,9 @@ import (
 	"github.com/go-openapi/errors"
 )
 
-// StartWorkflowParams start workflow params
-// swagger:model StartWorkflowParams
-type StartWorkflowParams struct {
+// StartWorkflowRequest start workflow request
+// swagger:model StartWorkflowRequest
+type StartWorkflowRequest struct {
 
 	// input
 	Input []string `json:"input"`
@@ -27,8 +27,8 @@ type StartWorkflowParams struct {
 	WorkflowDefinition *WorkflowDefinitionRef `json:"workflowDefinition,omitempty"`
 }
 
-// Validate validates this start workflow params
-func (m *StartWorkflowParams) Validate(formats strfmt.Registry) error {
+// Validate validates this start workflow request
+func (m *StartWorkflowRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateInput(formats); err != nil {
@@ -47,7 +47,7 @@ func (m *StartWorkflowParams) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *StartWorkflowParams) validateInput(formats strfmt.Registry) error {
+func (m *StartWorkflowRequest) validateInput(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Input) { // not required
 		return nil
@@ -56,7 +56,7 @@ func (m *StartWorkflowParams) validateInput(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *StartWorkflowParams) validateWorkflowDefinition(formats strfmt.Registry) error {
+func (m *StartWorkflowRequest) validateWorkflowDefinition(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.WorkflowDefinition) { // not required
 		return nil
