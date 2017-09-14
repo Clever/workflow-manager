@@ -24,6 +24,7 @@ type Store interface {
 	UpdateWorkflow(workflow resources.Workflow) error
 	GetWorkflowByID(id string) (resources.Workflow, error)
 	GetWorkflows(workflowName string) ([]resources.Workflow, error)
+	GetPendingWorkflowIDs() ([]string, error)
 }
 
 type ConflictError struct {

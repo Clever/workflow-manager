@@ -2,6 +2,7 @@ package dynamodb
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/Clever/workflow-manager/resources"
@@ -123,16 +124,32 @@ func (d DynamoDB) InitTables() error {
 	}
 
 	// create workflows table from workflow ID -> workflow object
+	workflowAttributeDefinitions := []*dynamodb.AttributeDefinition{}
+	for _, ads := range [][]*dynamodb.AttributeDefinition{
+		(ddbWorkflowPrimaryKey{}.AttributeDefinitions()),
+		(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.AttributeDefinitions()),
+		(ddbWorkflowSecondaryKeyStatusLastUpdated{}.AttributeDefinitions()),
+	} {
+		workflowAttributeDefinitions = append(workflowAttributeDefinitions, ads...)
+	}
 	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
-		AttributeDefinitions: append(
-			ddbWorkflowPrimaryKey{}.AttributeDefinitions(),
-			ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.AttributeDefinitions()...,
-		),
-		KeySchema: ddbWorkflowPrimaryKey{}.KeySchema(),
+		AttributeDefinitions: workflowAttributeDefinitions,
+		KeySchema:            ddbWorkflowPrimaryKey{}.KeySchema(),
 		GlobalSecondaryIndexes: []*dynamodb.GlobalSecondaryIndex{
 			{
 				IndexName: aws.String(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.Name()),
 				KeySchema: ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.KeySchema(),
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
+				},
+				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+					ReadCapacityUnits:  aws.Int64(1),
+					WriteCapacityUnits: aws.Int64(1),
+				},
+			},
+			{
+				IndexName: aws.String(ddbWorkflowSecondaryKeyStatusLastUpdated{}.Name()),
+				KeySchema: ddbWorkflowSecondaryKeyStatusLastUpdated{}.KeySchema(),
 				Projection: &dynamodb.Projection{
 					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
 				},
@@ -495,9 +512,12 @@ func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
 // It uses a global secondary index on the workflow name + created time for a workflow.
 func (d DynamoDB) GetWorkflows(workflowName string) ([]resources.Workflow, error) {
 	var workflows []resources.Workflow
-	query := ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
+	query, err := ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
 		WorkflowDefinitionName: workflowName,
 	}.ConstructQuery()
+	if err != nil {
+		return workflows, err
+	}
 
 	query.TableName = aws.String(d.workflowsTable())
 	query.Limit = aws.Int64(10)
@@ -519,4 +539,48 @@ func (d DynamoDB) GetWorkflows(workflowName string) ([]resources.Workflow, error
 		workflows = append(workflows, workflow)
 	}
 	return workflows, nil
+}
+
+type byLastUpdatedTime []resources.Workflow
+
+func (b byLastUpdatedTime) Len() int           { return len(b) }
+func (b byLastUpdatedTime) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+func (b byLastUpdatedTime) Less(i, j int) bool { return b[i].LastUpdated.Before(b[j].LastUpdated) }
+
+// GetPendingWorkflowIDs gets workflows that are either Queued or Running.
+// It uses a global secondary index on status and last updated time in order to return
+// workflows ordered by their last updated time. Workflows with the oldest last updated
+// time are returned first.
+func (d DynamoDB) GetPendingWorkflowIDs() ([]string, error) {
+	var pendingWorkflows []resources.Workflow
+	for _, statusToQuery := range []resources.WorkflowStatus{resources.Queued, resources.Running} {
+		query, err := ddbWorkflowSecondaryKeyStatusLastUpdated{
+			Status: statusToQuery,
+		}.ConstructQuery()
+		if err != nil {
+			return nil, err
+		}
+		query.TableName = aws.String(d.workflowsTable())
+		query.Limit = aws.Int64(5)
+		res, err := d.ddb.Query(query)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range res.Items {
+			workflow, err := DecodeWorkflow(item)
+			if err != nil {
+				return nil, err
+			}
+			pendingWorkflows = append(pendingWorkflows, workflow)
+		}
+	}
+
+	sort.Sort(byLastUpdatedTime(pendingWorkflows))
+
+	pendingWorkflowIDs := []string{}
+	for _, pendingWorkflow := range pendingWorkflows {
+		pendingWorkflowIDs = append(pendingWorkflowIDs, pendingWorkflow.ID)
+	}
+	return pendingWorkflowIDs, nil
 }

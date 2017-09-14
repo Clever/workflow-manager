@@ -2,8 +2,10 @@ package dynamodb
 
 import (
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/Clever/workflow-manager/store"
 	"github.com/Clever/workflow-manager/store/tests"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -19,14 +21,28 @@ func TestDynamoDBStore(t *testing.T) {
 			Credentials: credentials.NewStaticCredentials("id", "secret", "token"),
 		},
 	})))
-	s := New(svc, TableConfig{
-		PrefixStateResources:      "test",
-		PrefixWorkflowDefinitions: "test",
-		PrefixWorkflows:           "test",
-	})
-	if err := s.InitTables(); err != nil {
-		t.Fatal(err)
-	}
 
-	tests.RunStoreTests(s, t)
+	tests.RunStoreTests(t, func() store.Store {
+		prefix := "workflow-manager-test"
+		listTablesOutput, err := svc.ListTables(&dynamodb.ListTablesInput{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, tableName := range listTablesOutput.TableNames {
+			if strings.HasPrefix(*tableName, prefix) {
+				svc.DeleteTable(&dynamodb.DeleteTableInput{
+					TableName: tableName,
+				})
+			}
+		}
+		s := New(svc, TableConfig{
+			PrefixStateResources:      prefix,
+			PrefixWorkflowDefinitions: prefix,
+			PrefixWorkflows:           prefix,
+		})
+		if err := s.InitTables(); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	})
 }

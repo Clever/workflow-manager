@@ -170,3 +170,27 @@ func (s MemoryStore) GetWorkflowByID(id string) (resources.Workflow, error) {
 
 	return s.workflows[id], nil
 }
+
+type byLastUpdatedTime []resources.Workflow
+
+func (b byLastUpdatedTime) Len() int           { return len(b) }
+func (b byLastUpdatedTime) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+func (b byLastUpdatedTime) Less(i, j int) bool { return b[i].LastUpdated.Before(b[j].LastUpdated) }
+
+func (s MemoryStore) GetPendingWorkflowIDs() ([]string, error) {
+	var pendingWorkflows []resources.Workflow
+	for _, wf := range s.workflows {
+		if !(wf.Status == resources.Queued || wf.Status == resources.Running) {
+			continue
+		}
+		wfcopy := wf // don't store loop variables
+		pendingWorkflows = append(pendingWorkflows, wfcopy)
+	}
+	sort.Sort(byLastUpdatedTime(pendingWorkflows))
+	pendingWorkflowIDs := []string{}
+	for _, pendingWorkflow := range pendingWorkflows {
+		pendingWorkflowIDs = append(pendingWorkflowIDs, pendingWorkflow.ID)
+	}
+	return pendingWorkflowIDs, nil
+
+}

@@ -1,6 +1,7 @@
 package dynamodb
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Clever/workflow-manager/resources"
@@ -14,6 +15,7 @@ import (
 type ddbWorkflow struct {
 	ddbWorkflowPrimaryKey
 	ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt
+	ddbWorkflowSecondaryKeyStatusLastUpdated
 	CreatedAt          time.Time
 	LastUpdated        time.Time                       `dynamodbav:"lastUpdated"`
 	WorkflowDefinition ddbWorkflowDefinitionPrimaryKey `dynamodbav:"workflow-definition"`
@@ -31,6 +33,10 @@ func EncodeWorkflow(workflow resources.Workflow) (map[string]*dynamodb.Attribute
 		ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt: ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
 			WorkflowDefinitionName: workflow.WorkflowDefinition.Name(),
 			CreatedAt:              &workflow.CreatedAt,
+		},
+		ddbWorkflowSecondaryKeyStatusLastUpdated: ddbWorkflowSecondaryKeyStatusLastUpdated{
+			Status:      workflow.Status,
+			LastUpdated: &workflow.LastUpdated,
 		},
 		CreatedAt:   workflow.CreatedAt,
 		LastUpdated: workflow.LastUpdated,
@@ -94,7 +100,7 @@ func (pk ddbWorkflowPrimaryKey) KeySchema() []*dynamodb.KeySchemaElement {
 	}
 }
 
-// ddbWorkflowWorkflowDefinitionCreatedAtKey is a global secondary index that allows us to query
+// ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt is a global secondary index that allows us to query
 // for all workflows for a particular workflow, sorted by when they were created.
 type ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt struct {
 	WorkflowDefinitionName string     `dynamodbav:"_gsi-wn,omitempty"`
@@ -118,19 +124,21 @@ func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) AttributeDefinition
 	}
 }
 
-func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) ConstructQuery() *dynamodb.QueryInput {
+func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) ConstructQuery() (*dynamodb.QueryInput, error) {
+	workflowNameAV, err := dynamodbattribute.Marshal(sk.WorkflowDefinitionName)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal workflow definition name: %s", err)
+	}
 	return &dynamodb.QueryInput{
 		IndexName: aws.String(sk.Name()),
 		ExpressionAttributeNames: map[string]*string{
 			"#W": aws.String("_gsi-wn"),
 		},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":workflowName": &dynamodb.AttributeValue{
-				S: aws.String(sk.WorkflowDefinitionName),
-			},
+			":workflowName": workflowNameAV,
 		},
 		KeyConditionExpression: aws.String("#W = :workflowName"),
-	}
+	}, nil
 }
 
 func (pk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) KeySchema() []*dynamodb.KeySchemaElement {
@@ -141,6 +149,60 @@ func (pk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) KeySchema() []*dyna
 		},
 		{
 			AttributeName: aws.String("_gsi-ca"),
+			KeyType:       aws.String(dynamodb.KeyTypeRange),
+		},
+	}
+}
+
+// ddbWorkflowSecondaryKeyStatusLastUpdated is a global secondary index that
+// allows us to query for the oldest in terms of (last updated time) workflow in a pending state.
+type ddbWorkflowSecondaryKeyStatusLastUpdated struct {
+	Status      resources.WorkflowStatus `dynamodbav:"_gsi-status,omitempty"`
+	LastUpdated *time.Time               `dynamodbav:"_gsi-lastUpdated,omitempty"`
+}
+
+func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) Name() string {
+	return "status-lastUpdated"
+}
+
+func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) AttributeDefinitions() []*dynamodb.AttributeDefinition {
+	return []*dynamodb.AttributeDefinition{
+		{
+			AttributeName: aws.String("_gsi-status"),
+			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+		},
+		{
+			AttributeName: aws.String("_gsi-lastUpdated"),
+			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+		},
+	}
+}
+
+func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) ConstructQuery() (*dynamodb.QueryInput, error) {
+	statusAV, err := dynamodbattribute.Marshal(sk.Status)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal workflow status type: %s", err)
+	}
+	return &dynamodb.QueryInput{
+		IndexName: aws.String(sk.Name()),
+		ExpressionAttributeNames: map[string]*string{
+			"#S": aws.String("_gsi-status"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":status": statusAV,
+		},
+		KeyConditionExpression: aws.String("#S = :status"),
+	}, nil
+}
+
+func (pk ddbWorkflowSecondaryKeyStatusLastUpdated) KeySchema() []*dynamodb.KeySchemaElement {
+	return []*dynamodb.KeySchemaElement{
+		{
+			AttributeName: aws.String("_gsi-status"),
+			KeyType:       aws.String(dynamodb.KeyTypeHash),
+		},
+		{
+			AttributeName: aws.String("_gsi-lastUpdated"),
 			KeyType:       aws.String(dynamodb.KeyTypeRange),
 		},
 	}

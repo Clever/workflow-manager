@@ -10,18 +10,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func RunStoreTests(s store.Store, t *testing.T) {
-	t.Run("GetWorkflowDefinitions", GetWorkflowDefinitions(s, t))
-	t.Run("UpdateWorkflowDefinition", UpdateWorkflowDefinition(s, t))
-	t.Run("GetWorkflowDefinition", GetWorkflowDefinition(s, t))
-	t.Run("SaveWorkflowDefinition", SaveWorkflowDefinition(s, t))
-	t.Run("SaveStateResource", SaveStateResource(s, t))
-	t.Run("GetStateResource", GetStateResource(s, t))
-	t.Run("DeleteStateResource", DeleteStateResource(s, t))
-	t.Run("SaveWorkflow", SaveWorkflow(s, t))
-	t.Run("UpdateWorkflow", UpdateWorkflow(s, t))
-	t.Run("GetWorkflowByID", GetWorkflowByID(s, t))
-	t.Run("GetWorkflows", GetWorkflows(s, t))
+func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
+	t.Run("GetWorkflowDefinitions", GetWorkflowDefinitions(storeFactory(), t))
+	t.Run("UpdateWorkflowDefinition", UpdateWorkflowDefinition(storeFactory(), t))
+	t.Run("GetWorkflowDefinition", GetWorkflowDefinition(storeFactory(), t))
+	t.Run("SaveWorkflowDefinition", SaveWorkflowDefinition(storeFactory(), t))
+	t.Run("SaveStateResource", SaveStateResource(storeFactory(), t))
+	t.Run("GetStateResource", GetStateResource(storeFactory(), t))
+	t.Run("DeleteStateResource", DeleteStateResource(storeFactory(), t))
+	t.Run("SaveWorkflow", SaveWorkflow(storeFactory(), t))
+	t.Run("UpdateWorkflow", UpdateWorkflow(storeFactory(), t))
+	t.Run("GetWorkflowByID", GetWorkflowByID(storeFactory(), t))
+	t.Run("GetWorkflows", GetWorkflows(storeFactory(), t))
+	t.Run("GetPendingWorkflowIDs", GetPendingWorkflowIDs(storeFactory(), t))
 }
 
 func UpdateWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
@@ -220,5 +221,37 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 			gotWorkflow2IDs = append(gotWorkflow2IDs, j.ID)
 		}
 		require.Equal(t, workflow2IDs, gotWorkflow2IDs)
+	}
+}
+
+func GetPendingWorkflowIDs(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		wf1 := resources.KitchenSinkWorkflowDefinition(t)
+		require.Nil(t, s.SaveWorkflowDefinition(wf1))
+		wf2 := resources.KitchenSinkWorkflowDefinition(t)
+		require.Nil(t, s.SaveWorkflowDefinition(wf2))
+		workflow1 := resources.NewWorkflow(wf1, []string{"input"})
+		require.Nil(t, s.SaveWorkflow(*workflow1))
+		workflow2 := resources.NewWorkflow(wf2, []string{"input"})
+		require.Nil(t, s.SaveWorkflow(*workflow2))
+
+		pendingWorkflowIDs, err := s.GetPendingWorkflowIDs()
+		require.Nil(t, err)
+		require.Equal(t, pendingWorkflowIDs, []string{workflow1.ID, workflow2.ID})
+
+		workflow1.Status = resources.Running
+		require.Nil(t, s.UpdateWorkflow(*workflow1))
+
+		pendingWorkflowIDs, err = s.GetPendingWorkflowIDs()
+		require.Nil(t, err)
+		require.Equal(t, pendingWorkflowIDs, []string{workflow2.ID, workflow1.ID})
+
+		workflow2.Status = resources.Succeeded
+		require.Nil(t, s.UpdateWorkflow(*workflow2))
+
+		pendingWorkflowIDs, err = s.GetPendingWorkflowIDs()
+		require.Nil(t, err)
+		require.Equal(t, pendingWorkflowIDs, []string{workflow1.ID})
+
 	}
 }
