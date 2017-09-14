@@ -37,7 +37,7 @@ workflow-manager client library.
             * [.updateWorkflowDefinition(params, [options], [cb])](#module_workflow-manager--WorkflowManager+updateWorkflowDefinition) ⇒ <code>Promise</code>
             * [.getWorkflowDefinitionByNameAndVersion(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowDefinitionByNameAndVersion) ⇒ <code>Promise</code>
             * [.getWorkflows(workflowDefinitionName, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflows) ⇒ <code>Promise</code>
-            * [.startWorkflow(input, [options], [cb])](#module_workflow-manager--WorkflowManager+startWorkflow) ⇒ <code>Promise</code>
+            * [.startWorkflow(params, [options], [cb])](#module_workflow-manager--WorkflowManager+startWorkflow) ⇒ <code>Promise</code>
             * [.CancelWorkflow(params, [options], [cb])](#module_workflow-manager--WorkflowManager+CancelWorkflow) ⇒ <code>Promise</code>
             * [.getWorkflowByID(workflowId, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowByID) ⇒ <code>Promise</code>
         * _static_
@@ -299,7 +299,7 @@ Get the latest versions of all available WorkflowDefinitions
 
 <a name="module_workflow-manager--WorkflowManager+startWorkflow"></a>
 
-#### workflowManager.startWorkflow(input, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.startWorkflow(params, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -309,7 +309,7 @@ Get the latest versions of all available WorkflowDefinitions
 
 | Param | Type | Description |
 | --- | --- | --- |
-| input |  |  |
+| params |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |

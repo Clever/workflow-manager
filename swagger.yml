@@ -130,10 +130,10 @@ paths:
       summary: Start a Workflow
       operationId: startWorkflow
       parameters:
-        - name: input
+        - name: params
           in: body
           schema:
-            $ref: "#/definitions/WorkflowInput"
+            $ref: "#/definitions/StartWorkflowParams"
       responses:
         200:
           description: Responds with Workflow Id and Name
@@ -386,9 +386,10 @@ definitions:
         type: string
       queue:
         type: string
-      # input here represents just the "data" portion of the WorkflowInput
       input:
         type: array
+        items:
+            type: string
 
   Job:
     type: object
@@ -443,13 +444,15 @@ definitions:
       exitCode:
         type: integer
 
-  WorkflowInput:
+  StartWorkflowParams:
     type: object
     properties:
       workflowDefinition:
         $ref: '#/definitions/WorkflowDefinitionRef'
-      data:
+      input:
         type: array
+        items:
+          type: string
       namespace:
         type: string
       queue:

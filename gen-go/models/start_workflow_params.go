@@ -10,12 +10,12 @@ import (
 	"github.com/go-openapi/errors"
 )
 
-// WorkflowInput workflow input
-// swagger:model WorkflowInput
-type WorkflowInput struct {
+// StartWorkflowParams start workflow params
+// swagger:model StartWorkflowParams
+type StartWorkflowParams struct {
 
-	// data
-	Data []interface{} `json:"data"`
+	// input
+	Input []string `json:"input"`
 
 	// namespace
 	Namespace string `json:"namespace,omitempty"`
@@ -27,9 +27,14 @@ type WorkflowInput struct {
 	WorkflowDefinition *WorkflowDefinitionRef `json:"workflowDefinition,omitempty"`
 }
 
-// Validate validates this workflow input
-func (m *WorkflowInput) Validate(formats strfmt.Registry) error {
+// Validate validates this start workflow params
+func (m *StartWorkflowParams) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateInput(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
 
 	if err := m.validateWorkflowDefinition(formats); err != nil {
 		// prop
@@ -42,7 +47,16 @@ func (m *WorkflowInput) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *WorkflowInput) validateWorkflowDefinition(formats strfmt.Registry) error {
+func (m *StartWorkflowParams) validateInput(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Input) { // not required
+		return nil
+	}
+
+	return nil
+}
+
+func (m *StartWorkflowParams) validateWorkflowDefinition(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.WorkflowDefinition) { // not required
 		return nil

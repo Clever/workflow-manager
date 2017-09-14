@@ -47,7 +47,7 @@ func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowReq *models.
 	return apiWorkflowDefinitionFromStore(workflow), nil
 }
 
-// UpdateWorkflowDefinition creates a new revision for an existing workflow
+// UpdateWorkflowDefinition creates a new revision (@todo version) for an existing workflow
 func (h Handler) UpdateWorkflowDefinition(ctx context.Context, input *models.UpdateWorkflowDefinitionInput) (*models.WorkflowDefinition, error) {
 	workflowReq := input.NewWorkflowDefinitionRequest
 	if workflowReq == nil || workflowReq.Name != input.Name {
@@ -167,25 +167,19 @@ func (h Handler) DeleteStateResource(ctx context.Context, i *models.DeleteStateR
 }
 
 // StartWorkflow starts a new Workflow for the given WorkflowDefinition
-func (h Handler) StartWorkflow(ctx context.Context, input *models.WorkflowInput) (*models.Workflow, error) {
+func (h Handler) StartWorkflow(ctx context.Context, params *models.StartWorkflowParams) (*models.Workflow, error) {
 	var workflowDefinition resources.WorkflowDefinition
 	var err error
-	if input.WorkflowDefinition.Revision < 0 {
-		workflowDefinition, err = h.store.LatestWorkflowDefinition(input.WorkflowDefinition.Name)
+	if params.WorkflowDefinition.Revision < 0 {
+		workflowDefinition, err = h.store.LatestWorkflowDefinition(params.WorkflowDefinition.Name)
 	} else {
-		workflowDefinition, err = h.store.GetWorkflowDefinition(input.WorkflowDefinition.Name, int(input.WorkflowDefinition.Revision))
+		workflowDefinition, err = h.store.GetWorkflowDefinition(params.WorkflowDefinition.Name, int(params.WorkflowDefinition.Revision))
 	}
 	if err != nil {
 		return &models.Workflow{}, err
 	}
 
-	var data []string
-	if input.Data != nil {
-		// convert from []interface{} to []string (i.e. flattened json string array)
-		data = jsonToArgs(input.Data)
-	}
-
-	workflow, err := h.manager.CreateWorkflow(workflowDefinition, data, input.Namespace, input.Queue)
+	workflow, err := h.manager.CreateWorkflow(workflowDefinition, params.Input, params.Namespace, params.Queue)
 	if err != nil {
 		return &models.Workflow{}, err
 	}
@@ -232,16 +226,6 @@ func (h Handler) CancelWorkflow(ctx context.Context, input *models.CancelWorkflo
 	}
 
 	return h.manager.CancelWorkflow(&workflow, input.Reason.Reason)
-}
-
-func jsonToArgs(data []interface{}) []string {
-	args := []string{}
-	for _, v := range data {
-		if arg, ok := v.(string); ok {
-			args = append(args, arg)
-		}
-	}
-	return args
 }
 
 // TODO: the functions below should probably just be functions on the respective resources.<Struct>

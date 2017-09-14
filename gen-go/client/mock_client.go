@@ -176,7 +176,7 @@ func (mr *MockClientMockRecorder) GetWorkflows(ctx, i interface{}) *gomock.Call 
 }
 
 // StartWorkflow mocks base method
-func (m *MockClient) StartWorkflow(ctx context.Context, i *models.WorkflowInput) (*models.Workflow, error) {
+func (m *MockClient) StartWorkflow(ctx context.Context, i *models.StartWorkflowParams) (*models.Workflow, error) {
 	ret := m.ctrl.Call(m, "StartWorkflow", ctx, i)
 	ret0, _ := ret[0].(*models.Workflow)
 	ret1, _ := ret[1].(error)
