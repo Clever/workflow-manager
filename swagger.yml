@@ -347,7 +347,7 @@ definitions:
     properties:
       id:
         type: string
-      revision:
+      version:
         type: integer
       name:
         type: string
@@ -463,7 +463,7 @@ definitions:
     properties:
       name:
         type: string
-      revision:
+      version:
         type: integer
 
   CancelReason:

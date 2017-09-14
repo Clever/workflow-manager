@@ -16,8 +16,8 @@ type WorkflowDefinitionRef struct {
 	// name
 	Name string `json:"name,omitempty"`
 
-	// revision
-	Revision int64 `json:"revision,omitempty"`
+	// version
+	Version int64 `json:"version,omitempty"`
 }
 
 // Validate validates this workflow definition ref

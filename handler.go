@@ -47,7 +47,7 @@ func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowReq *models.
 	return apiWorkflowDefinitionFromStore(workflow), nil
 }
 
-// UpdateWorkflowDefinition creates a new revision (@todo version) for an existing workflow
+// UpdateWorkflowDefinition creates a new version for an existing workflow
 func (h Handler) UpdateWorkflowDefinition(ctx context.Context, input *models.UpdateWorkflowDefinitionInput) (*models.WorkflowDefinition, error) {
 	workflowReq := input.NewWorkflowDefinitionRequest
 	if workflowReq == nil || workflowReq.Name != input.Name {
@@ -170,10 +170,10 @@ func (h Handler) DeleteStateResource(ctx context.Context, i *models.DeleteStateR
 func (h Handler) StartWorkflow(ctx context.Context, params *models.StartWorkflowParams) (*models.Workflow, error) {
 	var workflowDefinition resources.WorkflowDefinition
 	var err error
-	if params.WorkflowDefinition.Revision < 0 {
+	if params.WorkflowDefinition.Version < 0 {
 		workflowDefinition, err = h.store.LatestWorkflowDefinition(params.WorkflowDefinition.Name)
 	} else {
-		workflowDefinition, err = h.store.GetWorkflowDefinition(params.WorkflowDefinition.Name, int(params.WorkflowDefinition.Revision))
+		workflowDefinition, err = h.store.GetWorkflowDefinition(params.WorkflowDefinition.Name, int(params.WorkflowDefinition.Version))
 	}
 	if err != nil {
 		return &models.Workflow{}, err
@@ -281,7 +281,7 @@ func apiWorkflowDefinitionFromStore(wf resources.WorkflowDefinition) *models.Wor
 
 	return &models.WorkflowDefinition{
 		Name:      wf.Name(),
-		Revision:  int64(wf.Version()),
+		Version:   int64(wf.Version()),
 		StartAt:   wf.StartAt().Name(),
 		CreatedAt: strfmt.DateTime(wf.CreatedAt()),
 		States:    states,

@@ -47,7 +47,7 @@ func (wf WorkflowDefinition) CreatedAt() time.Time {
 	return wf.CreatedAtTime
 }
 
-// Version returns the revision of the workflow
+// Version returns the version of the workflow
 // i.e. how many times has this definition been updated
 func (wf WorkflowDefinition) Version() int {
 	return wf.VersionInt
