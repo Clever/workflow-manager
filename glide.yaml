@@ -27,3 +27,6 @@ import:
   version: master
   subpackages:
   - gomock
+- package: github.com/zencoder/ddbsync
+  version: attempt-lock
+  repo: git@github.com:Clever/ddbsync.git

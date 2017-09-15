@@ -12,6 +12,7 @@ import (
 type MemoryStore struct {
 	workflowDefinitions map[string][]resources.WorkflowDefinition
 	workflows           map[string]resources.Workflow
+	workflowsLocked     map[string]struct{}
 	stateResources      map[string]resources.StateResource
 }
 
@@ -25,6 +26,7 @@ func New() MemoryStore {
 	return MemoryStore{
 		workflowDefinitions: map[string][]resources.WorkflowDefinition{},
 		workflows:           map[string]resources.Workflow{},
+		workflowsLocked:     map[string]struct{}{},
 		stateResources:      map[string]resources.StateResource{},
 	}
 }
@@ -193,4 +195,17 @@ func (s MemoryStore) GetPendingWorkflowIDs() ([]string, error) {
 	}
 	return pendingWorkflowIDs, nil
 
+}
+
+func (s MemoryStore) LockWorkflow(id string) error {
+	if _, ok := s.workflowsLocked[id]; ok {
+		return store.ErrWorkflowLocked
+	}
+	s.workflowsLocked[id] = struct{}{}
+	return nil
+}
+
+func (s MemoryStore) UnlockWorkflow(id string) error {
+	delete(s.workflowsLocked, id)
+	return nil
 }

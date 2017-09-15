@@ -12,11 +12,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/zencoder/ddbsync"
 )
 
 type DynamoDB struct {
 	ddb         dynamodbiface.DynamoDBAPI
 	tableConfig TableConfig
+	lockDB      ddbsync.DBer
 }
 
 type TableConfig struct {
@@ -26,10 +28,17 @@ type TableConfig struct {
 }
 
 func New(ddb dynamodbiface.DynamoDBAPI, tableConfig TableConfig) DynamoDB {
-	return DynamoDB{
+	d := DynamoDB{
 		ddb:         ddb,
 		tableConfig: tableConfig,
 	}
+	d.lockDB = ddbsync.NewDatabaseFromDDBAPI(ddb, d.locksTable())
+	return d
+}
+
+// locksTable returns the name of the table that stores the locks on workflows.
+func (d DynamoDB) locksTable() string {
+	return fmt.Sprintf("%s-locks", d.tableConfig.PrefixWorkflows)
 }
 
 // latestWorkflowDefinitionsTable returns the name of the table that stores the latest version of every WorkflowDefinition
@@ -177,6 +186,29 @@ func (d DynamoDB) InitTables() error {
 			WriteCapacityUnits: aws.Int64(1),
 		},
 		TableName: aws.String(d.stateResourcesTable()),
+	}); err != nil {
+		return err
+	}
+
+	// create locks table. This should probably be exposed in ddbsync
+	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("Name"),
+				AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+			},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("Name"),
+				KeyType:       aws.String(dynamodb.KeyTypeHash),
+			},
+		},
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits:  aws.Int64(1),
+			WriteCapacityUnits: aws.Int64(1),
+		},
+		TableName: aws.String(d.locksTable()),
 	}); err != nil {
 		return err
 	}
@@ -583,4 +615,23 @@ func (d DynamoDB) GetPendingWorkflowIDs() ([]string, error) {
 		pendingWorkflowIDs = append(pendingWorkflowIDs, pendingWorkflow.ID)
 	}
 	return pendingWorkflowIDs, nil
+}
+
+// LockWorkflow acquires a lock on modifying a workflow.
+func (s DynamoDB) LockWorkflow(id string) error {
+	mu := ddbsync.NewMutex(id, 30 /* seconds */, s.lockDB, 0 /* no reattempts, so irrelevant */)
+	if err := mu.AttemptLock(); err != nil {
+		if err == ddbsync.ErrLockAlreadyHeld {
+			return store.ErrWorkflowLocked
+		}
+		return err
+	}
+	return nil
+}
+
+// UnlockWorkflow releases a lock (if it exists) on modifying a workflow.
+func (s DynamoDB) UnlockWorkflow(id string) error {
+	mu := ddbsync.NewMutex(id, 30 /* seconds */, s.lockDB, 0 /* no reattempts, so irrelevant */)
+	mu.Unlock()
+	return nil
 }

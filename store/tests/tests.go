@@ -23,6 +23,7 @@ func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
 	t.Run("GetWorkflowByID", GetWorkflowByID(storeFactory(), t))
 	t.Run("GetWorkflows", GetWorkflows(storeFactory(), t))
 	t.Run("GetPendingWorkflowIDs", GetPendingWorkflowIDs(storeFactory(), t))
+	t.Run("LockWorkflow/UnlockWorkflow", LockUnlockWorkflow(storeFactory(), t))
 }
 
 func UpdateWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
@@ -253,5 +254,20 @@ func GetPendingWorkflowIDs(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, pendingWorkflowIDs, []string{workflow1.ID})
 
+	}
+}
+
+func LockUnlockWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		wfd1 := resources.KitchenSinkWorkflowDefinition(t)
+		require.Nil(t, s.SaveWorkflowDefinition(wfd1))
+		wf1 := resources.NewWorkflow(wfd1, []string{"input"})
+		require.Nil(t, s.SaveWorkflow(*wf1))
+
+		require.Nil(t, s.LockWorkflow(wf1.ID))
+		require.Equal(t, s.LockWorkflow(wf1.ID), store.ErrWorkflowLocked)
+		require.Nil(t, s.UnlockWorkflow(wf1.ID))
+		require.Nil(t, s.UnlockWorkflow(wf1.ID)) // unlocking an unlocked workflow is ok
+		require.Nil(t, s.LockWorkflow(wf1.ID))   // can reacquire the lock
 	}
 }
