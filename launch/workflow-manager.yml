@@ -5,7 +5,9 @@ env:
   - DEFAULT_BATCH_QUEUE
   - CUSTOM_BATCH_QUEUES # a JSON containing mappings from {"<name>":"<queue>",...}
   - AWS_DYNAMO_REGION
-  - AWS_DYNAMO_PREFIX
+  - AWS_DYNAMO_PREFIX_STATE_RESOURCES
+  - AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS
+  - AWS_DYNAMO_PREFIX_WORKFLOWS
 resources:
   cpu: 0.01
   max_mem: 0.02
