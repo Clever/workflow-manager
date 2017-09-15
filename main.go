@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"log"
@@ -57,12 +58,14 @@ func main() {
 		PrefixWorkflows:           c.DynamoPrefixWorkflows,
 	})
 	batch := batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.DefaultBatchQueue, c.CustomBatchQueues)
-
+	wfm := executor.NewBatchWorkflowManager(batch, db)
 	h := Handler{
 		store:   db,
-		manager: executor.NewBatchWorkflowManager(batch, db),
+		manager: wfm,
 	}
 	s := server.New(h, *addr)
+
+	go wfm.PollForPendingWorkflows(context.Background())
 
 	if err := s.Serve(); err != nil {
 		log.Fatal(err)

@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -132,33 +133,64 @@ func (wm BatchWorkflowManager) CreateWorkflow(def resources.WorkflowDefinition, 
 	// 2. kill the running jobs so that we don't have orphan jobs in AWS Batch
 	err = wm.store.SaveWorkflow(*workflow)
 
-	// TODO: remove this polling and replace by ECS job event processing
-	go wm.pollUpdateStatus(workflow)
-
 	return workflow, err
 }
 
-func (wm BatchWorkflowManager) pollUpdateStatus(workflow *resources.Workflow) {
+// PollForPendingWorkflows polls the store for workflows in a pending state and
+// attempts to update them. It will stop polling when the context is done.
+func (wm BatchWorkflowManager) PollForPendingWorkflows(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Second)
 	for {
-		if workflow.IsDone() {
-			// no need to poll anymore
-			log.InfoD("workflow-polling-stop", logger.M{
-				"id":     workflow.ID,
-				"status": workflow.Status,
-				"name":   workflow.WorkflowDefinition.Name(),
-			})
-			break
+		select {
+		case <-ctx.Done():
+			log.InfoD("poll-for-pending-workflows-done", logger.M{})
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			if err := wm.checkPendingWorkflows(); err != nil {
+				log.ErrorD("poll-for-pending-workflows", logger.M{"error": err.Error()})
+			}
 		}
-		if err := wm.UpdateWorkflowStatus(workflow); err != nil {
-			log.ErrorD("workflow-polling-error", logger.M{
-				"id":     workflow.ID,
-				"status": workflow.Status,
-				"name":   workflow.WorkflowDefinition.Name(),
-				"error":  err.Error(),
-			})
-		}
-		time.Sleep(time.Minute)
 	}
+}
+
+func (wm BatchWorkflowManager) checkPendingWorkflows() error {
+	wfIDs, err := wm.store.GetPendingWorkflowIDs()
+	if err != nil {
+		return err
+	}
+
+	// attempt to lock one of the workflows for updating
+	var wfLockedID string
+	for _, wfID := range wfIDs {
+		if err := wm.store.LockWorkflow(wfID); err != nil {
+			if err == store.ErrWorkflowLocked {
+				continue
+			}
+			return err
+		}
+		wfLockedID = wfID
+		break
+	}
+
+	if wfLockedID == "" {
+		log.InfoD("check-pending-workflows-noop", logger.M{})
+		return nil
+	}
+
+	log.InfoD("check-pending-workflow-locked", logger.M{"id": wfLockedID})
+	defer func() {
+		log.InfoD("check-pending-workflow-unlocked", logger.M{"id": wfLockedID})
+		wm.store.UnlockWorkflow(wfLockedID)
+	}()
+
+	if wf, err := wm.store.GetWorkflowByID(wfLockedID); err != nil {
+		return err
+	} else if err := wm.UpdateWorkflowStatus(&wf); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (wm BatchWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reason string) error {
