@@ -459,6 +459,7 @@ definitions:
         type: string
       queue:
         type: string
+        default: "default"
 
   WorkflowDefinitionRef:
     type: object

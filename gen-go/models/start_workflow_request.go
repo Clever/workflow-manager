@@ -21,7 +21,7 @@ type StartWorkflowRequest struct {
 	Namespace string `json:"namespace,omitempty"`
 
 	// queue
-	Queue string `json:"queue,omitempty"`
+	Queue *string `json:"queue,omitempty"`
 
 	// workflow definition
 	WorkflowDefinition *WorkflowDefinitionRef `json:"workflowDefinition,omitempty"`
