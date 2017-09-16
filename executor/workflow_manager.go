@@ -185,7 +185,9 @@ func (wm BatchWorkflowManager) checkPendingWorkflows() error {
 	log.InfoD("pending-workflows-locked", logger.M{"id": wfLockedID})
 	defer func() {
 		log.InfoD("pending-workflows-unlocked", logger.M{"id": wfLockedID})
-		wm.store.UnlockWorkflow(wfLockedID)
+		if err := wm.store.UnlockWorkflow(wfLockedID); err != nil {
+			log.ErrorD("pending-workflows-unlock-error", logger.M{"error": err.Error()})
+		}
 	}()
 
 	wf, err := wm.store.GetWorkflowByID(wfLockedID)
