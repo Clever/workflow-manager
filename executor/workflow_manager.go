@@ -184,7 +184,8 @@ func (wm BatchWorkflowManager) checkPendingWorkflows() error {
 		wm.store.UnlockWorkflow(wfLockedID)
 	}()
 
-	if wf, err := wm.store.GetWorkflowByID(wfLockedID); err != nil {
+	wf, err := wm.store.GetWorkflowByID(wfLockedID)
+	if err != nil {
 		return err
 	}
 

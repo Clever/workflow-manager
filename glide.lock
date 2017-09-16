@@ -1,5 +1,5 @@
-hash: 7579344b2cf74e7467fd42bb0f08255798c6b30b3a596bdae9bca4feb155c74f
-updated: 2017-09-15T04:24:29.339242735Z
+hash: 8b1ea624b45c38ea42442b26fc5352b7e7721ce92a364469f2ec1f62b5f5dec5
+updated: 2017-09-16T04:08:53.264215747Z
 imports:
 - name: github.com/afex/hystrix-go
   version: f118cd938f786d24f46cc307981d8f63b7951020
@@ -10,7 +10,7 @@ imports:
 - name: github.com/asaskevich/govalidator
   version: 73945b6115bfbbcc57d89b7316e28109364124e1
 - name: github.com/aws/aws-sdk-go
-  version: cbd6949bf5611b581f686f8fbacd7858c7464767
+  version: 88849eea79e8e48241987b1f0a11a7a0dcbb7716
   subpackages:
   - aws
   - aws/awserr
@@ -42,7 +42,6 @@ imports:
   - service/dynamodb
   - service/dynamodb/dynamodbattribute
   - service/dynamodb/dynamodbiface
-  - service/sqs
   - service/sts
 - name: github.com/Clever/discovery-go
   version: 2e485eaaf026d527548740ceff178c8859fcaa07
@@ -89,7 +88,7 @@ imports:
   subpackages:
   - proto
 - name: github.com/golang/mock
-  version: 18f6dd13ccdd227b8ebc546ca95cd62a02f3970c
+  version: cd1f5ca28400ea81f03fbc828a052ab46c33fcf9
   subpackages:
   - gomock
 - name: github.com/golang/protobuf
@@ -154,12 +153,12 @@ imports:
 - name: github.com/xeipuuv/gojsonschema
   version: 3f523f4c14b6e925da10475eb0447c2f28614aac
 - name: github.com/zencoder/ddbsync
-  version: ccb84f8ad168556f70f690882b20d6abaed94d0a
+  version: 83dd4ef1834424d47a7cde4a7f4361cfabbd7564
   repo: git@github.com:Clever/ddbsync.git
   subpackages:
   - models
 - name: golang.org/x/net
-  version: 859d1a86bb617c0c20d154590c3c5d3fcb670b07
+  version: 8351a756f30f1297fe94bbf4b767ec589c6ea6d0
   subpackages:
   - context
   - context/ctxhttp
@@ -170,7 +169,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/text
-  version: 14c0d48ead0cd47e3104ada247d91be04afc7a5a
+  version: 1cbadb444a806fd9430d14ad08967ed91da4fa0a
   subpackages:
   - secure/bidirule
   - transform

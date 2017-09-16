@@ -28,5 +28,5 @@ import:
   subpackages:
   - gomock
 - package: github.com/zencoder/ddbsync
-  version: attempt-lock
-  repo: git@github.com:Clever/ddbsync.git
+  version: 83dd4ef
+  repo: git@github.com:Clever/ddbsync.git # use our fork which adds a couple of methods
