@@ -174,23 +174,21 @@ func (wm BatchWorkflowManager) checkPendingWorkflows() error {
 	}
 
 	if wfLockedID == "" {
-		log.InfoD("check-pending-workflows-noop", logger.M{})
+		log.InfoD("pending-workflows-noop", logger.M{"pending": len(wfIDs)})
 		return nil
 	}
 
-	log.InfoD("check-pending-workflow-locked", logger.M{"id": wfLockedID})
+	log.InfoD("pending-workflows-locked", logger.M{"id": wfLockedID})
 	defer func() {
-		log.InfoD("check-pending-workflow-unlocked", logger.M{"id": wfLockedID})
+		log.InfoD("pending-workflows-unlocked", logger.M{"id": wfLockedID})
 		wm.store.UnlockWorkflow(wfLockedID)
 	}()
 
 	if wf, err := wm.store.GetWorkflowByID(wfLockedID); err != nil {
 		return err
-	} else if err := wm.UpdateWorkflowStatus(&wf); err != nil {
-		return err
 	}
 
-	return nil
+	return wm.UpdateWorkflowStatus(&wf)
 }
 
 func (wm BatchWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reason string) error {
