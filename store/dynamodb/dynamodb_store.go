@@ -540,8 +540,8 @@ func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
 	return workflow, nil
 }
 
-// GetWorkflows returns the last 10 workflows for a workflow.
-// It uses a global secondary index on the workflow name + created time for a workflow.
+// GetWorkflows returns the last 10 workflows for a workflow definition.
+// It uses a global secondary index on the workflow definition name + created time for a workflow.
 func (d DynamoDB) GetWorkflows(workflowName string) ([]resources.Workflow, error) {
 	var workflows []resources.Workflow
 	query, err := ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
