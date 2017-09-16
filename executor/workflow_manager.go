@@ -154,6 +154,18 @@ func (wm BatchWorkflowManager) PollForPendingWorkflows(ctx context.Context) {
 	}
 }
 
+func (wm BatchWorkflowManager) lockAvailableWorkflow(workflowIDs []string) (string, error) {
+	for _, wfID := range workflowIDs {
+		if err := wm.store.LockWorkflow(wfID); err == nil {
+			return wfID, nil
+		} else if err != store.ErrWorkflowLocked {
+			// an error reading from the Store
+			return "", err
+		}
+	}
+	return "", nil
+}
+
 func (wm BatchWorkflowManager) checkPendingWorkflows() error {
 	wfIDs, err := wm.store.GetPendingWorkflowIDs()
 	if err != nil {
@@ -161,18 +173,10 @@ func (wm BatchWorkflowManager) checkPendingWorkflows() error {
 	}
 
 	// attempt to lock one of the workflows for updating
-	var wfLockedID string
-	for _, wfID := range wfIDs {
-		if err := wm.store.LockWorkflow(wfID); err != nil {
-			if err == store.ErrWorkflowLocked {
-				continue
-			}
-			return err
-		}
-		wfLockedID = wfID
-		break
+	wfLockedID, err := wm.lockAvailableWorkflow(wfIDs)
+	if err != nil {
+		return err
 	}
-
 	if wfLockedID == "" {
 		log.InfoD("pending-workflows-noop", logger.M{"pending": len(wfIDs)})
 		return nil
