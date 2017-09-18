@@ -12,11 +12,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/batch"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/kardianos/osext"
 
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/batchclient"
+	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/gen-go/server"
 	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
 )
@@ -58,14 +60,24 @@ func main() {
 		PrefixWorkflows:           c.DynamoPrefixWorkflows,
 	})
 	batch := batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.DefaultBatchQueue, c.CustomBatchQueues)
-	wfm := executor.NewBatchWorkflowManager(batch, db)
+	wfmBatch := executor.NewBatchWorkflowManager(batch, db)
+	// TODO: config all of these
+	sfnRegion := "us-west-2"
+	sfnRole := "arn:aws:iam::589690932525:role/raf-test-step-functions"
+	sfnAccountID := "589690932525"
+	sfnapi := sfn.New(session.New(), aws.NewConfig().WithRegion(sfnRegion))
+	wfmSFN := executor.NewSFNWorkflowManager(sfnapi, db, sfnRole, sfnRegion, sfnAccountID)
+	wfmMulti := executor.NewMultiWorkflowManager(wfmBatch, map[models.Manager]executor.WorkflowManager{
+		models.ManagerBatch:         wfmBatch,
+		models.ManagerStepFunctions: wfmSFN,
+	})
 	h := Handler{
 		store:   db,
-		manager: wfm,
+		manager: wfmMulti,
 	}
 	s := server.New(h, *addr)
 
-	go wfm.PollForPendingWorkflows(context.Background())
+	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmMulti, db)
 
 	if err := s.Serve(); err != nil {
 		log.Fatal(err)

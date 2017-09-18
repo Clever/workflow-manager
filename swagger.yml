@@ -304,6 +304,8 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/State'
+      manager:
+        $ref: '#/definitions/Manager'
 
   State:
     type: object
@@ -364,6 +366,14 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/State'
+      manager:
+        $ref: '#/definitions/Manager'
+
+  Manager:
+    type: string
+    enum:
+      - "batch"
+      - "step-functions"
 
   Workflow:
     type: object
@@ -499,3 +509,74 @@ definitions:
         format: date-time
       type:
         type: string
+
+  # States Language Types: https://states-language.net/spec.html
+  SLStateMachine:
+    type: object
+    properties:
+      StartAt:
+        type: string
+      Comment:
+        type: string
+      Version:
+        type: string
+        enum: ["1.0"]
+      TimeoutSeconds:
+        type: integer
+      States:
+        additionalProperties:
+          $ref: '#/definitions/SLState'
+
+  SLState:
+    type: object
+    properties:
+      Type:
+        $ref: '#/definitions/SLStateType'
+      Resource:
+        type: string
+      Comment:
+        type: string
+      Next:
+        type: string
+      End:
+        type: boolean
+      InputPath:
+        type: string
+      OutputPath:
+        type: string
+      ResultPath:
+        type: string
+      Retry:
+        type: array
+        maxLength: 1 # expand once we support more than just errorEquals States.ALL
+        items:
+          $ref: '#/definitions/SLRetrier'
+
+  SLRetrier:
+    type: object
+    properties:
+      IntervalSeconds:
+        type: integer
+      MaxAttempts:
+        type: integer
+      BackoffRate:
+        type: number
+      ErrorEquals:
+        type: array
+        items:
+          $ref: '#/definitions/ErrorEquals'
+      MaxAttempts:
+        type: integer
+        minimum: 0
+        maximum: 10
+
+  SLStateType:
+    type: string
+    enum:
+      - "Pass"
+      - "Task"
+      - "Choice"
+      - "Wait"
+      - "Succeed"
+      - "Fail"
+      - "Parallel"

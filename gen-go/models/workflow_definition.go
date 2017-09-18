@@ -23,6 +23,9 @@ type WorkflowDefinition struct {
 	// id
 	ID string `json:"id,omitempty"`
 
+	// manager
+	Manager Manager `json:"manager,omitempty"`
+
 	// name
 	Name string `json:"name,omitempty"`
 
@@ -40,6 +43,11 @@ type WorkflowDefinition struct {
 func (m *WorkflowDefinition) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateManager(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if err := m.validateStates(formats); err != nil {
 		// prop
 		res = append(res, err)
@@ -48,6 +56,19 @@ func (m *WorkflowDefinition) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *WorkflowDefinition) validateManager(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Manager) { // not required
+		return nil
+	}
+
+	if err := m.Manager.Validate(formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -73,9 +73,11 @@ func DecodeWorkflow(m map[string]*dynamodb.AttributeValue) (resources.Workflow, 
 			NameStr:    wfpk.Name,
 			VersionInt: wfpk.Version,
 		},
-		Input:  dj.Input,
-		Jobs:   dj.Jobs,
-		Status: dj.Status,
+		Input:     dj.Input,
+		Jobs:      dj.Jobs,
+		Status:    dj.Status,
+		Namespace: dj.Namespace,
+		Queue:     dj.Queue,
 	}, nil
 }
 
