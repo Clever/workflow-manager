@@ -2,7 +2,6 @@ package executor
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -152,7 +151,14 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition, in
 
 func (wm *SFNWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reason string) error {
 	// cancel execution
-	return errors.New("TODO")
+	wd := workflow.WorkflowDefinition
+	execARN := executionARN(wm.region, wm.accountID, stateMachineName(wd.NameStr, wd.VersionInt, workflow.Namespace, workflow.Queue), workflow.ID)
+	_, err := wm.sfnapi.StopExecution(&sfn.StopExecutionInput{
+		ExecutionArn: aws.String(execARN),
+		Cause:        aws.String(reason),
+		// Error: aws.String(""), // TODO: Can we use this? "An arbitrary error code that identifies the cause of the termination."
+	})
+	return err
 }
 
 func executionARN(region, accountID, stateMachineName, executionName string) string {
@@ -189,26 +195,71 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow)
 
 	workflow.LastUpdated = time.Now()
 	workflow.Status = sfnStatusToWorkflowStatus(*describeOutput.Status)
+	// TODO: we should capture the output of a workflow
+	//workflow.Output = describeStatus.Output
 
-	// TODO: pull in execution history to populate jobs array
-	// err := wm.sfnapi.GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
-	// 	ExecutionArn: aws.String(execARN),
-	// }, func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool {
-	// 	// NOTE: if pulling the entire execution history becomes infeasible, we can:
-	// 	// 1) limit the results with `maxResults`
-	// 	// 2) set `reverseOrder` to true to get most recent events first
-	// 	// 3) store the last event we processed, and stop paging once we reach it
-	// 	for _, evt := range historyOutput.Events {
-	// 		switch *evt.Type {
-	// 		case sfn.HistoryEventTypeTaskStateEntered:
-	// 			job := &resources.Job{}
-	// 		}
-	// 	}
-	// 	return true
-	// })
-	// if err != nil {
-	// 	return err
-	// }
+	// Pull in execution history to populate jobs array
+	// Here we will begin to break the assumption that jobs are 1:1 with states, which is true in Batch
+	// since (1) it doesn't support complex branching, and (2) we schedule all jobs for a workflow at
+	// the time of  workflow submission.
+	// Step Functions supports complex branching, so jobs might not be 1:1 with states.
+	jobs := []*resources.Job{}
+	stateToJob := map[string]*resources.Job{}
+	if err := wm.sfnapi.GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+		ExecutionArn: aws.String(execARN),
+	}, func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool {
+		// NOTE: if pulling the entire execution history becomes infeasible, we can:
+		// 1) limit the results with `maxResults`
+		// 2) set `reverseOrder` to true to get most recent events first
+		// 3) store the last event we processed, and stop paging once we reach it
+		for _, evt := range historyOutput.Events {
+			switch *evt.Type {
+			case sfn.HistoryEventTypeTaskStateEntered:
+				stateEntered := evt.StateEnteredEventDetails
+				var input []string
+				if err := json.Unmarshal([]byte(*stateEntered.Input), &input); err != nil {
+					input = []string{*stateEntered.Input}
+				}
+				state, ok := workflow.WorkflowDefinition.StatesMap[*stateEntered.Name]
+				var stateResourceName string
+				if ok {
+					stateResourceName = state.Resource()
+				}
+				job := &resources.Job{
+					JobDetail: resources.JobDetail{
+						CreatedAt: *evt.Timestamp,
+						StartedAt: *evt.Timestamp,
+						// TODO: somehow match ActivityStarted events to state, capture worker name here
+						//ContainerId: ""/
+						Status: resources.JobStatusCreated,
+					},
+					// event IDs start at 1 and are only unique to the execution, so this might not be ideal
+					ID:    fmt.Sprintf("%d", *evt.Id),
+					Input: input,
+					State: *stateEntered.Name,
+					StateResource: resources.StateResource{
+						Name:        stateResourceName,
+						Type:        resources.SFNActivity,
+						Namespace:   workflow.Namespace,
+						LastUpdated: *evt.Timestamp,
+					},
+				}
+				stateToJob[job.State] = job
+				jobs = append(jobs, job)
+			case sfn.HistoryEventTypeTaskStateExited:
+				stateExited := evt.StateExitedEventDetails
+				stateToJob[*stateExited.Name].JobDetail.StoppedAt = *evt.Timestamp
+				// TODO: match ActivitySucceeded / ActivityFailed events and set job status
+				stateToJob[*stateExited.Name].JobDetail.Status = resources.JobStatusSucceeded
+				// TODO: add output to Job, capture it
+				// stateToJob[*stateExited.Name].Output = *stateExited.Output
+			}
+		}
+		return true
+	}); err != nil {
+		return err
+	}
+	workflow.Jobs = jobs
 
 	return wm.store.UpdateWorkflow(*workflow)
 }

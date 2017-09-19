@@ -4,6 +4,7 @@ import "time"
 
 const (
 	AWSBatchJobDefinition = "JobDefinitionArn"
+	SFNActivity           = "ActivityARN"
 )
 
 // StateResource maps the Resource URI (e.g. ARN for the JobDefinition
