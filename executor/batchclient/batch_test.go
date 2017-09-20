@@ -5,20 +5,33 @@ import (
 	"time"
 
 	"github.com/Clever/workflow-manager/mocks/mock_batchiface"
+	"github.com/Clever/workflow-manager/mocks/mock_dynamodbiface"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/batch"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetJobDetailFromBatch(t *testing.T) {
+type testConfig struct {
+	mockController      *gomock.Controller
+	mockBatchClient     *mock_batchiface.MockBatchAPI
+	mockResultsDBClient *mock_dynamodbiface.MockDynamoDBAPI
+	executor            *BatchExecutor
+}
+
+func TestStatus(t *testing.T) {
+	c := newTestConfig(t)
+	defer c.mockController.Finish()
+
 	t.Log("Converts AWS Batch JobDetail to resources.JobDetail")
-	batchJobDetail := &batch.JobDetail{
+	jobID1 := aws.String("5a4a8864-2b4e-4c7f-84c1-e3aae28b4ebd")
+	batchJobDetail1 := batch.JobDetail{
 		Status:        aws.String("SUCCEEDED"),
 		StatusReason:  aws.String("Essential container in task exited"),
 		JobDefinition: aws.String("arn:aws:batch:us-east-1:58111111125:job-definition/batchcli:1"),
-		JobId:         aws.String("5a4a8864-2b4e-4c7f-84c1-e3aae28b4ebd"),
+		JobId:         jobID1,
 		Container: &batch.ContainerDetail{
 			MountPoints: []*batch.MountPoint{},
 			Image:       aws.String("clever/batchcli:999999"),
@@ -38,29 +51,106 @@ func TestGetJobDetailFromBatch(t *testing.T) {
 		//StoppedAt: aws.Int64(1490662008500),  // Works with incomplete information
 	}
 
-	be := BatchExecutor{
-		defaultQueue: "TEMP",
-		client:       nil,
+	jobID2 := aws.String("6a4a8864-2b4e-4c7f-84c1-e3aae28b4ebd")
+	batchJobDetail2 := batchJobDetail1
+	batchJobDetail2.JobId = jobID2
+	batchJobDetail2.DependsOn = []*batch.JobDependency{{JobId: jobID1}}
+
+	c.mockBatchClient.EXPECT().
+		DescribeJobs(&batch.DescribeJobsInput{Jobs: []*string{jobID1, jobID2}}).
+		Return(&batch.DescribeJobsOutput{
+			Jobs: []*batch.JobDetail{&batchJobDetail1, &batchJobDetail2},
+		}, nil)
+
+	c.mockResultsDBClient.EXPECT().
+		BatchGetItem(&dynamodb.BatchGetItemInput{
+			RequestItems: map[string]*dynamodb.KeysAndAttributes{
+				c.executor.resultsDBConfig.TableNameDev: {
+					Keys: []map[string]*dynamodb.AttributeValue{
+						{"Key": {S: jobID1}},
+						{"Key": {S: jobID2}},
+					},
+				},
+			},
+		}).
+		Return(&dynamodb.BatchGetItemOutput{
+			Responses: map[string][]map[string]*dynamodb.AttributeValue{
+				c.executor.resultsDBConfig.TableNameDev: {
+					{
+						"Key":    {S: jobID1},
+						"Result": {S: aws.String("job 1 output")},
+					},
+					{
+						"Key":    {S: jobID2},
+						"Result": {S: aws.String("job 2 output")},
+					},
+				},
+			},
+		}, nil)
+
+	job1 := &resources.Job{
+		ID:   *jobID1,
+		Name: "should not be overwritten",
+		JobDetail: resources.JobDetail{
+			Input: []string{"initial input - should not be overwritten"},
+		},
+	}
+	job2 := &resources.Job{
+		ID:   *jobID2,
+		Name: "should not be overwritten",
 	}
 
-	jobDetail, err := be.getJobDetailFromBatch(batchJobDetail)
-	assert.Nil(t, err)
-	assert.NotNil(t, jobDetail)
+	errs := c.executor.Status([]*resources.Job{job1, job2})
+	for _, err := range errs {
+		assert.NoError(t, err)
+	}
 
-	assert.Equal(t, jobDetail.Status, resources.JobStatusSucceeded)
-	assert.Equal(t, jobDetail.CreatedAt.UTC().Format(time.RFC3339Nano), "2017-03-28T00:45:46.376Z")
-	assert.Equal(t, jobDetail.StartedAt.UTC().Format(time.RFC3339Nano), "2017-03-28T00:46:48.178Z")
-	assert.Equal(t, jobDetail.StoppedAt, time.Time{})
+	assert.Equal(t, *jobID1, job1.ID)
+	assert.Equal(t, resources.JobStatusSucceeded, job1.Status)
+	assert.Equal(t, "2017-03-28T00:45:46.376Z", job1.CreatedAt.UTC().Format(time.RFC3339Nano))
+	assert.Equal(t, "2017-03-28T00:46:48.178Z", job1.StartedAt.UTC().Format(time.RFC3339Nano))
+	assert.Equal(t, time.Time{}, job1.StoppedAt)
+	assert.Equal(t, "should not be overwritten", job1.Name)
+	assert.Equal(t, []string{"initial input - should not be overwritten"}, job1.Input)
+	assert.Equal(t, []string{"job 1 output"}, job1.Output)
+
+	assert.Equal(t, *jobID2, job2.ID)
+	assert.Equal(t, "should not be overwritten", job2.Name)
+	assert.Equal(t, job1.Output, job2.Input)
+	assert.Equal(t, []string{"job 2 output"}, job2.Output)
 
 	t.Log("Sets task status correctly when user has canceled it")
-	batchJobDetail.Status = aws.String(batch.JobStatusFailed)
-	batchJobDetail.StatusReason = aws.String("ABORTED_BY_USER: your message here")
-	batchJobDetail.StartedAt = nil
+	cancelledBatchJobDetails := batchJobDetail1
+	cancelledBatchJobDetails.Status = aws.String(batch.JobStatusFailed)
+	cancelledBatchJobDetails.Status = aws.String(batch.JobStatusFailed)
+	cancelledBatchJobDetails.StatusReason = aws.String("ABORTED_BY_USER: your message here")
+	cancelledBatchJobDetails.StartedAt = nil
 
-	jobDetail, err = be.getJobDetailFromBatch(batchJobDetail)
-	assert.NoError(t, err)
-	assert.NotNil(t, jobDetail)
-	assert.Equal(t, jobDetail.Status, resources.JobStatusUserAborted)
+	c.mockBatchClient.EXPECT().
+		DescribeJobs(&batch.DescribeJobsInput{Jobs: []*string{jobID1}}).
+		Return(&batch.DescribeJobsOutput{
+			Jobs: []*batch.JobDetail{&cancelledBatchJobDetails},
+		}, nil)
+
+	c.mockResultsDBClient.EXPECT().
+		BatchGetItem(&dynamodb.BatchGetItemInput{
+			RequestItems: map[string]*dynamodb.KeysAndAttributes{
+				c.executor.resultsDBConfig.TableNameDev: {
+					Keys: []map[string]*dynamodb.AttributeValue{
+						{"Key": {S: jobID1}},
+					},
+				},
+			},
+		}).
+		Return(&dynamodb.BatchGetItemOutput{
+			Responses: map[string][]map[string]*dynamodb.AttributeValue{},
+		}, nil)
+
+	errs = c.executor.Status([]*resources.Job{job1})
+	for _, err := range errs {
+		assert.NoError(t, err)
+	}
+	assert.Equal(t, job1.Status, resources.JobStatusUserAborted)
 }
 
 func TestSubmitWorkflowToCustomQueue(t *testing.T) {
@@ -101,4 +191,24 @@ func TestSubmitWorkflowToCustomQueue(t *testing.T) {
 	t.Log("errors if you submit job to custom queue that does not exist")
 	_, err = be.SubmitWorkflow(name, definition, dependencies, input, "invalid-queue", 0)
 	assert.Error(t, err)
+}
+
+func newTestConfig(t *testing.T) *testConfig {
+	mockController := gomock.NewController(t)
+	mockBatchClient := mock_batchiface.NewMockBatchAPI(mockController)
+	mockResultsDBClient := mock_dynamodbiface.NewMockDynamoDBAPI(mockController)
+
+	return &testConfig{
+		mockController:      mockController,
+		mockBatchClient:     mockBatchClient,
+		mockResultsDBClient: mockResultsDBClient,
+		executor: &BatchExecutor{
+			defaultQueue: "TEMP",
+			client:       mockBatchClient,
+			resultsDB:    mockResultsDBClient,
+			resultsDBConfig: &ResultsDBConfig{
+				TableNameDev: "results-dev",
+			},
+		},
+	}
 }

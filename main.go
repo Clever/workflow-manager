@@ -32,6 +32,9 @@ type Config struct {
 	DynamoPrefixWorkflowDefinitions string
 	DynamoPrefixWorkflows           string
 	DynamoRegion                    string
+	DynamoRegionWorkflowResults     string
+	DynamoTableWorkflowResultsDev   string
+	DynamoTableWorkflowResultsProd  string
 	SFNRegion                       string
 	SFNAccountID                    string
 	SFNRoleARN                      string
@@ -54,6 +57,7 @@ func main() {
 
 	c := loadConfig()
 	setupRouting()
+
 	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{Region: aws.String(c.DynamoRegion)},
 	})))
@@ -62,7 +66,19 @@ func main() {
 		PrefixWorkflowDefinitions: c.DynamoPrefixWorkflowDefinitions,
 		PrefixWorkflows:           c.DynamoPrefixWorkflows,
 	})
-	batch := batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.DefaultBatchQueue, c.CustomBatchQueues)
+	resultsDB := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{Region: aws.String(c.DynamoRegionWorkflowResults)},
+	})))
+	batch := batchclient.NewBatchExecutor(
+		batch.New(awsSession(c)),
+		c.DefaultBatchQueue,
+		c.CustomBatchQueues,
+		resultsDB,
+		&batchclient.ResultsDBConfig{
+			TableNameDev:  c.DynamoTableWorkflowResultsDev,
+			TableNameProd: c.DynamoTableWorkflowResultsProd,
+		},
+	)
 	wfmBatch := executor.NewBatchWorkflowManager(batch, db)
 	sfnapi := sfn.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion))
 	wfmSFN := executor.NewSFNWorkflowManager(sfnapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
@@ -118,6 +134,18 @@ func loadConfig() Config {
 			"workflow-manager-test",
 		),
 		DynamoRegion: os.Getenv("AWS_DYNAMO_REGION"),
+		DynamoRegionWorkflowResults: getEnvVarOrDefault(
+			"AWS_DYNAMO_REGION_WORKFLOW_RESULTS",
+			"us-east-1",
+		),
+		DynamoTableWorkflowResultsDev: getEnvVarOrDefault(
+			"AWS_DYNAMO_TABLE_WORKFLOW_RESULTS_DEV",
+			"workflow-results-dev",
+		),
+		DynamoTableWorkflowResultsProd: getEnvVarOrDefault(
+			"AWS_DYNAMO_TABLE_WORKFLOW_RESULTS_PROD",
+			"workflow-results",
+		),
 		SFNRegion:    os.Getenv("AWS_SFN_REGION"),
 		SFNAccountID: os.Getenv("AWS_SFN_ACCOUNT_ID"),
 		SFNRoleARN:   os.Getenv("AWS_SFN_ROLE_ARN"),

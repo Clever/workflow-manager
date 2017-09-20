@@ -11,67 +11,113 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/batch"
 	"github.com/aws/aws-sdk-go/service/batch/batchiface"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/go-openapi/strfmt"
 )
 
-// DefaultQueue contains the swagger api's default value for queue input
-var DefaultQueue = "default"
+const (
+	// DefaultQueue contains the swagger api's default value for queue input
+	DefaultQueue = "default"
 
-// DependenciesEnvVarName is injected for every task
-// with a list of dependency ids
-const DependenciesEnvVarName = "_BATCH_DEPENDENCIES"
+	// DependenciesEnvVarName is injected for every task
+	// with a list of dependency ids
+	DependenciesEnvVarName = "_BATCH_DEPENDENCIES"
 
-// StartingInputEnvVarName is used to pass in the input for the first task
-// in a job
-const StartingInputEnvVarName = "_BATCH_START"
+	// StartingInputEnvVarName is used to pass in the input for the first task
+	// in a job
+	StartingInputEnvVarName = "_BATCH_START"
+
+	productionQueueName = "workflows-production"
+)
 
 // BatchExecutor implements Executor to interact with the AWS Batch API
 type BatchExecutor struct {
-	client       batchiface.BatchAPI
-	defaultQueue string
-	customQueues map[string]string
+	client          batchiface.BatchAPI
+	defaultQueue    string
+	customQueues    map[string]string
+	resultsDB       dynamodbiface.DynamoDBAPI
+	resultsDBConfig *ResultsDBConfig
+}
+
+type ResultsDBConfig struct {
+	TableNameDev  string
+	TableNameProd string
 }
 
 // NewBatchExecutor creates a new BatchExecutor for interacting with an AWS Batch queue
-func NewBatchExecutor(client batchiface.BatchAPI, defaultQueue string, customQueues map[string]string) BatchExecutor {
+func NewBatchExecutor(
+	client batchiface.BatchAPI,
+	defaultQueue string,
+	customQueues map[string]string,
+	resultsDB dynamodbiface.DynamoDBAPI,
+	resultsDBConfig *ResultsDBConfig,
+) BatchExecutor {
 	return BatchExecutor{
-		client,
-		defaultQueue,
-		customQueues,
+		client:          client,
+		defaultQueue:    defaultQueue,
+		customQueues:    customQueues,
+		resultsDB:       resultsDB,
+		resultsDBConfig: resultsDBConfig,
 	}
 }
 
-func (be BatchExecutor) Status(tasks []*resources.Job) []error {
-	status := map[string]*resources.Job{}
-	awsJobs := []*string{}
-	taskIds := []string{}
+func (be BatchExecutor) Status(jobs []*resources.Job) []error {
+	jobsByID := map[string]*resources.Job{}
+	awsJobIDs := []*string{}
+	jobIDs := []string{}
 
-	for _, task := range tasks {
-		awsJobs = append(awsJobs, aws.String(task.ID))
-		taskIds = append(taskIds, task.ID)
-		status[task.ID] = task
+	for _, task := range jobs {
+		awsJobIDs = append(awsJobIDs, aws.String(task.ID))
+		jobIDs = append(jobIDs, task.ID)
+		jobsByID[task.ID] = task
 	}
 
 	results, err := be.client.DescribeJobs(&batch.DescribeJobsInput{
-		Jobs: awsJobs,
+		Jobs: awsJobIDs,
 	})
 	if err != nil {
 		return []error{err}
 	}
 	// TODO: aws seems to silently fail on no jobs found. need to investigate
 	if len(results.Jobs) == 0 {
-		return []error{fmt.Errorf("No task(s) found: %v.", taskIds)}
+		return []error{fmt.Errorf("No task(s) found: %v.", jobIDs)}
 	}
 
-	var taskErrors []error
-	for _, jobDetail := range results.Jobs {
-		taskDetail, err := be.getJobDetailFromBatch(jobDetail)
+	jobOutputsByJobID, err := be.getJobOutputs(jobs)
+	if err != nil {
+		return []error{err}
+	}
+
+	var jobErrors []error
+	for _, awsJobDetail := range results.Jobs {
+		updatedJobDetail, err := be.getJobDetailFromBatch(awsJobDetail)
 		if err != nil {
 			// TODO: add jobId to err for clarity
-			taskErrors = append(taskErrors, err)
+			jobErrors = append(jobErrors, err)
 			continue
 		}
-		status[*jobDetail.JobId].SetDetail(taskDetail)
+
+		job := jobsByID[*awsJobDetail.JobId]
+
+		// Set inputs based on job dependency outputs:
+		// Preserve original input (really only applies to the first job in the workflow).
+		updatedJobDetail.Input = job.Input
+		if len(awsJobDetail.DependsOn) > 0 {
+			updatedJobDetail.Input = []string{}
+			for _, dependency := range awsJobDetail.DependsOn {
+				dependencyOutput := jobOutputsByJobID[*dependency.JobId]
+				if len(dependencyOutput) > 0 {
+					updatedJobDetail.Input = append(updatedJobDetail.Input, dependencyOutput)
+				}
+			}
+		}
+
+		if jobOutput, ok := jobOutputsByJobID[*awsJobDetail.JobId]; ok {
+			updatedJobDetail.Output = []string{jobOutput}
+		}
+
+		job.SetDetail(updatedJobDetail)
 	}
 
 	return nil
@@ -100,8 +146,9 @@ func (be BatchExecutor) Cancel(tasks []*resources.Job, reason string) []error {
 
 // getJobDetailFromBatch converts batch.JobDetail to resources.JobDetail
 func (be BatchExecutor) getJobDetailFromBatch(job *batch.JobDetail) (resources.JobDetail, error) {
-	var statusReason, containerArn string
+	var statusReason, containerArn, queueName string
 	var createdAt, startedAt, stoppedAt time.Time
+	var inputsFromEnv []string
 	msToNs := int64(time.Millisecond)
 	if job.StatusReason != nil {
 		statusReason = *job.StatusReason
@@ -117,6 +164,9 @@ func (be BatchExecutor) getJobDetailFromBatch(job *batch.JobDetail) (resources.J
 	}
 	if job.Container != nil && job.Container.TaskArn != nil {
 		containerArn = *job.Container.TaskArn
+	}
+	if job.JobQueue != nil {
+		queueName = *job.JobQueue
 	}
 
 	attempts := []*models.JobAttempt{}
@@ -148,14 +198,58 @@ func (be BatchExecutor) getJobDetailFromBatch(job *batch.JobDetail) (resources.J
 	}
 
 	return resources.JobDetail{
-		StatusReason: statusReason,
-		Status:       be.taskStatus(job),
-		CreatedAt:    createdAt,
-		StartedAt:    startedAt,
-		StoppedAt:    stoppedAt,
-		ContainerId:  containerArn,
 		Attempts:     attempts,
+		ContainerId:  containerArn,
+		CreatedAt:    createdAt,
+		Input:        inputsFromEnv,
+		QueueName:    queueName,
+		StartedAt:    startedAt,
+		Status:       be.taskStatus(job),
+		StatusReason: statusReason,
+		StoppedAt:    stoppedAt,
 	}, nil
+}
+
+func (be BatchExecutor) getJobOutputs(jobs []*resources.Job) (map[string]string, error) {
+	if len(jobs) == 0 {
+		return map[string]string{}, nil
+	}
+
+	tableName := be.resultsDBConfig.TableNameDev
+	if jobs[0].QueueName == productionQueueName {
+		tableName = be.resultsDBConfig.TableNameProd
+	}
+
+	fetchKeys := []map[string]*dynamodb.AttributeValue{}
+	for _, job := range jobs {
+		fetchKeys = append(fetchKeys, map[string]*dynamodb.AttributeValue{
+			"Key": {S: aws.String(job.ID)},
+		})
+	}
+
+	results, err := be.resultsDB.BatchGetItem(&dynamodb.BatchGetItemInput{
+		RequestItems: map[string]*dynamodb.KeysAndAttributes{
+			tableName: {Keys: fetchKeys},
+		},
+	})
+	if err != nil {
+		return map[string]string{}, err
+	}
+	if _, ok := results.Responses[tableName]; !ok {
+		return map[string]string{}, nil
+	}
+
+	outputs := make(map[string]string, len(jobs))
+	for _, entry := range results.Responses[tableName] {
+		// Ignore cases with empty results.
+		outputAttributeValue := entry["Result"]
+		if outputAttributeValue != nil {
+			jobID := *entry["Key"].S
+			outputs[jobID] = strings.TrimSpace(*outputAttributeValue.S)
+		}
+	}
+
+	return outputs, nil
 }
 
 func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.JobStatus {
