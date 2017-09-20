@@ -20,13 +20,17 @@ const (
 )
 
 type JobDetail struct {
-	CreatedAt    time.Time
-	StartedAt    time.Time
-	StoppedAt    time.Time
-	ContainerId  string // identification string for the running container
-	StatusReason string
-	Status       JobStatus
-	Attempts     []*models.JobAttempt
+	Attempts      []*models.JobAttempt
+	ContainerId   string // identification string for the running container
+	CreatedAt     time.Time
+	DependencyIDs []string
+	Input         []string
+	Output        string
+	QueueName     string
+	StartedAt     time.Time
+	Status        JobStatus
+	StatusReason  string
+	StoppedAt     time.Time
 }
 
 // Job represents an active State and as part of a Job
@@ -34,7 +38,6 @@ type Job struct {
 	JobDetail
 	ID            string
 	Name          string
-	Input         []string
 	State         string
 	StateResource StateResource
 }
@@ -44,10 +47,10 @@ func NewJob(id, name, state string, stateResource StateResource, input []string)
 	return &Job{
 		ID:            id,
 		Name:          name,
-		Input:         input,
 		State:         state,
 		StateResource: stateResource,
 		JobDetail: JobDetail{
+			Input:  input,
 			Status: JobStatusCreated,
 		},
 	}
@@ -82,11 +85,15 @@ func (job *Job) StatusToInt() int {
 }
 
 func (job *Job) SetDetail(detail JobDetail) {
-	job.CreatedAt = detail.CreatedAt
-	job.StartedAt = detail.StartedAt
-	job.StoppedAt = detail.StoppedAt
+	job.Attempts = detail.Attempts
 	job.ContainerId = detail.ContainerId
+	job.CreatedAt = detail.CreatedAt
+	job.DependencyIDs = detail.DependencyIDs
+	job.Input = detail.Input
+	job.Output = detail.Output
+	job.QueueName = detail.QueueName
+	job.StartedAt = detail.StartedAt
 	job.Status = detail.Status
 	job.StatusReason = detail.StatusReason
-	job.Attempts = detail.Attempts
+	job.StoppedAt = detail.StoppedAt
 }
