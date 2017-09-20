@@ -388,13 +388,16 @@ definitions:
     properties:
       id:
         type: string
+      attempts:
+        type: array
+        items:
+          $ref: '#/definitions/JobAttempt'
+      Container:
+        type: string
       createdAt:
         type: string
         format: date-time
       startedAt:
-        type: string
-        format: date-time
-      stoppedAt:
         type: string
         format: date-time
       state:
@@ -403,12 +406,9 @@ definitions:
         type: string
       statusReason:
         type: string
-      Container:
+      stoppedAt:
         type: string
-      attempts:
-        type: array
-        items:
-          $ref: '#/definitions/JobAttempt'
+        format: date-time
 
   JobAttempt:
     type: object
