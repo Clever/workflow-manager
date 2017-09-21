@@ -148,7 +148,6 @@ func (be BatchExecutor) Cancel(tasks []*resources.Job, reason string) []error {
 func (be BatchExecutor) getJobDetailFromBatch(job *batch.JobDetail) (resources.JobDetail, error) {
 	var statusReason, containerArn, queueName string
 	var createdAt, startedAt, stoppedAt time.Time
-	var inputsFromEnv []string
 	msToNs := int64(time.Millisecond)
 	if job.StatusReason != nil {
 		statusReason = *job.StatusReason
@@ -201,7 +200,6 @@ func (be BatchExecutor) getJobDetailFromBatch(job *batch.JobDetail) (resources.J
 		Attempts:     attempts,
 		ContainerId:  containerArn,
 		CreatedAt:    createdAt,
-		Input:        inputsFromEnv,
 		QueueName:    queueName,
 		StartedAt:    startedAt,
 		Status:       be.taskStatus(job),
