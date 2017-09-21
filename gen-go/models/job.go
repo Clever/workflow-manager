@@ -26,6 +26,12 @@ type Job struct {
 	// id
 	ID string `json:"id,omitempty"`
 
+	// input
+	Input []string `json:"input"`
+
+	// output
+	Output []string `json:"output"`
+
 	// started at
 	StartedAt strfmt.DateTime `json:"startedAt,omitempty"`
 
@@ -47,6 +53,16 @@ func (m *Job) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAttempts(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateInput(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateOutput(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -76,6 +92,24 @@ func (m *Job) validateAttempts(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *Job) validateInput(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Input) { // not required
+		return nil
+	}
+
+	return nil
+}
+
+func (m *Job) validateOutput(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Output) { // not required
+		return nil
 	}
 
 	return nil

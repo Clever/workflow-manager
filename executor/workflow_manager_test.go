@@ -23,9 +23,11 @@ func (be *mockBatchClient) SubmitWorkflow(name string, definition string, depend
 	}
 	jobID := uuid.NewV4().String()
 	be.jobs[jobID] = &resources.Job{
-		ID:    jobID,
-		Name:  name,
-		Input: input,
+		ID:   jobID,
+		Name: name,
+		JobDetail: resources.JobDetail{
+			Input: input,
+		},
 	}
 
 	return jobID, nil
