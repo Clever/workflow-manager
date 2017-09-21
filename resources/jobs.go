@@ -20,17 +20,16 @@ const (
 )
 
 type JobDetail struct {
-	Attempts      []*models.JobAttempt
-	ContainerId   string // identification string for the running container
-	CreatedAt     time.Time
-	DependencyIDs []string
-	Input         []string
-	Output        []string
-	QueueName     string
-	StartedAt     time.Time
-	Status        JobStatus
-	StatusReason  string
-	StoppedAt     time.Time
+	Attempts     []*models.JobAttempt
+	ContainerId  string // identification string for the running container
+	CreatedAt    time.Time
+	Input        []string
+	Output       []string
+	QueueName    string
+	StartedAt    time.Time
+	Status       JobStatus
+	StatusReason string
+	StoppedAt    time.Time
 }
 
 // Job represents an active State and as part of a Job
@@ -88,7 +87,6 @@ func (job *Job) SetDetail(detail JobDetail) {
 	job.Attempts = detail.Attempts
 	job.ContainerId = detail.ContainerId
 	job.CreatedAt = detail.CreatedAt
-	job.DependencyIDs = detail.DependencyIDs
 	job.Input = detail.Input
 	job.Output = detail.Output
 	job.QueueName = detail.QueueName
