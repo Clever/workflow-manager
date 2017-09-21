@@ -308,18 +308,17 @@ func apiWorkflowFromStore(workflow resources.Workflow) *models.Workflow {
 	jobs := []*models.Job{}
 	for _, job := range workflow.Jobs {
 		jobs = append(jobs, &models.Job{
-			ID:            job.ID,
-			Attempts:      job.Attempts,
-			Container:     job.ContainerId,
-			CreatedAt:     strfmt.DateTime(job.CreatedAt),
-			DependencyIds: job.DependencyIDs,
-			Input:         job.Input,
-			Output:        job.Output,
-			StartedAt:     strfmt.DateTime(job.StartedAt),
-			State:         job.State,
-			Status:        string(job.Status),
-			StatusReason:  job.StatusReason,
-			StoppedAt:     strfmt.DateTime(job.StoppedAt),
+			ID:           job.ID,
+			Attempts:     job.Attempts,
+			Container:    job.ContainerId,
+			CreatedAt:    strfmt.DateTime(job.CreatedAt),
+			Input:        job.Input,
+			Output:       job.Output,
+			StartedAt:    strfmt.DateTime(job.StartedAt),
+			State:        job.State,
+			Status:       string(job.Status),
+			StatusReason: job.StatusReason,
+			StoppedAt:    strfmt.DateTime(job.StoppedAt),
 		})
 	}
 

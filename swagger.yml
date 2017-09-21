@@ -397,16 +397,14 @@ definitions:
       createdAt:
         type: string
         format: date-time
-      dependencyIDs:
-        type: array
-        items:
-          type: string
       input:
         type: array
         items:
           type: string
       output:
-        type: string
+        type: array
+        items:
+          type: string
       startedAt:
         type: string
         format: date-time

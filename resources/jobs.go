@@ -25,7 +25,7 @@ type JobDetail struct {
 	CreatedAt     time.Time
 	DependencyIDs []string
 	Input         []string
-	Output        string
+	Output        []string
 	QueueName     string
 	StartedAt     time.Time
 	Status        JobStatus

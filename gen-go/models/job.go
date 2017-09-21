@@ -23,9 +23,6 @@ type Job struct {
 	// created at
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
-	// dependency ids
-	DependencyIds []string `json:"dependencyIDs"`
-
 	// id
 	ID string `json:"id,omitempty"`
 
@@ -33,7 +30,7 @@ type Job struct {
 	Input []string `json:"input"`
 
 	// output
-	Output string `json:"output,omitempty"`
+	Output []string `json:"output"`
 
 	// started at
 	StartedAt strfmt.DateTime `json:"startedAt,omitempty"`
@@ -60,12 +57,12 @@ func (m *Job) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateDependencyIds(formats); err != nil {
+	if err := m.validateInput(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
 
-	if err := m.validateInput(formats); err != nil {
+	if err := m.validateOutput(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -100,18 +97,18 @@ func (m *Job) validateAttempts(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Job) validateDependencyIds(formats strfmt.Registry) error {
+func (m *Job) validateInput(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.DependencyIds) { // not required
+	if swag.IsZero(m.Input) { // not required
 		return nil
 	}
 
 	return nil
 }
 
-func (m *Job) validateInput(formats strfmt.Registry) error {
+func (m *Job) validateOutput(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Input) { // not required
+	if swag.IsZero(m.Output) { // not required
 		return nil
 	}
 
