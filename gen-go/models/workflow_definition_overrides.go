@@ -14,7 +14,7 @@ import (
 type WorkflowDefinitionOverrides struct {
 
 	// start at
-	StartAt string `json:"startAt,omitempty"`
+	StartAt string `json:"StartAt,omitempty"`
 }
 
 // Validate validates this workflow definition overrides

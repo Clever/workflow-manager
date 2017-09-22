@@ -400,6 +400,14 @@ definitions:
       input:
         # format: json
         type: string
+      retryFor:
+        description: "workflow-id of original workflow in case this is a retry"
+        type: string
+      retries:
+        description: "workflow-id's of workflows created as retries for this workflow"
+        type: array
+        items:
+          type: string
       tags:
         description: "tags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
@@ -626,5 +634,5 @@ definitions:
   WorkflowDefinitionOverrides:
     type: object
     properties:
-      startAt:
+      StartAt:
         type: string

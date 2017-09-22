@@ -69,21 +69,21 @@ func stateMachineWithFullActivityARNs(stateMachine *models.SLStateMachine, regio
 // https://docs.aws.amazon.com/step-functions/latest/apireference/API_CreateStateMachine.html#StepFunctions-CreateStateMachine-request-name
 var stateMachineNameBadChars = []byte{' ', '<', '>', '{', '}', '[', ']', '?', '*', '"', '#', '%', '\\', '^', '|', '~', '`', '$', '&', ',', ';', ':', '/'}
 
-func stateMachineName(wdName string, wdVersion int64, namespace string, queue string) string {
-	name := fmt.Sprintf("%s--%s--%d--%s", namespace, wdName, wdVersion, queue)
+func stateMachineName(wdName string, wdVersion int64, namespace string, queue string, startAt string) string {
+	name := fmt.Sprintf("%s--%s--%d--%s--%s", namespace, wdName, wdVersion, queue, startAt)
 	for _, badchar := range stateMachineNameBadChars {
 		name = strings.Replace(name, string(badchar), "-", -1)
 	}
 	return name
 }
 
-func stateMachineARN(region, accountID, wdName string, wdVersion int64, namespace string, queue string) string {
-	return fmt.Sprintf("arn:aws:states:%s:%s:stateMachine:%s", region, accountID, stateMachineName(wdName, wdVersion, namespace, queue))
+func stateMachineARN(region, accountID, wdName string, wdVersion int64, namespace string, queue string, startAt string) string {
+	return fmt.Sprintf("arn:aws:states:%s:%s:stateMachine:%s", region, accountID, stateMachineName(wdName, wdVersion, namespace, queue, startAt))
 }
 
 func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
 	describeOutput, err := wm.sfnapi.DescribeStateMachine(&sfn.DescribeStateMachineInput{
-		StateMachineArn: aws.String(stateMachineARN(wm.region, wm.accountID, wd.Name, wd.Version, namespace, queue)),
+		StateMachineArn: aws.String(stateMachineARN(wm.region, wm.accountID, wd.Name, wd.Version, namespace, queue, wd.StateMachine.StartAt)),
 	})
 	if err == nil {
 		return describeOutput, nil
@@ -108,7 +108,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDef
 	awsStateMachineDef := string(awsStateMachineDefBytes)
 	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
 	// this effectively creates named queues for each workflow definition in each namespace we deploy into
-	awsStateMachineName := stateMachineName(wd.Name, wd.Version, namespace, queue)
+	awsStateMachineName := stateMachineName(wd.Name, wd.Version, namespace, queue, wd.StateMachine.StartAt)
 	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
 	_, err = wm.sfnapi.CreateStateMachine(&sfn.CreateStateMachineInput{
 		Name:       aws.String(awsStateMachineName),
@@ -122,26 +122,18 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDef
 	return wm.describeOrCreateStateMachine(wd, namespace, queue)
 }
 
-func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error) {
-	describeOutput, err := wm.describeOrCreateStateMachine(wd, namespace, queue)
-	if err != nil {
-		return nil, err
-	}
-
-	// submit an execution using input, set execution name == our workflow GUID
-	workflow := resources.NewWorkflow(&wd, input, namespace, queue, tags)
-
-	executionName := aws.String(workflow.ID)
+func (wm *SFNWorkflowManager) startExecution(stateMachineArn *string, workflowID, input string) error {
+	executionName := aws.String(workflowID)
 
 	var inputJSON map[string]interface{}
 	if err := json.Unmarshal([]byte(input), &inputJSON); err != nil {
-		return nil, fmt.Errorf("input is not a valid JSON object: %s", err)
+		return fmt.Errorf("input is not a valid JSON object: %s", err)
 	}
 	inputJSON["_EXECUTION_NAME"] = *executionName
 
 	marshaledInput, err := json.Marshal(inputJSON)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// We ensure the input is a json object, but for context the
@@ -151,15 +143,65 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input
 	// - aws.String("[]"): leads to an input of an empty array "[]"
 	startExecutionInput := aws.String(string(marshaledInput))
 	_, err = wm.sfnapi.StartExecution(&sfn.StartExecutionInput{
-		StateMachineArn: describeOutput.StateMachineArn,
+		StateMachineArn: stateMachineArn,
 		Input:           startExecutionInput,
 		Name:            executionName,
 	})
+
+	return err
+}
+
+func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error) {
+	describeOutput, err := wm.describeOrCreateStateMachine(wd, namespace, queue)
 	if err != nil {
 		return nil, err
 	}
 
+	// submit an execution using input, set execution name == our workflow GUID
+	workflow := resources.NewWorkflow(&wd, input, namespace, queue, tags)
+	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
+	if err != nil {
+		return &models.Workflow{}, err
+	}
+
 	return workflow, wm.store.SaveWorkflow(*workflow)
+}
+
+func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
+	if !resources.WorkflowIsDone(&ogWorkflow) {
+		return &models.Workflow{}, fmt.Errorf("Retry not allowed. Workflow state is %s", ogWorkflow.Status)
+	}
+
+	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
+	newDef := *ogWorkflow.WorkflowDefinition
+	newDef.StateMachine = &(*ogWorkflow.WorkflowDefinition.StateMachine)
+	newDef.StateMachine.StartAt = startAt
+
+	describeOutput, err := wm.describeOrCreateStateMachine(newDef, ogWorkflow.Namespace, ogWorkflow.Queue)
+
+	// submit an execution using input, set execution name == our workflow GUID
+	workflow := resources.NewWorkflow(&newDef, input, ogWorkflow.Namespace, ogWorkflow.Queue, ogWorkflow.Tags)
+	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
+	if err != nil {
+		return &models.Workflow{}, err
+	}
+
+	workflow.RetryFor = ogWorkflow.ID
+	ogWorkflow.Retries = append(ogWorkflow.Retries, workflow.ID)
+
+	err = wm.store.SaveWorkflow(*workflow)
+	if err != nil {
+		return workflow, err
+	}
+
+	// also update ogWorkflow
+	err = wm.store.UpdateWorkflow(ogWorkflow)
+	if err != nil {
+		// TODO: should we be failing here or just log?
+		return workflow, err
+	}
+
+	return workflow, nil
 }
 
 func (wm *SFNWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason string) error {
@@ -201,7 +243,7 @@ func (wm *SFNWorkflowManager) executionARN(
 	return executionARN(
 		wm.region,
 		wm.accountID,
-		stateMachineName(definition.Name, definition.Version, workflow.Namespace, workflow.Queue),
+		stateMachineName(definition.Name, definition.Version, workflow.Namespace, workflow.Queue, definition.StateMachine.StartAt),
 		workflow.ID,
 	)
 }
@@ -237,7 +279,12 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 
 	// get execution from AWS, pull in all the data into the workflow object
 	wd := workflow.WorkflowDefinition
-	execARN := executionARN(wm.region, wm.accountID, stateMachineName(wd.Name, wd.Version, workflow.Namespace, workflow.Queue), workflow.ID)
+	execARN := executionARN(
+		wm.region,
+		wm.accountID,
+		stateMachineName(wd.Name, wd.Version, workflow.Namespace, workflow.Queue, wd.StateMachine.StartAt),
+		workflow.ID,
+	)
 	describeOutput, err := wm.sfnapi.DescribeExecution(&sfn.DescribeExecutionInput{
 		ExecutionArn: aws.String(execARN),
 	})

@@ -35,7 +35,7 @@ func (h Handler) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// NewWorkflowDefinition creates a new workflow
+// NewWorkflowDefinition creates a new workflow definition
 func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowReq *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	//TODO: validate states
 	if len(workflowReq.StateMachine.States) == 0 {
@@ -174,12 +174,7 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 		return &models.Workflow{}, err
 	}
 
-	workflow, err := h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, *req.Queue, req.Tags)
-	if err != nil {
-		return &models.Workflow{}, err
-	}
-
-	return workflow, nil
+	return h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, *req.Queue, req.Tags)
 }
 
 // GetWorkflows returns a summary of all workflows matching the given query.
