@@ -7,7 +7,7 @@ info:
   # 2. merge the new clients, and, after merging, tag the commit with the version:
   #    git tag -a vX.Y.Z -m "vX.Y.Z"
   #    git push origin --tags
-  version: 0.4.1
+  version: 0.5.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -125,18 +125,20 @@ paths:
             $ref: "#/definitions/WorkflowDefinition"
         404:
           $ref: "#/responses/NotFound"
+
   /workflows:
     post:
       summary: Start a Workflow
       operationId: startWorkflow
       parameters:
-        - name: input
+        - name: StartWorkflowRequest
+          description: Parameters for starting a workflow (workflow definition, input, and optionally namespace and queue)
           in: body
           schema:
-            $ref: "#/definitions/WorkflowInput"
+            $ref: "#/definitions/StartWorkflowRequest"
       responses:
         200:
-          description: Responds with Workflow Id and Name
+          description: Responds with Workflow details including Id, Status, Jobs, Input, Namespace, and WorkflowDefinition
           schema:
             $ref: "#/definitions/Workflow"
         404:
@@ -347,7 +349,7 @@ definitions:
     properties:
       id:
         type: string
-      revision:
+      version:
         type: integer
       name:
         type: string
@@ -382,6 +384,14 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Job'
+      namespace:
+        type: string
+      queue:
+        type: string
+      input:
+        type: array
+        items:
+            type: string
 
   Job:
     type: object
@@ -436,24 +446,27 @@ definitions:
       exitCode:
         type: integer
 
-  WorkflowInput:
+  StartWorkflowRequest:
     type: object
     properties:
       workflowDefinition:
         $ref: '#/definitions/WorkflowDefinitionRef'
-      data:
+      input:
         type: array
+        items:
+          type: string
       namespace:
         type: string
       queue:
         type: string
+        default: "default"
 
   WorkflowDefinitionRef:
     type: object
     properties:
       name:
         type: string
-      revision:
+      version:
         type: integer
 
   CancelReason:

@@ -86,7 +86,7 @@ func TestSubmitWorkflowToCustomQueue(t *testing.T) {
 	mockClient.EXPECT().SubmitJob(gomock.Any()).Return(&batch.SubmitJobOutput{
 		JobId: aws.String("job-id"),
 	}, nil)
-	out, err := be.SubmitWorkflow(name, definition, dependencies, input, "", 0)
+	out, err := be.SubmitWorkflow(name, definition, dependencies, input, DefaultQueue, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "job-id", out)
 

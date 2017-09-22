@@ -25,16 +25,20 @@ type Workflow struct {
 	Input              []string           // Starting input for the workflow
 	Jobs               []*Job             // list of states submitted as jobs
 	Status             WorkflowStatus
+	Namespace          string
+	Queue              string
 }
 
 // NewWorkflow creates a new Workflow struct for a WorkflowDefinition
-func NewWorkflow(wf WorkflowDefinition, input []string) *Workflow {
+func NewWorkflow(wf WorkflowDefinition, input []string, namespace string, queue string) *Workflow {
 	return &Workflow{
 		ID:                 uuid.NewV4().String(),
 		WorkflowDefinition: wf,
 		Input:              input,
 		Status:             Queued,
 		CreatedAt:          time.Now(),
+		Namespace:          namespace,
+		Queue:              queue,
 	}
 }
 

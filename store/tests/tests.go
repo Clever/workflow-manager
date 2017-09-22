@@ -155,7 +155,7 @@ func SaveWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf))
-		workflow := resources.NewWorkflow(wf, []string{"input"})
+		workflow := resources.NewWorkflow(wf, []string{"input"}, "namespace", "queue")
 		require.Nil(t, s.SaveWorkflow(*workflow))
 		// TODO: test behavior when workflow is invalid, e.g. breaks a length limit on a field / array
 	}
@@ -165,7 +165,7 @@ func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf))
-		workflow := resources.NewWorkflow(wf, []string{"input"})
+		workflow := resources.NewWorkflow(wf, []string{"input"}, "namespace", "queue")
 		require.Nil(t, s.SaveWorkflow(*workflow))
 
 		updatedWorkflow, err := s.GetWorkflowByID(workflow.ID)
@@ -187,7 +187,7 @@ func GetWorkflowByID(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf))
-		workflow := resources.NewWorkflow(wf, []string{"input"})
+		workflow := resources.NewWorkflow(wf, []string{"input"}, "namespace", "queue")
 		require.Nil(t, s.SaveWorkflow(*workflow))
 
 		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
@@ -205,11 +205,11 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Nil(t, s.SaveWorkflowDefinition(wf2))
 		var workflow1IDs, workflow2IDs []string
 		for len(workflow1IDs) < 2 {
-			workflow1 := resources.NewWorkflow(wf1, []string{"input"})
+			workflow1 := resources.NewWorkflow(wf1, []string{"input"}, "namespace", "queue")
 			workflow1IDs = append([]string{workflow1.ID}, workflow1IDs...) // newest first
 			require.Nil(t, s.SaveWorkflow(*workflow1))
 
-			workflow2 := resources.NewWorkflow(wf2, []string{"input"})
+			workflow2 := resources.NewWorkflow(wf2, []string{"input"}, "namespace", "queue")
 			workflow2IDs = append([]string{workflow2.ID}, workflow2IDs...)
 			require.Nil(t, s.SaveWorkflow(*workflow2))
 		}
@@ -231,9 +231,9 @@ func GetPendingWorkflowIDs(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Nil(t, s.SaveWorkflowDefinition(wf1))
 		wf2 := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf2))
-		workflow1 := resources.NewWorkflow(wf1, []string{"input"})
+		workflow1 := resources.NewWorkflow(wf1, []string{"input"}, "namespace", "queue")
 		require.Nil(t, s.SaveWorkflow(*workflow1))
-		workflow2 := resources.NewWorkflow(wf2, []string{"input"})
+		workflow2 := resources.NewWorkflow(wf2, []string{"input"}, "namespace", "queue")
 		require.Nil(t, s.SaveWorkflow(*workflow2))
 
 		pendingWorkflowIDs, err := s.GetPendingWorkflowIDs()
@@ -261,7 +261,7 @@ func LockUnlockWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wfd1 := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wfd1))
-		wf1 := resources.NewWorkflow(wfd1, []string{"input"})
+		wf1 := resources.NewWorkflow(wfd1, []string{"input"}, "namespace", "queue")
 		require.Nil(t, s.SaveWorkflow(*wf1))
 
 		require.Nil(t, s.LockWorkflow(wf1.ID))

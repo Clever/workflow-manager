@@ -213,6 +213,7 @@ func TestCancelUpdates(t *testing.T) {
 
 // TestCreateWorkflow tests that jobs are created for a workflow in the right order
 // with the appropriate settings
+// @todo - panic "concurrent map writes"
 func TestCreateWorkflow(t *testing.T) {
 	mockClient := &mockBatchClient{
 		map[string]*resources.Job{},
@@ -276,16 +277,18 @@ func TestGetStateResources(t *testing.T) {
 	}
 	wf := resources.KitchenSinkWorkflowDefinition(t)
 	input := []string{"test-start-input", "arg2"}
+	namespace := "my-env"
+	queue := "queue"
 
 	t.Log("Works without providing a namespace for CreateWorkflow")
-	stateResources, err := jm.getStateResources(resources.NewWorkflow(wf, input), "")
+	stateResources, err := jm.getStateResources(resources.NewWorkflow(wf, input, namespace, queue), "")
 	assert.Nil(t, err)
 	for k, stateResource := range stateResources {
 		assert.Equal(t, wf.StatesMap[k].Resource(), stateResource.URI)
 	}
 
 	t.Log("Fails when using a namespace for CreateWorkflow without StateResource")
-	stateResources, err = jm.getStateResources(resources.NewWorkflow(wf, input), "does-not-exist")
+	stateResources, err = jm.getStateResources(resources.NewWorkflow(wf, input, namespace, queue), "does-not-exist")
 	assert.Error(t, err, fmt.Sprintf("StateResource `%s:%s` Not Found: %s",
 		"does-not-exist", "fake-resource-1", "does-not-exist--fake-resource-1"))
 
@@ -293,10 +296,10 @@ func TestGetStateResources(t *testing.T) {
 	for _, i := range []int{1, 2, 3} {
 		store.SaveStateResource(resources.NewBatchResource(
 			fmt.Sprintf("fake-resource-%d", i),
-			"my-env",
+			namespace,
 			fmt.Sprintf("arn:batch:jobdefinition:%d", i)))
 	}
-	stateResources, err = jm.getStateResources(resources.NewWorkflow(wf, input), "my-env")
+	stateResources, err = jm.getStateResources(resources.NewWorkflow(wf, input, namespace, queue), "my-env")
 	assert.Nil(t, err)
 	assert.Equal(t, stateResources["start-state"].Name, "fake-resource-1")
 	assert.Equal(t, stateResources["start-state"].Namespace, "my-env")

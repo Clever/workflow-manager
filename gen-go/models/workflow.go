@@ -20,11 +20,20 @@ type Workflow struct {
 	// id
 	ID string `json:"id,omitempty"`
 
+	// input
+	Input []string `json:"input"`
+
 	// jobs
 	Jobs []*Job `json:"jobs"`
 
 	// last updated
 	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
+
+	// namespace
+	Namespace string `json:"namespace,omitempty"`
+
+	// queue
+	Queue string `json:"queue,omitempty"`
 
 	// status
 	Status string `json:"status,omitempty"`
@@ -36,6 +45,11 @@ type Workflow struct {
 // Validate validates this workflow
 func (m *Workflow) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateInput(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
 
 	if err := m.validateJobs(formats); err != nil {
 		// prop
@@ -50,6 +64,15 @@ func (m *Workflow) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Workflow) validateInput(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Input) { // not required
+		return nil
+	}
+
 	return nil
 }
 

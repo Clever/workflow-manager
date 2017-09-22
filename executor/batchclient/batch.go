@@ -14,6 +14,9 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
+// DefaultQueue contains the swagger api's default value for queue input
+var DefaultQueue = "default"
+
 // DependenciesEnvVarName is injected for every task
 // with a list of dependency ids
 const DependenciesEnvVarName = "_BATCH_DEPENDENCIES"
@@ -258,7 +261,7 @@ func (be BatchExecutor) SubmitWorkflow(name string, definition string, dependenc
 func (be BatchExecutor) getJobQueue(queue string) (string, error) {
 	var ok bool
 	jobQueue := be.defaultQueue
-	if queue != "" {
+	if queue != DefaultQueue {
 		// use a custom queue
 		jobQueue, ok = be.customQueues[queue]
 		if !ok {

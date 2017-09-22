@@ -112,7 +112,7 @@ type Client interface {
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	StartWorkflow(ctx context.Context, i *models.WorkflowInput) (*models.Workflow, error)
+	StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error)
 
 	// CancelWorkflow makes a DELETE request to /workflows/{workflowId}
 	//

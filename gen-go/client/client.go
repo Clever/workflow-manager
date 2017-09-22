@@ -1312,7 +1312,7 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) StartWorkflow(ctx context.Context, i *models.WorkflowInput) (*models.Workflow, error) {
+func (c *WagClient) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
 	headers := make(map[string]string)
 
 	var body []byte

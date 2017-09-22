@@ -10,26 +10,31 @@ import (
 	"github.com/go-openapi/errors"
 )
 
-// WorkflowInput workflow input
-// swagger:model WorkflowInput
-type WorkflowInput struct {
+// StartWorkflowRequest start workflow request
+// swagger:model StartWorkflowRequest
+type StartWorkflowRequest struct {
 
-	// data
-	Data []interface{} `json:"data"`
+	// input
+	Input []string `json:"input"`
 
 	// namespace
 	Namespace string `json:"namespace,omitempty"`
 
 	// queue
-	Queue string `json:"queue,omitempty"`
+	Queue *string `json:"queue,omitempty"`
 
 	// workflow definition
 	WorkflowDefinition *WorkflowDefinitionRef `json:"workflowDefinition,omitempty"`
 }
 
-// Validate validates this workflow input
-func (m *WorkflowInput) Validate(formats strfmt.Registry) error {
+// Validate validates this start workflow request
+func (m *StartWorkflowRequest) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateInput(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
 
 	if err := m.validateWorkflowDefinition(formats); err != nil {
 		// prop
@@ -42,7 +47,16 @@ func (m *WorkflowInput) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *WorkflowInput) validateWorkflowDefinition(formats strfmt.Registry) error {
+func (m *StartWorkflowRequest) validateInput(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Input) { // not required
+		return nil
+	}
+
+	return nil
+}
+
+func (m *StartWorkflowRequest) validateWorkflowDefinition(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.WorkflowDefinition) { // not required
 		return nil

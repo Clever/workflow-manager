@@ -1585,7 +1585,7 @@ class WorkflowManager {
   }
 
   /**
-   * @param input
+   * @param StartWorkflowRequest - Parameters for starting a workflow (workflow definition, input, and optionally namespace and queue)
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -1598,12 +1598,12 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  startWorkflow(input, options, cb) {
+  startWorkflow(StartWorkflowRequest, options, cb) {
     return this._hystrixCommand.execute(this._startWorkflow, arguments);
   }
-  _startWorkflow(input, options, cb) {
+  _startWorkflow(StartWorkflowRequest, options, cb) {
     const params = {};
-    params["input"] = input;
+    params["StartWorkflowRequest"] = StartWorkflowRequest;
 
     if (!cb && typeof options === "function") {
       cb = options;
@@ -1652,7 +1652,7 @@ class WorkflowManager {
         useQuerystring: true,
       };
   
-      requestOptions.body = params.input;
+      requestOptions.body = params.StartWorkflowRequest;
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
