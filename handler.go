@@ -246,6 +246,45 @@ func (h Handler) CancelWorkflow(ctx context.Context, input *models.CancelWorkflo
 	return h.manager.CancelWorkflow(&workflow, input.Reason.Reason)
 }
 
+// ResumeWorkflowByID starts a new Workflow based on an existing completed Workflow
+// from the provided position. Uses existing inputs and outputs when required
+func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWorkflowByIDInput) (*models.Workflow, error) {
+	workflow, err := h.store.GetWorkflowByID(input.WorkflowID)
+	if err != nil {
+		return &models.Workflow{}, err
+	}
+
+	// don't allow resume if workflow is still active
+	if !resources.WorkflowIsDone(&workflow) {
+		return &models.Workflow{}, fmt.Errorf("Workflow %s active: %s", workflow.ID, workflow.Status)
+	}
+	if _, ok := workflow.WorkflowDefinition.StateMachine.States[input.Overrides.StartAt]; !ok {
+		return &models.Workflow{}, fmt.Errorf("Invalid StartAt state %s", input.Overrides.StartAt)
+	}
+
+	// find the input to the StartAt state
+	effectiveInput := ""
+	for _, job := range workflow.Jobs {
+		if job.State == input.Overrides.StartAt {
+			// if job was never started then we should probably not trust the input
+			if job.Status == models.JobStatusAbortedDepsFailed ||
+				job.Status == models.JobStatusQueued ||
+				job.Status == models.JobStatusWaitingForDeps ||
+				job.Status == models.JobStatusCreated {
+
+				return &models.Workflow{},
+					fmt.Errorf("Job %s for StartAt %s was aborted for Workflow: %s. Could not infer input",
+						job.ID, job.State, workflow.ID)
+			}
+
+			effectiveInput = job.Input
+			break
+		}
+	}
+
+	return h.manager.RetryWorkflow(workflow, input.Overrides.StartAt, effectiveInput)
+}
+
 // TODO: the functions below should probably just be functions on the respective resources.<Struct>
 
 func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {

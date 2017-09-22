@@ -203,6 +203,13 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
+	router.Methods("POST").Path("/workflows/{workflowID}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "resumeWorkflowByID")
+		h.ResumeWorkflowByIDHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "resumeWorkflowByID")
+		r = r.WithContext(ctx)
+	})
+
 	handler := withMiddleware("workflow-manager", router, m)
 	return &Server{Handler: handler, addr: addr, l: l}
 }

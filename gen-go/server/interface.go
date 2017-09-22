@@ -132,4 +132,13 @@ type Controller interface {
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error)
+
+	// ResumeWorkflowByID handles POST requests to /workflows/{workflowID}
+	//
+	// 200: *models.Workflow
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	ResumeWorkflowByID(ctx context.Context, i *models.ResumeWorkflowByIDInput) (*models.Workflow, error)
 }

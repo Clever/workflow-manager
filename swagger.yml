@@ -223,6 +223,26 @@ paths:
           type: string
         404:
           $ref: "#/responses/NotFound"
+    post:
+      summary: Start a new Workflow using job outputs of a completed Workflow from the provided position
+      operationId: resumeWorkflowByID
+      parameters:
+        - name: workflowID
+          in: path
+          type: string
+          required: true
+        - name: overrides
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/WorkflowDefinitionOverrides'
+      responses:
+        200:
+          description: Workflow
+          schema:
+            $ref: "#/definitions/Workflow"
+        404:
+          $ref: "#/responses/NotFound"
 
   /state-resources:
     post:
@@ -602,3 +622,9 @@ definitions:
 
   SLErrorEquals:
     type: string
+
+  WorkflowDefinitionOverrides:
+    type: object
+    properties:
+      startAt:
+        type: string
