@@ -177,6 +177,84 @@ func (i GetWorkflowDefinitionsInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
+// GetActiveWorkflowsInput holds the input parameters for a getActiveWorkflows operation.
+type GetActiveWorkflowsInput struct {
+	DefinitionName string
+	Query          *WorkflowQuery
+	PageToken      *string
+}
+
+// Validate returns an error if any of the GetActiveWorkflowsInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetActiveWorkflowsInput) Validate() error {
+
+	if err := i.Query.Validate(nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i GetActiveWorkflowsInput) Path() (string, error) {
+	path := "/workflow-definitions/{definitionName}/workflows/active"
+	urlVals := url.Values{}
+
+	pathdefinitionName := i.DefinitionName
+	if pathdefinitionName == "" {
+		err := fmt.Errorf("definitionName cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{definitionName}", pathdefinitionName, -1)
+
+	if i.PageToken != nil {
+		urlVals.Add("pageToken", *i.PageToken)
+	}
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// GetInactiveWorkflowsInput holds the input parameters for a getInactiveWorkflows operation.
+type GetInactiveWorkflowsInput struct {
+	DefinitionName string
+	Query          *WorkflowQuery
+	PageToken      *string
+}
+
+// Validate returns an error if any of the GetInactiveWorkflowsInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetInactiveWorkflowsInput) Validate() error {
+
+	if err := i.Query.Validate(nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i GetInactiveWorkflowsInput) Path() (string, error) {
+	path := "/workflow-definitions/{definitionName}/workflows/inactive"
+	urlVals := url.Values{}
+
+	pathdefinitionName := i.DefinitionName
+	if pathdefinitionName == "" {
+		err := fmt.Errorf("definitionName cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{definitionName}", pathdefinitionName, -1)
+
+	if i.PageToken != nil {
+		urlVals.Add("pageToken", *i.PageToken)
+	}
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
 // GetWorkflowDefinitionVersionsByNameInput holds the input parameters for a getWorkflowDefinitionVersionsByName operation.
 type GetWorkflowDefinitionVersionsByNameInput struct {
 	Name   string

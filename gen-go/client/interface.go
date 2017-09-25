@@ -69,6 +69,26 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	NewWorkflowDefinition(ctx context.Context, i *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error)
 
+	// GetActiveWorkflows makes a PUT request to /workflow-definitions/{definitionName}/workflows/active
+	//
+	// 200: []models.Workflow
+	// 400: *models.BadRequest
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetActiveWorkflows(ctx context.Context, i *models.GetActiveWorkflowsInput) ([]models.Workflow, error)
+
+	NewGetActiveWorkflowsIter(ctx context.Context, i *models.GetActiveWorkflowsInput) (GetActiveWorkflowsIter, error)
+
+	// GetInactiveWorkflows makes a PUT request to /workflow-definitions/{definitionName}/workflows/inactive
+	//
+	// 200: []models.Workflow
+	// 400: *models.BadRequest
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetInactiveWorkflows(ctx context.Context, i *models.GetInactiveWorkflowsInput) ([]models.Workflow, error)
+
+	NewGetInactiveWorkflowsIter(ctx context.Context, i *models.GetInactiveWorkflowsInput) (GetInactiveWorkflowsIter, error)
+
 	// GetWorkflowDefinitionVersionsByName makes a GET request to /workflow-definitions/{name}
 	//
 	// 200: []models.WorkflowDefinition
@@ -131,4 +151,16 @@ type Client interface {
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	GetWorkflowByID(ctx context.Context, workflowId string) (*models.Workflow, error)
+}
+
+// GetActiveWorkflowsIter defines the methods available on GetActiveWorkflows iterators.
+type GetActiveWorkflowsIter interface {
+	Next(*models.Workflow) bool
+	Err() error
+}
+
+// GetInactiveWorkflowsIter defines the methods available on GetInactiveWorkflows iterators.
+type GetInactiveWorkflowsIter interface {
+	Next(*models.Workflow) bool
+	Err() error
 }

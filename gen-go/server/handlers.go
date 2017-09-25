@@ -742,6 +742,290 @@ func newNewWorkflowDefinitionInput(r *http.Request) (*models.NewWorkflowDefiniti
 	return &input, nil
 }
 
+// statusCodeForGetActiveWorkflows returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForGetActiveWorkflows(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *[]models.Workflow:
+		return 200
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case []models.Workflow:
+		return 200
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) GetActiveWorkflowsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newGetActiveWorkflowsInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, nextPageID, err := h.GetActiveWorkflows(ctx, input)
+
+	// Success types that return an array should never return nil so let's make this easier
+	// for consumers by converting nil arrays to empty arrays
+	if resp == nil {
+		resp = []models.Workflow{}
+	}
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForGetActiveWorkflows(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	if !swag.IsZero(nextPageID) {
+		input.PageToken = &nextPageID
+		path, err := input.Path()
+		if err != nil {
+			logger.FromContext(ctx).AddContext("error", err.Error())
+			http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("X-Next-Page-Path", path)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForGetActiveWorkflows(resp))
+	w.Write(respBytes)
+
+}
+
+// newGetActiveWorkflowsInput takes in an http.Request an returns the input struct.
+func newGetActiveWorkflowsInput(r *http.Request) (*models.GetActiveWorkflowsInput, error) {
+	var input models.GetActiveWorkflowsInput
+
+	var err error
+	_ = err
+
+	definitionNameStr := mux.Vars(r)["definitionName"]
+	if len(definitionNameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	definitionNameStrs := []string{definitionNameStr}
+
+	if len(definitionNameStrs) > 0 {
+		var definitionNameTmp string
+		definitionNameStr := definitionNameStrs[0]
+		definitionNameTmp, err = definitionNameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.DefinitionName = definitionNameTmp
+	}
+
+	data, err := ioutil.ReadAll(r.Body)
+	if len(data) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+
+	if len(data) > 0 {
+		input.Query = &models.WorkflowQuery{}
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Query); err != nil {
+			return nil, err
+		}
+	}
+
+	pageTokenStrs := r.URL.Query()["pageToken"]
+
+	if len(pageTokenStrs) > 0 {
+		var pageTokenTmp string
+		pageTokenStr := pageTokenStrs[0]
+		pageTokenTmp, err = pageTokenStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.PageToken = &pageTokenTmp
+	}
+
+	return &input, nil
+}
+
+// statusCodeForGetInactiveWorkflows returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForGetInactiveWorkflows(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *[]models.Workflow:
+		return 200
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case []models.Workflow:
+		return 200
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) GetInactiveWorkflowsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newGetInactiveWorkflowsInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, nextPageID, err := h.GetInactiveWorkflows(ctx, input)
+
+	// Success types that return an array should never return nil so let's make this easier
+	// for consumers by converting nil arrays to empty arrays
+	if resp == nil {
+		resp = []models.Workflow{}
+	}
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForGetInactiveWorkflows(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	if !swag.IsZero(nextPageID) {
+		input.PageToken = &nextPageID
+		path, err := input.Path()
+		if err != nil {
+			logger.FromContext(ctx).AddContext("error", err.Error())
+			http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("X-Next-Page-Path", path)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForGetInactiveWorkflows(resp))
+	w.Write(respBytes)
+
+}
+
+// newGetInactiveWorkflowsInput takes in an http.Request an returns the input struct.
+func newGetInactiveWorkflowsInput(r *http.Request) (*models.GetInactiveWorkflowsInput, error) {
+	var input models.GetInactiveWorkflowsInput
+
+	var err error
+	_ = err
+
+	definitionNameStr := mux.Vars(r)["definitionName"]
+	if len(definitionNameStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	definitionNameStrs := []string{definitionNameStr}
+
+	if len(definitionNameStrs) > 0 {
+		var definitionNameTmp string
+		definitionNameStr := definitionNameStrs[0]
+		definitionNameTmp, err = definitionNameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.DefinitionName = definitionNameTmp
+	}
+
+	data, err := ioutil.ReadAll(r.Body)
+	if len(data) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+
+	if len(data) > 0 {
+		input.Query = &models.WorkflowQuery{}
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Query); err != nil {
+			return nil, err
+		}
+	}
+
+	pageTokenStrs := r.URL.Query()["pageToken"]
+
+	if len(pageTokenStrs) > 0 {
+		var pageTokenTmp string
+		pageTokenStr := pageTokenStrs[0]
+		pageTokenTmp, err = pageTokenStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.PageToken = &pageTokenTmp
+	}
+
+	return &input, nil
+}
+
 // statusCodeForGetWorkflowDefinitionVersionsByName returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
 func statusCodeForGetWorkflowDefinitionVersionsByName(obj interface{}) int {
