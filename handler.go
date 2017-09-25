@@ -191,7 +191,25 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 	return apiWorkflowFromStore(*workflow), nil
 }
 
-// GetWorkflows returns a summary of all active workflows for the given workflow
+// GetActiveWorkflows returns a summary of all active workflows for the given workflow.
+func (h Handler) GetActiveWorkflows(
+	ctx context.Context,
+	input *models.GetActiveWorkflowsInput,
+) ([]models.Workflow, string, error) {
+	return []models.Workflow{}, "", fmt.Errorf("not yet implemented")
+}
+
+// GetInactiveWorkflows returns a summary of all inactive workflows (succeeded/failed/cancelled) for
+// the given workflow.
+func (h Handler) GetInactiveWorkflows(
+	ctx context.Context,
+	input *models.GetInactiveWorkflowsInput,
+) ([]models.Workflow, string, error) {
+	return []models.Workflow{}, "", fmt.Errorf("not yet implemented")
+}
+
+// GetWorkflows returns a summary of all workflows for the given workflow definition.
+// TODO: Move existing clients over to new API and remove this.
 func (h Handler) GetWorkflows(ctx context.Context, input *models.GetWorkflowsInput) ([]models.Workflow, error) {
 	workflows, err := h.store.GetWorkflows(input.WorkflowDefinitionName)
 	if err != nil {
