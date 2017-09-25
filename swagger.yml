@@ -7,7 +7,7 @@ info:
   # 2. merge the new clients, and, after merging, tag the commit with the version:
   #    git tag -a vX.Y.Z -m "vX.Y.Z"
   #    git push origin --tags
-  version: 0.5.0
+  version: 0.5.1
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -126,6 +126,62 @@ paths:
         404:
           $ref: "#/responses/NotFound"
 
+  /workflow-definitions/{definitionName}/workflows/active:
+    put:
+      summary: Get summary of all active Workflows for a given WorkflowDefinition.
+      operationId: getActiveWorkflows
+      x-paging:
+        pageParameter: pageToken
+      parameters:
+        - name: definitionName
+          in: path
+          type: string
+          required: true
+        - name: query
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/WorkflowQuery"
+        - name: pageToken
+          in: query
+          type: string
+      responses:
+        200:
+          description: Active workflows matching the given query.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Workflow"
+
+  /workflow-definitions/{definitionName}/workflows/inactive:
+    put:
+      summary:
+        Get summary of all inactive Workflows (succeeded/failed/cancelled) for a given
+        WorkflowDefinition.
+      operationId: getInactiveWorkflows
+      x-paging:
+        pageParameter: pageToken
+      parameters:
+        - name: definitionName
+          in: path
+          type: string
+          required: true
+        - name: query
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/WorkflowQuery"
+        - name: pageToken
+          in: query
+          type: string
+      responses:
+        200:
+          description: Inactive workflows matching the given query.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Workflow"
+
   /workflows:
     post:
       summary: Start a Workflow
@@ -143,6 +199,7 @@ paths:
             $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
+
     get:
       summary: Get summary of all active Workflows for a given WorkflowDefinition
       operationId: getWorkflows
@@ -580,3 +637,15 @@ definitions:
       - "Succeed"
       - "Fail"
       - "Parallel"
+
+  WorkflowQuery:
+    type: object
+    properties:
+      # TODO: Add date range filters.
+      limit:
+        type: integer
+        format: int32
+      statuses:
+        type: array
+        items:
+          type: string
