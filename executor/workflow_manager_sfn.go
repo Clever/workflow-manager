@@ -130,9 +130,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition, in
 	}
 
 	// submit an execution using input, set execution name == our workflow GUID
-	workflow := resources.NewWorkflow(wd, input)
-	workflow.Namespace = namespace
-	workflow.Queue = queue
+	workflow := resources.NewWorkflow(wd, input, namespace, queue)
 	inputJSON, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
@@ -234,10 +232,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow)
 						// TODO: somehow match ActivityStarted events to state, capture worker name here
 						//ContainerId: ""/
 						Status: resources.JobStatusCreated,
+						Input:  input,
 					},
 					// event IDs start at 1 and are only unique to the execution, so this might not be ideal
 					ID:    fmt.Sprintf("%d", *evt.Id),
-					Input: input,
 					State: *stateEntered.Name,
 					StateResource: resources.StateResource{
 						Name:        stateResourceName,
