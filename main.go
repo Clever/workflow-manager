@@ -32,6 +32,9 @@ type Config struct {
 	DynamoPrefixWorkflowDefinitions string
 	DynamoPrefixWorkflows           string
 	DynamoRegion                    string
+	SFNRegion                       string
+	SFNAccountID                    string
+	SFNRoleARN                      string
 }
 
 func setupRouting() {
@@ -61,12 +64,8 @@ func main() {
 	})
 	batch := batchclient.NewBatchExecutor(batch.New(awsSession(c)), c.DefaultBatchQueue, c.CustomBatchQueues)
 	wfmBatch := executor.NewBatchWorkflowManager(batch, db)
-	// TODO: config all of these
-	sfnRegion := "us-west-2"
-	sfnRole := "arn:aws:iam::589690932525:role/raf-test-step-functions"
-	sfnAccountID := "589690932525"
-	sfnapi := sfn.New(session.New(), aws.NewConfig().WithRegion(sfnRegion))
-	wfmSFN := executor.NewSFNWorkflowManager(sfnapi, db, sfnRole, sfnRegion, sfnAccountID)
+	sfnapi := sfn.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion))
+	wfmSFN := executor.NewSFNWorkflowManager(sfnapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
 	wfmMulti := executor.NewMultiWorkflowManager(wfmBatch, map[models.Manager]executor.WorkflowManager{
 		models.ManagerBatch:         wfmBatch,
 		models.ManagerStepFunctions: wfmSFN,
@@ -119,6 +118,9 @@ func loadConfig() Config {
 			"workflow-manager-test",
 		),
 		DynamoRegion: os.Getenv("AWS_DYNAMO_REGION"),
+		SFNRegion:    os.Getenv("AWS_SFN_REGION"),
+		SFNAccountID: os.Getenv("AWS_SFN_ACCOUNT_ID"),
+		SFNRoleARN:   os.Getenv("AWS_SFN_ROLE_ARN"),
 	}
 }
 
