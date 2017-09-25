@@ -266,8 +266,13 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow)
 			case sfn.HistoryEventTypeTaskStateExited:
 				stateExited := evt.StateExitedEventDetails
 				stateToJob[*stateExited.Name].JobDetail.StoppedAt = *evt.Timestamp
-				// TODO: add output to Job, capture it
-				// stateToJob[*stateExited.Name].Output = *stateExited.Output
+				output := []string{}
+				if stateExited.Output != nil {
+					if err := json.Unmarshal([]byte(*stateExited.Output), &output); err != nil {
+						output = []string{*stateExited.Output}
+					}
+				}
+				stateToJob[*stateExited.Name].JobDetail.Output = output
 				currentState = nil
 			}
 		}
