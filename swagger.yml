@@ -132,7 +132,7 @@ paths:
       operationId: startWorkflow
       parameters:
         - name: StartWorkflowRequest
-          description: Parameters for starting a workflow (workflow definition, input, and optionally namespace and queue)
+          description: Parameters for starting a workflow (workflow definition, input, and optionally namespace, queue, and tags)
           in: body
           schema:
             $ref: "#/definitions/StartWorkflowRequest"
@@ -423,6 +423,10 @@ definitions:
         type: array
         items:
             type: string
+      tags:
+        description: "tags: object with key-value pairs; keys and values should be strings"
+        additionalProperties:
+          type: object
 
   Job:
     type: object
@@ -491,6 +495,10 @@ definitions:
       queue:
         type: string
         default: "default"
+      tags:
+        description: "tags: object with key-value pairs; keys and values should be strings"
+        additionalProperties:
+          type: object
 
   WorkflowDefinitionRef:
     type: object

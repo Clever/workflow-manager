@@ -7,6 +7,7 @@ import (
 	context "context"
 	models "github.com/Clever/workflow-manager/gen-go/models"
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // Mock of Client interface

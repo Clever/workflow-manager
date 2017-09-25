@@ -1774,7 +1774,7 @@ class WorkflowManager {
   }
 
   /**
-   * @param StartWorkflowRequest - Parameters for starting a workflow (workflow definition, input, and optionally namespace and queue)
+   * @param StartWorkflowRequest - Parameters for starting a workflow (workflow definition, input, and optionally namespace, queue, and tags)
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
