@@ -205,6 +205,8 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow)
 	// Step Functions supports complex branching, so jobs might not be 1:1 with states.
 	jobs := []*resources.Job{}
 	stateToJob := map[string]*resources.Job{}
+	// TODO: as soon as we have parallel states anything that relies on this might be incorrect
+	var currentState *string
 	if err := wm.sfnapi.GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
 		ExecutionArn: aws.String(execARN),
 	}, func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool {
@@ -244,15 +246,31 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow)
 						LastUpdated: *evt.Timestamp,
 					},
 				}
+				currentState = stateEntered.Name
 				stateToJob[job.State] = job
 				jobs = append(jobs, job)
+			case sfn.HistoryEventTypeActivityScheduled:
+				if currentState != nil {
+					stateToJob[*currentState].JobDetail.Status = resources.JobStatusQueued
+				}
+			case sfn.HistoryEventTypeActivityStarted:
+				if currentState != nil {
+					stateToJob[*currentState].JobDetail.Status = resources.JobStatusRunning
+				}
+			case sfn.HistoryEventTypeActivityFailed:
+				if currentState != nil {
+					stateToJob[*currentState].JobDetail.Status = resources.JobStatusFailed
+				}
+			case sfn.HistoryEventTypeActivitySucceeded:
+				if currentState != nil {
+					stateToJob[*currentState].JobDetail.Status = resources.JobStatusSucceeded
+				}
 			case sfn.HistoryEventTypeTaskStateExited:
 				stateExited := evt.StateExitedEventDetails
 				stateToJob[*stateExited.Name].JobDetail.StoppedAt = *evt.Timestamp
-				// TODO: match ActivitySucceeded / ActivityFailed events and set job status
-				stateToJob[*stateExited.Name].JobDetail.Status = resources.JobStatusSucceeded
 				// TODO: add output to Job, capture it
 				// stateToJob[*stateExited.Name].Output = *stateExited.Output
+				currentState = nil
 			}
 		}
 		return true
