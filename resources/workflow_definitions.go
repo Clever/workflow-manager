@@ -33,6 +33,7 @@ type WorkflowDefinition struct {
 	StartAtStr       string
 	StatesMap        map[string]State
 	OrderedStatesArr []State
+	Manager          models.Manager
 
 	Description string
 }
@@ -97,6 +98,7 @@ func NewWorkflowDefinitionVersion(def WorkflowDefinition, version int) WorkflowD
 		StatesMap:        def.States(),
 		OrderedStatesArr: def.OrderedStates(),
 		Description:      def.Description,
+		Manager:          def.Manager,
 	}
 }
 

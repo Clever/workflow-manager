@@ -6,9 +6,10 @@ package server
 
 import (
 	context "context"
+	reflect "reflect"
+
 	models "github.com/Clever/workflow-manager/gen-go/models"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockController is a mock of Controller interface

@@ -267,7 +267,12 @@ func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (
 		}
 	}
 
-	return resources.NewWorkflowDefinition(req.Name, req.Description, req.StartAt, states)
+	wfd, err := resources.NewWorkflowDefinition(req.Name, req.Description, req.StartAt, states)
+	if err != nil {
+		return wfd, err
+	}
+	wfd.Manager = req.Manager
+	return wfd, nil
 }
 
 func apiWorkflowDefinitionFromStore(wf resources.WorkflowDefinition) *models.WorkflowDefinition {
@@ -289,6 +294,7 @@ func apiWorkflowDefinitionFromStore(wf resources.WorkflowDefinition) *models.Wor
 		StartAt:   wf.StartAt().Name(),
 		CreatedAt: strfmt.DateTime(wf.CreatedAt()),
 		States:    states,
+		Manager:   wf.Manager,
 	}
 }
 

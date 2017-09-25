@@ -6,9 +6,10 @@ package client
 
 import (
 	context "context"
+	reflect "reflect"
+
 	models "github.com/Clever/workflow-manager/gen-go/models"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockClient is a mock of Client interface
