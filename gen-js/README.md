@@ -292,7 +292,7 @@ Get the latest versions of all available WorkflowDefinitions
 | Param | Type | Description |
 | --- | --- | --- |
 | params | <code>Object</code> |  |
-| [params.limit] | <code>number</code> |  |
+| [params.limit] | <code>number</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
 | [params.oldestFirst] | <code>boolean</code> |  |
 | [params.pageToken] | <code>string</code> |  |
 | [params.status] | <code>string</code> |  |
@@ -312,7 +312,7 @@ Get the latest versions of all available WorkflowDefinitions
 | Param | Type | Description |
 | --- | --- | --- |
 | params | <code>Object</code> |  |
-| [params.limit] | <code>number</code> |  |
+| [params.limit] | <code>number</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
 | [params.oldestFirst] | <code>boolean</code> |  |
 | [params.pageToken] | <code>string</code> |  |
 | [params.status] | <code>string</code> |  |
