@@ -509,8 +509,8 @@ func (d DynamoDB) UpdateWorkflow(workflow resources.Workflow) error {
 	return err
 }
 
-// populateWorkflow fills in the workflow object contained in a workflow
-func (d DynamoDB) populateWorkflow(workflow *resources.Workflow) error {
+// attachWorkflowDefinition adds workflow definition information to the given workflow.
+func (d DynamoDB) attachWorkflowDefinition(workflow *resources.Workflow) error {
 	wf, err := d.GetWorkflowDefinition(workflow.WorkflowDefinition.Name(), workflow.WorkflowDefinition.Version())
 	if err != nil {
 		return fmt.Errorf("error getting WorkflowDefinition for Workflow %s: %s", workflow.ID, err)
@@ -545,7 +545,7 @@ func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
 		return resources.Workflow{}, err
 	}
 
-	if err := d.populateWorkflow(&workflow); err != nil {
+	if err := d.attachWorkflowDefinition(&workflow); err != nil {
 		return resources.Workflow{}, err
 	}
 
@@ -592,7 +592,11 @@ func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]resources.Workflow
 		if err != nil {
 			return workflows, nextPageToken, err
 		}
-		if err := d.populateWorkflow(&workflow); err != nil {
+		// TODO: Optimization - do a BatchGet to fetch the workflow definitions all at once and avoid
+		// redundant fetches.
+		// TODO: Add an option in the API to skip this step for clients that want to fetch definitions
+		// separately.
+		if err := d.attachWorkflowDefinition(&workflow); err != nil {
 			return workflows, nextPageToken, err
 		}
 		workflows = append(workflows, workflow)
