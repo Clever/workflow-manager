@@ -22,6 +22,7 @@ func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
 	t.Run("UpdateWorkflow", UpdateWorkflow(storeFactory(), t))
 	t.Run("GetWorkflowByID", GetWorkflowByID(storeFactory(), t))
 	t.Run("GetWorkflows", GetWorkflows(storeFactory(), t))
+	t.Run("GetWorkflowsPagination", GetWorkflowsPagination(storeFactory(), t))
 	t.Run("GetPendingWorkflowIDs", GetPendingWorkflowIDs(storeFactory(), t))
 	t.Run("LockWorkflow/UnlockWorkflow", LockUnlockWorkflow(storeFactory(), t))
 }
@@ -199,29 +200,113 @@ func GetWorkflowByID(s store.Store, t *testing.T) func(t *testing.T) {
 
 func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
-		wf1 := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(wf1))
-		wf2 := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(wf2))
-		var workflow1IDs, workflow2IDs []string
-		for len(workflow1IDs) < 2 {
-			workflow1 := resources.NewWorkflow(wf1, []string{"input"}, "namespace", "queue")
-			workflow1IDs = append([]string{workflow1.ID}, workflow1IDs...) // newest first
-			require.Nil(t, s.SaveWorkflow(*workflow1))
+		// Set up workflows:
+		definition := resources.KitchenSinkWorkflowDefinition(t)
+		require.NoError(t, s.SaveWorkflowDefinition(definition))
 
-			workflow2 := resources.NewWorkflow(wf2, []string{"input"}, "namespace", "queue")
-			workflow2IDs = append([]string{workflow2.ID}, workflow2IDs...)
-			require.Nil(t, s.SaveWorkflow(*workflow2))
+		runningWorkflow := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		runningWorkflow.Status = resources.Running
+		require.NoError(t, s.SaveWorkflow(*runningWorkflow))
+
+		failedWorkflow := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		failedWorkflow.Status = resources.Failed
+		require.NoError(t, s.SaveWorkflow(*failedWorkflow))
+
+		// Set up workflows for a separate definition that will be ignored by the query:
+		otherWorkflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
+		require.NoError(t, s.SaveWorkflowDefinition(otherWorkflowDefinition))
+
+		otherDefinitionWorkflow := resources.NewWorkflow(
+			otherWorkflowDefinition, []string{"input"}, "namespace", "queue",
+		)
+		otherDefinitionWorkflow.Status = resources.Running
+		require.NoError(t, s.SaveWorkflow(*otherDefinitionWorkflow))
+
+		// Verify results for query with no status filtering:
+		workflows, _, err := s.GetWorkflows(&store.WorkflowQuery{
+			DefinitionName: definition.Name(),
+			Limit:          10,
+		})
+		require.NoError(t, err)
+		require.Len(t, workflows, 2)
+		require.Equal(t, failedWorkflow.ID, workflows[0].ID)
+		require.Equal(t, runningWorkflow.ID, workflows[1].ID)
+
+		// Verify results for query with status filtering:
+		workflows, _, err = s.GetWorkflows(&store.WorkflowQuery{
+			DefinitionName: definition.Name(),
+			Status:         string(resources.Running),
+			Limit:          10,
+		})
+		require.NoError(t, err)
+		require.Len(t, workflows, 1)
+		require.Equal(t, runningWorkflow.ID, workflows[0].ID)
+	}
+}
+
+func GetWorkflowsPagination(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		definition := resources.KitchenSinkWorkflowDefinition(t)
+		require.NoError(t, s.SaveWorkflowDefinition(definition))
+
+		workflow1 := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		workflow1.Status = resources.Running
+		require.NoError(t, s.SaveWorkflow(*workflow1))
+
+		workflow2 := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		workflow2.Status = resources.Succeeded
+		require.NoError(t, s.SaveWorkflow(*workflow2))
+
+		workflow3 := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		workflow3.Status = resources.Running
+		require.NoError(t, s.SaveWorkflow(*workflow3))
+
+		limit := 1
+		getAllPages := func(query store.WorkflowQuery) []resources.Workflow {
+			nextPageToken := ""
+			nextQuery := query
+			workflows := []resources.Workflow{}
+			workflowsPage := []resources.Workflow{}
+			var err error
+			for {
+				workflowsPage, nextPageToken, err = s.GetWorkflows(&nextQuery)
+				require.NoError(t, err)
+
+				nextQuery.PageToken = nextPageToken
+
+				// Make sure we always have exactly <limit> items if there's a next page token returned.
+				if nextPageToken != "" {
+					require.Len(t, workflowsPage, limit)
+				} else {
+					require.True(t, len(workflowsPage) <= limit)
+				}
+
+				workflows = append(workflows, workflowsPage...)
+
+				if nextPageToken == "" {
+					break
+				}
+			}
+
+			return workflows
+		}
+		query := store.WorkflowQuery{
+			DefinitionName: definition.Name(),
+			Limit:          limit,
+			Status:         string(resources.Running),
 		}
 
-		workflows, err := s.GetWorkflows(wf2.Name())
-		require.Nil(t, err)
-		require.Equal(t, len(workflows), len(workflow2IDs))
-		var gotWorkflow2IDs []string
-		for _, j := range workflows {
-			gotWorkflow2IDs = append(gotWorkflow2IDs, j.ID)
-		}
-		require.Equal(t, workflow2IDs, gotWorkflow2IDs)
+		workflows := getAllPages(query)
+		require.Len(t, workflows, 2)
+		require.Equal(t, workflow3.ID, workflows[0].ID)
+		require.Equal(t, workflow1.ID, workflows[1].ID)
+
+		// Make sure paging works in both sort directions.
+		query.OldestFirst = true
+		workflows = getAllPages(query)
+		require.Len(t, workflows, 2)
+		require.Equal(t, workflow1.ID, workflows[0].ID)
+		require.Equal(t, workflow3.ID, workflows[1].ID)
 	}
 }
 
