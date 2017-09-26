@@ -1161,7 +1161,7 @@ func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 
-	resp, err := h.GetWorkflows(ctx, input)
+	resp, nextPageID, err := h.GetWorkflows(ctx, input)
 
 	// Success types that return an array should never return nil so let's make this easier
 	// for consumers by converting nil arrays to empty arrays
@@ -1190,6 +1190,17 @@ func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 
+	if !swag.IsZero(nextPageID) {
+		input.PageToken = &nextPageID
+		path, err := input.Path()
+		if err != nil {
+			logger.FromContext(ctx).AddContext("error", err.Error())
+			http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("X-Next-Page-Path", path)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForGetWorkflows(resp))
 	w.Write(respBytes)
@@ -1202,6 +1213,54 @@ func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
 
 	var err error
 	_ = err
+
+	limitStrs := r.URL.Query()["limit"]
+
+	if len(limitStrs) > 0 {
+		var limitTmp int32
+		limitStr := limitStrs[0]
+		limitTmp, err = swag.ConvertInt32(limitStr)
+		if err != nil {
+			return nil, err
+		}
+		input.Limit = &limitTmp
+	}
+
+	oldestFirstStrs := r.URL.Query()["oldestFirst"]
+
+	if len(oldestFirstStrs) > 0 {
+		var oldestFirstTmp bool
+		oldestFirstStr := oldestFirstStrs[0]
+		oldestFirstTmp, err = strconv.ParseBool(oldestFirstStr)
+		if err != nil {
+			return nil, err
+		}
+		input.OldestFirst = &oldestFirstTmp
+	}
+
+	pageTokenStrs := r.URL.Query()["pageToken"]
+
+	if len(pageTokenStrs) > 0 {
+		var pageTokenTmp string
+		pageTokenStr := pageTokenStrs[0]
+		pageTokenTmp, err = pageTokenStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.PageToken = &pageTokenTmp
+	}
+
+	statusStrs := r.URL.Query()["status"]
+
+	if len(statusStrs) > 0 {
+		var statusTmp string
+		statusStr := statusStrs[0]
+		statusTmp, err = statusStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Status = &statusTmp
+	}
 
 	workflowDefinitionNameStrs := r.URL.Query()["workflowDefinitionName"]
 	if len(workflowDefinitionNameStrs) == 0 {

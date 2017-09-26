@@ -286,6 +286,10 @@ func (i GetWorkflowDefinitionByNameAndVersionInput) Path() (string, error) {
 
 // GetWorkflowsInput holds the input parameters for a getWorkflows operation.
 type GetWorkflowsInput struct {
+	Limit                  *int32
+	OldestFirst            *bool
+	PageToken              *string
+	Status                 *string
 	WorkflowDefinitionName string
 }
 
@@ -300,6 +304,22 @@ func (i GetWorkflowsInput) Validate() error {
 func (i GetWorkflowsInput) Path() (string, error) {
 	path := "/workflows"
 	urlVals := url.Values{}
+
+	if i.Limit != nil {
+		urlVals.Add("limit", strconv.FormatInt(int64(*i.Limit), 10))
+	}
+
+	if i.OldestFirst != nil {
+		urlVals.Add("oldestFirst", strconv.FormatBool(*i.OldestFirst))
+	}
+
+	if i.PageToken != nil {
+		urlVals.Add("pageToken", *i.PageToken)
+	}
+
+	if i.Status != nil {
+		urlVals.Add("status", *i.Status)
+	}
 
 	urlVals.Add("workflowDefinitionName", i.WorkflowDefinitionName)
 

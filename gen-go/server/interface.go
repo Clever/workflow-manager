@@ -97,13 +97,14 @@ type Controller interface {
 	GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error)
 
 	// GetWorkflows handles GET requests to /workflows
+	// Returns response object and the ID of the next page
 	//
 	// 200: []models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error)
+	GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, string, error)
 
 	// StartWorkflow handles POST requests to /workflows
 	//

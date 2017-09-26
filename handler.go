@@ -191,11 +191,15 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 	return apiWorkflowFromStore(*workflow), nil
 }
 
-// GetWorkflows returns a summary of all active workflows for the given workflow
-func (h Handler) GetWorkflows(ctx context.Context, input *models.GetWorkflowsInput) ([]models.Workflow, error) {
+// GetWorkflows returns a summary of all workflows matching the given query.
+func (h Handler) GetWorkflows(
+	ctx context.Context,
+	input *models.GetWorkflowsInput,
+) ([]models.Workflow, string, error) {
+	// TODO: Implement filtering and paging.
 	workflows, err := h.store.GetWorkflows(input.WorkflowDefinitionName)
 	if err != nil {
-		return []models.Workflow{}, err
+		return []models.Workflow{}, "", err
 	}
 
 	results := []models.Workflow{}
@@ -203,7 +207,7 @@ func (h Handler) GetWorkflows(ctx context.Context, input *models.GetWorkflowsInp
 		h.manager.UpdateWorkflowStatus(&workflow)
 		results = append(results, *apiWorkflowFromStore(workflow))
 	}
-	return results, nil
+	return results, "", nil
 }
 
 // GetWorkflowByID returns current details about a Workflow with the given workflowId

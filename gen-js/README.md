@@ -36,7 +36,8 @@ workflow-manager client library.
             * [.getWorkflowDefinitionVersionsByName(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowDefinitionVersionsByName) ⇒ <code>Promise</code>
             * [.updateWorkflowDefinition(params, [options], [cb])](#module_workflow-manager--WorkflowManager+updateWorkflowDefinition) ⇒ <code>Promise</code>
             * [.getWorkflowDefinitionByNameAndVersion(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowDefinitionByNameAndVersion) ⇒ <code>Promise</code>
-            * [.getWorkflows(workflowDefinitionName, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflows) ⇒ <code>Promise</code>
+            * [.getWorkflows(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflows) ⇒ <code>Promise</code>
+            * [.getWorkflowsIter(params, [options])](#module_workflow-manager--WorkflowManager+getWorkflowsIter) ⇒ <code>Object</code> &#124; <code>function</code> &#124; <code>function</code> &#124; <code>function</code>
             * [.startWorkflow(StartWorkflowRequest, [options], [cb])](#module_workflow-manager--WorkflowManager+startWorkflow) ⇒ <code>Promise</code>
             * [.CancelWorkflow(params, [options], [cb])](#module_workflow-manager--WorkflowManager+CancelWorkflow) ⇒ <code>Promise</code>
             * [.getWorkflowByID(workflowId, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowByID) ⇒ <code>Promise</code>
@@ -280,7 +281,7 @@ Get the latest versions of all available WorkflowDefinitions
 
 <a name="module_workflow-manager--WorkflowManager+getWorkflows"></a>
 
-#### workflowManager.getWorkflows(workflowDefinitionName, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.getWorkflows(params, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object[]</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -290,12 +291,36 @@ Get the latest versions of all available WorkflowDefinitions
 
 | Param | Type | Description |
 | --- | --- | --- |
-| workflowDefinitionName | <code>string</code> |  |
+| params | <code>Object</code> |  |
+| [params.limit] | <code>number</code> |  |
+| [params.oldestFirst] | <code>boolean</code> |  |
+| [params.pageToken] | <code>string</code> |  |
+| [params.status] | <code>string</code> |  |
+| params.workflowDefinitionName | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
+
+<a name="module_workflow-manager--WorkflowManager+getWorkflowsIter"></a>
+
+#### workflowManager.getWorkflowsIter(params, [options]) ⇒ <code>Object</code> &#124; <code>function</code> &#124; <code>function</code> &#124; <code>function</code>
+**Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
+**Returns**: <code>Object</code> - iter<code>function</code> - iter.map - takes in a function, applies it to each resource, and returns a promise to the result as an array<code>function</code> - iter.toArray - returns a promise to the resources as an array<code>function</code> - iter.forEach - takes in a function, applies it to each resource  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| params | <code>Object</code> |  |
+| [params.limit] | <code>number</code> |  |
+| [params.oldestFirst] | <code>boolean</code> |  |
+| [params.pageToken] | <code>string</code> |  |
+| [params.status] | <code>string</code> |  |
+| params.workflowDefinitionName | <code>string</code> |  |
+| [options] | <code>object</code> |  |
+| [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 
 <a name="module_workflow-manager--WorkflowManager+startWorkflow"></a>
 

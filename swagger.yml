@@ -7,7 +7,7 @@ info:
   # 2. merge the new clients, and, after merging, tag the commit with the version:
   #    git tag -a vX.Y.Z -m "vX.Y.Z"
   #    git push origin --tags
-  version: 0.5.0
+  version: 0.5.1
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -143,10 +143,27 @@ paths:
             $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
+
     get:
       summary: Get summary of all active Workflows for a given WorkflowDefinition
       operationId: getWorkflows
+      x-paging:
+        pageParameter: pageToken
       parameters:
+        # TODO: Add date range filters.
+        - name: limit
+          in: query
+          type: integer
+          format: int32
+        - name: oldestFirst
+          in: query
+          type: boolean
+        - name: pageToken
+          in: query
+          type: string
+        - name: status
+          in: query
+          type: string
         - name: workflowDefinitionName
           in: query
           type: string

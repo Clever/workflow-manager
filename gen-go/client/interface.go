@@ -105,6 +105,8 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error)
 
+	NewGetWorkflowsIter(ctx context.Context, i *models.GetWorkflowsInput) (GetWorkflowsIter, error)
+
 	// StartWorkflow makes a POST request to /workflows
 	//
 	// 200: *models.Workflow
@@ -131,4 +133,10 @@ type Client interface {
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	GetWorkflowByID(ctx context.Context, workflowId string) (*models.Workflow, error)
+}
+
+// GetWorkflowsIter defines the methods available on GetWorkflows iterators.
+type GetWorkflowsIter interface {
+	Next(*models.Workflow) bool
+	Err() error
 }
