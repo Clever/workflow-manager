@@ -126,62 +126,6 @@ paths:
         404:
           $ref: "#/responses/NotFound"
 
-  /workflow-definitions/{definitionName}/workflows/active:
-    put:
-      summary: Get summary of all active Workflows for a given WorkflowDefinition.
-      operationId: getActiveWorkflows
-      x-paging:
-        pageParameter: pageToken
-      parameters:
-        - name: definitionName
-          in: path
-          type: string
-          required: true
-        - name: query
-          in: body
-          required: true
-          schema:
-            $ref: "#/definitions/WorkflowQuery"
-        - name: pageToken
-          in: query
-          type: string
-      responses:
-        200:
-          description: Active workflows matching the given query.
-          schema:
-            type: array
-            items:
-              $ref: "#/definitions/Workflow"
-
-  /workflow-definitions/{definitionName}/workflows/inactive:
-    put:
-      summary:
-        Get summary of all inactive Workflows (succeeded/failed/cancelled) for a given
-        WorkflowDefinition.
-      operationId: getInactiveWorkflows
-      x-paging:
-        pageParameter: pageToken
-      parameters:
-        - name: definitionName
-          in: path
-          type: string
-          required: true
-        - name: query
-          in: body
-          required: true
-          schema:
-            $ref: "#/definitions/WorkflowQuery"
-        - name: pageToken
-          in: query
-          type: string
-      responses:
-        200:
-          description: Inactive workflows matching the given query.
-          schema:
-            type: array
-            items:
-              $ref: "#/definitions/Workflow"
-
   /workflows:
     post:
       summary: Start a Workflow
@@ -203,7 +147,23 @@ paths:
     get:
       summary: Get summary of all active Workflows for a given WorkflowDefinition
       operationId: getWorkflows
+      x-paging:
+        pageParameter: pageToken
       parameters:
+        # TODO: Add date range filters.
+        - name: limit
+          in: query
+          type: integer
+          format: int32
+        - name: oldestFirst
+          in: query
+          type: boolean
+        - name: pageToken
+          in: query
+          type: string
+        - name: status
+          in: query
+          type: string
         - name: workflowDefinitionName
           in: query
           type: string
@@ -637,15 +597,3 @@ definitions:
       - "Succeed"
       - "Fail"
       - "Parallel"
-
-  WorkflowQuery:
-    type: object
-    properties:
-      # TODO: Add date range filters.
-      limit:
-        type: integer
-        format: int32
-      statuses:
-        type: array
-        items:
-          type: string
