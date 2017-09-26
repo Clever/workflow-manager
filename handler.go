@@ -208,7 +208,7 @@ func (h Handler) GetWorkflows(
 	input *models.GetWorkflowsInput,
 ) ([]models.Workflow, string, error) {
 	limit := WorkflowsPageSizeDefault
-	if input.Limit != nil {
+	if input.Limit != nil && *input.Limit > 0 {
 		limit = int(*input.Limit)
 	}
 	if limit > WorkflowsPageSizeMax {
