@@ -57,3 +57,21 @@ func NewConflict(name string) ConflictError {
 func NewNotFound(name string) models.NotFound {
 	return models.NotFound{Message: name}
 }
+
+// InvalidPageTokenError is returned for workflow queries that contain a malformed or invalid page
+// token.
+type InvalidPageTokenError struct {
+	cause error
+}
+
+// NewInvalidPageTokenError returns a new InvalidPageTokenError.
+func NewInvalidPageTokenError(cause error) InvalidPageTokenError {
+	return InvalidPageTokenError{
+		cause: cause,
+	}
+}
+
+// Error implements the error interface.
+func (e InvalidPageTokenError) Error() string {
+	return fmt.Sprintf("invalid page token: %v", e.cause)
+}

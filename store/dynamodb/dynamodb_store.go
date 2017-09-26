@@ -576,7 +576,7 @@ func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]resources.Workflow
 
 	pageKey, err := ParsePageKey(query.PageToken)
 	if err != nil {
-		return workflows, nextPageToken, err
+		return workflows, nextPageToken, store.NewInvalidPageTokenError(err)
 	}
 	if pageKey != nil {
 		dbQuery.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue(*pageKey))

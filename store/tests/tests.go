@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
@@ -307,6 +309,14 @@ func GetWorkflowsPagination(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Len(t, workflows, 2)
 		require.Equal(t, workflow1.ID, workflows[0].ID)
 		require.Equal(t, workflow3.ID, workflows[1].ID)
+
+		// Verify handling for invalid page tokens.
+		query.PageToken = "invalid token"
+		workflows, nextPageToken, err := s.GetWorkflows(&query)
+		assert.Error(t, err)
+		assert.IsType(t, store.InvalidPageTokenError{}, err)
+		assert.Equal(t, "", nextPageToken)
+		assert.Len(t, workflows, 0)
 	}
 }
 

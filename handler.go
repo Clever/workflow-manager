@@ -223,6 +223,12 @@ func (h Handler) GetWorkflows(
 		Status:         swag.StringValue(input.Status),
 	})
 	if err != nil {
+		if _, ok := err.(store.InvalidPageTokenError); ok {
+			return []models.Workflow{}, "", models.BadRequest{
+				Message: err.Error(),
+			}
+		}
+
 		return []models.Workflow{}, "", err
 	}
 

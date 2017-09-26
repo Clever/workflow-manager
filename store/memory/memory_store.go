@@ -5,6 +5,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/satori/go.uuid"
+
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 )
@@ -172,8 +174,13 @@ func (s MemoryStore) GetWorkflows(
 
 	rangeStart := 0
 	if query.PageToken != "" {
+		lastWorkflowID, err := uuid.FromString(query.PageToken)
+		if err != nil {
+			return []resources.Workflow{}, "", store.NewInvalidPageTokenError(err)
+		}
+
 		for i, workflow := range workflows {
-			if workflow.ID == query.PageToken {
+			if workflow.ID == lastWorkflowID.String() {
 				rangeStart = i + 1
 			}
 		}
