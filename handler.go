@@ -191,29 +191,15 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 	return apiWorkflowFromStore(*workflow), nil
 }
 
-// GetActiveWorkflows returns a summary of all active workflows for the given workflow.
-func (h Handler) GetActiveWorkflows(
+// GetWorkflows returns a summary of all workflows matching the given query.
+func (h Handler) GetWorkflows(
 	ctx context.Context,
-	input *models.GetActiveWorkflowsInput,
+	input *models.GetWorkflowsInput,
 ) ([]models.Workflow, string, error) {
-	return []models.Workflow{}, "", fmt.Errorf("not yet implemented")
-}
-
-// GetInactiveWorkflows returns a summary of all inactive workflows (succeeded/failed/cancelled) for
-// the given workflow.
-func (h Handler) GetInactiveWorkflows(
-	ctx context.Context,
-	input *models.GetInactiveWorkflowsInput,
-) ([]models.Workflow, string, error) {
-	return []models.Workflow{}, "", fmt.Errorf("not yet implemented")
-}
-
-// GetWorkflows returns a summary of all workflows for the given workflow definition.
-// TODO: Move existing clients over to new API and remove this.
-func (h Handler) GetWorkflows(ctx context.Context, input *models.GetWorkflowsInput) ([]models.Workflow, error) {
+	// TODO: Implement filtering and paging.
 	workflows, err := h.store.GetWorkflows(input.WorkflowDefinitionName)
 	if err != nil {
-		return []models.Workflow{}, err
+		return []models.Workflow{}, "", err
 	}
 
 	results := []models.Workflow{}
@@ -221,7 +207,7 @@ func (h Handler) GetWorkflows(ctx context.Context, input *models.GetWorkflowsInp
 		h.manager.UpdateWorkflowStatus(&workflow)
 		results = append(results, *apiWorkflowFromStore(workflow))
 	}
-	return results, nil
+	return results, "", nil
 }
 
 // GetWorkflowByID returns current details about a Workflow with the given workflowId
