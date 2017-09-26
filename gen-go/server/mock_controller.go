@@ -105,30 +105,6 @@ func (_mr *_MockControllerRecorder) NewWorkflowDefinition(arg0, arg1 interface{}
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewWorkflowDefinition", arg0, arg1)
 }
 
-func (_m *MockController) GetActiveWorkflows(ctx context.Context, i *models.GetActiveWorkflowsInput) ([]models.Workflow, string, error) {
-	ret := _m.ctrl.Call(_m, "GetActiveWorkflows", ctx, i)
-	ret0, _ := ret[0].([]models.Workflow)
-	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-func (_mr *_MockControllerRecorder) GetActiveWorkflows(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetActiveWorkflows", arg0, arg1)
-}
-
-func (_m *MockController) GetInactiveWorkflows(ctx context.Context, i *models.GetInactiveWorkflowsInput) ([]models.Workflow, string, error) {
-	ret := _m.ctrl.Call(_m, "GetInactiveWorkflows", ctx, i)
-	ret0, _ := ret[0].([]models.Workflow)
-	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-func (_mr *_MockControllerRecorder) GetInactiveWorkflows(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetInactiveWorkflows", arg0, arg1)
-}
-
 func (_m *MockController) GetWorkflowDefinitionVersionsByName(ctx context.Context, i *models.GetWorkflowDefinitionVersionsByNameInput) ([]models.WorkflowDefinition, error) {
 	ret := _m.ctrl.Call(_m, "GetWorkflowDefinitionVersionsByName", ctx, i)
 	ret0, _ := ret[0].([]models.WorkflowDefinition)
@@ -162,11 +138,12 @@ func (_mr *_MockControllerRecorder) GetWorkflowDefinitionByNameAndVersion(arg0, 
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflowDefinitionByNameAndVersion", arg0, arg1)
 }
 
-func (_m *MockController) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error) {
+func (_m *MockController) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, string, error) {
 	ret := _m.ctrl.Call(_m, "GetWorkflows", ctx, i)
 	ret0, _ := ret[0].([]models.Workflow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 func (_mr *_MockControllerRecorder) GetWorkflows(arg0, arg1 interface{}) *gomock.Call {

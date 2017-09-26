@@ -154,20 +154,6 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("PUT").Path("/workflow-definitions/{definitionName}/workflows/active").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "getActiveWorkflows")
-		h.GetActiveWorkflowsHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "getActiveWorkflows")
-		r = r.WithContext(ctx)
-	})
-
-	router.Methods("PUT").Path("/workflow-definitions/{definitionName}/workflows/inactive").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.FromContext(r.Context()).AddContext("op", "getInactiveWorkflows")
-		h.GetInactiveWorkflowsHandler(r.Context(), w, r)
-		ctx := WithTracingOpName(r.Context(), "getInactiveWorkflows")
-		r = r.WithContext(ctx)
-	})
-
 	router.Methods("GET").Path("/workflow-definitions/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "getWorkflowDefinitionVersionsByName")
 		h.GetWorkflowDefinitionVersionsByNameHandler(r.Context(), w, r)

@@ -69,24 +69,6 @@ type Controller interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	NewWorkflowDefinition(ctx context.Context, i *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error)
 
-	// GetActiveWorkflows handles PUT requests to /workflow-definitions/{definitionName}/workflows/active
-	// Returns response object and the ID of the next page
-	//
-	// 200: []models.Workflow
-	// 400: *models.BadRequest
-	// 500: *models.InternalError
-	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetActiveWorkflows(ctx context.Context, i *models.GetActiveWorkflowsInput) ([]models.Workflow, string, error)
-
-	// GetInactiveWorkflows handles PUT requests to /workflow-definitions/{definitionName}/workflows/inactive
-	// Returns response object and the ID of the next page
-	//
-	// 200: []models.Workflow
-	// 400: *models.BadRequest
-	// 500: *models.InternalError
-	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetInactiveWorkflows(ctx context.Context, i *models.GetInactiveWorkflowsInput) ([]models.Workflow, string, error)
-
 	// GetWorkflowDefinitionVersionsByName handles GET requests to /workflow-definitions/{name}
 	//
 	// 200: []models.WorkflowDefinition
@@ -115,13 +97,14 @@ type Controller interface {
 	GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error)
 
 	// GetWorkflows handles GET requests to /workflows
+	// Returns response object and the ID of the next page
 	//
 	// 200: []models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error)
+	GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, string, error)
 
 	// StartWorkflow handles POST requests to /workflows
 	//

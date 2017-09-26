@@ -69,26 +69,6 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	NewWorkflowDefinition(ctx context.Context, i *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error)
 
-	// GetActiveWorkflows makes a PUT request to /workflow-definitions/{definitionName}/workflows/active
-	//
-	// 200: []models.Workflow
-	// 400: *models.BadRequest
-	// 500: *models.InternalError
-	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetActiveWorkflows(ctx context.Context, i *models.GetActiveWorkflowsInput) ([]models.Workflow, error)
-
-	NewGetActiveWorkflowsIter(ctx context.Context, i *models.GetActiveWorkflowsInput) (GetActiveWorkflowsIter, error)
-
-	// GetInactiveWorkflows makes a PUT request to /workflow-definitions/{definitionName}/workflows/inactive
-	//
-	// 200: []models.Workflow
-	// 400: *models.BadRequest
-	// 500: *models.InternalError
-	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetInactiveWorkflows(ctx context.Context, i *models.GetInactiveWorkflowsInput) ([]models.Workflow, error)
-
-	NewGetInactiveWorkflowsIter(ctx context.Context, i *models.GetInactiveWorkflowsInput) (GetInactiveWorkflowsIter, error)
-
 	// GetWorkflowDefinitionVersionsByName makes a GET request to /workflow-definitions/{name}
 	//
 	// 200: []models.WorkflowDefinition
@@ -125,6 +105,8 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error)
 
+	NewGetWorkflowsIter(ctx context.Context, i *models.GetWorkflowsInput) (GetWorkflowsIter, error)
+
 	// StartWorkflow makes a POST request to /workflows
 	//
 	// 200: *models.Workflow
@@ -153,14 +135,8 @@ type Client interface {
 	GetWorkflowByID(ctx context.Context, workflowId string) (*models.Workflow, error)
 }
 
-// GetActiveWorkflowsIter defines the methods available on GetActiveWorkflows iterators.
-type GetActiveWorkflowsIter interface {
-	Next(*models.Workflow) bool
-	Err() error
-}
-
-// GetInactiveWorkflowsIter defines the methods available on GetInactiveWorkflows iterators.
-type GetInactiveWorkflowsIter interface {
+// GetWorkflowsIter defines the methods available on GetWorkflows iterators.
+type GetWorkflowsIter interface {
 	Next(*models.Workflow) bool
 	Err() error
 }

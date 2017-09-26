@@ -105,50 +105,6 @@ func (_mr *_MockClientRecorder) NewWorkflowDefinition(arg0, arg1 interface{}) *g
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewWorkflowDefinition", arg0, arg1)
 }
 
-func (_m *MockClient) GetActiveWorkflows(ctx context.Context, i *models.GetActiveWorkflowsInput) ([]models.Workflow, error) {
-	ret := _m.ctrl.Call(_m, "GetActiveWorkflows", ctx, i)
-	ret0, _ := ret[0].([]models.Workflow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-func (_mr *_MockClientRecorder) GetActiveWorkflows(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetActiveWorkflows", arg0, arg1)
-}
-
-func (_m *MockClient) NewGetActiveWorkflowsIter(ctx context.Context, i *models.GetActiveWorkflowsInput) (GetActiveWorkflowsIter, error) {
-	ret := _m.ctrl.Call(_m, "NewGetActiveWorkflowsIter", ctx, i)
-	ret0, _ := ret[0].(GetActiveWorkflowsIter)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-func (_mr *_MockClientRecorder) NewGetActiveWorkflowsIter(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewGetActiveWorkflowsIter", arg0, arg1)
-}
-
-func (_m *MockClient) GetInactiveWorkflows(ctx context.Context, i *models.GetInactiveWorkflowsInput) ([]models.Workflow, error) {
-	ret := _m.ctrl.Call(_m, "GetInactiveWorkflows", ctx, i)
-	ret0, _ := ret[0].([]models.Workflow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-func (_mr *_MockClientRecorder) GetInactiveWorkflows(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetInactiveWorkflows", arg0, arg1)
-}
-
-func (_m *MockClient) NewGetInactiveWorkflowsIter(ctx context.Context, i *models.GetInactiveWorkflowsInput) (GetInactiveWorkflowsIter, error) {
-	ret := _m.ctrl.Call(_m, "NewGetInactiveWorkflowsIter", ctx, i)
-	ret0, _ := ret[0].(GetInactiveWorkflowsIter)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-func (_mr *_MockClientRecorder) NewGetInactiveWorkflowsIter(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewGetInactiveWorkflowsIter", arg0, arg1)
-}
-
 func (_m *MockClient) GetWorkflowDefinitionVersionsByName(ctx context.Context, i *models.GetWorkflowDefinitionVersionsByNameInput) ([]models.WorkflowDefinition, error) {
 	ret := _m.ctrl.Call(_m, "GetWorkflowDefinitionVersionsByName", ctx, i)
 	ret0, _ := ret[0].([]models.WorkflowDefinition)
@@ -193,6 +149,17 @@ func (_mr *_MockClientRecorder) GetWorkflows(arg0, arg1 interface{}) *gomock.Cal
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflows", arg0, arg1)
 }
 
+func (_m *MockClient) NewGetWorkflowsIter(ctx context.Context, i *models.GetWorkflowsInput) (GetWorkflowsIter, error) {
+	ret := _m.ctrl.Call(_m, "NewGetWorkflowsIter", ctx, i)
+	ret0, _ := ret[0].(GetWorkflowsIter)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockClientRecorder) NewGetWorkflowsIter(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewGetWorkflowsIter", arg0, arg1)
+}
+
 func (_m *MockClient) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
 	ret := _m.ctrl.Call(_m, "StartWorkflow", ctx, i)
 	ret0, _ := ret[0].(*models.Workflow)
@@ -225,84 +192,43 @@ func (_mr *_MockClientRecorder) GetWorkflowByID(arg0, arg1 interface{}) *gomock.
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetWorkflowByID", arg0, arg1)
 }
 
-// Mock of GetActiveWorkflowsIter interface
-type MockGetActiveWorkflowsIter struct {
+// Mock of GetWorkflowsIter interface
+type MockGetWorkflowsIter struct {
 	ctrl     *gomock.Controller
-	recorder *_MockGetActiveWorkflowsIterRecorder
+	recorder *_MockGetWorkflowsIterRecorder
 }
 
-// Recorder for MockGetActiveWorkflowsIter (not exported)
-type _MockGetActiveWorkflowsIterRecorder struct {
-	mock *MockGetActiveWorkflowsIter
+// Recorder for MockGetWorkflowsIter (not exported)
+type _MockGetWorkflowsIterRecorder struct {
+	mock *MockGetWorkflowsIter
 }
 
-func NewMockGetActiveWorkflowsIter(ctrl *gomock.Controller) *MockGetActiveWorkflowsIter {
-	mock := &MockGetActiveWorkflowsIter{ctrl: ctrl}
-	mock.recorder = &_MockGetActiveWorkflowsIterRecorder{mock}
+func NewMockGetWorkflowsIter(ctrl *gomock.Controller) *MockGetWorkflowsIter {
+	mock := &MockGetWorkflowsIter{ctrl: ctrl}
+	mock.recorder = &_MockGetWorkflowsIterRecorder{mock}
 	return mock
 }
 
-func (_m *MockGetActiveWorkflowsIter) EXPECT() *_MockGetActiveWorkflowsIterRecorder {
+func (_m *MockGetWorkflowsIter) EXPECT() *_MockGetWorkflowsIterRecorder {
 	return _m.recorder
 }
 
-func (_m *MockGetActiveWorkflowsIter) Next(_param0 *models.Workflow) bool {
+func (_m *MockGetWorkflowsIter) Next(_param0 *models.Workflow) bool {
 	ret := _m.ctrl.Call(_m, "Next", _param0)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-func (_mr *_MockGetActiveWorkflowsIterRecorder) Next(arg0 interface{}) *gomock.Call {
+func (_mr *_MockGetWorkflowsIterRecorder) Next(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Next", arg0)
 }
 
-func (_m *MockGetActiveWorkflowsIter) Err() error {
+func (_m *MockGetWorkflowsIter) Err() error {
 	ret := _m.ctrl.Call(_m, "Err")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-func (_mr *_MockGetActiveWorkflowsIterRecorder) Err() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "Err")
-}
-
-// Mock of GetInactiveWorkflowsIter interface
-type MockGetInactiveWorkflowsIter struct {
-	ctrl     *gomock.Controller
-	recorder *_MockGetInactiveWorkflowsIterRecorder
-}
-
-// Recorder for MockGetInactiveWorkflowsIter (not exported)
-type _MockGetInactiveWorkflowsIterRecorder struct {
-	mock *MockGetInactiveWorkflowsIter
-}
-
-func NewMockGetInactiveWorkflowsIter(ctrl *gomock.Controller) *MockGetInactiveWorkflowsIter {
-	mock := &MockGetInactiveWorkflowsIter{ctrl: ctrl}
-	mock.recorder = &_MockGetInactiveWorkflowsIterRecorder{mock}
-	return mock
-}
-
-func (_m *MockGetInactiveWorkflowsIter) EXPECT() *_MockGetInactiveWorkflowsIterRecorder {
-	return _m.recorder
-}
-
-func (_m *MockGetInactiveWorkflowsIter) Next(_param0 *models.Workflow) bool {
-	ret := _m.ctrl.Call(_m, "Next", _param0)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-func (_mr *_MockGetInactiveWorkflowsIterRecorder) Next(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "Next", arg0)
-}
-
-func (_m *MockGetInactiveWorkflowsIter) Err() error {
-	ret := _m.ctrl.Call(_m, "Err")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-func (_mr *_MockGetInactiveWorkflowsIterRecorder) Err() *gomock.Call {
+func (_mr *_MockGetWorkflowsIterRecorder) Err() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Err")
 }

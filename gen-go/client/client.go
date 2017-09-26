@@ -858,422 +858,6 @@ func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *htt
 	}
 }
 
-// GetActiveWorkflows makes a PUT request to /workflow-definitions/{definitionName}/workflows/active
-//
-// 200: []models.Workflow
-// 400: *models.BadRequest
-// 500: *models.InternalError
-// default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetActiveWorkflows(ctx context.Context, i *models.GetActiveWorkflowsInput) ([]models.Workflow, error) {
-	headers := make(map[string]string)
-
-	var body []byte
-	path, err := i.Path()
-
-	if err != nil {
-		return nil, err
-	}
-
-	path = c.basePath + path
-
-	if i.Query != nil {
-
-		var err error
-		body, err = json.Marshal(i.Query)
-
-		if err != nil {
-			return nil, err
-		}
-
-	}
-
-	req, err := http.NewRequest("PUT", path, bytes.NewBuffer(body))
-
-	if err != nil {
-		return nil, err
-	}
-
-	resp, _, err := c.doGetActiveWorkflowsRequest(ctx, req, headers)
-	return resp, err
-}
-
-type getActiveWorkflowsIterImpl struct {
-	c            *WagClient
-	ctx          context.Context
-	lastResponse []models.Workflow
-	index        int
-	err          error
-	nextURL      string
-	headers      map[string]string
-	body         []byte
-}
-
-// NewgetActiveWorkflowsIter constructs an iterator that makes calls to getActiveWorkflows for
-// each page.
-func (c *WagClient) NewGetActiveWorkflowsIter(ctx context.Context, i *models.GetActiveWorkflowsInput) (GetActiveWorkflowsIter, error) {
-	path, err := i.Path()
-
-	if err != nil {
-		return nil, err
-	}
-
-	path = c.basePath + path
-
-	headers := make(map[string]string)
-
-	var body []byte
-
-	if i.Query != nil {
-
-		var err error
-		body, err = json.Marshal(i.Query)
-
-		if err != nil {
-			return nil, err
-		}
-
-	}
-
-	return &getActiveWorkflowsIterImpl{
-		c:            c,
-		ctx:          ctx,
-		lastResponse: []models.Workflow{},
-		nextURL:      path,
-		headers:      headers,
-		body:         body,
-	}, nil
-}
-
-func (i *getActiveWorkflowsIterImpl) refresh() error {
-	req, err := http.NewRequest("PUT", i.nextURL, bytes.NewBuffer(i.body))
-
-	if err != nil {
-		i.err = err
-		return err
-	}
-
-	resp, nextPage, err := i.c.doGetActiveWorkflowsRequest(i.ctx, req, i.headers)
-	if err != nil {
-		i.err = err
-		return err
-	}
-
-	i.lastResponse = resp
-	i.index = 0
-	if nextPage != "" {
-		i.nextURL = i.c.basePath + nextPage
-	} else {
-		i.nextURL = ""
-	}
-	return nil
-}
-
-// Next retrieves the next resource from the iterator and assigns it to the
-// provided pointer, fetching a new page if necessary. Returns true if it
-// successfully retrieves a new resource.
-func (i *getActiveWorkflowsIterImpl) Next(v *models.Workflow) bool {
-	if i.err != nil {
-		return false
-	} else if i.index < len(i.lastResponse) {
-		*v = i.lastResponse[i.index]
-		i.index++
-		return true
-	} else if i.nextURL == "" {
-		return false
-	}
-
-	if err := i.refresh(); err != nil {
-		return false
-	}
-	return i.Next(v)
-}
-
-// Err returns an error if one occurred when .Next was called.
-func (i *getActiveWorkflowsIterImpl) Err() error {
-	return i.err
-}
-
-func (c *WagClient) doGetActiveWorkflowsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Workflow, string, error) {
-	client := &http.Client{Transport: c.transport}
-
-	for field, value := range headers {
-		req.Header.Set(field, value)
-	}
-
-	// Add the opname for doers like tracing
-	ctx = context.WithValue(ctx, opNameCtx{}, "getActiveWorkflows")
-	req = req.WithContext(ctx)
-	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
-	// until we've finished all the processing of the request object. Otherwise we'll cancel
-	// our own request before we've finished it.
-	if c.defaultTimeout != 0 {
-		ctx, cancel := context.WithTimeout(req.Context(), c.defaultTimeout)
-		defer cancel()
-		req = req.WithContext(ctx)
-	}
-	resp, err := c.requestDoer.Do(client, req)
-	retCode := 0
-	if resp != nil {
-		retCode = resp.StatusCode
-	}
-
-	// log all client failures and non-successful HT
-	logData := logger.M{
-		"backend":     "workflow-manager",
-		"method":      req.Method,
-		"uri":         req.URL,
-		"status_code": retCode,
-	}
-	if err == nil && retCode > 399 {
-		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
-	}
-	if err != nil {
-		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
-		return nil, "", err
-	}
-	defer resp.Body.Close()
-	switch resp.StatusCode {
-
-	case 200:
-
-		var output []models.Workflow
-		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, "", err
-		}
-
-		return output, resp.Header.Get("X-Next-Page-Path"), nil
-
-	case 400:
-
-		var output models.BadRequest
-		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, "", err
-		}
-		return nil, "", &output
-
-	case 500:
-
-		var output models.InternalError
-		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, "", err
-		}
-		return nil, "", &output
-
-	default:
-		return nil, "", &models.InternalError{Message: "Unknown response"}
-	}
-}
-
-// GetInactiveWorkflows makes a PUT request to /workflow-definitions/{definitionName}/workflows/inactive
-//
-// 200: []models.Workflow
-// 400: *models.BadRequest
-// 500: *models.InternalError
-// default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetInactiveWorkflows(ctx context.Context, i *models.GetInactiveWorkflowsInput) ([]models.Workflow, error) {
-	headers := make(map[string]string)
-
-	var body []byte
-	path, err := i.Path()
-
-	if err != nil {
-		return nil, err
-	}
-
-	path = c.basePath + path
-
-	if i.Query != nil {
-
-		var err error
-		body, err = json.Marshal(i.Query)
-
-		if err != nil {
-			return nil, err
-		}
-
-	}
-
-	req, err := http.NewRequest("PUT", path, bytes.NewBuffer(body))
-
-	if err != nil {
-		return nil, err
-	}
-
-	resp, _, err := c.doGetInactiveWorkflowsRequest(ctx, req, headers)
-	return resp, err
-}
-
-type getInactiveWorkflowsIterImpl struct {
-	c            *WagClient
-	ctx          context.Context
-	lastResponse []models.Workflow
-	index        int
-	err          error
-	nextURL      string
-	headers      map[string]string
-	body         []byte
-}
-
-// NewgetInactiveWorkflowsIter constructs an iterator that makes calls to getInactiveWorkflows for
-// each page.
-func (c *WagClient) NewGetInactiveWorkflowsIter(ctx context.Context, i *models.GetInactiveWorkflowsInput) (GetInactiveWorkflowsIter, error) {
-	path, err := i.Path()
-
-	if err != nil {
-		return nil, err
-	}
-
-	path = c.basePath + path
-
-	headers := make(map[string]string)
-
-	var body []byte
-
-	if i.Query != nil {
-
-		var err error
-		body, err = json.Marshal(i.Query)
-
-		if err != nil {
-			return nil, err
-		}
-
-	}
-
-	return &getInactiveWorkflowsIterImpl{
-		c:            c,
-		ctx:          ctx,
-		lastResponse: []models.Workflow{},
-		nextURL:      path,
-		headers:      headers,
-		body:         body,
-	}, nil
-}
-
-func (i *getInactiveWorkflowsIterImpl) refresh() error {
-	req, err := http.NewRequest("PUT", i.nextURL, bytes.NewBuffer(i.body))
-
-	if err != nil {
-		i.err = err
-		return err
-	}
-
-	resp, nextPage, err := i.c.doGetInactiveWorkflowsRequest(i.ctx, req, i.headers)
-	if err != nil {
-		i.err = err
-		return err
-	}
-
-	i.lastResponse = resp
-	i.index = 0
-	if nextPage != "" {
-		i.nextURL = i.c.basePath + nextPage
-	} else {
-		i.nextURL = ""
-	}
-	return nil
-}
-
-// Next retrieves the next resource from the iterator and assigns it to the
-// provided pointer, fetching a new page if necessary. Returns true if it
-// successfully retrieves a new resource.
-func (i *getInactiveWorkflowsIterImpl) Next(v *models.Workflow) bool {
-	if i.err != nil {
-		return false
-	} else if i.index < len(i.lastResponse) {
-		*v = i.lastResponse[i.index]
-		i.index++
-		return true
-	} else if i.nextURL == "" {
-		return false
-	}
-
-	if err := i.refresh(); err != nil {
-		return false
-	}
-	return i.Next(v)
-}
-
-// Err returns an error if one occurred when .Next was called.
-func (i *getInactiveWorkflowsIterImpl) Err() error {
-	return i.err
-}
-
-func (c *WagClient) doGetInactiveWorkflowsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Workflow, string, error) {
-	client := &http.Client{Transport: c.transport}
-
-	for field, value := range headers {
-		req.Header.Set(field, value)
-	}
-
-	// Add the opname for doers like tracing
-	ctx = context.WithValue(ctx, opNameCtx{}, "getInactiveWorkflows")
-	req = req.WithContext(ctx)
-	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
-	// until we've finished all the processing of the request object. Otherwise we'll cancel
-	// our own request before we've finished it.
-	if c.defaultTimeout != 0 {
-		ctx, cancel := context.WithTimeout(req.Context(), c.defaultTimeout)
-		defer cancel()
-		req = req.WithContext(ctx)
-	}
-	resp, err := c.requestDoer.Do(client, req)
-	retCode := 0
-	if resp != nil {
-		retCode = resp.StatusCode
-	}
-
-	// log all client failures and non-successful HT
-	logData := logger.M{
-		"backend":     "workflow-manager",
-		"method":      req.Method,
-		"uri":         req.URL,
-		"status_code": retCode,
-	}
-	if err == nil && retCode > 399 {
-		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
-	}
-	if err != nil {
-		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
-		return nil, "", err
-	}
-	defer resp.Body.Close()
-	switch resp.StatusCode {
-
-	case 200:
-
-		var output []models.Workflow
-		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, "", err
-		}
-
-		return output, resp.Header.Get("X-Next-Page-Path"), nil
-
-	case 400:
-
-		var output models.BadRequest
-		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, "", err
-		}
-		return nil, "", &output
-
-	case 500:
-
-		var output models.InternalError
-		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, "", err
-		}
-		return nil, "", &output
-
-	default:
-		return nil, "", &models.InternalError{Message: "Unknown response"}
-	}
-}
-
 // GetWorkflowDefinitionVersionsByName makes a GET request to /workflow-definitions/{name}
 //
 // 200: []models.WorkflowDefinition
@@ -1637,10 +1221,96 @@ func (c *WagClient) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInpu
 		return nil, err
 	}
 
-	return c.doGetWorkflowsRequest(ctx, req, headers)
+	resp, _, err := c.doGetWorkflowsRequest(ctx, req, headers)
+	return resp, err
 }
 
-func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Workflow, error) {
+type getWorkflowsIterImpl struct {
+	c            *WagClient
+	ctx          context.Context
+	lastResponse []models.Workflow
+	index        int
+	err          error
+	nextURL      string
+	headers      map[string]string
+	body         []byte
+}
+
+// NewgetWorkflowsIter constructs an iterator that makes calls to getWorkflows for
+// each page.
+func (c *WagClient) NewGetWorkflowsIter(ctx context.Context, i *models.GetWorkflowsInput) (GetWorkflowsIter, error) {
+	path, err := i.Path()
+
+	if err != nil {
+		return nil, err
+	}
+
+	path = c.basePath + path
+
+	headers := make(map[string]string)
+
+	var body []byte
+
+	return &getWorkflowsIterImpl{
+		c:            c,
+		ctx:          ctx,
+		lastResponse: []models.Workflow{},
+		nextURL:      path,
+		headers:      headers,
+		body:         body,
+	}, nil
+}
+
+func (i *getWorkflowsIterImpl) refresh() error {
+	req, err := http.NewRequest("GET", i.nextURL, bytes.NewBuffer(i.body))
+
+	if err != nil {
+		i.err = err
+		return err
+	}
+
+	resp, nextPage, err := i.c.doGetWorkflowsRequest(i.ctx, req, i.headers)
+	if err != nil {
+		i.err = err
+		return err
+	}
+
+	i.lastResponse = resp
+	i.index = 0
+	if nextPage != "" {
+		i.nextURL = i.c.basePath + nextPage
+	} else {
+		i.nextURL = ""
+	}
+	return nil
+}
+
+// Next retrieves the next resource from the iterator and assigns it to the
+// provided pointer, fetching a new page if necessary. Returns true if it
+// successfully retrieves a new resource.
+func (i *getWorkflowsIterImpl) Next(v *models.Workflow) bool {
+	if i.err != nil {
+		return false
+	} else if i.index < len(i.lastResponse) {
+		*v = i.lastResponse[i.index]
+		i.index++
+		return true
+	} else if i.nextURL == "" {
+		return false
+	}
+
+	if err := i.refresh(); err != nil {
+		return false
+	}
+	return i.Next(v)
+}
+
+// Err returns an error if one occurred when .Next was called.
+func (i *getWorkflowsIterImpl) Err() error {
+	return i.err
+}
+
+func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Workflow, string, error) {
 	client := &http.Client{Transport: c.transport}
 
 	for field, value := range headers {
@@ -1678,7 +1348,7 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 	if err != nil {
 		logData["message"] = err.Error()
 		c.logger.ErrorD("client-request-finished", logData)
-		return nil, err
+		return nil, "", err
 	}
 	defer resp.Body.Close()
 	switch resp.StatusCode {
@@ -1687,37 +1357,37 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 
 		var output []models.Workflow
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
-		return output, nil
+		return output, resp.Header.Get("X-Next-Page-Path"), nil
 
 	case 400:
 
 		var output models.BadRequest
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, err
+			return nil, "", err
 		}
-		return nil, &output
+		return nil, "", &output
 
 	case 404:
 
 		var output models.NotFound
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, err
+			return nil, "", err
 		}
-		return nil, &output
+		return nil, "", &output
 
 	case 500:
 
 		var output models.InternalError
 		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
-			return nil, err
+			return nil, "", err
 		}
-		return nil, &output
+		return nil, "", &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, "", &models.InternalError{Message: "Unknown response"}
 	}
 }
 
