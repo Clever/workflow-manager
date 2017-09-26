@@ -4,11 +4,22 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-openapi/swag"
+
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"github.com/go-openapi/strfmt"
+)
+
+const (
+	// WorkflowsPageSizeMax defines the default page size for workflow queries.
+	// TODO: This can be bumped up a bit once ark is updated to use the `limit` query param.
+	WorkflowsPageSizeDefault int = 10
+
+	// WorkflowsPageSizeMax defines the maximum allowed page size limit for workflow queries.
+	WorkflowsPageSizeMax int = 10000
 )
 
 // Handler implements the wag Controller
@@ -196,8 +207,21 @@ func (h Handler) GetWorkflows(
 	ctx context.Context,
 	input *models.GetWorkflowsInput,
 ) ([]models.Workflow, string, error) {
-	// TODO: Implement filtering and paging.
-	workflows, err := h.store.GetWorkflows(input.WorkflowDefinitionName)
+	limit := WorkflowsPageSizeDefault
+	if input.Limit != nil {
+		limit = int(*input.Limit)
+	}
+	if limit > WorkflowsPageSizeMax {
+		limit = WorkflowsPageSizeMax
+	}
+
+	workflows, nextPageToken, err := h.store.GetWorkflows(&store.WorkflowQuery{
+		DefinitionName: input.WorkflowDefinitionName,
+		Limit:          limit,
+		OldestFirst:    swag.BoolValue(input.OldestFirst),
+		PageToken:      swag.StringValue(input.PageToken),
+		Status:         swag.StringValue(input.Status),
+	})
 	if err != nil {
 		return []models.Workflow{}, "", err
 	}
@@ -207,7 +231,7 @@ func (h Handler) GetWorkflows(
 		h.manager.UpdateWorkflowStatus(&workflow)
 		results = append(results, *apiWorkflowFromStore(workflow))
 	}
-	return results, "", nil
+	return results, nextPageToken, nil
 }
 
 // GetWorkflowByID returns current details about a Workflow with the given workflowId

@@ -8,7 +8,7 @@ import (
 	"github.com/Clever/workflow-manager/resources"
 )
 
-// WorkflowStore defines the interface for persistence of Workflow defintions
+// Store defines the interface for persistence of Workflow definitions.
 type Store interface {
 	SaveWorkflowDefinition(def resources.WorkflowDefinition) error
 	UpdateWorkflowDefinition(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error)
@@ -24,10 +24,19 @@ type Store interface {
 	SaveWorkflow(workflow resources.Workflow) error
 	UpdateWorkflow(workflow resources.Workflow) error
 	GetWorkflowByID(id string) (resources.Workflow, error)
-	GetWorkflows(workflowName string) ([]resources.Workflow, error)
+	GetWorkflows(query *WorkflowQuery) ([]resources.Workflow, string, error)
 	GetPendingWorkflowIDs() ([]string, error)
 	LockWorkflow(id string) error
 	UnlockWorkflow(id string) error
+}
+
+// WorkflowQuery contains filtering options for workflow queries.
+type WorkflowQuery struct {
+	DefinitionName string
+	Limit          int
+	OldestFirst    bool
+	PageToken      string
+	Status         string
 }
 
 // ErrWorkflowLocked is returned from LockWorfklow in the case of the workflow already being locked.

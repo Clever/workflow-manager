@@ -137,6 +137,7 @@ func (d DynamoDB) InitTables() error {
 	for _, ads := range [][]*dynamodb.AttributeDefinition{
 		(ddbWorkflowPrimaryKey{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.AttributeDefinitions()),
+		(ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyStatusLastUpdated{}.AttributeDefinitions()),
 	} {
 		workflowAttributeDefinitions = append(workflowAttributeDefinitions, ads...)
@@ -148,6 +149,17 @@ func (d DynamoDB) InitTables() error {
 			{
 				IndexName: aws.String(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.Name()),
 				KeySchema: ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.KeySchema(),
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
+				},
+				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+					ReadCapacityUnits:  aws.Int64(1),
+					WriteCapacityUnits: aws.Int64(1),
+				},
+			},
+			{
+				IndexName: aws.String(ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.Name()),
+				KeySchema: ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.KeySchema(),
 				Projection: &dynamodb.Projection{
 					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
 				},
@@ -540,37 +552,61 @@ func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
 	return workflow, nil
 }
 
-// GetWorkflows returns the last 10 workflows for a workflow definition.
-// It uses a global secondary index on the workflow definition name + created time for a workflow.
-func (d DynamoDB) GetWorkflows(workflowName string) ([]resources.Workflow, error) {
+// GetWorkflows returns all workflows matching the given query.
+func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]resources.Workflow, string, error) {
 	var workflows []resources.Workflow
-	query, err := ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
-		WorkflowDefinitionName: workflowName,
-	}.ConstructQuery()
+	nextPageToken := ""
+
+	var dbQuery *dynamodb.QueryInput
+	var err error
+	if query.Status != "" {
+		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.ConstructQuery(query)
+	} else {
+		dbQuery, err = ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
+			WorkflowDefinitionName: query.DefinitionName,
+		}.ConstructQuery()
+	}
 	if err != nil {
-		return workflows, err
+		return workflows, nextPageToken, err
 	}
 
-	query.TableName = aws.String(d.workflowsTable())
-	query.Limit = aws.Int64(10)
-	query.ScanIndexForward = aws.Bool(false) // descending order
+	dbQuery.TableName = aws.String(d.workflowsTable())
+	dbQuery.Limit = aws.Int64(int64(query.Limit))
+	dbQuery.ScanIndexForward = aws.Bool(query.OldestFirst)
 
-	res, err := d.ddb.Query(query)
+	pageKey, err := ParsePageKey(query.PageToken)
 	if err != nil {
-		return workflows, err
+		return workflows, nextPageToken, err
+	}
+	if pageKey != nil {
+		dbQuery.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue(*pageKey))
+	}
+
+	res, err := d.ddb.Query(dbQuery)
+	if err != nil {
+		return workflows, nextPageToken, err
 	}
 
 	for _, item := range res.Items {
 		workflow, err := DecodeWorkflow(item)
 		if err != nil {
-			return workflows, err
+			return workflows, nextPageToken, err
 		}
 		if err := d.populateWorkflow(&workflow); err != nil {
-			return workflows, err
+			return workflows, nextPageToken, err
 		}
 		workflows = append(workflows, workflow)
 	}
-	return workflows, nil
+
+	nextPageKey := NewPageKey(res.LastEvaluatedKey)
+	if nextPageKey != nil {
+		nextPageToken, err = nextPageKey.ToJSON()
+		if err != nil {
+			return workflows, nextPageToken, err
+		}
+	}
+
+	return workflows, nextPageToken, nil
 }
 
 type byLastUpdatedTime []resources.Workflow
