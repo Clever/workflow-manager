@@ -158,7 +158,8 @@ func SaveWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf))
-		workflow := resources.NewWorkflow(wf, []string{"input"}, "namespace", "queue")
+		tags := map[string]string{"team": "infra", "tag2": "value2"}
+		workflow := resources.NewWorkflow(wf, []string{"input"}, "namespace", "queue", tags)
 		require.Nil(t, s.SaveWorkflow(*workflow))
 		// TODO: test behavior when workflow is invalid, e.g. breaks a length limit on a field / array
 	}
@@ -168,7 +169,9 @@ func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf))
-		workflow := resources.NewWorkflow(wf, []string{"input"}, "namespace", "queue")
+		input := []string{"input"}
+		tags := map[string]string{"team": "infra", "tag2": "value2"}
+		workflow := resources.NewWorkflow(wf, input, "namespace", "queue", tags)
 		require.Nil(t, s.SaveWorkflow(*workflow))
 
 		updatedWorkflow, err := s.GetWorkflowByID(workflow.ID)
@@ -190,11 +193,28 @@ func GetWorkflowByID(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wf := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf))
-		workflow := resources.NewWorkflow(wf, []string{"input"}, "namespace", "queue")
+		input := []string{"input"}
+		tags := map[string]string{"team": "infra", "tag2": "value2"}
+		workflow := resources.NewWorkflow(wf, input, "namespace", "queue", tags)
 		require.Nil(t, s.SaveWorkflow(*workflow))
 
 		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
 		require.Nil(t, err)
+
+		expected := resources.Workflow{
+			ID:                 workflow.ID,
+			WorkflowDefinition: wf,
+			Input:              input,
+			Status:             resources.Queued,
+			Namespace:          "namespace",
+			Queue:              "queue",
+			Tags:               tags,
+		}
+		require.Equal(t, savedWorkflow.Input, expected.Input)
+		require.Equal(t, savedWorkflow.Status, expected.Status)
+		require.Equal(t, savedWorkflow.Namespace, expected.Namespace)
+		require.Equal(t, savedWorkflow.Queue, expected.Queue)
+		require.Equal(t, savedWorkflow.Tags, expected.Tags)
 		require.WithinDuration(t, savedWorkflow.CreatedAt, time.Now(), 1*time.Second)
 		require.Equal(t, savedWorkflow.CreatedAt, savedWorkflow.LastUpdated)
 	}
@@ -206,11 +226,13 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		definition := resources.KitchenSinkWorkflowDefinition(t)
 		require.NoError(t, s.SaveWorkflowDefinition(definition))
 
-		runningWorkflow := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		tags := map[string]string{"team": "infra", "tag2": "value2"}
+
+		runningWorkflow := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue", tags)
 		runningWorkflow.Status = resources.Running
 		require.NoError(t, s.SaveWorkflow(*runningWorkflow))
 
-		failedWorkflow := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		failedWorkflow := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue", tags)
 		failedWorkflow.Status = resources.Failed
 		require.NoError(t, s.SaveWorkflow(*failedWorkflow))
 
@@ -219,7 +241,7 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		require.NoError(t, s.SaveWorkflowDefinition(otherWorkflowDefinition))
 
 		otherDefinitionWorkflow := resources.NewWorkflow(
-			otherWorkflowDefinition, []string{"input"}, "namespace", "queue",
+			otherWorkflowDefinition, []string{"input"}, "namespace", "queue", tags,
 		)
 		otherDefinitionWorkflow.Status = resources.Running
 		require.NoError(t, s.SaveWorkflow(*otherDefinitionWorkflow))
@@ -251,15 +273,15 @@ func GetWorkflowsPagination(s store.Store, t *testing.T) func(t *testing.T) {
 		definition := resources.KitchenSinkWorkflowDefinition(t)
 		require.NoError(t, s.SaveWorkflowDefinition(definition))
 
-		workflow1 := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		workflow1 := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue", map[string]string{})
 		workflow1.Status = resources.Running
 		require.NoError(t, s.SaveWorkflow(*workflow1))
 
-		workflow2 := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		workflow2 := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue", map[string]string{})
 		workflow2.Status = resources.Succeeded
 		require.NoError(t, s.SaveWorkflow(*workflow2))
 
-		workflow3 := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue")
+		workflow3 := resources.NewWorkflow(definition, []string{"input"}, "namespace", "queue", map[string]string{})
 		workflow3.Status = resources.Running
 		require.NoError(t, s.SaveWorkflow(*workflow3))
 
@@ -326,9 +348,11 @@ func GetPendingWorkflowIDs(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Nil(t, s.SaveWorkflowDefinition(wf1))
 		wf2 := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wf2))
-		workflow1 := resources.NewWorkflow(wf1, []string{"input"}, "namespace", "queue")
+		input := []string{"input"}
+		tags := map[string]string{"team": "infra", "tag2": "value2"}
+		workflow1 := resources.NewWorkflow(wf1, input, "namespace", "queue", tags)
 		require.Nil(t, s.SaveWorkflow(*workflow1))
-		workflow2 := resources.NewWorkflow(wf2, []string{"input"}, "namespace", "queue")
+		workflow2 := resources.NewWorkflow(wf2, input, "namespace", "queue", tags)
 		require.Nil(t, s.SaveWorkflow(*workflow2))
 
 		pendingWorkflowIDs, err := s.GetPendingWorkflowIDs()
@@ -356,7 +380,9 @@ func LockUnlockWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		wfd1 := resources.KitchenSinkWorkflowDefinition(t)
 		require.Nil(t, s.SaveWorkflowDefinition(wfd1))
-		wf1 := resources.NewWorkflow(wfd1, []string{"input"}, "namespace", "queue")
+		input := []string{"input"}
+		tags := map[string]string{"team": "infra", "tag2": "value2"}
+		wf1 := resources.NewWorkflow(wfd1, input, "namespace", "queue", tags)
 		require.Nil(t, s.SaveWorkflow(*wf1))
 
 		require.Nil(t, s.LockWorkflow(wf1.ID))
