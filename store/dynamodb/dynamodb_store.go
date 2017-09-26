@@ -13,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/zencoder/ddbsync"
+
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 type DynamoDB struct {
@@ -26,6 +28,8 @@ type TableConfig struct {
 	PrefixWorkflowDefinitions string
 	PrefixWorkflows           string
 }
+
+var log = logger.New("workflow-manager")
 
 func New(ddb dynamodbiface.DynamoDBAPI, tableConfig TableConfig) DynamoDB {
 	d := DynamoDB{
@@ -521,6 +525,7 @@ func (d DynamoDB) attachWorkflowDefinition(workflow *resources.Workflow) error {
 
 // GetWorkflowByID
 func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
+	log.InfoD("getting workflow from ddb store", logger.M{"id": id})
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowPrimaryKey{
 		ID: id,
 	})
@@ -548,6 +553,7 @@ func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
 	if err := d.attachWorkflowDefinition(&workflow); err != nil {
 		return resources.Workflow{}, err
 	}
+	log.InfoD("got workflow from ddb store", logger.M{"tags": workflow.Tags, "status": workflow.Status})
 
 	return workflow, nil
 }
