@@ -55,7 +55,7 @@ func wdRetryToSLRetry(wdRetry []*models.Retrier) []*models.SLRetrier {
 }
 
 func wdResourceToSLResource(wdResource, region, accountID, namespace string) string {
-	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s-%s", region, accountID, namespace, wdResource)
+	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s--%s", region, accountID, namespace, wdResource)
 }
 
 func wdToStateMachine(wd resources.WorkflowDefinition, region, accountID, namespace string) *models.SLStateMachine {
@@ -80,7 +80,7 @@ func wdToStateMachine(wd resources.WorkflowDefinition, region, accountID, namesp
 }
 
 func stateMachineName(wdName string, wdVersion int, namespace string, queue string) string {
-	return fmt.Sprintf("%s-%s-%d-%s", namespace, wdName, wdVersion, queue)
+	return fmt.Sprintf("%s--%s--%d--%s", namespace, wdName, wdVersion, queue)
 }
 
 func stateMachineARN(region, accountID, wdName string, wdVersion int, namespace string, queue string) string {
