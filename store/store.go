@@ -8,7 +8,7 @@ import (
 	"github.com/Clever/workflow-manager/resources"
 )
 
-// Store defines the interface for persistence of Workflow definitions.
+// Store defines the interface for persistence of Workflow Manager resources.
 type Store interface {
 	SaveWorkflowDefinition(def resources.WorkflowDefinition) error
 	UpdateWorkflowDefinition(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error)
