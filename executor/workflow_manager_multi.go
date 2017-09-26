@@ -26,12 +26,12 @@ func (mwm MultiWorkflowManager) manager(typee models.Manager) (WorkflowManager, 
 	return wm, nil
 }
 
-func (mwm *MultiWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition, input []string, namespace string, queue string) (*resources.Workflow, error) {
+func (mwm *MultiWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition, input []string, namespace string, queue string, tags map[string]string) (*resources.Workflow, error) {
 	wm, err := mwm.manager(wd.Manager)
 	if err != nil {
 		return nil, err
 	}
-	return wm.CreateWorkflow(wd, input, namespace, queue)
+	return wm.CreateWorkflow(wd, input, namespace, queue, tags)
 }
 
 func (mwm *MultiWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reason string) error {

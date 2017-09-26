@@ -131,14 +131,14 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd resources.Workflow
 	return wm.describeOrCreateStateMachine(wd, namespace, queue)
 }
 
-func (wm *SFNWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition, input []string, namespace string, queue string) (*resources.Workflow, error) {
+func (wm *SFNWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition, input []string, namespace string, queue string, tags map[string]string) (*resources.Workflow, error) {
 	describeOutput, err := wm.describeOrCreateStateMachine(wd, namespace, queue)
 	if err != nil {
 		return nil, err
 	}
 
 	// submit an execution using input, set execution name == our workflow GUID
-	workflow := resources.NewWorkflow(wd, input, namespace, queue)
+	workflow := resources.NewWorkflow(wd, input, namespace, queue, tags)
 	inputJSON, err := json.Marshal(input)
 	if err != nil {
 		return nil, err

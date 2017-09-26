@@ -9,9 +9,9 @@ import (
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
-// WorkflowManager in the interface for creating, stopping and checking status for Workflows
+// WorkflowManager is the interface for creating, stopping and checking status for Workflows
 type WorkflowManager interface {
-	CreateWorkflow(def resources.WorkflowDefinition, input []string, namespace string, queue string) (*resources.Workflow, error)
+	CreateWorkflow(def resources.WorkflowDefinition, input []string, namespace string, queue string, tags map[string]string) (*resources.Workflow, error)
 	CancelWorkflow(workflow *resources.Workflow, reason string) error
 	UpdateWorkflowStatus(workflow *resources.Workflow) error
 }
