@@ -3,6 +3,7 @@ package executor
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -79,8 +80,15 @@ func wdToStateMachine(wd resources.WorkflowDefinition, region, accountID, namesp
 	}
 }
 
+// https://docs.aws.amazon.com/step-functions/latest/apireference/API_CreateStateMachine.html#StepFunctions-CreateStateMachine-request-name
+var stateMachineNameBadChars = []byte{' ', '<', '>', '{', '}', '[', ']', '?', '*', '"', '#', '%', '\\', '^', '|', '~', '`', '$', '&', ',', ';', ':', '/'}
+
 func stateMachineName(wdName string, wdVersion int, namespace string, queue string) string {
-	return fmt.Sprintf("%s--%s--%d--%s", namespace, wdName, wdVersion, queue)
+	name := fmt.Sprintf("%s--%s--%d--%s", namespace, wdName, wdVersion, queue)
+	for _, badchar := range stateMachineNameBadChars {
+		name = strings.Replace(name, string(badchar), "-", -1)
+	}
+	return name
 }
 
 func stateMachineARN(region, accountID, wdName string, wdVersion int, namespace string, queue string) string {

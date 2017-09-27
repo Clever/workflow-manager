@@ -26,12 +26,12 @@ func TestStateMachineName(t *testing.T) {
 	tests := []stateMachineNameTest{
 		{
 			input: stateMachineNameInput{
-				wdName:    "cil-reliability-dashboard",
+				wdName:    "cil-reliability-dashboard:sfn",
 				wdVersion: 3,
 				namespace: "production",
 				queue:     "default",
 			},
-			output: "production--cil-reliability-dashboard--3--default",
+			output: "production--cil-reliability-dashboard-sfn--3--default",
 		},
 	}
 	for _, test := range tests {
