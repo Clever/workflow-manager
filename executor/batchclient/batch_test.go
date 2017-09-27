@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testConfig struct {
@@ -118,6 +119,42 @@ func TestStatus(t *testing.T) {
 	assert.Equal(t, "should not be overwritten", job2.Name)
 	assert.Equal(t, job1.Output, job2.Input)
 	assert.Equal(t, []string{"job 2 output"}, job2.Output)
+
+	t.Log("Doesn't set input for job if dependency did not succeed")
+	batchJobDetail1.Status = aws.String(string(resources.JobStatusFailed))
+	c.mockBatchClient.EXPECT().
+		DescribeJobs(&batch.DescribeJobsInput{Jobs: []*string{jobID1, jobID2}}).
+		Return(&batch.DescribeJobsOutput{
+			Jobs: []*batch.JobDetail{&batchJobDetail1, &batchJobDetail2},
+		}, nil)
+
+	c.mockResultsDBClient.EXPECT().
+		BatchGetItem(&dynamodb.BatchGetItemInput{
+			RequestItems: map[string]*dynamodb.KeysAndAttributes{
+				c.executor.resultsDBConfig.TableNameDev: {
+					Keys: []map[string]*dynamodb.AttributeValue{
+						{"Key": {S: jobID1}},
+						{"Key": {S: jobID2}},
+					},
+				},
+			},
+		}).
+		Return(&dynamodb.BatchGetItemOutput{
+			Responses: map[string][]map[string]*dynamodb.AttributeValue{
+				c.executor.resultsDBConfig.TableNameDev: {
+					{"Key": {S: jobID1}, "Result": {S: aws.String("job 1 output")}},
+				},
+			},
+		}, nil)
+
+	errs = c.executor.Status([]*resources.Job{job1, job2})
+	for _, err := range errs {
+		require.NoError(t, err)
+	}
+
+	assert.Equal(t, []string{"initial input - should not be overwritten"}, job1.Input)
+	assert.Equal(t, []string{"job 1 output"}, job1.Output)
+	assert.Equal(t, []string{}, job2.Input)
 
 	t.Log("Sets task status correctly when user has canceled it")
 	cancelledBatchJobDetails := batchJobDetail1

@@ -100,12 +100,17 @@ func (be BatchExecutor) Status(jobs []*resources.Job) []error {
 
 		job := jobsByID[*awsJobDetail.JobId]
 
-		// Set inputs based on job dependency outputs:
+		// Set inputs based on successful job dependency outputs:
 		// Preserve original input (really only applies to the first job in the workflow).
 		updatedJobDetail.Input = job.Input
 		if len(awsJobDetail.DependsOn) > 0 {
 			updatedJobDetail.Input = []string{}
 			for _, dependency := range awsJobDetail.DependsOn {
+				jobDependency := jobsByID[*dependency.JobId]
+				if jobDependency.Status != resources.JobStatusSucceeded {
+					continue
+				}
+
 				dependencyOutput := jobOutputsByJobID[*dependency.JobId]
 				if len(dependencyOutput) > 0 {
 					updatedJobDetail.Input = append(updatedJobDetail.Input, dependencyOutput)
