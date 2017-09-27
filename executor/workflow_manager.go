@@ -71,7 +71,6 @@ func checkPendingWorkflows(wm WorkflowManager, thestore store.Store) error {
 	}()
 
 	wf, err := thestore.GetWorkflowByID(wfLockedID)
-	log.InfoD("!! got workflow in checkPendingWorkflows", logger.M{"tags": wf.Tags, "status": wf.Status, "namespace": wf.Namespace, "queue": wf.Queue})
 	if err != nil {
 		return err
 	}

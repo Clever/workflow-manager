@@ -5,8 +5,6 @@ import (
 
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
-
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // BatchWorkflowManager implements WorkflowManager using the AWS Batch client
@@ -29,10 +27,7 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 	// they are already in a final state. NOTE: workflow status should already be in
 	// its final state as well at this point since it gets updated after jobs
 	// statuses are read from batch
-
-	log.InfoD("!!updating workflow status in workflow_manager_batch", logger.M{"tags": workflow.Tags, "status": workflow.Status, "namespace": workflow.Namespace, "queue": workflow.Queue})
 	if workflow.IsDone() {
-		log.Info("!!... workflow done")
 		return nil
 	}
 
@@ -48,8 +43,6 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 	errs := wm.executor.Status(workflow.Jobs)
 	if len(errs) > 0 {
 		return fmt.Errorf("Failed to update status for %d jobs. errors: %s", len(errs), errs)
-	} else {
-		log.Info("!!... no errors getting new statuses for jobs")
 	}
 
 	// If no job status has changed then there is no need to update the workflow status
@@ -60,14 +53,11 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 		}
 	}
 	if noChanges {
-		log.Info("!!... no status changes in individual jobs")
-		lg.InfoD()
 		return nil
 	}
 
 	// If the workflow has been canceled, do not update its status to something else
 	if workflow.Status == resources.Cancelled {
-		log.Info("!!... workflow cancelled")
 		return wm.store.UpdateWorkflow(*workflow)
 	}
 
@@ -78,23 +68,19 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 	for _, job := range workflow.Jobs {
 		logJobStatus(job, workflow)
 		if job.Status != resources.JobStatusSucceeded {
-			log.InfoD("!!... detected status NOT SUCCESS due to job", logger.M{"job id": job.ID, "status": workflow.Status, "tags": workflow.Tags, "namespace": workflow.Namespace, "queue": workflow.Queue})
 			// all jobs should be successful for workflow success
 			workflowSuccess = false
 		}
 		if job.Status == resources.JobStatusRunning {
-			log.InfoD("!!... detected status RUNNING due to job", logger.M{"job id": job.ID, "status": workflow.Status, "tags": workflow.Tags, "namespace": workflow.Namespace, "queue": workflow.Queue})
 			// any job running means running
 			workflowRunning = true
 		}
 		if job.Status == resources.JobStatusFailed ||
 			job.Status == resources.JobStatusAborted {
-			log.InfoD("!!... detected status FAILED due to job", logger.M{"job id": job.ID, "status": workflow.Status, "tags": workflow.Tags, "namespace": workflow.Namespace, "queue": workflow.Queue})
 			// any job failure results in the workflow being failed
 			workflowFailed = true
 		}
 		if job.Status == resources.JobStatusUserAborted {
-			log.InfoD("!!... detected status CANCELLED due to job", logger.M{"job id": job.ID, "status": workflow.Status, "tags": workflow.Tags, "namespace": workflow.Namespace, "queue": workflow.Queue})
 			// if any job is aborted by user, we should mark the workflow as cancelled
 			workflowCancelled = true
 		}
@@ -113,7 +99,6 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 
 	// log if changed and save to datastore
 	logWorkflowStatusChange(workflow, previousStatus)
-	log.InfoD("!!... triggering workflow update from UpdateWorkflowStatus", logger.M{"previous": previousStatus, "status": workflow.Status, "tags": workflow.Tags, "namespace": workflow.Namespace, "queue": workflow.Queue})
 	return wm.store.UpdateWorkflow(*workflow)
 }
 
