@@ -5,6 +5,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/satori/go.uuid"
+
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 )
@@ -154,15 +156,58 @@ func (s MemoryStore) UpdateWorkflow(workflow resources.Workflow) error {
 	return nil
 }
 
-func (s MemoryStore) GetWorkflows(workflowName string) ([]resources.Workflow, error) {
+func (s MemoryStore) GetWorkflows(
+	query *store.WorkflowQuery,
+) ([]resources.Workflow, string, error) {
 	workflows := []resources.Workflow{}
 	for _, workflow := range s.workflows {
-		if workflow.WorkflowDefinition.Name() == workflowName {
+		if s.matchesQuery(workflow, query) {
 			workflows = append(workflows, workflow)
 		}
 	}
-	sort.Sort(sort.Reverse(ByCreatedAt(workflows))) // reverse to get newest first
-	return workflows, nil
+
+	if query.OldestFirst {
+		sort.Sort(ByCreatedAt(workflows))
+	} else {
+		sort.Sort(sort.Reverse(ByCreatedAt(workflows)))
+	}
+
+	rangeStart := 0
+	if query.PageToken != "" {
+		lastWorkflowID, err := uuid.FromString(query.PageToken)
+		if err != nil {
+			return []resources.Workflow{}, "", store.NewInvalidPageTokenError(err)
+		}
+
+		for i, workflow := range workflows {
+			if workflow.ID == lastWorkflowID.String() {
+				rangeStart = i + 1
+			}
+		}
+	}
+
+	rangeEnd := rangeStart + query.Limit
+	if rangeEnd > len(workflows) {
+		rangeEnd = len(workflows)
+	}
+	nextPageToken := ""
+	if rangeEnd < len(workflows) {
+		nextPageToken = workflows[rangeEnd-1].ID
+	}
+
+	return workflows[rangeStart:rangeEnd], nextPageToken, nil
+}
+
+func (s MemoryStore) matchesQuery(workflow resources.Workflow, query *store.WorkflowQuery) bool {
+	if workflow.WorkflowDefinition.Name() != query.DefinitionName {
+		return false
+	}
+
+	if query.Status != "" && string(workflow.Status) != query.Status {
+		return false
+	}
+
+	return true
 }
 
 func (s MemoryStore) GetWorkflowByID(id string) (resources.Workflow, error) {

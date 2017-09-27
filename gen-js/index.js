@@ -1461,7 +1461,7 @@ class WorkflowManager {
 
   /**
    * @param {Object} params
-   * @param {number} [params.limit]
+   * @param {number} [params.limit] - Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000.
    * @param {boolean} [params.oldestFirst]
    * @param {string} [params.pageToken]
    * @param {string} [params.status]
@@ -1605,7 +1605,7 @@ class WorkflowManager {
 
   /**
    * @param {Object} params
-   * @param {number} [params.limit]
+   * @param {number} [params.limit] - Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000.
    * @param {boolean} [params.oldestFirst]
    * @param {string} [params.pageToken]
    * @param {string} [params.status]

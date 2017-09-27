@@ -152,6 +152,10 @@ paths:
       parameters:
         # TODO: Add date range filters.
         - name: limit
+          description:
+            Maximum number of workflows to return.
+            Defaults to 10.
+            Restricted to a max of 10,000.
           in: query
           type: integer
           format: int32
