@@ -28,6 +28,9 @@ const (
 	// in a job
 	StartingInputEnvVarName = "_BATCH_START"
 
+	// TODO: Temporary hack to allow us to determine at request-time which worker results table to
+	// fetch outputs from.
+	// Needs cleanup.
 	productionQueueName = "workflows-production"
 )
 
@@ -41,6 +44,9 @@ type BatchExecutor struct {
 }
 
 type ResultsDBConfig struct {
+	// TODO: Temporary hack to allow us to determine at request-time which worker results table to
+	// fetch outputs from.
+	// Needs cleanup.
 	TableNameDev  string
 	TableNameProd string
 }
