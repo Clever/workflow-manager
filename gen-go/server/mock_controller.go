@@ -202,14 +202,14 @@ func (mr *MockControllerMockRecorder) CancelWorkflow(ctx, i interface{}) *gomock
 }
 
 // GetWorkflowByID mocks base method
-func (m *MockController) GetWorkflowByID(ctx context.Context, workflowId string) (*models.Workflow, error) {
-	ret := m.ctrl.Call(m, "GetWorkflowByID", ctx, workflowId)
+func (m *MockController) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
+	ret := m.ctrl.Call(m, "GetWorkflowByID", ctx, workflowID)
 	ret0, _ := ret[0].(*models.Workflow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetWorkflowByID indicates an expected call of GetWorkflowByID
-func (mr *MockControllerMockRecorder) GetWorkflowByID(ctx, workflowId interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkflowByID", reflect.TypeOf((*MockController)(nil).GetWorkflowByID), ctx, workflowId)
+func (mr *MockControllerMockRecorder) GetWorkflowByID(ctx, workflowID interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkflowByID", reflect.TypeOf((*MockController)(nil).GetWorkflowByID), ctx, workflowID)
 }

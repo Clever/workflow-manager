@@ -115,7 +115,7 @@ type Controller interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error)
 
-	// CancelWorkflow handles DELETE requests to /workflows/{workflowId}
+	// CancelWorkflow handles DELETE requests to /workflows/{workflowID}
 	//
 	// 200: nil
 	// 400: *models.BadRequest
@@ -124,12 +124,12 @@ type Controller interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	CancelWorkflow(ctx context.Context, i *models.CancelWorkflowInput) error
 
-	// GetWorkflowByID handles GET requests to /workflows/{workflowId}
+	// GetWorkflowByID handles GET requests to /workflows/{workflowID}
 	//
 	// 200: *models.Workflow
 	// 400: *models.BadRequest
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflowByID(ctx context.Context, workflowId string) (*models.Workflow, error)
+	GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error)
 }

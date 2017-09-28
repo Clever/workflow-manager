@@ -19,7 +19,7 @@ type SLRetrier struct {
 	BackoffRate float64 `json:"BackoffRate,omitempty"`
 
 	// error equals
-	ErrorEquals []ErrorEquals `json:"ErrorEquals"`
+	ErrorEquals []SLErrorEquals `json:"ErrorEquals"`
 
 	// interval seconds
 	IntervalSeconds int64 `json:"IntervalSeconds,omitempty"`

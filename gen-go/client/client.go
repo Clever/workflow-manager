@@ -1505,7 +1505,7 @@ func (c *WagClient) doStartWorkflowRequest(ctx context.Context, req *http.Reques
 	}
 }
 
-// CancelWorkflow makes a DELETE request to /workflows/{workflowId}
+// CancelWorkflow makes a DELETE request to /workflows/{workflowID}
 //
 // 200: nil
 // 400: *models.BadRequest
@@ -1620,18 +1620,18 @@ func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Reque
 	}
 }
 
-// GetWorkflowByID makes a GET request to /workflows/{workflowId}
+// GetWorkflowByID makes a GET request to /workflows/{workflowID}
 //
 // 200: *models.Workflow
 // 400: *models.BadRequest
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetWorkflowByID(ctx context.Context, workflowId string) (*models.Workflow, error) {
+func (c *WagClient) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
 	headers := make(map[string]string)
 
 	var body []byte
-	path, err := models.GetWorkflowByIDInputPath(workflowId)
+	path, err := models.GetWorkflowByIDInputPath(workflowID)
 
 	if err != nil {
 		return nil, err

@@ -5,6 +5,7 @@ package models
 
 import (
 	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 
 	"github.com/go-openapi/errors"
 )
@@ -23,7 +24,7 @@ type StateResource struct {
 	Namespace string `json:"namespace,omitempty"`
 
 	// type
-	Type string `json:"type,omitempty"`
+	Type StateResourceType `json:"type,omitempty"`
 
 	// uri
 	URI string `json:"uri,omitempty"`
@@ -33,8 +34,26 @@ type StateResource struct {
 func (m *StateResource) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateType(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *StateResource) validateType(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Type) { // not required
+		return nil
+	}
+
+	if err := m.Type.Validate(formats); err != nil {
+		return err
+	}
+
 	return nil
 }

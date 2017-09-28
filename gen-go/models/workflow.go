@@ -21,7 +21,7 @@ type Workflow struct {
 	ID string `json:"id,omitempty"`
 
 	// input
-	Input []string `json:"input"`
+	Input string `json:"input,omitempty"`
 
 	// jobs
 	Jobs []*Job `json:"jobs"`
@@ -36,7 +36,7 @@ type Workflow struct {
 	Queue string `json:"queue,omitempty"`
 
 	// status
-	Status string `json:"status,omitempty"`
+	Status WorkflowStatus `json:"status,omitempty"`
 
 	// tags: object with key-value pairs; keys and values should be strings
 	Tags map[string]interface{} `json:"tags,omitempty"`
@@ -49,12 +49,12 @@ type Workflow struct {
 func (m *Workflow) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateInput(formats); err != nil {
+	if err := m.validateJobs(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
 
-	if err := m.validateJobs(formats); err != nil {
+	if err := m.validateStatus(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -67,15 +67,6 @@ func (m *Workflow) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *Workflow) validateInput(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Input) { // not required
-		return nil
-	}
-
 	return nil
 }
 
@@ -98,6 +89,19 @@ func (m *Workflow) validateJobs(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *Workflow) validateStatus(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Status) { // not required
+		return nil
+	}
+
+	if err := m.Status.Validate(formats); err != nil {
+		return err
 	}
 
 	return nil

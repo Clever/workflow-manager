@@ -6,9 +6,10 @@ package client
 
 import (
 	context "context"
+	reflect "reflect"
+
 	models "github.com/Clever/workflow-manager/gen-go/models"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockClient is a mock of Client interface
@@ -214,16 +215,16 @@ func (mr *MockClientMockRecorder) CancelWorkflow(ctx, i interface{}) *gomock.Cal
 }
 
 // GetWorkflowByID mocks base method
-func (m *MockClient) GetWorkflowByID(ctx context.Context, workflowId string) (*models.Workflow, error) {
-	ret := m.ctrl.Call(m, "GetWorkflowByID", ctx, workflowId)
+func (m *MockClient) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
+	ret := m.ctrl.Call(m, "GetWorkflowByID", ctx, workflowID)
 	ret0, _ := ret[0].(*models.Workflow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetWorkflowByID indicates an expected call of GetWorkflowByID
-func (mr *MockClientMockRecorder) GetWorkflowByID(ctx, workflowId interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkflowByID", reflect.TypeOf((*MockClient)(nil).GetWorkflowByID), ctx, workflowId)
+func (mr *MockClientMockRecorder) GetWorkflowByID(ctx, workflowID interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkflowByID", reflect.TypeOf((*MockClient)(nil).GetWorkflowByID), ctx, workflowID)
 }
 
 // MockGetWorkflowsIter is a mock of GetWorkflowsIter interface
