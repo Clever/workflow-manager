@@ -196,7 +196,7 @@ func TestCancelUpdates(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, resources.Cancelled, workflow.Status)
 
-	// UpdateStatus ensures that workflow is still marked as Cancelled
+	// Status ensures that workflow is still marked as Cancelled
 	err = jm.UpdateWorkflowStatus(workflow)
 	assert.NoError(t, err)
 	assert.Equal(t, resources.Cancelled, workflow.Status)

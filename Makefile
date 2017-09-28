@@ -36,8 +36,13 @@ generate: wag-generate-deps
 	$(call wag-generate,./swagger.yml,$(PKG))
 
 generate-mocks:
-	rm mocks/mock_batchiface/mock_batchapi.go
+	mkdir -p mocks/mock_batchiface
+	rm -f mocks/mock_batchiface/mock_batchapi.go
 	mockgen github.com/aws/aws-sdk-go/service/batch/batchiface BatchAPI > mocks/mock_batchiface/mock_batchapi.go
+
+	mkdir -p mocks/mock_dynamodbiface
+	rm -f mocks/mock_dynamodbiface/mock_dynamodbapi.go
+	mockgen github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface DynamoDBAPI > mocks/mock_dynamodbiface/mock_dynamodbapi.go
 
 $(GOPATH)/bin/glide:
 	@go get github.com/Masterminds/glide
