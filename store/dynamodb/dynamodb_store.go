@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/go-openapi/strfmt"
 	"github.com/zencoder/ddbsync"
 
 	"gopkg.in/Clever/kayvee-go.v6/logger"
@@ -66,13 +68,13 @@ func (d DynamoDB) stateResourcesTable() string {
 }
 
 // dynamoItemsToWorkflowDefinitions takes the Items from a Query or Scan result and decodes it into an array of workflow definitions
-func (d DynamoDB) dynamoItemsToWorkflowDefinitions(items []map[string]*dynamodb.AttributeValue) ([]resources.WorkflowDefinition, error) {
-	workflowDefinitions := []resources.WorkflowDefinition{}
+func (d DynamoDB) dynamoItemsToWorkflowDefinitions(items []map[string]*dynamodb.AttributeValue) ([]models.WorkflowDefinition, error) {
+	workflowDefinitions := []models.WorkflowDefinition{}
 
 	for _, item := range items {
-		var wf resources.WorkflowDefinition
+		var wf models.WorkflowDefinition
 		if err := DecodeWorkflowDefinition(item, &wf); err != nil {
-			return []resources.WorkflowDefinition{}, err
+			return []models.WorkflowDefinition{}, err
 		}
 		workflowDefinitions = append(workflowDefinitions, wf)
 	}
@@ -234,8 +236,8 @@ func (d DynamoDB) InitTables() error {
 
 // SaveWorkflowDefinition saves a workflow definition.
 // If the workflow already exists, it will return a store.ConflictError.
-func (d DynamoDB) SaveWorkflowDefinition(def resources.WorkflowDefinition) error {
-	def.CreatedAtTime = time.Now()
+func (d DynamoDB) SaveWorkflowDefinition(def models.WorkflowDefinition) error {
+	def.CreatedAt = strfmt.DateTime(time.Now())
 
 	data, err := EncodeWorkflowDefinition(def)
 	if err != nil {
@@ -254,7 +256,7 @@ func (d DynamoDB) SaveWorkflowDefinition(def resources.WorkflowDefinition) error
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
-				return store.NewConflict(def.Name())
+				return store.NewConflict(def.Name)
 			}
 		}
 		return err
@@ -270,38 +272,38 @@ func (d DynamoDB) SaveWorkflowDefinition(def resources.WorkflowDefinition) error
 // UpdateWorkflowDefinition updates an existing workflow definition.
 // The version will be set to the version following the latest definition.
 // The workflow definition returned contains this new version number.
-func (d DynamoDB) UpdateWorkflowDefinition(def resources.WorkflowDefinition) (resources.WorkflowDefinition, error) {
+func (d DynamoDB) UpdateWorkflowDefinition(def models.WorkflowDefinition) (models.WorkflowDefinition, error) {
 	// TODO we should change this to use the latest-workflows table with a projection expressions
-	latest, err := d.LatestWorkflowDefinition(def.Name()) // TODO: only need version here, can optimize query
+	latest, err := d.LatestWorkflowDefinition(def.Name) // TODO: only need version here, can optimize query
 	if err != nil {
 		return def, err
 	}
 
 	// TODO: this isn't thread safe...
-	newVersion := resources.NewWorkflowDefinitionVersion(def, latest.Version()+1)
-	if err := d.SaveWorkflowDefinition(newVersion); err != nil {
+	newVersion := resources.NewWorkflowDefinitionVersion(&def, int(latest.Version+1))
+	if err := d.SaveWorkflowDefinition(*newVersion); err != nil {
 		return def, err
 	}
 
 	// need to perform a get to return any mutations that happened in Save, e.g. CreatedAt
-	return d.GetWorkflowDefinition(newVersion.Name(), newVersion.Version())
+	return d.GetWorkflowDefinition(newVersion.Name, int(newVersion.Version))
 }
 
 // GetWorkflowDefinitions returns the latest version of all stored workflow definitions
-func (d DynamoDB) GetWorkflowDefinitions() ([]resources.WorkflowDefinition, error) {
+func (d DynamoDB) GetWorkflowDefinitions() ([]models.WorkflowDefinition, error) {
 	// Scan returns the entire table
 	results, err := d.ddb.Scan(&dynamodb.ScanInput{
 		ConsistentRead: aws.Bool(true),
 		TableName:      aws.String(d.latestWorkflowDefinitionsTable()),
 	})
 	if err != nil {
-		return []resources.WorkflowDefinition{}, err
+		return []models.WorkflowDefinition{}, err
 	}
 	return d.dynamoItemsToWorkflowDefinitions(results.Items)
 }
 
 // GetWorkflowDefinitionVersions gets all versions of a workflow definition
-func (d DynamoDB) GetWorkflowDefinitionVersions(name string) ([]resources.WorkflowDefinition, error) {
+func (d DynamoDB) GetWorkflowDefinitionVersions(name string) ([]models.WorkflowDefinition, error) {
 	results, err := d.ddb.Query(&dynamodb.QueryInput{
 		TableName: aws.String(d.workflowDefinitionsTable()),
 		ExpressionAttributeNames: map[string]*string{
@@ -316,46 +318,46 @@ func (d DynamoDB) GetWorkflowDefinitionVersions(name string) ([]resources.Workfl
 		ConsistentRead:         aws.Bool(true),
 	})
 	if err != nil {
-		return []resources.WorkflowDefinition{}, err
+		return []models.WorkflowDefinition{}, err
 	}
 	if len(results.Items) == 0 {
-		return []resources.WorkflowDefinition{}, store.NewNotFound(name)
+		return []models.WorkflowDefinition{}, store.NewNotFound(name)
 	}
 
 	return d.dynamoItemsToWorkflowDefinitions(results.Items)
 }
 
 // GetWorkflowDefinition gets the specific version of a workflow definition
-func (d DynamoDB) GetWorkflowDefinition(name string, version int) (resources.WorkflowDefinition, error) {
+func (d DynamoDB) GetWorkflowDefinition(name string, version int) (models.WorkflowDefinition, error) {
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowDefinitionPrimaryKey{
 		Name:    name,
-		Version: version,
+		Version: int64(version),
 	})
 	if err != nil {
-		return resources.WorkflowDefinition{}, err
+		return models.WorkflowDefinition{}, err
 	}
 	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
 		Key:       key,
 		TableName: aws.String(d.workflowDefinitionsTable()),
 	})
 	if err != nil {
-		return resources.WorkflowDefinition{}, err
+		return models.WorkflowDefinition{}, err
 	}
 
 	if len(res.Item) == 0 {
-		return resources.WorkflowDefinition{}, store.NewNotFound(name)
+		return models.WorkflowDefinition{}, store.NewNotFound(name)
 	}
 
-	var wd resources.WorkflowDefinition
+	var wd models.WorkflowDefinition
 	if err := DecodeWorkflowDefinition(res.Item, &wd); err != nil {
-		return resources.WorkflowDefinition{}, err
+		return models.WorkflowDefinition{}, err
 	}
 
 	return wd, nil
 }
 
 // LatestWorkflowDefinition gets the latest version of a workflow definition.
-func (d DynamoDB) LatestWorkflowDefinition(name string) (resources.WorkflowDefinition, error) {
+func (d DynamoDB) LatestWorkflowDefinition(name string) (models.WorkflowDefinition, error) {
 	res, err := d.ddb.Query(&dynamodb.QueryInput{
 		TableName: aws.String(d.latestWorkflowDefinitionsTable()),
 		ExpressionAttributeNames: map[string]*string{
@@ -370,21 +372,21 @@ func (d DynamoDB) LatestWorkflowDefinition(name string) (resources.WorkflowDefin
 		ConsistentRead:         aws.Bool(true),
 	})
 	if err != nil {
-		return resources.WorkflowDefinition{}, err
+		return models.WorkflowDefinition{}, err
 	}
 	if len(res.Items) != 1 {
-		return resources.WorkflowDefinition{}, store.NewNotFound(name)
+		return models.WorkflowDefinition{}, store.NewNotFound(name)
 	}
-	var wf resources.WorkflowDefinition
+	var wf models.WorkflowDefinition
 	if err := DecodeWorkflowDefinition(res.Items[0], &wf); err != nil {
-		return resources.WorkflowDefinition{}, err
+		return models.WorkflowDefinition{}, err
 	}
 	return wf, nil
 }
 
 // SaveStateResource creates or updates a StateResource in dynamo
 // always overwrite old resource in store
-func (d DynamoDB) SaveStateResource(stateResource resources.StateResource) error {
+func (d DynamoDB) SaveStateResource(stateResource models.StateResource) error {
 	data, err := EncodeStateResource(stateResource)
 	if err != nil {
 		return err
@@ -399,13 +401,13 @@ func (d DynamoDB) SaveStateResource(stateResource resources.StateResource) error
 }
 
 // GetStateResource gets the StateResource matching the name and namespace.
-func (d DynamoDB) GetStateResource(name, namespace string) (resources.StateResource, error) {
+func (d DynamoDB) GetStateResource(name, namespace string) (models.StateResource, error) {
 	key, err := dynamodbattribute.MarshalMap(ddbStateResourcePrimaryKey{
 		Name:      name,
 		Namespace: namespace,
 	})
 	if err != nil {
-		return resources.StateResource{}, err
+		return models.StateResource{}, err
 	}
 	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
 		Key:            key,
@@ -413,16 +415,16 @@ func (d DynamoDB) GetStateResource(name, namespace string) (resources.StateResou
 		ConsistentRead: aws.Bool(true),
 	})
 	if err != nil {
-		return resources.StateResource{}, err
+		return models.StateResource{}, err
 	}
 
 	if len(res.Item) == 0 {
-		return resources.StateResource{}, store.NewNotFound(fmt.Sprintf("%s--%s", namespace, name))
+		return models.StateResource{}, store.NewNotFound(fmt.Sprintf("%s--%s", namespace, name))
 	}
 
 	stateResource, err := DecodeStateResource(res.Item)
 	if err != nil {
-		return resources.StateResource{}, err
+		return models.StateResource{}, err
 	}
 
 	return stateResource, nil
@@ -462,8 +464,8 @@ func (d DynamoDB) DeleteStateResource(name, namespace string) error {
 }
 
 // SaveWorkflow saves a workflow to dynamo.
-func (d DynamoDB) SaveWorkflow(workflow resources.Workflow) error {
-	workflow.CreatedAt = time.Now()
+func (d DynamoDB) SaveWorkflow(workflow models.Workflow) error {
+	workflow.CreatedAt = strfmt.DateTime(time.Now())
 	workflow.LastUpdated = workflow.CreatedAt
 
 	data, err := EncodeWorkflow(workflow)
@@ -488,8 +490,8 @@ func (d DynamoDB) SaveWorkflow(workflow resources.Workflow) error {
 	return err
 }
 
-func (d DynamoDB) UpdateWorkflow(workflow resources.Workflow) error {
-	workflow.LastUpdated = time.Now()
+func (d DynamoDB) UpdateWorkflow(workflow models.Workflow) error {
+	workflow.LastUpdated = strfmt.DateTime(time.Now())
 
 	data, err := EncodeWorkflow(workflow)
 	if err != nil {
@@ -513,23 +515,13 @@ func (d DynamoDB) UpdateWorkflow(workflow resources.Workflow) error {
 	return err
 }
 
-// attachWorkflowDefinition adds workflow definition information to the given workflow.
-func (d DynamoDB) attachWorkflowDefinition(workflow *resources.Workflow) error {
-	wf, err := d.GetWorkflowDefinition(workflow.WorkflowDefinition.Name(), workflow.WorkflowDefinition.Version())
-	if err != nil {
-		return fmt.Errorf("error getting WorkflowDefinition for Workflow %s: %s", workflow.ID, err)
-	}
-	workflow.WorkflowDefinition = wf
-	return nil
-}
-
 // GetWorkflowByID
-func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
+func (d DynamoDB) GetWorkflowByID(id string) (models.Workflow, error) {
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowPrimaryKey{
 		ID: id,
 	})
 	if err != nil {
-		return resources.Workflow{}, err
+		return models.Workflow{}, err
 	}
 	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
 		Key:            key,
@@ -537,28 +529,24 @@ func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
 		ConsistentRead: aws.Bool(true),
 	})
 	if err != nil {
-		return resources.Workflow{}, err
+		return models.Workflow{}, err
 	}
 
 	if len(res.Item) == 0 {
-		return resources.Workflow{}, store.NewNotFound(id)
+		return models.Workflow{}, store.NewNotFound(id)
 	}
 
 	workflow, err := DecodeWorkflow(res.Item)
 	if err != nil {
-		return resources.Workflow{}, err
-	}
-
-	if err := d.attachWorkflowDefinition(&workflow); err != nil {
-		return resources.Workflow{}, err
+		return models.Workflow{}, err
 	}
 
 	return workflow, nil
 }
 
 // GetWorkflows returns all workflows matching the given query.
-func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]resources.Workflow, string, error) {
-	var workflows []resources.Workflow
+func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]models.Workflow, string, error) {
+	var workflows []models.Workflow
 	nextPageToken := ""
 
 	var dbQuery *dynamodb.QueryInput
@@ -596,13 +584,6 @@ func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]resources.Workflow
 		if err != nil {
 			return workflows, nextPageToken, err
 		}
-		// TODO: Optimization - do a BatchGet to fetch the workflow definitions all at once and avoid
-		// redundant fetches.
-		// TODO: Add an option in the API to skip this step for clients that want to fetch definitions
-		// separately.
-		if err := d.attachWorkflowDefinition(&workflow); err != nil {
-			return workflows, nextPageToken, err
-		}
 		workflows = append(workflows, workflow)
 	}
 
@@ -617,19 +598,21 @@ func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]resources.Workflow
 	return workflows, nextPageToken, nil
 }
 
-type byLastUpdatedTime []resources.Workflow
+type byLastUpdatedTime []models.Workflow
 
-func (b byLastUpdatedTime) Len() int           { return len(b) }
-func (b byLastUpdatedTime) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
-func (b byLastUpdatedTime) Less(i, j int) bool { return b[i].LastUpdated.Before(b[j].LastUpdated) }
+func (b byLastUpdatedTime) Len() int      { return len(b) }
+func (b byLastUpdatedTime) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b byLastUpdatedTime) Less(i, j int) bool {
+	return time.Time(b[i].LastUpdated).Before(time.Time(b[j].LastUpdated))
+}
 
 // GetPendingWorkflowIDs gets workflows that are either Queued or Running.
 // It uses a global secondary index on status and last updated time in order to return
 // workflows ordered by their last updated time. Workflows with the oldest last updated
 // time are returned first.
 func (d DynamoDB) GetPendingWorkflowIDs() ([]string, error) {
-	var pendingWorkflows []resources.Workflow
-	for _, statusToQuery := range []resources.WorkflowStatus{resources.Queued, resources.Running} {
+	var pendingWorkflows []models.Workflow
+	for _, statusToQuery := range []models.WorkflowStatus{models.WorkflowStatusQueued, models.WorkflowStatusRunning} {
 		query, err := ddbWorkflowSecondaryKeyStatusLastUpdated{
 			Status: statusToQuery,
 		}.ConstructQuery()
@@ -662,8 +645,8 @@ func (d DynamoDB) GetPendingWorkflowIDs() ([]string, error) {
 }
 
 // LockWorkflow acquires a lock on modifying a workflow.
-func (s DynamoDB) LockWorkflow(id string) error {
-	mu := ddbsync.NewMutex(id, 30 /* seconds */, s.lockDB, 0 /* no reattempts, so irrelevant */)
+func (d DynamoDB) LockWorkflow(id string) error {
+	mu := ddbsync.NewMutex(id, 30 /* seconds */, d.lockDB, 0 /* no reattempts, so irrelevant */)
 	if err := mu.AttemptLock(); err != nil {
 		if err == ddbsync.ErrLockAlreadyHeld {
 			return store.ErrWorkflowLocked
@@ -674,8 +657,8 @@ func (s DynamoDB) LockWorkflow(id string) error {
 }
 
 // UnlockWorkflow releases a lock (if it exists) on modifying a workflow.
-func (s DynamoDB) UnlockWorkflow(id string) error {
-	mu := ddbsync.NewMutex(id, 30 /* seconds */, s.lockDB, 0 /* no reattempts, so irrelevant */)
+func (d DynamoDB) UnlockWorkflow(id string) error {
+	mu := ddbsync.NewMutex(id, 30 /* seconds */, d.lockDB, 0 /* no reattempts, so irrelevant */)
 	mu.Unlock()
 	return nil
 }
