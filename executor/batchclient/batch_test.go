@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/mocks/mock_batchiface"
 	"github.com/Clever/workflow-manager/mocks/mock_dynamodbiface"
-	"github.com/Clever/workflow-manager/resources"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/batch"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -26,10 +26,10 @@ func TestStatus(t *testing.T) {
 	c := newTestConfig(t)
 	defer c.mockController.Finish()
 
-	t.Log("Converts AWS Batch JobDetail to resources.JobDetail")
+	t.Log("Uses AWS Batch JobDetail to update models.Job")
 	jobID1 := aws.String("5a4a8864-2b4e-4c7f-84c1-e3aae28b4ebd")
 	batchJobDetail1 := batch.JobDetail{
-		Status:        aws.String("SUCCEEDED"),
+		Status:        aws.String(batch.JobStatusSucceeded),
 		StatusReason:  aws.String("Essential container in task exited"),
 		JobDefinition: aws.String("arn:aws:batch:us-east-1:58111111125:job-definition/batchcli:1"),
 		JobId:         jobID1,
@@ -79,49 +79,46 @@ func TestStatus(t *testing.T) {
 				c.executor.resultsDBConfig.TableNameDev: {
 					{
 						"Key":    {S: jobID1},
-						"Result": {S: aws.String("job 1 output")},
+						"Result": {S: aws.String(`["job 1 output"]`)},
 					},
 					{
 						"Key":    {S: jobID2},
-						"Result": {S: aws.String("job 2 output")},
+						"Result": {S: aws.String(`["job 2 output"]`)},
 					},
 				},
 			},
 		}, nil)
 
-	job1 := &resources.Job{
-		ID:   *jobID1,
-		Name: "should not be overwritten",
-		JobDetail: resources.JobDetail{
-			Input: []string{"initial input - should not be overwritten"},
-		},
+	job1 := &models.Job{
+		ID:    *jobID1,
+		Name:  "should not be overwritten",
+		Input: `["initial input - should not be overwritten"]`,
 	}
-	job2 := &resources.Job{
+	job2 := &models.Job{
 		ID:   *jobID2,
 		Name: "should not be overwritten",
 	}
 
-	errs := c.executor.Status([]*resources.Job{job1, job2})
+	errs := c.executor.Status([]*models.Job{job1, job2})
 	for _, err := range errs {
 		assert.NoError(t, err)
 	}
 
 	assert.Equal(t, *jobID1, job1.ID)
-	assert.Equal(t, resources.JobStatusSucceeded, job1.Status)
-	assert.Equal(t, "2017-03-28T00:45:46.376Z", job1.CreatedAt.UTC().Format(time.RFC3339Nano))
-	assert.Equal(t, "2017-03-28T00:46:48.178Z", job1.StartedAt.UTC().Format(time.RFC3339Nano))
-	assert.Equal(t, time.Time{}, job1.StoppedAt)
+	assert.Equal(t, models.JobStatusSucceeded, job1.Status)
+	assert.Equal(t, "2017-03-28T00:45:46.376Z", time.Time(job1.CreatedAt).UTC().Format(time.RFC3339Nano))
+	assert.Equal(t, "2017-03-28T00:46:48.178Z", time.Time(job1.StartedAt).UTC().Format(time.RFC3339Nano))
+	assert.Equal(t, time.Time{}, time.Time(job1.StoppedAt))
 	assert.Equal(t, "should not be overwritten", job1.Name)
-	assert.Equal(t, []string{"initial input - should not be overwritten"}, job1.Input)
-	assert.Equal(t, []string{"job 1 output"}, job1.Output)
+	assert.Equal(t, `["initial input - should not be overwritten"]`, job1.Input)
+	assert.Equal(t, `["job 1 output"]`, job1.Output)
 
 	assert.Equal(t, *jobID2, job2.ID)
 	assert.Equal(t, "should not be overwritten", job2.Name)
 	assert.Equal(t, job1.Output, job2.Input)
-	assert.Equal(t, []string{"job 2 output"}, job2.Output)
-
+	assert.Equal(t, `["job 2 output"]`, job2.Output)
 	t.Log("Doesn't set input for job if dependency did not succeed")
-	batchJobDetail1.Status = aws.String(string(resources.JobStatusFailed))
+	batchJobDetail1.Status = aws.String(batch.JobStatusFailed)
 	c.mockBatchClient.EXPECT().
 		DescribeJobs(&batch.DescribeJobsInput{Jobs: []*string{jobID1, jobID2}}).
 		Return(&batch.DescribeJobsOutput{
@@ -142,23 +139,22 @@ func TestStatus(t *testing.T) {
 		Return(&dynamodb.BatchGetItemOutput{
 			Responses: map[string][]map[string]*dynamodb.AttributeValue{
 				c.executor.resultsDBConfig.TableNameDev: {
-					{"Key": {S: jobID1}, "Result": {S: aws.String("job 1 output")}},
+					{"Key": {S: jobID1}, "Result": {S: aws.String(`["job 1 output"]`)}},
 				},
 			},
 		}, nil)
 
-	errs = c.executor.Status([]*resources.Job{job1, job2})
+	errs = c.executor.Status([]*models.Job{job1, job2})
 	for _, err := range errs {
 		require.NoError(t, err)
 	}
 
-	assert.Equal(t, []string{"initial input - should not be overwritten"}, job1.Input)
-	assert.Equal(t, []string{"job 1 output"}, job1.Output)
-	assert.Equal(t, []string{}, job2.Input)
+	assert.Equal(t, `["initial input - should not be overwritten"]`, job1.Input)
+	assert.Equal(t, `["job 1 output"]`, job1.Output)
+	assert.Equal(t, `[]`, job2.Input)
 
 	t.Log("Sets task status correctly when user has canceled it")
 	cancelledBatchJobDetails := batchJobDetail1
-	cancelledBatchJobDetails.Status = aws.String(batch.JobStatusFailed)
 	cancelledBatchJobDetails.Status = aws.String(batch.JobStatusFailed)
 	cancelledBatchJobDetails.StatusReason = aws.String("ABORTED_BY_USER: your message here")
 	cancelledBatchJobDetails.StartedAt = nil
@@ -183,11 +179,11 @@ func TestStatus(t *testing.T) {
 			Responses: map[string][]map[string]*dynamodb.AttributeValue{},
 		}, nil)
 
-	errs = c.executor.Status([]*resources.Job{job1})
+	errs = c.executor.Status([]*models.Job{job1})
 	for _, err := range errs {
 		assert.NoError(t, err)
 	}
-	assert.Equal(t, job1.Status, resources.JobStatusUserAborted)
+	assert.Equal(t, job1.Status, models.JobStatusAbortedByUser)
 }
 
 func TestSubmitWorkflowToCustomQueue(t *testing.T) {
@@ -207,7 +203,7 @@ func TestSubmitWorkflowToCustomQueue(t *testing.T) {
 	name := "name"
 	definition := "definition"
 	dependencies := []string{}
-	input := []string{}
+	input := ""
 
 	t.Log("submits successfully to default queue")
 	mockClient.EXPECT().SubmitJob(gomock.Any()).Return(&batch.SubmitJobOutput{

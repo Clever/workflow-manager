@@ -4,16 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/store"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // WorkflowManager is the interface for creating, stopping and checking status for Workflows
 type WorkflowManager interface {
-	CreateWorkflow(def resources.WorkflowDefinition, input []string, namespace string, queue string, tags map[string]string) (*resources.Workflow, error)
-	CancelWorkflow(workflow *resources.Workflow, reason string) error
-	UpdateWorkflowStatus(workflow *resources.Workflow) error
+	CreateWorkflow(def models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error)
+	CancelWorkflow(workflow *models.Workflow, reason string) error
+	UpdateWorkflowStatus(workflow *models.Workflow) error
 }
 
 // PollForPendingWorkflowsAndUpdateStore polls the store for workflows in a pending state and

@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
+	"github.com/go-openapi/strfmt"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
@@ -35,55 +36,33 @@ func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, store store.Store, roleARN, r
 	}
 }
 
-func wdTypeToSLStateType(wdType string) models.SLStateType {
-	switch wdType {
-	case "WORKER":
-		return models.SLStateTypeTask
-	default:
-		return models.SLStateTypeTask
-	}
-}
-
-func wdRetryToSLRetry(wdRetry []*models.Retrier) []*models.SLRetrier {
-	retriers := []*models.SLRetrier{}
-	for _, wdRetrier := range wdRetry {
-		retriers = append(retriers, &models.SLRetrier{
-			ErrorEquals: wdRetrier.ErrorEquals,
-			MaxAttempts: wdRetrier.MaxAttempts,
-		})
-	}
-	return retriers
-}
-
 func wdResourceToSLResource(wdResource, region, accountID, namespace string) string {
 	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s--%s", region, accountID, namespace, wdResource)
 }
 
-func wdToStateMachine(wd resources.WorkflowDefinition, region, accountID, namespace string) *models.SLStateMachine {
-	states := map[string]models.SLState{}
-	for _, state := range wd.StatesMap {
-		states[state.Name()] = models.SLState{
-			Type:     wdTypeToSLStateType(state.Type()),
-			Next:     state.Next(),
-			End:      state.IsEnd(),
-			Retry:    wdRetryToSLRetry(state.Retry()),
-			Resource: wdResourceToSLResource(state.Resource(), region, accountID, namespace),
-		}
+// stateMachineWithFullActivityARNs converts resource names in states to full activity ARNs. It returns a new state machine.
+func stateMachineWithFullActivityARNs(stateMachine *models.SLStateMachine, region, accountID, namespace string) *models.SLStateMachine {
+
+	newStates := map[string]models.SLState{}
+	for stateName, state := range stateMachine.States {
+		// declare the var in order to generate a compile error if the copy below ever becomes a pointer copy
+		var newState models.SLState
+		newState = state // copy
+		newState.Resource = wdResourceToSLResource(state.Resource, region, accountID, namespace)
+		newStates[stateName] = newState
 	}
 
-	return &models.SLStateMachine{
-		Comment: wd.Description,
-		StartAt: wd.StartAtStr,
-		States:  states,
-		// TimeoutSeconds: not supported in wd
-		Version: "1.0",
-	}
+	// make a copy (don't pointer copy!) of state machine replacing states map with modified states map
+	newStateMachine := *stateMachine // copy
+	newStateMachine.States = newStates
+
+	return &newStateMachine
 }
 
 // https://docs.aws.amazon.com/step-functions/latest/apireference/API_CreateStateMachine.html#StepFunctions-CreateStateMachine-request-name
 var stateMachineNameBadChars = []byte{' ', '<', '>', '{', '}', '[', ']', '?', '*', '"', '#', '%', '\\', '^', '|', '~', '`', '$', '&', ',', ';', ':', '/'}
 
-func stateMachineName(wdName string, wdVersion int, namespace string, queue string) string {
+func stateMachineName(wdName string, wdVersion int64, namespace string, queue string) string {
 	name := fmt.Sprintf("%s--%s--%d--%s", namespace, wdName, wdVersion, queue)
 	for _, badchar := range stateMachineNameBadChars {
 		name = strings.Replace(name, string(badchar), "-", -1)
@@ -91,13 +70,13 @@ func stateMachineName(wdName string, wdVersion int, namespace string, queue stri
 	return name
 }
 
-func stateMachineARN(region, accountID, wdName string, wdVersion int, namespace string, queue string) string {
+func stateMachineARN(region, accountID, wdName string, wdVersion int64, namespace string, queue string) string {
 	return fmt.Sprintf("arn:aws:states:%s:%s:stateMachine:%s", region, accountID, stateMachineName(wdName, wdVersion, namespace, queue))
 }
 
-func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd resources.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
+func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
 	describeOutput, err := wm.sfnapi.DescribeStateMachine(&sfn.DescribeStateMachineInput{
-		StateMachineArn: aws.String(stateMachineARN(wm.region, wm.accountID, wd.NameStr, wd.VersionInt, namespace, queue)),
+		StateMachineArn: aws.String(stateMachineARN(wm.region, wm.accountID, wd.Name, wd.Version, namespace, queue)),
 	})
 	if err == nil {
 		return describeOutput, nil
@@ -111,17 +90,22 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd resources.Workflow
 	}
 
 	// state machine doesn't exist, create it
-	// the name must be unique. Use definition name+version, namespace, and queue
-	stateMachineJSON, err := json.MarshalIndent(wdToStateMachine(wd, wm.region, wm.accountID, namespace), "", "  ")
+	// our state machine states don't contain full activity ARNs as resources
+	// instead we use shorthand that is convenient when writing out state machine definitions, e.g. "Resource": "name-of-worker"
+	// convert this shorthand into a new state machine with full activity ARNs, e.g. "Resource": "arn:aws:states:us-west-2:589690932525:activity:production--name-of-worker"
+	awsStateMachine := stateMachineWithFullActivityARNs(wd.StateMachine, wm.region, wm.accountID, namespace)
+	awsStateMachineDefBytes, err := json.MarshalIndent(awsStateMachine, "", "  ")
 	if err != nil {
 		return nil, err
 	}
-	definition := string(stateMachineJSON)
-	name := stateMachineName(wd.NameStr, wd.VersionInt, namespace, queue)
-	log.InfoD("create-state-machine", logger.M{"definition": definition, "name": name})
+	awsStateMachineDef := string(awsStateMachineDefBytes)
+	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
+	// this effectively creates named queues for each workflow definition in each namespace we deploy into
+	awsStateMachineName := stateMachineName(wd.Name, wd.Version, namespace, queue)
+	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
 	_, err = wm.sfnapi.CreateStateMachine(&sfn.CreateStateMachineInput{
-		Name:       aws.String(name),
-		Definition: aws.String(definition),
+		Name:       aws.String(awsStateMachineName),
+		Definition: aws.String(awsStateMachineDef),
 		RoleArn:    aws.String(wm.roleARN),
 	})
 	if err != nil {
@@ -131,14 +115,14 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd resources.Workflow
 	return wm.describeOrCreateStateMachine(wd, namespace, queue)
 }
 
-func (wm *SFNWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition, input []string, namespace string, queue string, tags map[string]string) (*resources.Workflow, error) {
+func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error) {
 	describeOutput, err := wm.describeOrCreateStateMachine(wd, namespace, queue)
 	if err != nil {
 		return nil, err
 	}
 
 	// submit an execution using input, set execution name == our workflow GUID
-	workflow := resources.NewWorkflow(wd, input, namespace, queue, tags)
+	workflow := resources.NewWorkflow(&wd, input, namespace, queue, tags)
 	inputJSON, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
@@ -155,10 +139,10 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition, in
 	return workflow, wm.store.SaveWorkflow(*workflow)
 }
 
-func (wm *SFNWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reason string) error {
+func (wm *SFNWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason string) error {
 	// cancel execution
 	wd := workflow.WorkflowDefinition
-	execARN := executionARN(wm.region, wm.accountID, stateMachineName(wd.NameStr, wd.VersionInt, workflow.Namespace, workflow.Queue), workflow.ID)
+	execARN := executionARN(wm.region, wm.accountID, stateMachineName(wd.Name, wd.Version, workflow.Namespace, workflow.Queue), workflow.ID)
 	_, err := wm.sfnapi.StopExecution(&sfn.StopExecutionInput{
 		ExecutionArn: aws.String(execARN),
 		Cause:        aws.String(reason),
@@ -171,27 +155,27 @@ func executionARN(region, accountID, stateMachineName, executionName string) str
 	return fmt.Sprintf("arn:aws:states:%s:%s:execution:%s:%s", region, accountID, stateMachineName, executionName)
 }
 
-func sfnStatusToWorkflowStatus(sfnStatus string) resources.WorkflowStatus {
+func sfnStatusToWorkflowStatus(sfnStatus string) models.WorkflowStatus {
 	switch sfnStatus {
 	case sfn.ExecutionStatusRunning:
-		return resources.Running
+		return models.WorkflowStatusRunning
 	case sfn.ExecutionStatusSucceeded:
-		return resources.Succeeded
+		return models.WorkflowStatusSucceeded
 	case sfn.ExecutionStatusFailed:
-		return resources.Failed
+		return models.WorkflowStatusFailed
 	case sfn.ExecutionStatusTimedOut:
-		return resources.Failed
+		return models.WorkflowStatusFailed
 	case sfn.ExecutionStatusAborted:
-		return resources.Cancelled
+		return models.WorkflowStatusCancelled
 	default:
-		return resources.Queued // this should never happen, since all cases are covered above
+		return models.WorkflowStatusQueued // this should never happen, since all cases are covered above
 	}
 }
 
-func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow) error {
+func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) error {
 	// get execution from AWS, pull in all the data into the workflow object
 	wd := workflow.WorkflowDefinition
-	execARN := executionARN(wm.region, wm.accountID, stateMachineName(wd.NameStr, wd.VersionInt, workflow.Namespace, workflow.Queue), workflow.ID)
+	execARN := executionARN(wm.region, wm.accountID, stateMachineName(wd.Name, wd.Version, workflow.Namespace, workflow.Queue), workflow.ID)
 	describeOutput, err := wm.sfnapi.DescribeExecution(&sfn.DescribeExecutionInput{
 		ExecutionArn: aws.String(execARN),
 	})
@@ -199,7 +183,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow)
 		return err
 	}
 
-	workflow.LastUpdated = time.Now()
+	workflow.LastUpdated = strfmt.DateTime(time.Now())
 	workflow.Status = sfnStatusToWorkflowStatus(*describeOutput.Status)
 	// TODO: we should capture the output of a workflow
 	//workflow.Output = describeStatus.Output
@@ -209,8 +193,8 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow)
 	// since (1) it doesn't support complex branching, and (2) we schedule all jobs for a workflow at
 	// the time of  workflow submission.
 	// Step Functions supports complex branching, so jobs might not be 1:1 with states.
-	jobs := []*resources.Job{}
-	stateToJob := map[string]*resources.Job{}
+	jobs := []*models.Job{}
+	stateToJob := map[string]*models.Job{}
 	// TODO: as soon as we have parallel states anything that relies on this might be incorrect
 	var currentState *string
 	if err := wm.sfnapi.GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
@@ -224,32 +208,28 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow)
 			switch *evt.Type {
 			case sfn.HistoryEventTypeTaskStateEntered:
 				stateEntered := evt.StateEnteredEventDetails
-				var input []string
-				if err := json.Unmarshal([]byte(*stateEntered.Input), &input); err != nil {
-					input = []string{*stateEntered.Input}
-				}
-				state, ok := workflow.WorkflowDefinition.StatesMap[*stateEntered.Name]
+				var input string
+				json.Unmarshal([]byte(*stateEntered.Input), &input)
+				state, ok := workflow.WorkflowDefinition.StateMachine.States[*stateEntered.Name]
 				var stateResourceName string
 				if ok {
-					stateResourceName = state.Resource()
+					stateResourceName = state.Resource
 				}
-				job := &resources.Job{
-					JobDetail: resources.JobDetail{
-						CreatedAt: *evt.Timestamp,
-						StartedAt: *evt.Timestamp,
-						// TODO: somehow match ActivityStarted events to state, capture worker name here
-						//ContainerId: ""/
-						Status: resources.JobStatusCreated,
-						Input:  input,
-					},
+				job := &models.Job{
+					CreatedAt: strfmt.DateTime(*evt.Timestamp),
+					StartedAt: strfmt.DateTime(*evt.Timestamp),
+					// TODO: somehow match ActivityStarted events to state, capture worker name here
+					//ContainerId: ""/
+					Status: models.JobStatusCreated,
+					Input:  input,
 					// event IDs start at 1 and are only unique to the execution, so this might not be ideal
 					ID:    fmt.Sprintf("%d", *evt.Id),
 					State: *stateEntered.Name,
-					StateResource: resources.StateResource{
+					StateResource: &models.StateResource{
 						Name:        stateResourceName,
-						Type:        resources.SFNActivity,
+						Type:        models.StateResourceTypeActivityARN,
 						Namespace:   workflow.Namespace,
-						LastUpdated: *evt.Timestamp,
+						LastUpdated: strfmt.DateTime(*evt.Timestamp),
 					},
 				}
 				currentState = stateEntered.Name
@@ -257,30 +237,26 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow)
 				jobs = append(jobs, job)
 			case sfn.HistoryEventTypeActivityScheduled:
 				if currentState != nil {
-					stateToJob[*currentState].JobDetail.Status = resources.JobStatusQueued
+					stateToJob[*currentState].Status = models.JobStatusQueued
 				}
 			case sfn.HistoryEventTypeActivityStarted:
 				if currentState != nil {
-					stateToJob[*currentState].JobDetail.Status = resources.JobStatusRunning
+					stateToJob[*currentState].Status = models.JobStatusRunning
 				}
 			case sfn.HistoryEventTypeActivityFailed:
 				if currentState != nil {
-					stateToJob[*currentState].JobDetail.Status = resources.JobStatusFailed
+					stateToJob[*currentState].Status = models.JobStatusFailed
 				}
 			case sfn.HistoryEventTypeActivitySucceeded:
 				if currentState != nil {
-					stateToJob[*currentState].JobDetail.Status = resources.JobStatusSucceeded
+					stateToJob[*currentState].Status = models.JobStatusSucceeded
 				}
 			case sfn.HistoryEventTypeTaskStateExited:
 				stateExited := evt.StateExitedEventDetails
-				stateToJob[*stateExited.Name].JobDetail.StoppedAt = *evt.Timestamp
-				output := []string{}
+				stateToJob[*stateExited.Name].StoppedAt = strfmt.DateTime(*evt.Timestamp)
 				if stateExited.Output != nil {
-					if err := json.Unmarshal([]byte(*stateExited.Output), &output); err != nil {
-						output = []string{*stateExited.Output}
-					}
+					stateToJob[*stateExited.Name].Output = *stateExited.Output
 				}
-				stateToJob[*stateExited.Name].JobDetail.Output = output
 				currentState = nil
 			}
 		}

@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 
+	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 )
@@ -22,17 +23,17 @@ func NewBatchWorkflowManager(executor Executor, store store.Store) BatchWorkflow
 }
 
 // UpdateWorkflowStatus ensures that the status of the jobs is in-sync with AWS Batch and sets Workflow status
-func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow) error {
+func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) error {
 	// Because batch only keeps a 24hr history of jobs, don't look them up if
 	// they are already in a final state. NOTE: workflow status should already be in
 	// its final state as well at this point since it gets updated after jobs
 	// statuses are read from batch
-	if workflow.IsDone() {
+	if resources.WorkflowIsDone(workflow) {
 		return nil
 	}
 
 	// copy current status
-	jobStatus := map[string]resources.JobStatus{}
+	jobStatus := map[string]models.JobStatus{}
 	jobAttempts := map[string]int{}
 	for _, job := range workflow.Jobs {
 		jobStatus[job.ID] = job.Status
@@ -57,7 +58,7 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 	}
 
 	// If the workflow has been canceled, do not update its status to something else
-	if workflow.Status == resources.Cancelled {
+	if workflow.Status == models.WorkflowStatusCancelled {
 		return wm.store.UpdateWorkflow(*workflow)
 	}
 
@@ -67,20 +68,20 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 	workflowCancelled := false
 	for _, job := range workflow.Jobs {
 		logJobStatus(job, workflow)
-		if job.Status != resources.JobStatusSucceeded {
+		if job.Status != models.JobStatusSucceeded {
 			// all jobs should be successful for workflow success
 			workflowSuccess = false
 		}
-		if job.Status == resources.JobStatusRunning {
+		if job.Status == models.JobStatusRunning {
 			// any job running means running
 			workflowRunning = true
 		}
-		if job.Status == resources.JobStatusFailed ||
-			job.Status == resources.JobStatusAborted {
+		if job.Status == models.JobStatusFailed ||
+			job.Status == models.JobStatusAbortedDepsFailed {
 			// any job failure results in the workflow being failed
 			workflowFailed = true
 		}
-		if job.Status == resources.JobStatusUserAborted {
+		if job.Status == models.JobStatusAbortedByUser {
 			// if any job is aborted by user, we should mark the workflow as cancelled
 			workflowCancelled = true
 		}
@@ -88,13 +89,13 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 
 	previousStatus := workflow.Status
 	if workflowCancelled {
-		workflow.Status = resources.Cancelled
+		workflow.Status = models.WorkflowStatusCancelled
 	} else if workflowFailed {
-		workflow.Status = resources.Failed
+		workflow.Status = models.WorkflowStatusFailed
 	} else if workflowRunning {
-		workflow.Status = resources.Running
+		workflow.Status = models.WorkflowStatusRunning
 	} else if workflowSuccess {
-		workflow.Status = resources.Succeeded
+		workflow.Status = models.WorkflowStatusSucceeded
 	}
 
 	// log if changed and save to datastore
@@ -103,18 +104,18 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 }
 
 // CreateWorkflow can be used to create a new workflow for a given WorkflowDefinition
-func (wm BatchWorkflowManager) CreateWorkflow(def resources.WorkflowDefinition, input []string, namespace string, queue string, tags map[string]string) (*resources.Workflow, error) {
-	workflow := resources.NewWorkflow(def, input, namespace, queue, tags)
+func (wm BatchWorkflowManager) CreateWorkflow(def models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error) {
+	workflow := resources.NewWorkflow(&def, input, namespace, queue, tags)
 	logWorkflowStatusChange(workflow, "")
 
 	stateResources, err := wm.getStateResources(workflow, namespace)
 	if err != nil {
-		return &resources.Workflow{}, err
+		return &models.Workflow{}, err
 	}
 
 	err = wm.scheduleJobs(workflow, stateResources, input, queue)
 	if err != nil {
-		return &resources.Workflow{}, err
+		return &models.Workflow{}, err
 	}
 
 	// TODO: fails we should either
@@ -125,15 +126,15 @@ func (wm BatchWorkflowManager) CreateWorkflow(def resources.WorkflowDefinition, 
 	return workflow, err
 }
 
-func (wm BatchWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reason string) error {
+func (wm BatchWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason string) error {
 	// TODO: don't cancel already succeeded jobs
-	jobs := []*resources.Job{}
+	jobs := []*models.Job{}
 	for _, job := range workflow.Jobs {
 		switch job.Status {
-		case resources.JobStatusCreated,
-			resources.JobStatusQueued,
-			resources.JobStatusRunning,
-			resources.JobStatusWaiting:
+		case models.JobStatusCreated,
+			models.JobStatusQueued,
+			models.JobStatusRunning,
+			models.JobStatusWaitingForDeps:
 
 			jobs = append(jobs, job)
 		}
@@ -144,7 +145,7 @@ func (wm BatchWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reas
 		// TODO: this assumes that a workflow is linear. One job cancellation
 		// will lead to all subsequent jobs failing
 		previousStatus := workflow.Status
-		workflow.Status = resources.Cancelled
+		workflow.Status = models.WorkflowStatusCancelled
 		logWorkflowStatusChange(workflow, previousStatus)
 	}
 	wm.store.UpdateWorkflow(*workflow)
@@ -156,32 +157,39 @@ func (wm BatchWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reas
 	return nil
 }
 
-func (wm BatchWorkflowManager) scheduleJobs(workflow *resources.Workflow,
-	stateResources map[string]resources.StateResource, input []string, queue string) error {
+func (wm BatchWorkflowManager) scheduleJobs(workflow *models.Workflow,
+	stateResources map[string]*models.StateResource, input string, queue string) error {
 
-	jobs := map[string]*resources.Job{}
+	jobs := map[string]*models.Job{}
 
-	for i, state := range workflow.WorkflowDefinition.OrderedStates() {
+	orderedStates, err := resources.OrderedStates(workflow.WorkflowDefinition.StateMachine.States)
+	if err != nil {
+		return err
+	}
+
+	for i, stateAndDeps := range orderedStates {
+		stateName := stateAndDeps.StateName
+		state := stateAndDeps.State
 		deps := []string{}
 
-		for _, d := range state.Dependencies() {
+		for _, d := range stateAndDeps.Deps {
 			if _, ok := jobs[d]; !ok {
-				return fmt.Errorf("Failed to start state %s. Dependency job for `%s` not found", state.Name(), d)
+				return fmt.Errorf("Failed to start state %s. Dependency job for `%s` not found", stateName, d)
 			}
 			deps = append(deps, jobs[d].ID)
 		}
 		var jobID, jobName string
-		var jobInput []string
+		var jobInput string
 		var err error
 		// TODO: this should be limited to 50 characters due to a bug in the interaction between Batch
 		// and ECS. {namespace--app} for now, to enable easy parsing across workflows
-		if stateResources[state.Name()].Namespace == "" {
-			jobName = fmt.Sprintf("default--%s", stateResources[state.Name()].Name)
+		if stateResources[stateName].Namespace == "" {
+			jobName = fmt.Sprintf("default--%s", stateResources[stateName].Name)
 		} else {
 			jobName = fmt.Sprintf("%s--%s",
-				stateResources[state.Name()].Namespace, stateResources[state.Name()].Name)
+				stateResources[stateName].Namespace, stateResources[stateName].Name)
 		}
-		jobDefinition := stateResources[state.Name()].URI
+		jobDefinition := stateResources[stateName].URI
 
 		// TODO: use workflow.WorkflowDefinition.StartAt
 		// if first workflow pass in an input
@@ -192,8 +200,8 @@ func (wm BatchWorkflowManager) scheduleJobs(workflow *resources.Workflow,
 		// determine if the state has a retry strategy
 		// currently we just support a retry strategy corresponding to a number of attempts
 		var attempts int64
-		if len(state.Retry()) == 1 {
-			retrier := state.Retry()[0]
+		if len(state.Retry) == 1 {
+			retrier := state.Retry[0]
 			if retrier.MaxAttempts != nil {
 				attempts = *retrier.MaxAttempts
 			}
@@ -205,9 +213,9 @@ func (wm BatchWorkflowManager) scheduleJobs(workflow *resources.Workflow,
 			return err
 		}
 		// create a Job with the Id returned by AWS
-		job := resources.NewJob(jobID, jobName, state.Name(), stateResources[state.Name()], jobInput)
-		jobs[state.Name()] = job
-		workflow.AddJob(job)
+		job := resources.NewJob(jobID, jobName, stateName, stateResources[stateName], jobInput)
+		jobs[stateName] = job
+		workflow.Jobs = append(workflow.Jobs, job)
 	}
 
 	return nil
@@ -219,18 +227,18 @@ func (wm BatchWorkflowManager) scheduleJobs(workflow *resources.Workflow,
 //
 // This behavior allows to shortcircuit use of the StateResource database and provide
 // Resource URIs directly in the WorkflowDefinition
-func (wm BatchWorkflowManager) getStateResources(workflow *resources.Workflow,
-	namespace string) (map[string]resources.StateResource, error) {
+func (wm BatchWorkflowManager) getStateResources(workflow *models.Workflow,
+	namespace string) (map[string]*models.StateResource, error) {
 
-	stateResources := map[string]resources.StateResource{}
+	stateResources := map[string]*models.StateResource{}
 
 	if namespace == "" {
 		// assume State.Resource is a URI
-		for _, state := range workflow.WorkflowDefinition.States() {
-			stateResources[state.Name()] = resources.NewBatchResource(
-				state.Name(),
+		for stateName, state := range workflow.WorkflowDefinition.StateMachine.States {
+			stateResources[stateName] = resources.NewBatchResource(
+				stateName,
 				"",
-				state.Resource(),
+				state.Resource,
 			)
 		}
 
@@ -240,13 +248,19 @@ func (wm BatchWorkflowManager) getStateResources(workflow *resources.Workflow,
 	// fetch each of the StateResource objects using the namespace
 	// and State.Resource name.
 	// Could be faster with the store supporting a BatchGetStateResource([]names, namespace)
-	for _, state := range workflow.WorkflowDefinition.OrderedStates() {
-		stateResource, err := wm.store.GetStateResource(state.Resource(), namespace)
+	orderedStates, err := resources.OrderedStates(workflow.WorkflowDefinition.StateMachine.States)
+	if err != nil {
+		return nil, err
+	}
+	for _, stateAndDeps := range orderedStates {
+		state := stateAndDeps.State
+		stateName := stateAndDeps.StateName
+		stateResource, err := wm.store.GetStateResource(state.Resource, namespace)
 		if err != nil {
 			return stateResources, fmt.Errorf("StateResource `%s:%s` Not Found: %s",
-				namespace, state.Resource(), err)
+				namespace, state.Resource, err)
 		}
-		stateResources[state.Name()] = stateResource
+		stateResources[stateName] = &stateResource
 	}
 
 	return stateResources, nil
