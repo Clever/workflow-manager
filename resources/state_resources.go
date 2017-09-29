@@ -1,10 +1,10 @@
 package resources
 
-import "time"
+import (
+	"time"
 
-const (
-	AWSBatchJobDefinition = "JobDefinitionArn"
-	SFNActivity           = "ActivityARN"
+	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/go-openapi/strfmt"
 )
 
 // StateResource maps the Resource URI (e.g. ARN for the JobDefinition
@@ -13,20 +13,13 @@ const (
 // when creating a new Workflow. StateResource allows for a dynamic lookup of the
 // URI by the `executor` package.
 //
-type StateResource struct {
-	Name        string
-	Namespace   string
-	URI         string
-	Type        string
-	LastUpdated time.Time
-}
 
-func NewBatchResource(name, namespace, arn string) StateResource {
-	return StateResource{
+func NewBatchResource(name, namespace, arn string) *models.StateResource {
+	return &models.StateResource{
 		Name:        name,
 		Namespace:   namespace,
 		URI:         arn,
-		Type:        AWSBatchJobDefinition,
-		LastUpdated: time.Now(),
+		Type:        models.StateResourceTypeJobDefinitionARN,
+		LastUpdated: strfmt.DateTime(time.Now()),
 	}
 }
