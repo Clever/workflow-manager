@@ -18,7 +18,7 @@ type ddbWorkflow struct {
 	ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt
 	ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt
 	ddbWorkflowSecondaryKeyStatusLastUpdated
-	CreatedAt          time.Time
+	CreatedAt          time.Time                       `dynamodbav:"createdAt"`
 	LastUpdated        time.Time                       `dynamodbav:"lastUpdated"`
 	WorkflowDefinition ddbWorkflowDefinitionPrimaryKey `dynamodbav:"workflow-definition"`
 	Input              []string                        `dynamodbav:"input"`

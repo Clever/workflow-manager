@@ -525,7 +525,6 @@ func (d DynamoDB) attachWorkflowDefinition(workflow *resources.Workflow) error {
 
 // GetWorkflowByID
 func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
-	log.InfoD("getting workflow from ddb store", logger.M{"id": id})
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowPrimaryKey{
 		ID: id,
 	})
@@ -553,7 +552,6 @@ func (d DynamoDB) GetWorkflowByID(id string) (resources.Workflow, error) {
 	if err := d.attachWorkflowDefinition(&workflow); err != nil {
 		return resources.Workflow{}, err
 	}
-	log.InfoD("got workflow from ddb store", logger.M{"tags": workflow.Tags, "status": workflow.Status})
 
 	return workflow, nil
 }
