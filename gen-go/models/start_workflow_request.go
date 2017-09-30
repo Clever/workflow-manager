@@ -23,6 +23,9 @@ type StartWorkflowRequest struct {
 	// queue
 	Queue *string `json:"queue,omitempty"`
 
+	// tags: object with key-value pairs; keys and values should be strings
+	Tags map[string]interface{} `json:"tags,omitempty"`
+
 	// workflow definition
 	WorkflowDefinition *WorkflowDefinitionRef `json:"workflowDefinition,omitempty"`
 }

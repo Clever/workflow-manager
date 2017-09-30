@@ -103,8 +103,8 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow
 }
 
 // CreateWorkflow can be used to create a new workflow for a given WorkflowDefinition
-func (wm BatchWorkflowManager) CreateWorkflow(def resources.WorkflowDefinition, input []string, namespace string, queue string) (*resources.Workflow, error) {
-	workflow := resources.NewWorkflow(def, input, namespace, queue)
+func (wm BatchWorkflowManager) CreateWorkflow(def resources.WorkflowDefinition, input []string, namespace string, queue string, tags map[string]string) (*resources.Workflow, error) {
+	workflow := resources.NewWorkflow(def, input, namespace, queue, tags)
 	logWorkflowStatusChange(workflow, "")
 
 	stateResources, err := wm.getStateResources(workflow, namespace)

@@ -334,7 +334,7 @@ Get the latest versions of all available WorkflowDefinitions
 
 | Param | Type | Description |
 | --- | --- | --- |
-| StartWorkflowRequest |  | Parameters for starting a workflow (workflow definition, input, and optionally namespace and queue) |
+| StartWorkflowRequest |  | Parameters for starting a workflow (workflow definition, input, and optionally namespace, queue, and tags) |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |

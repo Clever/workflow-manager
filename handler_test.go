@@ -52,3 +52,17 @@ func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 		}
 	}
 }
+
+// TestStoreTagsFromAPI tests the storeTagsFromAPI helper
+func TestStoreTagsFromAPI(t *testing.T) {
+	// test with valid (string-string) tags
+	apiTags := map[string]interface{}{"team": "infra", "k": "v"}
+	expected1 := map[string]string{"team": "infra", "k": "v"}
+	tags1, err := storeTagsFromAPI(apiTags)
+	assert.Nil(t, err)
+	assert.Equal(t, tags1, expected1)
+	// test with an invalid tag - value must be string
+	apiTags["num"] = 4
+	_, err = storeTagsFromAPI(apiTags)
+	assert.Error(t, err, "error converting value to string: 4")
+}

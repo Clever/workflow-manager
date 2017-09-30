@@ -193,7 +193,13 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 	if req.Queue == nil {
 		return &models.Workflow{}, fmt.Errorf("workflow queue cannot be nil")
 	}
-	workflow, err := h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, *req.Queue)
+	// convert request's tags (map[string]interface{}) to format for store (map[string]string)
+	storeTags, err := storeTagsFromAPI(req.Tags)
+	if err != nil {
+		return &models.Workflow{}, err
+	}
+
+	workflow, err := h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, *req.Queue, storeTags)
 
 	if err != nil {
 		return &models.Workflow{}, err
@@ -360,7 +366,28 @@ func apiWorkflowFromStore(workflow resources.Workflow) *models.Workflow {
 		Namespace:          workflow.Namespace,
 		Queue:              workflow.Queue,
 		Input:              workflow.Input,
+		Tags:               apiTagsFromStore(workflow.Tags),
 	}
+}
+
+func apiTagsFromStore(storeTags map[string]string) map[string]interface{} {
+	apiTags := make(map[string]interface{})
+	for key, val := range storeTags {
+		apiTags[key] = val
+	}
+	return apiTags
+}
+
+func storeTagsFromAPI(apiTags map[string]interface{}) (map[string]string, error) {
+	storeTags := make(map[string]string)
+	for key, val := range apiTags {
+		valueString, ok := val.(string)
+		if !ok {
+			return nil, fmt.Errorf("error converting value to string: %+v", val)
+		}
+		storeTags[key] = valueString
+	}
+	return storeTags, nil
 }
 
 func apiStateResourceFromStore(stateResource resources.StateResource) *models.StateResource {

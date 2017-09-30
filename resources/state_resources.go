@@ -8,9 +8,9 @@ const (
 )
 
 // StateResource maps the Resource URI (e.g. ARN for the JobDefinition
-// in batchclient) to a `name` and `namespace`. Each Workflow.State defines
+// in batchclient) to a `name` and `namespace`. Each WorkflowDefinition.State defines
 // a resource name for that state, and a `namespace` is provided as part of
-// when creating a new Job. StateResource allows for a dynamic lookup of the
+// when creating a new Workflow. StateResource allows for a dynamic lookup of the
 // URI by the `executor` package.
 //
 type StateResource struct {

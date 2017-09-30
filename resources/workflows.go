@@ -27,10 +27,11 @@ type Workflow struct {
 	Status             WorkflowStatus
 	Namespace          string
 	Queue              string
+	Tags               map[string]string // key-value pairs
 }
 
 // NewWorkflow creates a new Workflow struct for a WorkflowDefinition
-func NewWorkflow(wf WorkflowDefinition, input []string, namespace string, queue string) *Workflow {
+func NewWorkflow(wf WorkflowDefinition, input []string, namespace string, queue string, tags map[string]string) *Workflow {
 	return &Workflow{
 		ID:                 uuid.NewV4().String(),
 		WorkflowDefinition: wf,
@@ -39,6 +40,7 @@ func NewWorkflow(wf WorkflowDefinition, input []string, namespace string, queue 
 		CreatedAt:          time.Now(),
 		Namespace:          namespace,
 		Queue:              queue,
+		Tags:               tags,
 	}
 }
 

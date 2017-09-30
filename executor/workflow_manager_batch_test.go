@@ -64,8 +64,9 @@ func TestUpdateWorkflowStatus(t *testing.T) {
 	}
 	wf := resources.KitchenSinkWorkflowDefinition(t)
 	input := []string{"test-start-input"}
+	tags := map[string]string{"team": "infra", "tag2": "value2"}
+	workflow, err := jm.CreateWorkflow(wf, input, "", "", tags)
 
-	workflow, err := jm.CreateWorkflow(wf, input, "", "")
 	assert.NoError(t, err)
 
 	t.Log("Workflow is QUEUED till a job starts RUNNING")
@@ -153,7 +154,7 @@ func TestUpdateWorkflowStatus(t *testing.T) {
 		},
 	}
 	wf, err = resources.NewWorkflowDefinition("test-worfklow", "description", time.Now().Format(time.RFC3339Nano), states)
-	workflow, err = jm.CreateWorkflow(wf, input, "", "")
+	workflow, err = jm.CreateWorkflow(wf, input, "", "", tags)
 	assert.Nil(t, err)
 
 	workflow.Status = resources.Cancelled
@@ -180,7 +181,8 @@ func TestCancelUpdates(t *testing.T) {
 	wf := resources.KitchenSinkWorkflowDefinition(t)
 	input := []string{"test-start-input"}
 
-	workflow, err := jm.CreateWorkflow(wf, input, "", "")
+	tags := map[string]string{"team": "infra", "tag2": "value2"}
+	workflow, err := jm.CreateWorkflow(wf, input, "", "", tags)
 	assert.Nil(t, err)
 
 	// mark all jobs as running
@@ -228,7 +230,8 @@ func TestCreateWorkflow(t *testing.T) {
 	input := []string{"test-start-input", "arg2"}
 
 	t.Log("CreateWorkflow without namespace")
-	workflow, err := jm.CreateWorkflow(wf, input, "", "")
+	tags := map[string]string{"team": "infra", "tag2": "value2"}
+	workflow, err := jm.CreateWorkflow(wf, input, "", "", tags)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(workflow.Jobs), len(workflow.WorkflowDefinition.States()))
@@ -246,7 +249,7 @@ func TestCreateWorkflow(t *testing.T) {
 			fmt.Sprintf("arn:batch:jobdefinition:%d", i)))
 	}
 
-	workflow, err = jm.CreateWorkflow(wf, input, "my-env", "")
+	workflow, err = jm.CreateWorkflow(wf, input, "my-env", "", tags)
 	assert.Nil(t, err)
 	assert.Equal(t, workflow.Jobs[0].Input, mockClient.jobs[workflow.Jobs[0].ID].Input)
 
@@ -258,7 +261,7 @@ func TestCreateWorkflow(t *testing.T) {
 			fmt.Sprintf("arn:batch:jobdefinition:%d", i)))
 	}
 
-	workflow, err = jm.CreateWorkflow(wf, input, "", "custom-queue")
+	workflow, err = jm.CreateWorkflow(wf, input, "", "custom-queue", tags)
 	assert.Nil(t, err)
 	assert.Equal(t, workflow.Jobs[0].Input, mockClient.jobs[workflow.Jobs[0].ID].Input)
 
@@ -279,16 +282,17 @@ func TestGetStateResources(t *testing.T) {
 	input := []string{"test-start-input", "arg2"}
 	namespace := "my-env"
 	queue := "queue"
+	tags := map[string]string{"team": "infra", "tag2": "value2"}
 
 	t.Log("Works without providing a namespace for CreateWorkflow")
-	stateResources, err := jm.getStateResources(resources.NewWorkflow(wf, input, namespace, queue), "")
+	stateResources, err := jm.getStateResources(resources.NewWorkflow(wf, input, namespace, queue, tags), "")
 	assert.Nil(t, err)
 	for k, stateResource := range stateResources {
 		assert.Equal(t, wf.StatesMap[k].Resource(), stateResource.URI)
 	}
 
 	t.Log("Fails when using a namespace for CreateWorkflow without StateResource")
-	stateResources, err = jm.getStateResources(resources.NewWorkflow(wf, input, namespace, queue), "does-not-exist")
+	stateResources, err = jm.getStateResources(resources.NewWorkflow(wf, input, namespace, queue, tags), "does-not-exist")
 	assert.Error(t, err, fmt.Sprintf("StateResource `%s:%s` Not Found: %s",
 		"does-not-exist", "fake-resource-1", "does-not-exist--fake-resource-1"))
 
@@ -299,7 +303,7 @@ func TestGetStateResources(t *testing.T) {
 			namespace,
 			fmt.Sprintf("arn:batch:jobdefinition:%d", i)))
 	}
-	stateResources, err = jm.getStateResources(resources.NewWorkflow(wf, input, namespace, queue), "my-env")
+	stateResources, err = jm.getStateResources(resources.NewWorkflow(wf, input, namespace, queue, tags), "my-env")
 	assert.Nil(t, err)
 	assert.Equal(t, stateResources["start-state"].Name, "fake-resource-1")
 	assert.Equal(t, stateResources["start-state"].Namespace, "my-env")

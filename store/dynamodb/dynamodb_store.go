@@ -13,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/zencoder/ddbsync"
+
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 type DynamoDB struct {
@@ -26,6 +28,8 @@ type TableConfig struct {
 	PrefixWorkflowDefinitions string
 	PrefixWorkflows           string
 }
+
+var log = logger.New("workflow-manager")
 
 func New(ddb dynamodbiface.DynamoDBAPI, tableConfig TableConfig) DynamoDB {
 	d := DynamoDB{
