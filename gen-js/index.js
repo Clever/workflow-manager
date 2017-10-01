@@ -1465,6 +1465,7 @@ class WorkflowManager {
    * @param {boolean} [params.oldestFirst]
    * @param {string} [params.pageToken]
    * @param {string} [params.status]
+   * @param {boolean} [params.summaryOnly] - Limits workflow data to the bare minimum - omits the full workflow definition and job data.
    * @param {string} params.workflowDefinitionName
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
@@ -1526,6 +1527,10 @@ class WorkflowManager {
   
       if (typeof params.status !== "undefined") {
         query["status"] = params.status;
+      }
+  
+      if (typeof params.summaryOnly !== "undefined") {
+        query["summaryOnly"] = params.summaryOnly;
       }
   
       query["workflowDefinitionName"] = params.workflowDefinitionName;
@@ -1609,6 +1614,7 @@ class WorkflowManager {
    * @param {boolean} [params.oldestFirst]
    * @param {string} [params.pageToken]
    * @param {string} [params.status]
+   * @param {boolean} [params.summaryOnly] - Limits workflow data to the bare minimum - omits the full workflow definition and job data.
    * @param {string} params.workflowDefinitionName
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
@@ -1659,6 +1665,10 @@ class WorkflowManager {
   
       if (typeof params.status !== "undefined") {
         query["status"] = params.status;
+      }
+  
+      if (typeof params.summaryOnly !== "undefined") {
+        query["summaryOnly"] = params.summaryOnly;
       }
   
       query["workflowDefinitionName"] = params.workflowDefinitionName;
