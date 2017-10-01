@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 
+	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
@@ -43,7 +44,9 @@ func (wm BatchWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) e
 	// fetch new status from batch
 	errs := wm.executor.Status(workflow.Jobs)
 	if len(errs) > 0 {
-		return fmt.Errorf("Failed to update status for %d jobs. errors: %s", len(errs), errs)
+		log.ErrorD("executor-status-errs", logger.M{"errs": fmt.Sprintf("%s", errs)})
+		workflow.Status = models.WorkflowStatusFailed
+		return wm.store.UpdateWorkflow(*workflow)
 	}
 
 	// If no job status has changed then there is no need to update the workflow status
