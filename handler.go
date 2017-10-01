@@ -201,6 +201,7 @@ func (h Handler) GetWorkflows(
 		OldestFirst:    swag.BoolValue(input.OldestFirst),
 		PageToken:      swag.StringValue(input.PageToken),
 		Status:         swag.StringValue(input.Status),
+		SummaryOnly:    swag.BoolValue(input.SummaryOnly),
 	})
 	if err != nil {
 		if _, ok := err.(store.InvalidPageTokenError); ok {
@@ -214,7 +215,6 @@ func (h Handler) GetWorkflows(
 
 	results := []models.Workflow{}
 	for _, workflow := range workflows {
-		h.manager.UpdateWorkflowStatus(&workflow)
 		results = append(results, workflow)
 	}
 	return results, nextPageToken, nil

@@ -36,6 +36,7 @@ type WorkflowQuery struct {
 	OldestFirst    bool
 	PageToken      string
 	Status         string
+	SummaryOnly    bool
 }
 
 // ErrWorkflowLocked is returned from LockWorfklow in the case of the workflow already being locked.
