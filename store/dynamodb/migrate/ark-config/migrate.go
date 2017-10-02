@@ -48,6 +48,10 @@ func convert(fullPath string) {
 	if err != nil {
 		panic(err)
 	}
+	// add a newline at the end of the file
+	if newFileBytes[len(newFileBytes)-1] != '\n' {
+		newFileBytes = append(newFileBytes, '\n')
+	}
 
 	if err := ioutil.WriteFile(fullPath+".bak", fileBytes, os.FileMode(0664)); err != nil {
 		panic(err)
