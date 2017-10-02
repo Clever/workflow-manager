@@ -129,11 +129,18 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input
 	// - aws.String("[]"): leads to an input of an empty array "[]"
 	var startExecutionInput *string
 	if len(input) > 0 {
-		var inputJSON interface{}
+		var inputJSON map[string]interface{}
 		if err := json.Unmarshal([]byte(input), &inputJSON); err != nil {
-			return nil, fmt.Errorf("input is not valid JSON: %s", err)
+			return nil, fmt.Errorf("input is not a valid JSON object: %s", err)
 		}
-		startExecutionInput = aws.String(input)
+		inputJSON["$execution-name"] = workflow.ID
+
+		marshaledInput, err := json.Marshal(inputJSON)
+		if err != nil {
+			return nil, err
+		}
+
+		startExecutionInput = aws.String(string(marshaledInput))
 	}
 	_, err = wm.sfnapi.StartExecution(&sfn.StartExecutionInput{
 		StateMachineArn: describeOutput.StateMachineArn,
