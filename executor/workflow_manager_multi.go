@@ -2,7 +2,6 @@ package executor
 
 import (
 	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/resources"
 )
 
 // MultiWorkflowManager works with more than one WorkflowManager.
@@ -26,7 +25,7 @@ func (mwm MultiWorkflowManager) manager(typee models.Manager) (WorkflowManager, 
 	return wm, nil
 }
 
-func (mwm *MultiWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition, input []string, namespace string, queue string, tags map[string]string) (*resources.Workflow, error) {
+func (mwm *MultiWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error) {
 	wm, err := mwm.manager(wd.Manager)
 	if err != nil {
 		return nil, err
@@ -34,7 +33,7 @@ func (mwm *MultiWorkflowManager) CreateWorkflow(wd resources.WorkflowDefinition,
 	return wm.CreateWorkflow(wd, input, namespace, queue, tags)
 }
 
-func (mwm *MultiWorkflowManager) CancelWorkflow(workflow *resources.Workflow, reason string) error {
+func (mwm *MultiWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason string) error {
 	wd := workflow.WorkflowDefinition
 	wm, err := mwm.manager(wd.Manager)
 	if err != nil {
@@ -43,7 +42,7 @@ func (mwm *MultiWorkflowManager) CancelWorkflow(workflow *resources.Workflow, re
 	return wm.CancelWorkflow(workflow, reason)
 }
 
-func (mwm *MultiWorkflowManager) UpdateWorkflowStatus(workflow *resources.Workflow) error {
+func (mwm *MultiWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) error {
 	wd := workflow.WorkflowDefinition
 	wm, err := mwm.manager(wd.Manager)
 	if err != nil {

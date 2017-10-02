@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/resources"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/batch"
 	"github.com/aws/aws-sdk-go/service/batch/batchiface"
@@ -68,15 +67,15 @@ func NewBatchExecutor(
 	}
 }
 
-func (be BatchExecutor) Status(jobs []*resources.Job) []error {
-	jobsByID := map[string]*resources.Job{}
+func (be BatchExecutor) Status(jobs []*models.Job) []error {
+	jobsByID := map[string]*models.Job{}
 	awsJobIDs := []*string{}
 	jobIDs := []string{}
 
-	for _, task := range jobs {
-		awsJobIDs = append(awsJobIDs, aws.String(task.ID))
-		jobIDs = append(jobIDs, task.ID)
-		jobsByID[task.ID] = task
+	for _, job := range jobs {
+		awsJobIDs = append(awsJobIDs, aws.String(job.ID))
+		jobIDs = append(jobIDs, job.ID)
+		jobsByID[job.ID] = job
 	}
 
 	results, err := be.client.DescribeJobs(&batch.DescribeJobsInput{
@@ -97,48 +96,47 @@ func (be BatchExecutor) Status(jobs []*resources.Job) []error {
 
 	var jobErrors []error
 	for _, awsJobDetail := range results.Jobs {
-		updatedJobDetail, err := be.getJobDetailFromBatch(awsJobDetail)
-		if err != nil {
+		job := jobsByID[*awsJobDetail.JobId]
+		if err := be.updateJobWithDetailsFromBatch(job, awsJobDetail); err != nil {
 			// TODO: add jobId to err for clarity
 			jobErrors = append(jobErrors, err)
 			continue
 		}
 
-		job := jobsByID[*awsJobDetail.JobId]
-
 		// Set inputs based on successful job dependency outputs:
-		// Preserve original input (really only applies to the first job in the workflow).
-		updatedJobDetail.Input = job.Input
 		if len(awsJobDetail.DependsOn) > 0 {
-			updatedJobDetail.Input = []string{}
+			input := []string{}
 			for _, dependency := range awsJobDetail.DependsOn {
 				jobDependency := jobsByID[*dependency.JobId]
-				if jobDependency.Status != resources.JobStatusSucceeded {
+				if jobDependency.Status != models.JobStatusSucceeded {
 					continue
 				}
 
 				dependencyOutput := jobOutputsByJobID[*dependency.JobId]
 				if len(dependencyOutput) > 0 {
-					updatedJobDetail.Input = append(updatedJobDetail.Input, dependencyOutput)
+					var output []string
+					json.Unmarshal([]byte(dependencyOutput), &output)
+					input = append(input, output...)
 				}
 			}
+			inputBytes, _ := json.Marshal(input)
+			job.Input = string(inputBytes)
 		}
 
 		if jobOutput, ok := jobOutputsByJobID[*awsJobDetail.JobId]; ok {
-			updatedJobDetail.Output = []string{jobOutput}
+			//outputBytes, _ := json.Marshal([]string{jobOutput})
+			job.Output = jobOutput
 		}
-
-		job.SetDetail(updatedJobDetail)
 	}
 
 	return nil
 }
 
-func (be BatchExecutor) Cancel(tasks []*resources.Job, reason string) []error {
+func (be BatchExecutor) Cancel(tasks []*models.Job, reason string) []error {
 	var taskErrors []error
 	// append JobStatusUserAborted so that we can infer that failure was due to
 	// user action when updating status
-	userReason := fmt.Sprintf("%s: %s", resources.JobStatusUserAborted, reason)
+	userReason := fmt.Sprintf("%s: %s", models.JobStatusAbortedByUser, reason)
 
 	for _, task := range tasks {
 		_, err := be.client.TerminateJob(&batch.TerminateJobInput{
@@ -148,40 +146,40 @@ func (be BatchExecutor) Cancel(tasks []*resources.Job, reason string) []error {
 		if err != nil {
 			taskErrors = append(taskErrors, err)
 		} else {
-			task.SetStatus(resources.JobStatusUserAborted)
+			task.Status = models.JobStatusAbortedByUser
 		}
 	}
 
 	return taskErrors
 }
 
-// getJobDetailFromBatch converts batch.JobDetail to resources.JobDetail
-func (be BatchExecutor) getJobDetailFromBatch(job *batch.JobDetail) (resources.JobDetail, error) {
+// updateJobWithDetailsFromBatch updates a job with data from batch.JobDetail.
+func (be BatchExecutor) updateJobWithDetailsFromBatch(ourJob *models.Job, batchJob *batch.JobDetail) error {
 	var statusReason, containerArn, queueName string
 	var createdAt, startedAt, stoppedAt time.Time
 	msToNs := int64(time.Millisecond)
-	if job.StatusReason != nil {
-		statusReason = *job.StatusReason
+	if batchJob.StatusReason != nil {
+		statusReason = *batchJob.StatusReason
 	}
-	if job.CreatedAt != nil {
-		createdAt = time.Unix(0, *job.CreatedAt*msToNs)
+	if batchJob.CreatedAt != nil {
+		createdAt = time.Unix(0, *batchJob.CreatedAt*msToNs)
 	}
-	if job.StartedAt != nil {
-		startedAt = time.Unix(0, *job.StartedAt*msToNs)
+	if batchJob.StartedAt != nil {
+		startedAt = time.Unix(0, *batchJob.StartedAt*msToNs)
 	}
-	if job.StoppedAt != nil {
-		stoppedAt = time.Unix(0, *job.StoppedAt*msToNs)
+	if batchJob.StoppedAt != nil {
+		stoppedAt = time.Unix(0, *batchJob.StoppedAt*msToNs)
 	}
-	if job.Container != nil && job.Container.TaskArn != nil {
-		containerArn = *job.Container.TaskArn
+	if batchJob.Container != nil && batchJob.Container.TaskArn != nil {
+		containerArn = *batchJob.Container.TaskArn
 	}
-	if job.JobQueue != nil {
-		queueName = *job.JobQueue
+	if batchJob.JobQueue != nil {
+		queueName = *batchJob.JobQueue
 	}
 
 	attempts := []*models.JobAttempt{}
-	if len(job.Attempts) > 0 {
-		for _, jattempt := range job.Attempts {
+	if len(batchJob.Attempts) > 0 {
+		for _, jattempt := range batchJob.Attempts {
 			attempt := &models.JobAttempt{}
 			if jattempt.StartedAt != nil {
 				attempt.StartedAt = strfmt.DateTime(time.Unix(0, *jattempt.StartedAt*msToNs))
@@ -207,25 +205,25 @@ func (be BatchExecutor) getJobDetailFromBatch(job *batch.JobDetail) (resources.J
 		}
 	}
 
-	return resources.JobDetail{
-		Attempts:     attempts,
-		ContainerId:  containerArn,
-		CreatedAt:    createdAt,
-		QueueName:    queueName,
-		StartedAt:    startedAt,
-		Status:       be.taskStatus(job),
-		StatusReason: statusReason,
-		StoppedAt:    stoppedAt,
-	}, nil
+	// modify the job with what we gathered from batch job details
+	ourJob.Attempts = attempts
+	ourJob.Container = containerArn
+	ourJob.CreatedAt = strfmt.DateTime(createdAt)
+	ourJob.Queue = queueName
+	ourJob.StartedAt = strfmt.DateTime(startedAt)
+	ourJob.Status = be.taskStatus(batchJob)
+	ourJob.StatusReason = statusReason
+	ourJob.StoppedAt = strfmt.DateTime(stoppedAt)
+	return nil
 }
 
-func (be BatchExecutor) getJobOutputs(jobs []*resources.Job) (map[string]string, error) {
+func (be BatchExecutor) getJobOutputs(jobs []*models.Job) (map[string]string, error) {
 	if len(jobs) == 0 {
 		return map[string]string{}, nil
 	}
 
 	tableName := be.resultsDBConfig.TableNameDev
-	if jobs[0].QueueName == productionQueueName {
+	if jobs[0].Queue == productionQueueName {
 		tableName = be.resultsDBConfig.TableNameProd
 	}
 
@@ -261,7 +259,7 @@ func (be BatchExecutor) getJobOutputs(jobs []*resources.Job) (map[string]string,
 	return outputs, nil
 }
 
-func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.JobStatus {
+func (be BatchExecutor) taskStatus(job *batch.JobDetail) models.JobStatus {
 	if job == nil || job.Status == nil {
 		return "UNKNOWN_STATE"
 	}
@@ -273,27 +271,27 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.JobStatus {
 	switch *job.Status {
 	case batch.JobStatusSubmitted:
 		// submitted is queued for batch scheduler
-		return resources.JobStatusCreated
+		return models.JobStatusCreated
 	case batch.JobStatusPending:
 		// pending is waiting for dependencies
-		return resources.JobStatusWaiting
+		return models.JobStatusWaitingForDeps
 	case batch.JobStatusStarting, batch.JobStatusRunnable:
 		// starting is waiting for the ecs scheduler
 		// runnable is queued for resources
-		return resources.JobStatusQueued
+		return models.JobStatusQueued
 	case batch.JobStatusRunning:
-		return resources.JobStatusRunning
+		return models.JobStatusRunning
 	case batch.JobStatusSucceeded:
-		return resources.JobStatusSucceeded
+		return models.JobStatusSucceeded
 	case batch.JobStatusFailed:
 		if job.StartedAt == nil {
-			if strings.HasPrefix(statusReason, string(resources.JobStatusUserAborted)) {
-				return resources.JobStatusUserAborted
+			if strings.HasPrefix(statusReason, string("ABORTED_BY_USER")) {
+				return models.JobStatusAbortedByUser
 			} else {
-				return resources.JobStatusAborted
+				return models.JobStatusAbortedDepsFailed
 			}
 		}
-		return resources.JobStatusFailed
+		return models.JobStatusFailed
 	default:
 		// TODO: actually return error here?
 		return "UNKNOWN_STATE"
@@ -302,7 +300,7 @@ func (be BatchExecutor) taskStatus(job *batch.JobDetail) resources.JobStatus {
 }
 
 // SubmitWorkflow queues a task using the AWS Batch API client and returns the taskID
-func (be BatchExecutor) SubmitWorkflow(name string, definition string, dependencies []string, input []string, queue string, attempts int64) (string, error) {
+func (be BatchExecutor) SubmitWorkflow(name string, definition string, dependencies []string, input string, queue string, attempts int64) (string, error) {
 	jobQueue, err := be.getJobQueue(queue)
 	if err != nil {
 		return "", err
@@ -323,14 +321,10 @@ func (be BatchExecutor) SubmitWorkflow(name string, definition string, dependenc
 		},
 	}
 
-	if input != nil && len(input) > 0 {
-		inputStr, err := json.Marshal(input)
-		if err != nil {
-			return "", fmt.Errorf("Failed to marshall task %s input: %s", name, err)
-		}
+	if len(input) > 0 {
 		environment = append(environment, &batch.KeyValuePair{
 			Name:  aws.String(StartingInputEnvVarName),
-			Value: aws.String(string(inputStr)),
+			Value: aws.String(input),
 		})
 	}
 

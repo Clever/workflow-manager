@@ -15,7 +15,7 @@ import (
 type StartWorkflowRequest struct {
 
 	// input
-	Input []string `json:"input"`
+	Input string `json:"input,omitempty"`
 
 	// namespace
 	Namespace string `json:"namespace,omitempty"`
@@ -34,11 +34,6 @@ type StartWorkflowRequest struct {
 func (m *StartWorkflowRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateInput(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
 	if err := m.validateWorkflowDefinition(formats); err != nil {
 		// prop
 		res = append(res, err)
@@ -47,15 +42,6 @@ func (m *StartWorkflowRequest) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *StartWorkflowRequest) validateInput(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Input) { // not required
-		return nil
-	}
-
 	return nil
 }
 

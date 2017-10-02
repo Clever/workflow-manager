@@ -328,7 +328,7 @@ func (i GetWorkflowsInput) Path() (string, error) {
 
 // CancelWorkflowInput holds the input parameters for a CancelWorkflow operation.
 type CancelWorkflowInput struct {
-	WorkflowId string
+	WorkflowID string
 	Reason     *CancelReason
 }
 
@@ -344,46 +344,46 @@ func (i CancelWorkflowInput) Validate() error {
 
 // Path returns the URI path for the input.
 func (i CancelWorkflowInput) Path() (string, error) {
-	path := "/workflows/{workflowId}"
+	path := "/workflows/{workflowID}"
 	urlVals := url.Values{}
 
-	pathworkflowId := i.WorkflowId
-	if pathworkflowId == "" {
-		err := fmt.Errorf("workflowId cannot be empty because it's a path parameter")
+	pathworkflowID := i.WorkflowID
+	if pathworkflowID == "" {
+		err := fmt.Errorf("workflowID cannot be empty because it's a path parameter")
 		if err != nil {
 			return "", err
 		}
 	}
-	path = strings.Replace(path, "{workflowId}", pathworkflowId, -1)
+	path = strings.Replace(path, "{workflowID}", pathworkflowID, -1)
 
 	return path + "?" + urlVals.Encode(), nil
 }
 
 // GetWorkflowByIDInput holds the input parameters for a getWorkflowByID operation.
 type GetWorkflowByIDInput struct {
-	WorkflowId string
+	WorkflowID string
 }
 
 // ValidateGetWorkflowByIDInput returns an error if the input parameter doesn't
 // satisfy the requirements in the swagger yml file.
-func ValidateGetWorkflowByIDInput(workflowId string) error {
+func ValidateGetWorkflowByIDInput(workflowID string) error {
 
 	return nil
 }
 
 // GetWorkflowByIDInputPath returns the URI path for the input.
-func GetWorkflowByIDInputPath(workflowId string) (string, error) {
-	path := "/workflows/{workflowId}"
+func GetWorkflowByIDInputPath(workflowID string) (string, error) {
+	path := "/workflows/{workflowID}"
 	urlVals := url.Values{}
 
-	pathworkflowId := workflowId
-	if pathworkflowId == "" {
-		err := fmt.Errorf("workflowId cannot be empty because it's a path parameter")
+	pathworkflowID := workflowID
+	if pathworkflowID == "" {
+		err := fmt.Errorf("workflowID cannot be empty because it's a path parameter")
 		if err != nil {
 			return "", err
 		}
 	}
-	path = strings.Replace(path, "{workflowId}", pathworkflowId, -1)
+	path = strings.Replace(path, "{workflowID}", pathworkflowID, -1)
 
 	return path + "?" + urlVals.Encode(), nil
 }

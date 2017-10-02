@@ -12,7 +12,7 @@ func TestSFNUpdateWorkflowStatus(t *testing.T) {
 
 type stateMachineNameInput struct {
 	wdName    string
-	wdVersion int
+	wdVersion int64
 	namespace string
 	queue     string
 }

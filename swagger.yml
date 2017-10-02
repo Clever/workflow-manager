@@ -7,7 +7,7 @@ info:
   # 2. merge the new clients, and, after merging, tag the commit with the version:
   #    git tag -a vX.Y.Z -m "vX.Y.Z"
   #    git push origin --tags
-  version: 0.5.2
+  version: 0.6.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -182,12 +182,12 @@ paths:
         404:
           $ref: "#/responses/NotFound"
 
-  /workflows/{workflowId}:
+  /workflows/{workflowID}:
     get:
-      summary: Get details for a single Workflow, given a workflowId
+      summary: Get details for a single Workflow, given a workflowID
       operationId: getWorkflowByID
       parameters:
-        - name: workflowId
+        - name: workflowID
           in: path
           type: string
           required: true
@@ -199,10 +199,10 @@ paths:
         404:
           $ref: "#/responses/NotFound"
     delete:
-      summary: Cancel workflow with the given workflowId
+      summary: Cancel workflow with the given workflowID
       operationId: CancelWorkflow
       parameters:
-        - name: workflowId
+        - name: workflowID
           in: path
           type: string
           required: true
@@ -317,55 +317,10 @@ definitions:
     properties:
       name:
         type: string
-      startAt:
-        type: string
-      description:
-        type: string
-      states:
-        type: array
-        items:
-          $ref: '#/definitions/State'
       manager:
         $ref: '#/definitions/Manager'
-
-  State:
-    type: object
-    properties:
-      name:
-        type: string
-      type:
-        type: string
-      comment:
-        type: string
-      next:
-        type: string
-      resource:
-        type: string
-      end:
-        type: boolean
-      retry:
-        type: array
-        maxLength: 1 # expand once we support more than just errorEquals States.ALL
-        items:
-          $ref: '#/definitions/Retrier'
-
-  Retrier:
-    type: object
-    properties:
-      errorEquals:
-        type: array
-        items:
-          $ref: '#/definitions/ErrorEquals'
-      maxAttempts:
-        type: integer
-        minimum: 0
-        maximum: 10
-
-  ErrorEquals:
-    type: string
-    enum:
-      - "States.ALL"
-    default: "States.ALL"
+      stateMachine:
+        $ref: '#/definitions/SLStateMachine'
 
   WorkflowDefinition:
     type: object
@@ -379,16 +334,10 @@ definitions:
       createdAt:
         type: string
         format: date-time
-      startAt:
-        type: string
-      description:
-        type: string
-      states:
-        type: array
-        items:
-          $ref: '#/definitions/State'
       manager:
         $ref: '#/definitions/Manager'
+      stateMachine:
+        $ref: '#/definitions/SLStateMachine'
 
   Manager:
     type: string
@@ -410,7 +359,7 @@ definitions:
       workflowDefinition:
         $ref: '#/definitions/WorkflowDefinition'
       status:
-        type: string
+        $ref: '#/definitions/WorkflowStatus'
       jobs:
         type: array
         items:
@@ -420,13 +369,21 @@ definitions:
       queue:
         type: string
       input:
-        type: array
-        items:
-            type: string
+        # format: json
+        type: string
       tags:
         description: "tags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
           type: object
+
+  WorkflowStatus:
+    type: string
+    enum:
+      - "queued"
+      - "running"
+      - "failed"
+      - "succeeded"
+      - "cancelled"
 
   Job:
     type: object
@@ -437,31 +394,47 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/JobAttempt'
-      Container:
+      container:
         type: string
       createdAt:
         type: string
         format: date-time
       input:
-        type: array
-        items:
-          type: string
+        # format: json
+        type: string
+      name:
+        type: string
       output:
-        type: array
-        items:
-          type: string
+        # format: json
+        type: string
+      queue:
+        type: string
       startedAt:
         type: string
         format: date-time
       state:
         type: string
+      stateResource:
+        $ref: '#/definitions/StateResource'
       status:
-        type: string
+        $ref: '#/definitions/JobStatus'
       statusReason:
         type: string
       stoppedAt:
         type: string
         format: date-time
+
+  JobStatus:
+    type: string
+    enum:
+      - "created"
+      - "queued"
+      - "waiting_for_deps"
+      - "running"
+      - "succeeded"
+      - "failed"
+      - "aborted_deps_failed"
+      - "aborted_by_user"
 
   JobAttempt:
     type: object
@@ -487,9 +460,8 @@ definitions:
       workflowDefinition:
         $ref: '#/definitions/WorkflowDefinitionRef'
       input:
-        type: array
-        items:
-          type: string
+        # format: json
+        type: string
       namespace:
         type: string
       queue:
@@ -537,7 +509,13 @@ definitions:
         type: string
         format: date-time
       type:
-        type: string
+        $ref: '#/definitions/StateResourceType'
+
+  StateResourceType:
+    type: string
+    enum:
+      - "JobDefinitionARN"
+      - "ActivityARN"
 
   # States Language Types: https://states-language.net/spec.html
   SLStateMachine:
@@ -577,9 +555,12 @@ definitions:
         type: string
       Retry:
         type: array
-        maxLength: 1 # expand once we support more than just errorEquals States.ALL
         items:
           $ref: '#/definitions/SLRetrier'
+      TimeoutSeconds:
+        type: integer
+      HeartbeatSeconds:
+        type: integer
 
   SLRetrier:
     type: object
@@ -593,7 +574,7 @@ definitions:
       ErrorEquals:
         type: array
         items:
-          $ref: '#/definitions/ErrorEquals'
+          $ref: '#/definitions/SLErrorEquals'
       MaxAttempts:
         type: integer
         minimum: 0
@@ -609,3 +590,6 @@ definitions:
       - "Succeed"
       - "Fail"
       - "Parallel"
+
+  SLErrorEquals:
+    type: string

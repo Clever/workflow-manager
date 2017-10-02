@@ -20,6 +20,9 @@ type SLState struct {
 	// end
 	End bool `json:"End,omitempty"`
 
+	// heartbeat seconds
+	HeartbeatSeconds int64 `json:"HeartbeatSeconds,omitempty"`
+
 	// input path
 	InputPath string `json:"InputPath,omitempty"`
 
@@ -36,8 +39,10 @@ type SLState struct {
 	ResultPath string `json:"ResultPath,omitempty"`
 
 	// retry
-	// Max Length: 1
 	Retry []*SLRetrier `json:"Retry"`
+
+	// timeout seconds
+	TimeoutSeconds int64 `json:"TimeoutSeconds,omitempty"`
 
 	// type
 	Type SLStateType `json:"Type,omitempty"`

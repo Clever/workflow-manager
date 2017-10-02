@@ -14,11 +14,11 @@ import (
 // swagger:model Job
 type Job struct {
 
-	// container
-	Container string `json:"Container,omitempty"`
-
 	// attempts
 	Attempts []*JobAttempt `json:"attempts"`
+
+	// container
+	Container string `json:"container,omitempty"`
 
 	// created at
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
@@ -27,10 +27,16 @@ type Job struct {
 	ID string `json:"id,omitempty"`
 
 	// input
-	Input []string `json:"input"`
+	Input string `json:"input,omitempty"`
+
+	// name
+	Name string `json:"name,omitempty"`
 
 	// output
-	Output []string `json:"output"`
+	Output string `json:"output,omitempty"`
+
+	// queue
+	Queue string `json:"queue,omitempty"`
 
 	// started at
 	StartedAt strfmt.DateTime `json:"startedAt,omitempty"`
@@ -38,8 +44,11 @@ type Job struct {
 	// state
 	State string `json:"state,omitempty"`
 
+	// state resource
+	StateResource *StateResource `json:"stateResource,omitempty"`
+
 	// status
-	Status string `json:"status,omitempty"`
+	Status JobStatus `json:"status,omitempty"`
 
 	// status reason
 	StatusReason string `json:"statusReason,omitempty"`
@@ -57,12 +66,12 @@ func (m *Job) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateInput(formats); err != nil {
+	if err := m.validateStateResource(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
 
-	if err := m.validateOutput(formats); err != nil {
+	if err := m.validateStatus(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -97,19 +106,30 @@ func (m *Job) validateAttempts(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Job) validateInput(formats strfmt.Registry) error {
+func (m *Job) validateStateResource(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Input) { // not required
+	if swag.IsZero(m.StateResource) { // not required
 		return nil
+	}
+
+	if m.StateResource != nil {
+
+		if err := m.StateResource.Validate(formats); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (m *Job) validateOutput(formats strfmt.Registry) error {
+func (m *Job) validateStatus(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Output) { // not required
+	if swag.IsZero(m.Status) { // not required
 		return nil
+	}
+
+	if err := m.Status.Validate(formats); err != nil {
+		return err
 	}
 
 	return nil

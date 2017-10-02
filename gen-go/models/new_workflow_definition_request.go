@@ -14,20 +14,14 @@ import (
 // swagger:model NewWorkflowDefinitionRequest
 type NewWorkflowDefinitionRequest struct {
 
-	// description
-	Description string `json:"description,omitempty"`
-
 	// manager
 	Manager Manager `json:"manager,omitempty"`
 
 	// name
 	Name string `json:"name,omitempty"`
 
-	// start at
-	StartAt string `json:"startAt,omitempty"`
-
-	// states
-	States []*State `json:"states"`
+	// state machine
+	StateMachine *SLStateMachine `json:"stateMachine,omitempty"`
 }
 
 // Validate validates this new workflow definition request
@@ -39,7 +33,7 @@ func (m *NewWorkflowDefinitionRequest) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateStates(formats); err != nil {
+	if err := m.validateStateMachine(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -63,25 +57,17 @@ func (m *NewWorkflowDefinitionRequest) validateManager(formats strfmt.Registry) 
 	return nil
 }
 
-func (m *NewWorkflowDefinitionRequest) validateStates(formats strfmt.Registry) error {
+func (m *NewWorkflowDefinitionRequest) validateStateMachine(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.States) { // not required
+	if swag.IsZero(m.StateMachine) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.States); i++ {
+	if m.StateMachine != nil {
 
-		if swag.IsZero(m.States[i]) { // not required
-			continue
+		if err := m.StateMachine.Validate(formats); err != nil {
+			return err
 		}
-
-		if m.States[i] != nil {
-
-			if err := m.States[i].Validate(formats); err != nil {
-				return err
-			}
-		}
-
 	}
 
 	return nil

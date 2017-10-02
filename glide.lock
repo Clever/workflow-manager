@@ -1,5 +1,5 @@
-hash: 8b1ea624b45c38ea42442b26fc5352b7e7721ce92a364469f2ec1f62b5f5dec5
-updated: 2017-09-16T04:08:53.264215747Z
+hash: dfa2d0bb9c8fe3fbdaaea532c3584ad34f0bfa3538d94c4ae7926aa33776b986
+updated: 2017-09-29T03:35:18.553269799Z
 imports:
 - name: github.com/afex/hystrix-go
   version: f118cd938f786d24f46cc307981d8f63b7951020
@@ -8,9 +8,9 @@ imports:
   - hystrix/metric_collector
   - hystrix/rolling
 - name: github.com/asaskevich/govalidator
-  version: 73945b6115bfbbcc57d89b7316e28109364124e1
+  version: eb06e9c4d8e04c43e16e5241db85df221ec5c17f
 - name: github.com/aws/aws-sdk-go
-  version: 88849eea79e8e48241987b1f0a11a7a0dcbb7716
+  version: c652f9369083515c3ddf1fbaf6df68da2c101545
   subpackages:
   - aws
   - aws/awserr
@@ -42,6 +42,8 @@ imports:
   - service/dynamodb
   - service/dynamodb/dynamodbattribute
   - service/dynamodb/dynamodbiface
+  - service/sfn
+  - service/sfn/sfniface
   - service/sts
 - name: github.com/Clever/discovery-go
   version: 2e485eaaf026d527548740ceff178c8859fcaa07
@@ -82,17 +84,17 @@ imports:
 - name: github.com/go-openapi/swag
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
 - name: github.com/go-openapi/validate
-  version: 901ab082554d18fd6a99cc3a4bde6469e58d4cf6
+  version: dc8a684882cf70c9a529887104340f44e0e138e5
 - name: github.com/gogo/protobuf
   version: 2adc21fd136931e0388e278825291678e1d98309
   subpackages:
   - proto
 - name: github.com/golang/mock
-  version: cd1f5ca28400ea81f03fbc828a052ab46c33fcf9
+  version: c7d0ee73a597d1349404607d9f692cacd09cdc06
   subpackages:
   - gomock
 - name: github.com/golang/protobuf
-  version: 11b8df160996e00fd4b55cbaafb3d84ec6d50fa8
+  version: 130e6b02ab059e7b717a096f397c5b60111cae74
   subpackages:
   - proto
   - ptypes
@@ -136,7 +138,7 @@ imports:
   subpackages:
   - difflib
 - name: github.com/PuerkitoBio/purell
-  version: f619812e3caf603a8df60a7ec6f2654b703189ef
+  version: fd18e053af8a4ff11039269006e8037ff374ce0e
 - name: github.com/PuerkitoBio/urlesc
   version: de5bf2ad457846296e2031421a34e2568e304e35
 - name: github.com/satori/go.uuid
@@ -158,7 +160,7 @@ imports:
   subpackages:
   - models
 - name: golang.org/x/net
-  version: 8351a756f30f1297fe94bbf4b767ec589c6ea6d0
+  version: 278c6cf336eb9139d63479da09da0cfb40fdc4c8
   subpackages:
   - context
   - context/ctxhttp
@@ -177,11 +179,11 @@ imports:
   - unicode/norm
   - width
 - name: google.golang.org/genproto
-  version: 595979c8a7bf586b2d293fb42246bf91a0b893d9
+  version: 1e559d0a00eef8a9a43151db4665280bd8dd5886
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: bb78878767b96d411e740439ac820f118e95ae2f
+  version: c67cd636f91e849f8677733bcdd60ea8c15d4aa6
   subpackages:
   - balancer
   - codes

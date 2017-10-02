@@ -11,43 +11,37 @@ import (
 )
 
 // KitchenSinkWorkflowDefinition returns a WorkflowDefinition resource to use for tests
-func KitchenSinkWorkflowDefinition(t *testing.T) WorkflowDefinition {
+func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 
-	states := map[string]State{
-		"start-state": &WorkerState{
-			"start-state",
-			"second-state",
-			"fake-resource-1",
-			[]string{},
-			false,
-			[]*models.Retrier{{
-				ErrorEquals: []models.ErrorEquals{models.ErrorEqualsStatesALL},
-				MaxAttempts: swag.Int64(2),
-			}},
+	wfd, err := NewWorkflowDefinition(fmt.Sprintf("kitchensink-%s", time.Now().Format(time.RFC3339Nano)),
+		&models.SLStateMachine{
+			Comment: "description",
+			StartAt: "start-state",
+			States: map[string]models.SLState{
+				"start-state": models.SLState{
+					Next:     "second-state",
+					Resource: "fake-resource-1",
+					End:      false,
+					Retry: []*models.SLRetrier{{
+						ErrorEquals: []models.SLErrorEquals{"States.ALL"},
+						MaxAttempts: swag.Int64(2),
+					}},
+				},
+				"second-state": models.SLState{
+					Next:     "end-state",
+					Resource: "fake-resource-2",
+					End:      false,
+					Retry:    []*models.SLRetrier{},
+				},
+				"end-state": models.SLState{
+					Resource: "fake-resource-3",
+					End:      true,
+					Retry:    []*models.SLRetrier{},
+				},
+			},
 		},
-		"second-state": &WorkerState{
-			"second-state",
-			"end-state",
-			"fake-resource-2",
-			[]string{"start-state"},
-			false,
-			[]*models.Retrier{},
-		},
-		"end-state": &WorkerState{
-			"end-state",
-			"",
-			"fake-resource-3",
-			[]string{"second-state"},
-			true,
-			[]*models.Retrier{},
-		},
-	}
-
-	wf, err := NewWorkflowDefinition(fmt.Sprintf("kitchensink-%s", time.Now().Format(time.RFC3339Nano)),
-		"description",
-		"start-state",
-		states)
+	)
 	assert.Nil(t, err)
 
-	return wf
+	return wfd
 }

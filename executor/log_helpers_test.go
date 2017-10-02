@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/Clever/kayvee-go/logger"
-	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,14 +25,14 @@ func TestDataResultsRouting(t *testing.T) {
 	assert.Equal(0, len(counts))
 
 	t.Log("matches 'job-status-alerts'")
-	logJobStatus(&resources.Job{}, &resources.Workflow{})
+	logJobStatus(&models.Job{}, &models.Workflow{WorkflowDefinition: &models.WorkflowDefinition{}})
 	counts = mocklog.RuleCounts()
 	assert.Equal(1, len(counts))
 	assert.Contains(counts, "job-status-alerts")
 	assert.Equal(counts["job-status-alerts"], 1)
 
 	t.Log("matches 'workflow-status-change'")
-	logWorkflowStatusChange(&resources.Workflow{}, resources.Running)
+	logWorkflowStatusChange(&models.Workflow{WorkflowDefinition: &models.WorkflowDefinition{}}, models.WorkflowStatusRunning)
 	counts = mocklog.RuleCounts()
 	assert.Equal(3, len(counts))
 	assert.Contains(counts, "workflow-status-metrics")

@@ -189,14 +189,14 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("DELETE").Path("/workflows/{workflowId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.Methods("DELETE").Path("/workflows/{workflowID}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "CancelWorkflow")
 		h.CancelWorkflowHandler(r.Context(), w, r)
 		ctx := WithTracingOpName(r.Context(), "CancelWorkflow")
 		r = r.WithContext(ctx)
 	})
 
-	router.Methods("GET").Path("/workflows/{workflowId}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.Methods("GET").Path("/workflows/{workflowID}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "getWorkflowByID")
 		h.GetWorkflowByIDHandler(r.Context(), w, r)
 		ctx := WithTracingOpName(r.Context(), "getWorkflowByID")

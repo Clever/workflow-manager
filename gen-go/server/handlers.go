@@ -1453,20 +1453,20 @@ func newCancelWorkflowInput(r *http.Request) (*models.CancelWorkflowInput, error
 	var err error
 	_ = err
 
-	workflowIdStr := mux.Vars(r)["workflowId"]
-	if len(workflowIdStr) == 0 {
+	workflowIDStr := mux.Vars(r)["workflowID"]
+	if len(workflowIDStr) == 0 {
 		return nil, errors.New("parameter must be specified")
 	}
-	workflowIdStrs := []string{workflowIdStr}
+	workflowIDStrs := []string{workflowIDStr}
 
-	if len(workflowIdStrs) > 0 {
-		var workflowIdTmp string
-		workflowIdStr := workflowIdStrs[0]
-		workflowIdTmp, err = workflowIdStr, error(nil)
+	if len(workflowIDStrs) > 0 {
+		var workflowIDTmp string
+		workflowIDStr := workflowIDStrs[0]
+		workflowIDTmp, err = workflowIDStr, error(nil)
 		if err != nil {
 			return nil, err
 		}
-		input.WorkflowId = workflowIdTmp
+		input.WorkflowID = workflowIDTmp
 	}
 
 	data, err := ioutil.ReadAll(r.Body)
@@ -1521,14 +1521,14 @@ func statusCodeForGetWorkflowByID(obj interface{}) int {
 
 func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
-	workflowId, err := newGetWorkflowByIDInput(r)
+	workflowID, err := newGetWorkflowByIDInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
 		return
 	}
 
-	err = models.ValidateGetWorkflowByIDInput(workflowId)
+	err = models.ValidateGetWorkflowByIDInput(workflowID)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1536,7 +1536,7 @@ func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWrit
 		return
 	}
 
-	resp, err := h.GetWorkflowByID(ctx, workflowId)
+	resp, err := h.GetWorkflowByID(ctx, workflowID)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1565,12 +1565,12 @@ func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWrit
 
 }
 
-// newGetWorkflowByIDInput takes in an http.Request an returns the workflowId parameter
+// newGetWorkflowByIDInput takes in an http.Request an returns the workflowID parameter
 // that it contains. It returns an error if the request doesn't contain the parameter.
 func newGetWorkflowByIDInput(r *http.Request) (string, error) {
-	workflowId := mux.Vars(r)["workflowId"]
-	if len(workflowId) == 0 {
-		return "", errors.New("Parameter workflowId must be specified")
+	workflowID := mux.Vars(r)["workflowID"]
+	if len(workflowID) == 0 {
+		return "", errors.New("Parameter workflowID must be specified")
 	}
-	return workflowId, nil
+	return workflowID, nil
 }
