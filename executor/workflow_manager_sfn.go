@@ -49,6 +49,9 @@ func stateMachineWithFullActivityARNs(stateMachine *models.SLStateMachine, regio
 		var newState models.SLState
 		newState = state // copy
 		newState.Resource = wdResourceToSLResource(state.Resource, region, accountID, namespace)
+		if newState.Retry == nil {
+			newState.Retry = []*models.SLRetrier{}
+		}
 		newStates[stateName] = newState
 	}
 
