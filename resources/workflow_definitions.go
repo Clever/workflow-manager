@@ -11,13 +11,13 @@ import (
 )
 
 // NewWorkflowDefinition creates a new Workflow
-func NewWorkflowDefinition(name string, stateMachine *models.SLStateMachine) (*models.WorkflowDefinition, error) {
+func NewWorkflowDefinition(name string, manager models.Manager, stateMachine *models.SLStateMachine) (*models.WorkflowDefinition, error) {
 	return &models.WorkflowDefinition{
 		ID:           uuid.NewV4().String(),
 		Name:         name,
 		Version:      0,
 		CreatedAt:    strfmt.DateTime(time.Now()),
-		Manager:      models.ManagerStepFunctions,
+		Manager:      manager,
 		StateMachine: stateMachine,
 	}, nil
 }

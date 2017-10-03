@@ -152,7 +152,7 @@ func TestUpdateWorkflowStatus(t *testing.T) {
 			},
 		},
 	}
-	wf, err = resources.NewWorkflowDefinition("test-worfklow", stateMachine)
+	wf, err = resources.NewWorkflowDefinition("test-worfklow", models.ManagerBatch, stateMachine)
 	workflow, err = jm.CreateWorkflow(*wf, input, "", "", tags)
 	assert.Nil(t, err)
 

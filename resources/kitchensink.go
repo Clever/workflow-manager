@@ -14,6 +14,7 @@ import (
 func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 
 	wfd, err := NewWorkflowDefinition(fmt.Sprintf("kitchensink-%s", time.Now().Format(time.RFC3339Nano)),
+		models.ManagerStepFunctions,
 		&models.SLStateMachine{
 			Comment: "description",
 			StartAt: "start-state",
