@@ -262,7 +262,7 @@ func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (
 	if _, ok := req.StateMachine.States[req.StateMachine.StartAt]; !ok {
 		return nil, fmt.Errorf("StartAt state %s not defined", req.StateMachine.StartAt)
 	}
-	return resources.NewWorkflowDefinition(req.Name, req.StateMachine)
+	return resources.NewWorkflowDefinition(req.Name, req.Manager, req.StateMachine)
 }
 
 func validateTagsMap(apiTags map[string]interface{}) error {
