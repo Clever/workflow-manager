@@ -166,6 +166,14 @@ func (s MemoryStore) GetWorkflows(
 	workflows := []models.Workflow{}
 	for _, workflow := range s.workflows {
 		if s.matchesQuery(workflow, query) {
+			if query.SummaryOnly {
+				workflow.Jobs = []*models.Job{}
+				workflow.WorkflowDefinition = &models.WorkflowDefinition{
+					Name:    workflow.WorkflowDefinition.Name,
+					Version: workflow.WorkflowDefinition.Version,
+				}
+			}
+
 			workflows = append(workflows, workflow)
 		}
 	}

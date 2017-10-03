@@ -24,6 +24,7 @@ func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
 	t.Run("UpdateWorkflow", UpdateWorkflow(storeFactory(), t))
 	t.Run("GetWorkflowByID", GetWorkflowByID(storeFactory(), t))
 	t.Run("GetWorkflows", GetWorkflows(storeFactory(), t))
+	t.Run("GetWorkflowsSummaryOnly", GetWorkflowsSummaryOnly(storeFactory(), t))
 	t.Run("GetWorkflowsPagination", GetWorkflowsPagination(storeFactory(), t))
 	t.Run("GetPendingWorkflowIDs", GetPendingWorkflowIDs(storeFactory(), t))
 	t.Run("LockWorkflow/UnlockWorkflow", LockUnlockWorkflow(storeFactory(), t))
@@ -265,6 +266,52 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, workflows, 1)
 		require.Equal(t, runningWorkflow.ID, workflows[0].ID)
+	}
+}
+
+func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		definition := resources.KitchenSinkWorkflowDefinition(t)
+		require.NoError(t, s.SaveWorkflowDefinition(*definition))
+
+		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
+		workflow := resources.NewWorkflow(definition, `["input"]`, "ns", "queue", tags)
+		workflow.Jobs = []*models.Job{{
+			ID:    "job1",
+			Input: `["job input"]`,
+		}}
+		require.NoError(t, s.SaveWorkflow(*workflow))
+
+		// Verify details are excluded if SummaryOnly == true:
+		workflows, _, err := s.GetWorkflows(&store.WorkflowQuery{
+			DefinitionName: definition.Name,
+			SummaryOnly:    true,
+			Limit:          10,
+		})
+		require.NoError(t, err)
+		require.Equal(t, []*models.Job{}, workflows[0].Jobs)
+
+		definitionSummary := &models.WorkflowDefinition{
+			Name:    definition.Name,
+			Version: definition.Version,
+		}
+		require.Equal(t, definitionSummary, workflows[0].WorkflowDefinition)
+
+		// Verify details are included if SummaryOnly == false:
+		workflows, _, err = s.GetWorkflows(&store.WorkflowQuery{
+			DefinitionName: definition.Name,
+			SummaryOnly:    false,
+			Limit:          10,
+		})
+		require.NoError(t, err)
+		require.Equal(t, workflow.Jobs, workflows[0].Jobs)
+		require.Equal(t, definition.Name, workflows[0].WorkflowDefinition.Name)
+		require.Equal(t, definition.Version, workflows[0].WorkflowDefinition.Version)
+		require.Equal(
+			t,
+			len(definition.StateMachine.States),
+			len(workflows[0].WorkflowDefinition.StateMachine.States),
+		)
 	}
 }
 

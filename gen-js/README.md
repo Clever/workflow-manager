@@ -296,6 +296,7 @@ Get the latest versions of all available WorkflowDefinitions
 | [params.oldestFirst] | <code>boolean</code> |  |
 | [params.pageToken] | <code>string</code> |  |
 | [params.status] | <code>string</code> |  |
+| [params.summaryOnly] | <code>boolean</code> | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
 | params.workflowDefinitionName | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
@@ -316,6 +317,7 @@ Get the latest versions of all available WorkflowDefinitions
 | [params.oldestFirst] | <code>boolean</code> |  |
 | [params.pageToken] | <code>string</code> |  |
 | [params.status] | <code>string</code> |  |
+| [params.summaryOnly] | <code>boolean</code> | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
 | params.workflowDefinitionName | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |

@@ -584,6 +584,17 @@ func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]models.Workflow, s
 		if err != nil {
 			return workflows, nextPageToken, err
 		}
+
+		// TODO: Optimization - use a projection expression instead to limit which fields are returned
+		// by the dynamodb query.
+		if query.SummaryOnly {
+			workflow.Jobs = []*models.Job{}
+			workflow.WorkflowDefinition = &models.WorkflowDefinition{
+				Name:    workflow.WorkflowDefinition.Name,
+				Version: workflow.WorkflowDefinition.Version,
+			}
+		}
+
 		workflows = append(workflows, workflow)
 	}
 

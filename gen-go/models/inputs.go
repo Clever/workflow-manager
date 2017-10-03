@@ -290,6 +290,7 @@ type GetWorkflowsInput struct {
 	OldestFirst            *bool
 	PageToken              *string
 	Status                 *string
+	SummaryOnly            *bool
 	WorkflowDefinitionName string
 }
 
@@ -319,6 +320,10 @@ func (i GetWorkflowsInput) Path() (string, error) {
 
 	if i.Status != nil {
 		urlVals.Add("status", *i.Status)
+	}
+
+	if i.SummaryOnly != nil {
+		urlVals.Add("summaryOnly", strconv.FormatBool(*i.SummaryOnly))
 	}
 
 	urlVals.Add("workflowDefinitionName", i.WorkflowDefinitionName)

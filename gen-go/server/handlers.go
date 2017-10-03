@@ -1262,6 +1262,21 @@ func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
 		input.Status = &statusTmp
 	}
 
+	summaryOnlyStrs := r.URL.Query()["summaryOnly"]
+
+	if len(summaryOnlyStrs) == 0 {
+		summaryOnlyStrs = []string{"false"}
+	}
+	if len(summaryOnlyStrs) > 0 {
+		var summaryOnlyTmp bool
+		summaryOnlyStr := summaryOnlyStrs[0]
+		summaryOnlyTmp, err = strconv.ParseBool(summaryOnlyStr)
+		if err != nil {
+			return nil, err
+		}
+		input.SummaryOnly = &summaryOnlyTmp
+	}
+
 	workflowDefinitionNameStrs := r.URL.Query()["workflowDefinitionName"]
 	if len(workflowDefinitionNameStrs) == 0 {
 		return nil, errors.New("parameter must be specified")
