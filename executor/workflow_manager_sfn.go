@@ -125,25 +125,24 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input
 	workflow := resources.NewWorkflow(&wd, input, namespace, queue, tags)
 
 	executionName := aws.String(workflow.ID)
+
+	var inputJSON map[string]interface{}
+	if err := json.Unmarshal([]byte(input), &inputJSON); err != nil {
+		return nil, fmt.Errorf("input is not a valid JSON object: %s", err)
+	}
+	inputJSON["_EXECUTION_NAME"] = &executionName
+
+	marshaledInput, err := json.Marshal(inputJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	// We ensure the input is a json object, but for context the
 	// observed StartExecution behavior for different edge-case inputs:
 	// - nil: AWS converts this to an input of an empty object "{}"
 	// - aws.String(""): leads to InvalidExecutionInput AWS error
 	// - aws.String("[]"): leads to an input of an empty array "[]"
-	var startExecutionInput *string
-	if len(input) > 0 {
-		var inputJSON map[string]interface{}
-		if err := json.Unmarshal([]byte(input), &inputJSON); err != nil {
-			return nil, fmt.Errorf("input is not a valid JSON object: %s", err)
-		}
-		inputJSON["_EXECUTION_NAME"] = &executionName
-
-		marshaledInput, err := json.Marshal(inputJSON)
-		if err != nil {
-			return nil, err
-		}
-
-		startExecutionInput = aws.String(string(marshaledInput))
-	}
+	startExecutionInput := aws.String(string(marshaledInput))
 	_, err = wm.sfnapi.StartExecution(&sfn.StartExecutionInput{
 		StateMachineArn: describeOutput.StateMachineArn,
 		Input:           startExecutionInput,
