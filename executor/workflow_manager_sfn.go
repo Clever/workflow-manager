@@ -135,7 +135,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input
 		if err := json.Unmarshal([]byte(input), &inputJSON); err != nil {
 			return nil, fmt.Errorf("input is not a valid JSON object: %s", err)
 		}
-		inputJSON["$execution-name"] = &executionName
+		inputJSON["_EXECUTION_NAME"] = &executionName
 
 		marshaledInput, err := json.Marshal(inputJSON)
 		if err != nil {
