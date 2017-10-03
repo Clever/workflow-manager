@@ -159,7 +159,12 @@ func (wm *SFNWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason s
 		Cause:        aws.String(reason),
 		// Error: aws.String(""), // TODO: Can we use this? "An arbitrary error code that identifies the cause of the termination."
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	workflow.Status = models.WorkflowStatusCancelled
+	return wm.store.UpdateWorkflow(*workflow)
 }
 
 func executionARN(region, accountID, stateMachineName, executionName string) string {
@@ -195,7 +200,11 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 	}
 
 	workflow.LastUpdated = strfmt.DateTime(time.Now())
+	previousStatus := workflow.Status
 	workflow.Status = sfnStatusToWorkflowStatus(*describeOutput.Status)
+	if previousStatus == models.WorkflowStatusCancelled {
+		workflow.Status = previousStatus
+	}
 	// TODO: we should capture the output of a workflow
 	//workflow.Output = describeStatus.Output
 
