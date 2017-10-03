@@ -12,8 +12,12 @@ env:
   - AWS_SFN_ROLE_ARN
   - AWS_SFN_ACCOUNT_ID
 resources:
-  cpu: 0.01
-  max_mem: 0.02
+  cpu: 0.1
+  soft_mem_limit: 0.05
+  max_mem: 0.1
+autoscaling:
+  metric: cpu
+  metric_target: 65
 use_iam_roles: true
 expose:
 - name: default
