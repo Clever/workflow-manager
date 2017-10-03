@@ -220,7 +220,9 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 			case sfn.HistoryEventTypeTaskStateEntered:
 				stateEntered := evt.StateEnteredEventDetails
 				var input string
-				json.Unmarshal([]byte(*stateEntered.Input), &input)
+				if stateEntered.Input != nil {
+					input = *stateEntered.Input
+				}
 				state, ok := workflow.WorkflowDefinition.StateMachine.States[*stateEntered.Name]
 				var stateResourceName string
 				if ok {
