@@ -169,7 +169,7 @@ func (s MemoryStore) GetWorkflows(
 			if query.SummaryOnly {
 				workflow.Jobs = []*models.Job{}
 				workflow.WorkflowDefinition = &models.WorkflowDefinition{
-					Name: workflow.WorkflowDefinition.Name,
+					Name:    workflow.WorkflowDefinition.Name,
 					Version: workflow.WorkflowDefinition.Version,
 				}
 			}
