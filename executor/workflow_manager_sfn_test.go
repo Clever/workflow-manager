@@ -1,10 +1,31 @@
 package executor
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/mocks/mock_sfniface"
+	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/store"
+	"github.com/Clever/workflow-manager/store/memory"
 )
+
+type sfnManagerTestController struct {
+	manager            *SFNWorkflowManager
+	mockController     *gomock.Controller
+	mockSFNAPI         *mock_sfniface.MockSFNAPI
+	store              store.Store
+	t                  *testing.T
+	workflowDefinition *models.WorkflowDefinition
+}
 
 func TestSFNUpdateWorkflowStatus(t *testing.T) {
 	t.Log("TODO")
@@ -43,4 +64,366 @@ func TestStateMachineName(t *testing.T) {
 		)
 		require.Equal(t, output, test.output, "input: %#v", test.input)
 	}
+}
+
+func TestCancelWorkflow(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	initialStatus := models.WorkflowStatusRunning
+	workflow.Status = initialStatus
+	c.saveWorkflow(t, workflow)
+
+	t.Log("Verify execution is stopped and status reason is updated.")
+	reason := "i have my reasons"
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		StopExecution(&sfn.StopExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			Cause:        aws.String(reason),
+		}).
+		Return(&sfn.StopExecutionOutput{}, nil)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusAborted),
+		}, nil)
+	require.NoError(t, c.manager.CancelWorkflow(workflow, reason))
+	assert.Equal(t, initialStatus, workflow.Status)
+	assert.Equal(t, reason, workflow.StatusReason)
+
+	t.Log("Verify execution is stopped and status reason is updated.")
+	newReason := "seriously, stop asking"
+	c.mockSFNAPI.EXPECT().
+		StopExecution(&sfn.StopExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			Cause:        aws.String(newReason),
+		}).
+		Return(&sfn.StopExecutionOutput{}, nil)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusFailed),
+		}, nil)
+	require.NoError(t, c.manager.CancelWorkflow(workflow, newReason))
+	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
+	assert.Equal(t, newReason, workflow.StatusReason)
+
+	t.Log("Verify errors are propagated.")
+	cancelError := fmt.Errorf("nope")
+	c.mockSFNAPI.EXPECT().
+		StopExecution(gomock.Any()).
+		Return(&sfn.StopExecutionOutput{}, cancelError)
+	require.Error(t, c.manager.CancelWorkflow(workflow, reason))
+}
+
+func TestUpdateWorkflowStatusNoop(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusCancelled
+	c.saveWorkflow(t, workflow)
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
+}
+
+var jobCreatedEventTimestamp = time.Now()
+var jobCreatedEvent = &sfn.HistoryEvent{
+	Id:        aws.Int64(1),
+	Timestamp: aws.Time(jobCreatedEventTimestamp),
+	Type:      aws.String(sfn.HistoryEventTypeTaskStateEntered),
+	StateEnteredEventDetails: &sfn.StateEnteredEventDetails{
+		Name:  aws.String("my-first-state"),
+		Input: aws.String(`{foo: "bar"}`),
+	},
+}
+
+func assertBasicJobData(t *testing.T, job *models.Job) {
+	assert.Equal(t, "1", job.ID)
+	assert.Equal(t, "my-first-state", job.State)
+	assert.Equal(t, `{foo: "bar"}`, job.Input)
+	assert.WithinDuration(t, jobCreatedEventTimestamp, time.Time(job.CreatedAt), 1*time.Second)
+}
+
+func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusQueued
+	c.saveWorkflow(t, workflow)
+
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusRunning),
+		}, nil)
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}, gomock.Any()).
+		Do(func(
+			input *sfn.GetExecutionHistoryInput,
+			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+		) {
+			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{jobCreatedEvent}}, true)
+		})
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusRunning, workflow.Status)
+	require.Len(t, workflow.Jobs, 1)
+	assertBasicJobData(t, workflow.Jobs[0])
+	assert.Equal(t, models.JobStatusCreated, workflow.Jobs[0].Status)
+}
+
+var jobFailedEventTimestamp = jobCreatedEventTimestamp.Add(5 * time.Minute)
+var jobFailedEvent = &sfn.HistoryEvent{
+	Id:        aws.Int64(2),
+	Timestamp: aws.Time(jobFailedEventTimestamp),
+	Type:      aws.String(sfn.HistoryEventTypeActivityFailed),
+	ActivityFailedEventDetails: &sfn.ActivityFailedEventDetails{
+		Cause: aws.String("line1\nline2\nline3\nline4\nline5\nline6\n\n"),
+	},
+}
+
+func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusQueued
+	c.saveWorkflow(t, workflow)
+
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusFailed),
+		}, nil)
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}, gomock.Any()).
+		Do(func(
+			input *sfn.GetExecutionHistoryInput,
+			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+		) {
+			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
+				jobCreatedEvent,
+				jobFailedEvent,
+			}}, true)
+		})
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
+	require.Len(t, workflow.Jobs, 1)
+	assertBasicJobData(t, workflow.Jobs[0])
+	assert.Equal(t, models.JobStatusFailed, workflow.Jobs[0].Status)
+	assert.Equal(t, "line4\nline5\nline6", workflow.Jobs[0].StatusReason)
+	assert.WithinDuration(
+		t, jobFailedEventTimestamp, time.Time(workflow.Jobs[0].StoppedAt), 1*time.Second,
+	)
+}
+
+var jobSucceededEventTimestamp = jobCreatedEventTimestamp.Add(5 * time.Minute)
+var jobSucceededEvent = &sfn.HistoryEvent{
+	Id:        aws.Int64(3),
+	Timestamp: aws.Time(jobSucceededEventTimestamp),
+	Type:      aws.String(sfn.HistoryEventTypeActivitySucceeded),
+}
+var jobExitedEventTimestamp = jobSucceededEventTimestamp.Add(5 * time.Second)
+var jobExitedEvent = &sfn.HistoryEvent{
+	Id:        aws.Int64(4),
+	Timestamp: aws.Time(jobExitedEventTimestamp),
+	Type:      aws.String(sfn.HistoryEventTypeTaskStateExited),
+	StateExitedEventDetails: &sfn.StateExitedEventDetails{
+		Name:   jobCreatedEvent.StateEnteredEventDetails.Name,
+		Output: aws.String(`{out: "put"}`),
+	},
+}
+
+func assertSucceededJobData(t *testing.T, job *models.Job) {
+	assert.Equal(t, models.JobStatusSucceeded, job.Status)
+	assert.Equal(t, `{out: "put"}`, job.Output)
+	assert.WithinDuration(t, jobExitedEventTimestamp, time.Time(job.StoppedAt), 1*time.Second)
+}
+
+func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusQueued
+	c.saveWorkflow(t, workflow)
+
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusSucceeded),
+		}, nil)
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}, gomock.Any()).
+		Do(func(
+			input *sfn.GetExecutionHistoryInput,
+			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+		) {
+			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
+				jobCreatedEvent,
+				jobSucceededEvent,
+				jobExitedEvent,
+			}}, true)
+		})
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusSucceeded, workflow.Status)
+	require.Len(t, workflow.Jobs, 1)
+	assertBasicJobData(t, workflow.Jobs[0])
+	assertSucceededJobData(t, workflow.Jobs[0])
+}
+
+var jobAbortedEventTimestamp = jobSucceededEventTimestamp.Add(15 * time.Minute)
+var jobAbortedEvent = &sfn.HistoryEvent{
+	Id:        aws.Int64(5),
+	Timestamp: aws.Time(jobAbortedEventTimestamp),
+	Type:      aws.String(sfn.HistoryEventTypeExecutionAborted),
+	ExecutionAbortedEventDetails: &sfn.ExecutionAbortedEventDetails{
+		Cause: aws.String("sfn abort reason"),
+	},
+}
+
+func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusQueued
+	workflow.StatusReason = "cancelled by user"
+	c.saveWorkflow(t, workflow)
+
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusAborted),
+		}, nil)
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}, gomock.Any()).
+		Do(func(
+			input *sfn.GetExecutionHistoryInput,
+			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+		) {
+			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
+				jobCreatedEvent,
+				jobAbortedEvent,
+			}}, true)
+		})
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
+	assert.Equal(t, "cancelled by user", workflow.StatusReason)
+	require.Len(t, workflow.Jobs, 1)
+	assertBasicJobData(t, workflow.Jobs[0])
+	assert.Equal(t, models.JobStatusAbortedByUser, workflow.Jobs[0].Status)
+	assert.Equal(t, "sfn abort reason", workflow.Jobs[0].StatusReason)
+	assert.WithinDuration(
+		t, jobAbortedEventTimestamp, time.Time(workflow.Jobs[0].StoppedAt), 1*time.Second,
+	)
+}
+
+func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusQueued
+	workflow.StatusReason = "cancelled by user"
+	c.saveWorkflow(t, workflow)
+
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusAborted),
+		}, nil)
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}, gomock.Any()).
+		Do(func(
+			input *sfn.GetExecutionHistoryInput,
+			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+		) {
+			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
+				jobCreatedEvent,
+				jobSucceededEvent,
+				jobExitedEvent,
+				jobAbortedEvent,
+			}}, true)
+		})
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
+	assert.Equal(t, "cancelled by user", workflow.StatusReason)
+	require.Len(t, workflow.Jobs, 1)
+	assertBasicJobData(t, workflow.Jobs[0])
+	assertSucceededJobData(t, workflow.Jobs[0])
+}
+
+func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
+	mockController := gomock.NewController(t)
+	mockSFNAPI := mock_sfniface.NewMockSFNAPI(mockController)
+	store := memory.New()
+
+	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
+	require.NoError(t, store.SaveWorkflowDefinition(*workflowDefinition))
+
+	return &sfnManagerTestController{
+		manager:            NewSFNWorkflowManager(mockSFNAPI, store, "", "", ""),
+		mockController:     mockController,
+		mockSFNAPI:         mockSFNAPI,
+		store:              &store,
+		t:                  t,
+		workflowDefinition: workflowDefinition,
+	}
+}
+
+func (c *sfnManagerTestController) newWorkflow() *models.Workflow {
+	return resources.NewWorkflow(
+		c.workflowDefinition, `["input"]`, "namespace", "queue", map[string]interface{}{},
+	)
+}
+
+func (c *sfnManagerTestController) saveWorkflow(t *testing.T, workflow *models.Workflow) {
+	require.NoError(t, c.store.SaveWorkflow(*workflow))
+}
+
+func (c *sfnManagerTestController) tearDown() {
+	c.mockController.Finish()
 }
