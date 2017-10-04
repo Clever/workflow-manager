@@ -272,6 +272,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 				if currentState != nil {
 					stateToJob[*currentState].Status = models.JobStatusSucceeded
 				}
+			case sfn.HistoryEventTypeExecutionAborted:
+				if currentState != nil {
+					stateToJob[*currentState].Status = models.JobStatusAbortedByUser
+				}
 			case sfn.HistoryEventTypeTaskStateExited:
 				stateExited := evt.StateExitedEventDetails
 				stateToJob[*stateExited.Name].StoppedAt = strfmt.DateTime(*evt.Timestamp)
