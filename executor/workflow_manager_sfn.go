@@ -326,13 +326,11 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 			case sfn.HistoryEventTypeExecutionAborted:
 				if currentState != nil {
 					job := stateToJob[*currentState]
-					if !resources.JobIsDone(job.Status) {
-						job.Status = models.JobStatusAbortedByUser
-						job.StoppedAt = strfmt.DateTime(*evt.Timestamp)
+					job.Status = models.JobStatusAbortedByUser
+					job.StoppedAt = strfmt.DateTime(*evt.Timestamp)
 
-						if details := evt.ExecutionAbortedEventDetails; details != nil {
-							job.StatusReason = aws.StringValue(details.Cause)
-						}
+					if details := evt.ExecutionAbortedEventDetails; details != nil {
+						job.StatusReason = aws.StringValue(details.Cause)
 					}
 				}
 			case sfn.HistoryEventTypeTaskStateExited:

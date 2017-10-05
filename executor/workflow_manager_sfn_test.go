@@ -95,7 +95,7 @@ func TestCancelWorkflow(t *testing.T) {
 	assert.Equal(t, initialStatus, workflow.Status)
 	assert.Equal(t, reason, workflow.StatusReason)
 
-	t.Log("Verify execution is stopped and status reason is updated.")
+	t.Log("Verify both status and status reason are updated if execution has already failed.")
 	newReason := "seriously, stop asking"
 	c.mockSFNAPI.EXPECT().
 		StopExecution(&sfn.StopExecutionInput{
@@ -300,7 +300,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 	assertSucceededJobData(t, workflow.Jobs[0])
 }
 
-var jobAbortedEventTimestamp = jobSucceededEventTimestamp.Add(15 * time.Minute)
+var jobAbortedEventTimestamp = jobSucceededEventTimestamp.Add(5 * time.Minute)
 var jobAbortedEvent = &sfn.HistoryEvent{
 	Id:        aws.Int64(5),
 	Timestamp: aws.Time(jobAbortedEventTimestamp),
@@ -308,6 +308,12 @@ var jobAbortedEvent = &sfn.HistoryEvent{
 	ExecutionAbortedEventDetails: &sfn.ExecutionAbortedEventDetails{
 		Cause: aws.String("sfn abort reason"),
 	},
+}
+
+func assertCancelledJobData(t *testing.T, job *models.Job) {
+	assert.Equal(t, models.JobStatusAbortedByUser, job.Status)
+	assert.Equal(t, "sfn abort reason", job.StatusReason)
+	assert.WithinDuration(t, jobAbortedEventTimestamp, time.Time(job.StoppedAt), 1*time.Second)
 }
 
 func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
@@ -347,11 +353,7 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 	assert.Equal(t, "cancelled by user", workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
-	assert.Equal(t, models.JobStatusAbortedByUser, workflow.Jobs[0].Status)
-	assert.Equal(t, "sfn abort reason", workflow.Jobs[0].StatusReason)
-	assert.WithinDuration(
-		t, jobAbortedEventTimestamp, time.Time(workflow.Jobs[0].StoppedAt), 1*time.Second,
-	)
+	assertCancelledJobData(t, workflow.Jobs[0])
 }
 
 func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
@@ -383,7 +385,6 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
 				jobSucceededEvent,
-				jobExitedEvent,
 				jobAbortedEvent,
 			}}, true)
 		})
@@ -393,7 +394,7 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 	assert.Equal(t, "cancelled by user", workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
-	assertSucceededJobData(t, workflow.Jobs[0])
+	assertCancelledJobData(t, workflow.Jobs[0])
 }
 
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
