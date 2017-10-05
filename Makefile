@@ -44,6 +44,10 @@ generate-mocks:
 	rm -f mocks/mock_dynamodbiface/mock_dynamodbapi.go
 	mockgen github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface DynamoDBAPI > mocks/mock_dynamodbiface/mock_dynamodbapi.go
 
+	mkdir -p mocks/mock_sfniface
+	rm -f mocks/mock_sfniface/mock_sfnapi.go
+	mockgen github.com/aws/aws-sdk-go/service/sfn/sfniface SFNAPI > mocks/mock_sfniface/mock_sfnapi.go
+
 $(GOPATH)/bin/glide:
 	@go get github.com/Masterminds/glide
 

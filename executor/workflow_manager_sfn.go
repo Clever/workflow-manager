@@ -17,6 +17,10 @@ import (
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
+const (
+	maxFailureReasonLines = 3
+)
+
 // SFNWorkflowManager manages workflows run through AWS Step Functions.
 type SFNWorkflowManager struct {
 	sfnapi    sfniface.SFNAPI
@@ -26,7 +30,7 @@ type SFNWorkflowManager struct {
 	accountID string
 }
 
-func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, store store.Store, roleARN, region, accountID string) WorkflowManager {
+func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, store store.Store, roleARN, region, accountID string) *SFNWorkflowManager {
 	return &SFNWorkflowManager{
 		sfnapi:    sfnapi,
 		store:     store,
@@ -161,13 +165,45 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input
 func (wm *SFNWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason string) error {
 	// cancel execution
 	wd := workflow.WorkflowDefinition
-	execARN := executionARN(wm.region, wm.accountID, stateMachineName(wd.Name, wd.Version, workflow.Namespace, workflow.Queue), workflow.ID)
+	execARN := wm.executionARN(workflow, wd)
 	_, err := wm.sfnapi.StopExecution(&sfn.StopExecutionInput{
 		ExecutionArn: aws.String(execARN),
 		Cause:        aws.String(reason),
 		// Error: aws.String(""), // TODO: Can we use this? "An arbitrary error code that identifies the cause of the termination."
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	describeOutput, err := wm.sfnapi.DescribeExecution(&sfn.DescribeExecutionInput{
+		ExecutionArn: aws.String(execARN),
+	})
+	if err != nil {
+		return err
+	}
+
+	status := sfnStatusToWorkflowStatus(*describeOutput.Status)
+	if status == models.WorkflowStatusFailed {
+		// SFN executions can't be moved from the failed state to the aborted state, so if the user
+		// cancels a failed workflow, we update the status in workflow-manager directly to preserve
+		// user intent.
+		workflow.Status = models.WorkflowStatusCancelled
+	}
+
+	workflow.StatusReason = reason
+	return wm.store.UpdateWorkflow(*workflow)
+}
+
+func (wm *SFNWorkflowManager) executionARN(
+	workflow *models.Workflow,
+	definition *models.WorkflowDefinition,
+) string {
+	return executionARN(
+		wm.region,
+		wm.accountID,
+		stateMachineName(definition.Name, definition.Version, workflow.Namespace, workflow.Queue),
+		workflow.ID,
+	)
 }
 
 func executionARN(region, accountID, stateMachineName, executionName string) string {
@@ -192,6 +228,13 @@ func sfnStatusToWorkflowStatus(sfnStatus string) models.WorkflowStatus {
 }
 
 func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) error {
+	// Avoid the extraneous processing for executions that have already stopped.
+	// This also prevents the WM "cancelled" state from getting overwritten for workflows cancelled
+	// by the user after a failure.
+	if resources.WorkflowIsDone(workflow) {
+		return nil
+	}
+
 	// get execution from AWS, pull in all the data into the workflow object
 	wd := workflow.WorkflowDefinition
 	execARN := executionARN(wm.region, wm.accountID, stateMachineName(wd.Name, wd.Version, workflow.Namespace, workflow.Queue), workflow.ID)
@@ -267,6 +310,14 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 			case sfn.HistoryEventTypeActivityFailed:
 				if currentState != nil {
 					stateToJob[*currentState].Status = models.JobStatusFailed
+					stateToJob[*currentState].StoppedAt = strfmt.DateTime(*evt.Timestamp)
+					if details := evt.ActivityFailedEventDetails; details != nil {
+						reasonLines := strings.Split(strings.TrimSpace(aws.StringValue(details.Cause)), "\n")
+						if len(reasonLines) > maxFailureReasonLines {
+							reasonLines = reasonLines[len(reasonLines)-maxFailureReasonLines:]
+						}
+						stateToJob[*currentState].StatusReason = strings.Join(reasonLines, "\n")
+					}
 				}
 			case sfn.HistoryEventTypeActivitySucceeded:
 				if currentState != nil {
@@ -274,7 +325,13 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 				}
 			case sfn.HistoryEventTypeExecutionAborted:
 				if currentState != nil {
-					stateToJob[*currentState].Status = models.JobStatusAbortedByUser
+					job := stateToJob[*currentState]
+					job.Status = models.JobStatusAbortedByUser
+					job.StoppedAt = strfmt.DateTime(*evt.Timestamp)
+
+					if details := evt.ExecutionAbortedEventDetails; details != nil {
+						job.StatusReason = aws.StringValue(details.Cause)
+					}
 				}
 			case sfn.HistoryEventTypeTaskStateExited:
 				stateExited := evt.StateExitedEventDetails
