@@ -40,15 +40,18 @@ type StateAndDeps struct {
 }
 
 func OrderedStates(states map[string]models.SLState) ([]StateAndDeps, error) {
-	var stateDeps = map[string][]string{}
+	var stateDeps = make(map[string][]string)
 	for stateName, state := range states {
-		stateDeps[stateName] = []string{}
+		if _, ok := stateDeps[stateName]; !ok {
+			stateDeps[stateName] = []string{}
+		}
 
 		if !state.End {
 			if _, ok := states[state.Next]; !ok {
 				return nil, fmt.Errorf("%s.Next=%s, but %s not defined",
 					stateName, state.Next, state.Next)
 			}
+
 			if _, ok := stateDeps[state.Next]; !ok {
 				stateDeps[state.Next] = []string{stateName}
 			} else {
