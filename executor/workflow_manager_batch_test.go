@@ -304,8 +304,6 @@ func TestRetryWorkflow(t *testing.T) {
 	ogWorkflow, err := store.GetWorkflowByID(workflow.ID)
 
 	assert.Equal(t, workflow.ID, ogWorkflow.ID)
-	fmt.Println(ogWorkflow)
-	fmt.Println(newWorkflow)
 	assert.Equal(t, len(ogWorkflow.Jobs)-1, len(newWorkflow.Jobs))
 	assert.Equal(t, ogWorkflow.ID, newWorkflow.RetryFor)
 	assert.Contains(t, ogWorkflow.Retries, newWorkflow.ID)

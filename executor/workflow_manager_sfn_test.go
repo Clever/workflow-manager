@@ -35,7 +35,6 @@ type stateMachineNameInput struct {
 	wdName    string
 	wdVersion int64
 	namespace string
-	queue     string
 	startAt   string
 }
 
@@ -51,10 +50,9 @@ func TestStateMachineName(t *testing.T) {
 				wdName:    "cil-reliability-dashboard:sfn",
 				wdVersion: 3,
 				namespace: "production",
-				queue:     "default",
 				startAt:   "cil",
 			},
-			output: "production--cil-reliability-dashboard-sfn--3--default--cil",
+			output: "production--cil-reliability-dashboard-sfn--3--cil",
 		},
 	}
 	for _, test := range tests {
@@ -62,7 +60,6 @@ func TestStateMachineName(t *testing.T) {
 			test.input.wdName,
 			test.input.wdVersion,
 			test.input.namespace,
-			test.input.queue,
 			test.input.startAt,
 		)
 		require.Equal(t, output, test.output, "input: %#v", test.input)

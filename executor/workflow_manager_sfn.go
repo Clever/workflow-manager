@@ -69,21 +69,21 @@ func stateMachineWithFullActivityARNs(stateMachine *models.SLStateMachine, regio
 // https://docs.aws.amazon.com/step-functions/latest/apireference/API_CreateStateMachine.html#StepFunctions-CreateStateMachine-request-name
 var stateMachineNameBadChars = []byte{' ', '<', '>', '{', '}', '[', ']', '?', '*', '"', '#', '%', '\\', '^', '|', '~', '`', '$', '&', ',', ';', ':', '/'}
 
-func stateMachineName(wdName string, wdVersion int64, namespace string, queue string, startAt string) string {
-	name := fmt.Sprintf("%s--%s--%d--%s--%s", namespace, wdName, wdVersion, queue, startAt)
+func stateMachineName(wdName string, wdVersion int64, namespace string, startAt string) string {
+	name := fmt.Sprintf("%s--%s--%d--%s", namespace, wdName, wdVersion, startAt)
 	for _, badchar := range stateMachineNameBadChars {
 		name = strings.Replace(name, string(badchar), "-", -1)
 	}
 	return name
 }
 
-func stateMachineARN(region, accountID, wdName string, wdVersion int64, namespace string, queue string, startAt string) string {
-	return fmt.Sprintf("arn:aws:states:%s:%s:stateMachine:%s", region, accountID, stateMachineName(wdName, wdVersion, namespace, queue, startAt))
+func stateMachineARN(region, accountID, wdName string, wdVersion int64, namespace string, startAt string) string {
+	return fmt.Sprintf("arn:aws:states:%s:%s:stateMachine:%s", region, accountID, stateMachineName(wdName, wdVersion, namespace, startAt))
 }
 
 func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
 	describeOutput, err := wm.sfnapi.DescribeStateMachine(&sfn.DescribeStateMachineInput{
-		StateMachineArn: aws.String(stateMachineARN(wm.region, wm.accountID, wd.Name, wd.Version, namespace, queue, wd.StateMachine.StartAt)),
+		StateMachineArn: aws.String(stateMachineARN(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
 	})
 	if err == nil {
 		return describeOutput, nil
@@ -107,8 +107,8 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDef
 	}
 	awsStateMachineDef := string(awsStateMachineDefBytes)
 	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
-	// this effectively creates named queues for each workflow definition in each namespace we deploy into
-	awsStateMachineName := stateMachineName(wd.Name, wd.Version, namespace, queue, wd.StateMachine.StartAt)
+	// this effectively creates a new workflow definition in each namespace we deploy into
+	awsStateMachineName := stateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
 	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
 	_, err = wm.sfnapi.CreateStateMachine(&sfn.CreateStateMachineInput{
 		Name:       aws.String(awsStateMachineName),
@@ -169,15 +169,21 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input
 
 func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
 	if !resources.WorkflowIsDone(&ogWorkflow) {
-		return &models.Workflow{}, fmt.Errorf("Retry not allowed. Workflow state is %s", ogWorkflow.Status)
+		return nil, fmt.Errorf("Retry not allowed. Workflow state is %s", ogWorkflow.Status)
 	}
 
 	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
 	newDef := *ogWorkflow.WorkflowDefinition
 	newDef.StateMachine = &(*ogWorkflow.WorkflowDefinition.StateMachine)
 	newDef.StateMachine.StartAt = startAt
+	if err := resources.RemoveInactiveStates(newDef.StateMachine); err != nil {
+		return nil, err
+	}
 
 	describeOutput, err := wm.describeOrCreateStateMachine(newDef, ogWorkflow.Namespace, ogWorkflow.Queue)
+	if err != nil {
+		return nil, err
+	}
 
 	// submit an execution using input, set execution name == our workflow GUID
 	workflow := resources.NewWorkflow(&newDef, input, ogWorkflow.Namespace, ogWorkflow.Queue, ogWorkflow.Tags)
@@ -243,7 +249,7 @@ func (wm *SFNWorkflowManager) executionARN(
 	return executionARN(
 		wm.region,
 		wm.accountID,
-		stateMachineName(definition.Name, definition.Version, workflow.Namespace, workflow.Queue, definition.StateMachine.StartAt),
+		stateMachineName(definition.Name, definition.Version, workflow.Namespace, definition.StateMachine.StartAt),
 		workflow.ID,
 	)
 }
@@ -282,7 +288,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 	execARN := executionARN(
 		wm.region,
 		wm.accountID,
-		stateMachineName(wd.Name, wd.Version, workflow.Namespace, workflow.Queue, wd.StateMachine.StartAt),
+		stateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
 		workflow.ID,
 	)
 	describeOutput, err := wm.sfnapi.DescribeExecution(&sfn.DescribeExecutionInput{

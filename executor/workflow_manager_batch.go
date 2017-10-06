@@ -113,12 +113,12 @@ func (wm BatchWorkflowManager) CreateWorkflow(def models.WorkflowDefinition, inp
 
 	stateResources, err := wm.getStateResources(workflow, namespace)
 	if err != nil {
-		return &models.Workflow{}, err
+		return nil, err
 	}
 
 	err = wm.scheduleJobs(workflow, stateResources, input, queue)
 	if err != nil {
-		return &models.Workflow{}, err
+		return nil, err
 	}
 
 	// TODO: fails we should either
@@ -132,7 +132,7 @@ func (wm BatchWorkflowManager) CreateWorkflow(def models.WorkflowDefinition, inp
 // RetryWorkflow is used to create a new workflow starting at a custom state given an existing Workflow
 func (wm BatchWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
 	if !resources.WorkflowIsDone(&ogWorkflow) {
-		return &models.Workflow{}, fmt.Errorf("Retry not allowed. Workflow state is %s", ogWorkflow.Status)
+		return nil, fmt.Errorf("Retry not allowed. Workflow state is %s", ogWorkflow.Status)
 	}
 
 	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
@@ -145,12 +145,12 @@ func (wm BatchWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt
 
 	stateResources, err := wm.getStateResources(workflow, ogWorkflow.Namespace)
 	if err != nil {
-		return &models.Workflow{}, err
+		return nil, err
 	}
 
 	err = wm.scheduleJobs(workflow, stateResources, input, ogWorkflow.Queue)
 	if err != nil {
-		return &models.Workflow{}, err
+		return nil, err
 	}
 
 	ogWorkflow.Retries = append(ogWorkflow.Retries, workflow.ID)
