@@ -80,3 +80,26 @@ func OrderedStates(states map[string]models.SLState) ([]StateAndDeps, error) {
 
 	return orderedStates, nil
 }
+
+// RemoveInactiveStates discards all states not reachable in the graph after the StartAt state
+// Assumes that startAt and the states are valid
+func RemoveInactiveStates(stateMachine *models.SLStateMachine) error {
+	// TODO: curently assuming only models.SLState.Type == Task
+	activeStates := map[string]models.SLState{}
+	currentStateName := stateMachine.StartAt
+	for true {
+
+		if _, ok := stateMachine.States[currentStateName]; !ok {
+			return fmt.Errorf("State %s not found in StateMachine", currentStateName)
+		}
+
+		activeStates[currentStateName] = stateMachine.States[currentStateName]
+		if activeStates[currentStateName].End {
+			break
+		}
+		currentStateName = activeStates[currentStateName].Next
+	}
+
+	stateMachine.States = activeStates
+	return nil
+}
