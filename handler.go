@@ -36,25 +36,25 @@ func (h Handler) HealthCheck(ctx context.Context) error {
 }
 
 // NewWorkflowDefinition creates a new workflow definition
-func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowReq *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
+func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowDefReq *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	//TODO: validate states
-	if len(workflowReq.StateMachine.States) == 0 {
-		return &models.WorkflowDefinition{}, fmt.Errorf("Must define at least one state")
+	if len(workflowDefReq.StateMachine.States) == 0 {
+		return nil, fmt.Errorf("Must define at least one state")
 	}
-	if workflowReq.Name == "" {
-		return &models.WorkflowDefinition{}, fmt.Errorf("WorkflowDefinition `name` is required")
+	if workflowDefReq.Name == "" {
+		return nil, fmt.Errorf("WorkflowDefinition `name` is required")
 	}
 
-	workflow, err := newWorkflowDefinitionFromRequest(*workflowReq)
+	workflowDef, err := newWorkflowDefinitionFromRequest(*workflowDefReq)
 	if err != nil {
-		return &models.WorkflowDefinition{}, err
+		return nil, err
 	}
 
-	if err := h.store.SaveWorkflowDefinition(*workflow); err != nil {
-		return &models.WorkflowDefinition{}, err
+	if err := h.store.SaveWorkflowDefinition(*workflowDef); err != nil {
+		return nil, err
 	}
 
-	return workflow, nil
+	return workflowDef, nil
 }
 
 // UpdateWorkflowDefinition creates a new version for an existing workflow
@@ -293,9 +293,16 @@ func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (
 		}
 	}
 
-	if _, ok := req.StateMachine.States[req.StateMachine.StartAt]; !ok {
-		return nil, fmt.Errorf("StartAt state %s not defined", req.StateMachine.StartAt)
+	// ensure all states are defined and have a transition path
+	numStates := len(req.StateMachine.States)
+	if err := resources.RemoveInactiveStates(req.StateMachine); err != nil {
+		return nil, err
 	}
+	if len(req.StateMachine.States) != numStates {
+		return nil, fmt.Errorf("Invalid WorkflowDefinition: %d states have no transition path",
+			numStates-len(req.StateMachine.States))
+	}
+
 	return resources.NewWorkflowDefinition(req.Name, req.Manager, req.StateMachine)
 }
 
