@@ -157,19 +157,27 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input
 		return nil, err
 	}
 
-	// submit an execution using input, set execution name == our workflow GUID
+	// save the workflow before starting execution to ensure we don't have untracked executions
+	// i.e. execution was started but we failed to save workflow
+	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
 	workflow := resources.NewWorkflow(&wd, input, namespace, queue, tags)
-	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
-	if err != nil {
-		return &models.Workflow{}, err
+	if err := wm.store.SaveWorkflow(*workflow); err != nil {
+		return nil, err
 	}
 
-	return workflow, wm.store.SaveWorkflow(*workflow)
+	// submit an execution using input, set execution name == our workflow GUID
+	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return workflow, nil
 }
 
 func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
+	// don't allow resume if workflow is still active
 	if !resources.WorkflowIsDone(&ogWorkflow) {
-		return nil, fmt.Errorf("Retry not allowed. Workflow state is %s", ogWorkflow.Status)
+		return nil, fmt.Errorf("Workflow %s active: %s", ogWorkflow.ID, ogWorkflow.Status)
 	}
 
 	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
@@ -184,26 +192,24 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt,
 		return nil, err
 	}
 
-	// submit an execution using input, set execution name == our workflow GUID
 	workflow := resources.NewWorkflow(&newDef, input, ogWorkflow.Namespace, ogWorkflow.Queue, ogWorkflow.Tags)
-	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
-	if err != nil {
-		return &models.Workflow{}, err
-	}
-
 	workflow.RetryFor = ogWorkflow.ID
 	ogWorkflow.Retries = append(ogWorkflow.Retries, workflow.ID)
 
-	err = wm.store.SaveWorkflow(*workflow)
-	if err != nil {
-		return workflow, err
+	// save the workflow before starting execution to ensure we don't have untracked executions
+	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
+	if err = wm.store.SaveWorkflow(*workflow); err != nil {
+		return nil, err
+	}
+	// also update ogWorkflow
+	if err = wm.store.UpdateWorkflow(ogWorkflow); err != nil {
+		return nil, err
 	}
 
-	// also update ogWorkflow
-	err = wm.store.UpdateWorkflow(ogWorkflow)
+	// submit an execution using input, set execution name == our workflow GUID
+	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
 	if err != nil {
-		// TODO: should we be failing here or just log?
-		return workflow, err
+		return nil, err
 	}
 
 	return workflow, nil

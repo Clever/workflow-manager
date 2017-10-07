@@ -131,8 +131,9 @@ func (wm BatchWorkflowManager) CreateWorkflow(def models.WorkflowDefinition, inp
 
 // RetryWorkflow is used to create a new workflow starting at a custom state given an existing Workflow
 func (wm BatchWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
+	// don't allow resume if workflow is still active
 	if !resources.WorkflowIsDone(&ogWorkflow) {
-		return nil, fmt.Errorf("Retry not allowed. Workflow state is %s", ogWorkflow.Status)
+		return nil, fmt.Errorf("Workflow %s active: %s", ogWorkflow.ID, ogWorkflow.Status)
 	}
 
 	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
@@ -160,14 +161,14 @@ func (wm BatchWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt
 	// 2. kill the running jobs so that we don't have orphan jobs in AWS Batch
 	err = wm.store.SaveWorkflow(*workflow)
 	if err != nil {
-		return workflow, err
+		return nil, err
 	}
 
 	// update originalWorfklow
 	err = wm.store.UpdateWorkflow(ogWorkflow)
 	if err != nil {
 		// TODO: should we be failing here or just log?
-		return workflow, err
+		return nil, err
 	}
 
 	return workflow, nil

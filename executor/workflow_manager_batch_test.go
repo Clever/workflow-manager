@@ -292,13 +292,13 @@ func TestRetryWorkflow(t *testing.T) {
 	_, err = jm.RetryWorkflow(*workflow, "second-state", `["args"]`)
 	assert.NotNil(t, err)
 
+	t.Log("Retry an existing Workflow if it is failed")
 	workflow.Status = models.WorkflowStatusFailed
 	for _, job := range workflow.Jobs {
 		job.Status = models.JobStatusFailed
 	}
-	err = store.SaveWorkflow(*workflow)
 
-	t.Log("Retry an existing Workflow if it is done")
+	assert.Nil(t, store.UpdateWorkflow(*workflow))
 	newWorkflow, err := jm.RetryWorkflow(*workflow, "second-state", `["args"]`)
 	assert.Nil(t, err)
 	ogWorkflow, err := store.GetWorkflowByID(workflow.ID)

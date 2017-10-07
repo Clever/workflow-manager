@@ -268,7 +268,7 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 				job.Status == models.JobStatusCreated {
 
 				return &models.Workflow{},
-					fmt.Errorf("Job %s for StartAt %s was aborted for Workflow: %s. Could not infer input",
+					fmt.Errorf("Job %s for StartAt %s was not started for Workflow: %s. Could not infer input",
 						job.ID, job.State, workflow.ID)
 			}
 
