@@ -1,4 +1,7 @@
 package: github.com/Clever/workflow-manager
+excludeDirs:
+- store/dynamodb/migrate
+- workflow-ops
 import:
 - package: github.com/lightstep/lightstep-tracer-go
   version: 0d48cd619841b1e1a3cdd20cd6ac97774c0002ce
@@ -27,4 +30,5 @@ import:
   - gomock
 - package: github.com/zencoder/ddbsync
   version: 83dd4ef
-  repo: git@github.com:Clever/ddbsync.git # use our fork which adds a couple of methods
+  repo: git@github.com:Clever/ddbsync.git
+- package: github.com/mohae/deepcopy

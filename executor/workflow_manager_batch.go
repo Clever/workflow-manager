@@ -136,8 +136,7 @@ func (wm BatchWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt
 	}
 
 	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
-	newDef := *ogWorkflow.WorkflowDefinition
-	newDef.StateMachine = &(*ogWorkflow.WorkflowDefinition.StateMachine)
+	newDef := resources.CopyWorkflowDefinition(*ogWorkflow.WorkflowDefinition)
 	newDef.StateMachine.StartAt = startAt
 
 	workflow := resources.NewWorkflow(&newDef, input, ogWorkflow.Namespace, ogWorkflow.Queue, ogWorkflow.Tags)

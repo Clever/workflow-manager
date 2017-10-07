@@ -7,6 +7,7 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/toposort"
 	"github.com/go-openapi/strfmt"
+	"github.com/mohae/deepcopy"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -31,6 +32,16 @@ func NewWorkflowDefinitionVersion(def *models.WorkflowDefinition, version int) *
 		Manager:      def.Manager,
 		StateMachine: def.StateMachine,
 	}
+}
+
+// CopyWorkflowDefinition creates a copy of an existing WorflowDefinition with the same
+// name and version, but a new ID.
+//
+// This is used to create modifed versions of WorkflowDefinitions that are variations
+// on the saved WorflowDefinition. e.g. for Retries
+func CopyWorkflowDefinition(def models.WorkflowDefinition) models.WorkflowDefinition {
+	newDef := deepcopy.Copy(def).(models.WorkflowDefinition)
+	return newDef
 }
 
 type StateAndDeps struct {

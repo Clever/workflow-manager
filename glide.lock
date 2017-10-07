@@ -1,5 +1,5 @@
-hash: dfa2d0bb9c8fe3fbdaaea532c3584ad34f0bfa3538d94c4ae7926aa33776b986
-updated: 2017-09-29T03:35:18.553269799Z
+hash: db151870a8b670381fe6e4bad2df63f589d666bd965dadaf22f1e61fee3138e7
+updated: 2017-10-08T00:13:36.06567338Z
 imports:
 - name: github.com/afex/hystrix-go
   version: f118cd938f786d24f46cc307981d8f63b7951020
@@ -10,7 +10,7 @@ imports:
 - name: github.com/asaskevich/govalidator
   version: eb06e9c4d8e04c43e16e5241db85df221ec5c17f
 - name: github.com/aws/aws-sdk-go
-  version: c652f9369083515c3ddf1fbaf6df68da2c101545
+  version: 760741802ad40f49ae9fc4a69ef6706d2527d62e
   subpackages:
   - aws
   - aws/awserr
@@ -52,7 +52,7 @@ imports:
   subpackages:
   - metrics
 - name: github.com/Clever/kayvee-go
-  version: e6f953eac5b9d8e41dff6587e0ae6d58b50da5c5
+  version: e1e6fd8184162847c1123645e7058347a2fd3959
   subpackages:
   - logger
 - name: github.com/davecgh/go-spew
@@ -90,7 +90,7 @@ imports:
   subpackages:
   - proto
 - name: github.com/golang/mock
-  version: c7d0ee73a597d1349404607d9f692cacd09cdc06
+  version: 4887ba10eac80f57bfb3de234db4ac970d786511
   subpackages:
   - gomock
 - name: github.com/golang/protobuf
@@ -124,6 +124,8 @@ imports:
   - jwriter
 - name: github.com/mitchellh/mapstructure
   version: d0303fe809921458f417bcf828397a65db30a7e4
+- name: github.com/mohae/deepcopy
+  version: c48cc78d482608239f6c4c92a4abd87eb8761c90
 - name: github.com/opentracing/basictracer-go
   version: 1b32af207119a14b1b231d451df3ed04a72efebf
   subpackages:

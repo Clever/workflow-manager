@@ -173,8 +173,7 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt,
 	}
 
 	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
-	newDef := *ogWorkflow.WorkflowDefinition
-	newDef.StateMachine = &(*ogWorkflow.WorkflowDefinition.StateMachine)
+	newDef := resources.CopyWorkflowDefinition(*ogWorkflow.WorkflowDefinition)
 	newDef.StateMachine.StartAt = startAt
 	if err := resources.RemoveInactiveStates(newDef.StateMachine); err != nil {
 		return nil, err

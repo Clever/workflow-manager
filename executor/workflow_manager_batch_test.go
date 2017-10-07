@@ -307,6 +307,10 @@ func TestRetryWorkflow(t *testing.T) {
 	assert.Equal(t, len(ogWorkflow.Jobs)-1, len(newWorkflow.Jobs))
 	assert.Equal(t, ogWorkflow.ID, newWorkflow.RetryFor)
 	assert.Contains(t, ogWorkflow.Retries, newWorkflow.ID)
+
+	t.Log("Original Workflow is not modified after retry")
+	assert.Equal(t, len(ogWorkflow.WorkflowDefinition.StateMachine.States),
+		len(resources.KitchenSinkWorkflowDefinition(t).StateMachine.States))
 }
 
 // TestGetStateResources tests that the correct stateResources are set for
