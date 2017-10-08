@@ -1,9 +1,9 @@
 package executor
 
 import (
-	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 var log = logger.New("workflow-manager")

@@ -1,5 +1,5 @@
-hash: db151870a8b670381fe6e4bad2df63f589d666bd965dadaf22f1e61fee3138e7
-updated: 2017-10-08T00:13:36.06567338Z
+hash: 5373297ef32b83a97a2201e21d3d721baecab54227c2a3ce2ee4d63c23b14027
+updated: 2017-10-08T00:25:26.477298241Z
 imports:
 - name: github.com/afex/hystrix-go
   version: f118cd938f786d24f46cc307981d8f63b7951020
@@ -51,10 +51,6 @@ imports:
   version: 5944a49b5051ebcc10feb08724689740b4eefa28
   subpackages:
   - metrics
-- name: github.com/Clever/kayvee-go
-  version: e1e6fd8184162847c1123645e7058347a2fd3959
-  subpackages:
-  - logger
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:

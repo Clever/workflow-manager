@@ -3,10 +3,10 @@ package executor
 import (
 	"fmt"
 
-	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // BatchWorkflowManager implements WorkflowManager using the AWS Batch client
