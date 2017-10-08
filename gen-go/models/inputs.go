@@ -392,3 +392,36 @@ func GetWorkflowByIDInputPath(workflowID string) (string, error) {
 
 	return path + "?" + urlVals.Encode(), nil
 }
+
+// ResumeWorkflowByIDInput holds the input parameters for a resumeWorkflowByID operation.
+type ResumeWorkflowByIDInput struct {
+	WorkflowID string
+	Overrides  *WorkflowDefinitionOverrides
+}
+
+// Validate returns an error if any of the ResumeWorkflowByIDInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i ResumeWorkflowByIDInput) Validate() error {
+
+	if err := i.Overrides.Validate(nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i ResumeWorkflowByIDInput) Path() (string, error) {
+	path := "/workflows/{workflowID}"
+	urlVals := url.Values{}
+
+	pathworkflowID := i.WorkflowID
+	if pathworkflowID == "" {
+		err := fmt.Errorf("workflowID cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{workflowID}", pathworkflowID, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}

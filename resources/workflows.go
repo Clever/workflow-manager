@@ -21,6 +21,8 @@ func NewWorkflow(wfd *models.WorkflowDefinition, input string, namespace string,
 		Queue:              queue,
 		Input:              input,
 		Tags:               tags,
+		Retries:            []string{},
+		RetryFor:           "",
 	}
 }
 

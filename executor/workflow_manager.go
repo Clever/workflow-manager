@@ -12,6 +12,7 @@ import (
 // WorkflowManager is the interface for creating, stopping and checking status for Workflows
 type WorkflowManager interface {
 	CreateWorkflow(def models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error)
+	RetryWorkflow(workflow models.Workflow, startAt, input string) (*models.Workflow, error)
 	CancelWorkflow(workflow *models.Workflow, reason string) error
 	UpdateWorkflowStatus(workflow *models.Workflow) error
 }

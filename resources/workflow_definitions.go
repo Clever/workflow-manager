@@ -7,6 +7,7 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/toposort"
 	"github.com/go-openapi/strfmt"
+	"github.com/mohae/deepcopy"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -31,6 +32,16 @@ func NewWorkflowDefinitionVersion(def *models.WorkflowDefinition, version int) *
 		Manager:      def.Manager,
 		StateMachine: def.StateMachine,
 	}
+}
+
+// CopyWorkflowDefinition creates a copy of an existing WorflowDefinition with the same
+// name and version, but a new ID.
+//
+// This is used to create modifed versions of WorkflowDefinitions that are variations
+// on the saved WorflowDefinition. e.g. for Retries
+func CopyWorkflowDefinition(def models.WorkflowDefinition) models.WorkflowDefinition {
+	newDef := deepcopy.Copy(def).(models.WorkflowDefinition)
+	return newDef
 }
 
 type StateAndDeps struct {
@@ -79,4 +90,27 @@ func OrderedStates(states map[string]models.SLState) ([]StateAndDeps, error) {
 	}
 
 	return orderedStates, nil
+}
+
+// RemoveInactiveStates discards all states not reachable in the graph after the StartAt state
+// Assumes that startAt and the states are valid
+func RemoveInactiveStates(stateMachine *models.SLStateMachine) error {
+	// TODO: curently assuming only models.SLState.Type == Task
+	activeStates := map[string]models.SLState{}
+	currentStateName := stateMachine.StartAt
+	for true {
+
+		if _, ok := stateMachine.States[currentStateName]; !ok {
+			return fmt.Errorf("State %s not found in StateMachine", currentStateName)
+		}
+
+		activeStates[currentStateName] = stateMachine.States[currentStateName]
+		if activeStates[currentStateName].End {
+			break
+		}
+		currentStateName = activeStates[currentStateName].Next
+	}
+
+	stateMachine.States = activeStates
+	return nil
 }

@@ -7,7 +7,7 @@ info:
   # 2. merge the new clients, and, after merging, tag the commit with the version:
   #    git tag -a vX.Y.Z -m "vX.Y.Z"
   #    git push origin --tags
-  version: 0.6.2
+  version: 0.6.3
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -223,6 +223,26 @@ paths:
           type: string
         404:
           $ref: "#/responses/NotFound"
+    post:
+      summary: Start a new Workflow using job outputs of a completed Workflow from the provided position
+      operationId: resumeWorkflowByID
+      parameters:
+        - name: workflowID
+          in: path
+          type: string
+          required: true
+        - name: overrides
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/WorkflowDefinitionOverrides'
+      responses:
+        200:
+          description: Workflow
+          schema:
+            $ref: "#/definitions/Workflow"
+        404:
+          $ref: "#/responses/NotFound"
 
   /state-resources:
     post:
@@ -380,6 +400,14 @@ definitions:
       input:
         # format: json
         type: string
+      retryFor:
+        description: "workflow-id of original workflow in case this is a retry"
+        type: string
+      retries:
+        description: "workflow-id's of workflows created as retries for this workflow"
+        type: array
+        items:
+          type: string
       tags:
         description: "tags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
@@ -602,3 +630,9 @@ definitions:
 
   SLErrorEquals:
     type: string
+
+  WorkflowDefinitionOverrides:
+    type: object
+    properties:
+      StartAt:
+        type: string

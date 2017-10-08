@@ -33,6 +33,14 @@ func (mwm *MultiWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, in
 	return wm.CreateWorkflow(wd, input, namespace, queue, tags)
 }
 
+func (mwm *MultiWorkflowManager) RetryWorkflow(workflow models.Workflow, startAt, input string) (*models.Workflow, error) {
+	wm, err := mwm.manager(workflow.WorkflowDefinition.Manager)
+	if err != nil {
+		return nil, err
+	}
+	return wm.RetryWorkflow(workflow, startAt, input)
+}
+
 func (mwm *MultiWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason string) error {
 	wd := workflow.WorkflowDefinition
 	wm, err := mwm.manager(wd.Manager)

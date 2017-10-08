@@ -3,10 +3,10 @@ package executor
 import (
 	"fmt"
 
-	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // BatchWorkflowManager implements WorkflowManager using the AWS Batch client
@@ -113,12 +113,12 @@ func (wm BatchWorkflowManager) CreateWorkflow(def models.WorkflowDefinition, inp
 
 	stateResources, err := wm.getStateResources(workflow, namespace)
 	if err != nil {
-		return &models.Workflow{}, err
+		return nil, err
 	}
 
 	err = wm.scheduleJobs(workflow, stateResources, input, queue)
 	if err != nil {
-		return &models.Workflow{}, err
+		return nil, err
 	}
 
 	// TODO: fails we should either
@@ -127,6 +127,51 @@ func (wm BatchWorkflowManager) CreateWorkflow(def models.WorkflowDefinition, inp
 	err = wm.store.SaveWorkflow(*workflow)
 
 	return workflow, err
+}
+
+// RetryWorkflow is used to create a new workflow starting at a custom state given an existing Workflow
+func (wm BatchWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
+	// don't allow resume if workflow is still active
+	if !resources.WorkflowIsDone(&ogWorkflow) {
+		return nil, fmt.Errorf("Workflow %s active: %s", ogWorkflow.ID, ogWorkflow.Status)
+	}
+
+	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
+	newDef := resources.CopyWorkflowDefinition(*ogWorkflow.WorkflowDefinition)
+	newDef.StateMachine.StartAt = startAt
+
+	workflow := resources.NewWorkflow(&newDef, input, ogWorkflow.Namespace, ogWorkflow.Queue, ogWorkflow.Tags)
+	logWorkflowStatusChange(workflow, "")
+
+	stateResources, err := wm.getStateResources(workflow, ogWorkflow.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	err = wm.scheduleJobs(workflow, stateResources, input, ogWorkflow.Queue)
+	if err != nil {
+		return nil, err
+	}
+
+	ogWorkflow.Retries = append(ogWorkflow.Retries, workflow.ID)
+	workflow.RetryFor = ogWorkflow.ID
+
+	// TODO: fails we should either
+	// 1. reconcile somehow with the scheduled jobs
+	// 2. kill the running jobs so that we don't have orphan jobs in AWS Batch
+	err = wm.store.SaveWorkflow(*workflow)
+	if err != nil {
+		return nil, err
+	}
+
+	// update originalWorfklow
+	err = wm.store.UpdateWorkflow(ogWorkflow)
+	if err != nil {
+		// TODO: should we be failing here or just log?
+		return nil, err
+	}
+
+	return workflow, nil
 }
 
 func (wm BatchWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason string) error {
@@ -163,12 +208,16 @@ func (wm BatchWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason 
 func (wm BatchWorkflowManager) scheduleJobs(workflow *models.Workflow,
 	stateResources map[string]*models.StateResource, input string, queue string) error {
 
-	jobs := map[string]*models.Job{}
+	if err := resources.RemoveInactiveStates(workflow.WorkflowDefinition.StateMachine); err != nil {
+		return err
+	}
 
 	orderedStates, err := resources.OrderedStates(workflow.WorkflowDefinition.StateMachine.States)
 	if err != nil {
 		return err
 	}
+
+	jobs := map[string]*models.Job{}
 
 	for i, stateAndDeps := range orderedStates {
 		stateName := stateAndDeps.StateName
@@ -194,8 +243,7 @@ func (wm BatchWorkflowManager) scheduleJobs(workflow *models.Workflow,
 		}
 		jobDefinition := stateResources[stateName].URI
 
-		// TODO: use workflow.WorkflowDefinition.StartAt
-		// if first workflow pass in an input
+		// use workflow input to first job
 		if i == 0 {
 			jobInput = input
 		}

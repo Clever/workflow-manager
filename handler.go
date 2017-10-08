@@ -35,26 +35,26 @@ func (h Handler) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// NewWorkflowDefinition creates a new workflow
-func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowReq *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
+// NewWorkflowDefinition creates a new workflow definition
+func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowDefReq *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	//TODO: validate states
-	if len(workflowReq.StateMachine.States) == 0 {
-		return &models.WorkflowDefinition{}, fmt.Errorf("Must define at least one state")
+	if len(workflowDefReq.StateMachine.States) == 0 {
+		return nil, fmt.Errorf("Must define at least one state")
 	}
-	if workflowReq.Name == "" {
-		return &models.WorkflowDefinition{}, fmt.Errorf("WorkflowDefinition `name` is required")
+	if workflowDefReq.Name == "" {
+		return nil, fmt.Errorf("WorkflowDefinition `name` is required")
 	}
 
-	workflow, err := newWorkflowDefinitionFromRequest(*workflowReq)
+	workflowDef, err := newWorkflowDefinitionFromRequest(*workflowDefReq)
 	if err != nil {
-		return &models.WorkflowDefinition{}, err
+		return nil, err
 	}
 
-	if err := h.store.SaveWorkflowDefinition(*workflow); err != nil {
-		return &models.WorkflowDefinition{}, err
+	if err := h.store.SaveWorkflowDefinition(*workflowDef); err != nil {
+		return nil, err
 	}
 
-	return workflow, nil
+	return workflowDef, nil
 }
 
 // UpdateWorkflowDefinition creates a new version for an existing workflow
@@ -174,12 +174,7 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 		return &models.Workflow{}, err
 	}
 
-	workflow, err := h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, *req.Queue, req.Tags)
-	if err != nil {
-		return &models.Workflow{}, err
-	}
-
-	return workflow, nil
+	return h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, *req.Queue, req.Tags)
 }
 
 // GetWorkflows returns a summary of all workflows matching the given query.
@@ -246,6 +241,45 @@ func (h Handler) CancelWorkflow(ctx context.Context, input *models.CancelWorkflo
 	return h.manager.CancelWorkflow(&workflow, input.Reason.Reason)
 }
 
+// ResumeWorkflowByID starts a new Workflow based on an existing completed Workflow
+// from the provided position. Uses existing inputs and outputs when required
+func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWorkflowByIDInput) (*models.Workflow, error) {
+	workflow, err := h.store.GetWorkflowByID(input.WorkflowID)
+	if err != nil {
+		return &models.Workflow{}, err
+	}
+
+	// don't allow resume if workflow is still active
+	if !resources.WorkflowIsDone(&workflow) {
+		return &models.Workflow{}, fmt.Errorf("Workflow %s active: %s", workflow.ID, workflow.Status)
+	}
+	if _, ok := workflow.WorkflowDefinition.StateMachine.States[input.Overrides.StartAt]; !ok {
+		return &models.Workflow{}, fmt.Errorf("Invalid StartAt state %s", input.Overrides.StartAt)
+	}
+
+	// find the input to the StartAt state
+	effectiveInput := ""
+	for _, job := range workflow.Jobs {
+		if job.State == input.Overrides.StartAt {
+			// if job was never started then we should probably not trust the input
+			if job.Status == models.JobStatusAbortedDepsFailed ||
+				job.Status == models.JobStatusQueued ||
+				job.Status == models.JobStatusWaitingForDeps ||
+				job.Status == models.JobStatusCreated {
+
+				return &models.Workflow{},
+					fmt.Errorf("Job %s for StartAt %s was not started for Workflow: %s. Could not infer input",
+						job.ID, job.State, workflow.ID)
+			}
+
+			effectiveInput = job.Input
+			break
+		}
+	}
+
+	return h.manager.RetryWorkflow(workflow, input.Overrides.StartAt, effectiveInput)
+}
+
 // TODO: the functions below should probably just be functions on the respective resources.<Struct>
 
 func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
@@ -259,9 +293,16 @@ func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (
 		}
 	}
 
-	if _, ok := req.StateMachine.States[req.StateMachine.StartAt]; !ok {
-		return nil, fmt.Errorf("StartAt state %s not defined", req.StateMachine.StartAt)
+	// ensure all states are defined and have a transition path
+	numStates := len(req.StateMachine.States)
+	if err := resources.RemoveInactiveStates(req.StateMachine); err != nil {
+		return nil, err
 	}
+	if len(req.StateMachine.States) != numStates {
+		return nil, fmt.Errorf("Invalid WorkflowDefinition: %d states have no transition path",
+			numStates-len(req.StateMachine.States))
+	}
+
 	return resources.NewWorkflowDefinition(req.Name, req.Manager, req.StateMachine)
 }
 

@@ -1589,3 +1589,122 @@ func newGetWorkflowByIDInput(r *http.Request) (string, error) {
 	}
 	return workflowID, nil
 }
+
+// statusCodeForResumeWorkflowByID returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForResumeWorkflowByID(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case *models.Workflow:
+		return 200
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	case models.Workflow:
+		return 200
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) ResumeWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newResumeWorkflowByIDInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.ResumeWorkflowByID(ctx, input)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForResumeWorkflowByID(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForResumeWorkflowByID(resp))
+	w.Write(respBytes)
+
+}
+
+// newResumeWorkflowByIDInput takes in an http.Request an returns the input struct.
+func newResumeWorkflowByIDInput(r *http.Request) (*models.ResumeWorkflowByIDInput, error) {
+	var input models.ResumeWorkflowByIDInput
+
+	var err error
+	_ = err
+
+	workflowIDStr := mux.Vars(r)["workflowID"]
+	if len(workflowIDStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	workflowIDStrs := []string{workflowIDStr}
+
+	if len(workflowIDStrs) > 0 {
+		var workflowIDTmp string
+		workflowIDStr := workflowIDStrs[0]
+		workflowIDTmp, err = workflowIDStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.WorkflowID = workflowIDTmp
+	}
+
+	data, err := ioutil.ReadAll(r.Body)
+	if len(data) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+
+	if len(data) > 0 {
+		input.Overrides = &models.WorkflowDefinitionOverrides{}
+		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Overrides); err != nil {
+			return nil, err
+		}
+	}
+
+	return &input, nil
+}

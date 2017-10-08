@@ -3,9 +3,9 @@ package executor
 import (
 	"testing"
 
-	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 func init() {

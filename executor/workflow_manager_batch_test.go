@@ -214,7 +214,6 @@ func TestCancelUpdates(t *testing.T) {
 
 // TestCreateWorkflow tests that jobs are created for a workflow in the right order
 // with the appropriate settings
-// @todo - panic "concurrent map writes"
 func TestCreateWorkflow(t *testing.T) {
 	mockClient := &mockBatchClient{
 		map[string]*models.Job{},
@@ -232,7 +231,6 @@ func TestCreateWorkflow(t *testing.T) {
 	tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
 	workflow, err := jm.CreateWorkflow(*wf, input, "", "", tags)
 	assert.Nil(t, err)
-
 	assert.Equal(t, len(workflow.Jobs), len(workflow.WorkflowDefinition.StateMachine.States))
 
 	t.Log("Input data is passed to the first job only")
@@ -266,6 +264,53 @@ func TestCreateWorkflow(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, workflow.Jobs[0].Input, mockClient.jobs[workflow.Jobs[0].ID].Input)
 
+	t.Log("CreateWorkflow uses startAt in workflow definition")
+	wf.StateMachine.StartAt = "second-state"
+
+	workflow, err = jm.CreateWorkflow(*wf, input, "my-env", "", tags)
+	assert.Equal(t, workflow.Jobs[0].State, "second-state")
+	assert.Equal(t, mockClient.jobs[workflow.Jobs[0].ID].Name, "my-env--fake-resource-2")
+}
+
+func TestRetryWorkflow(t *testing.T) {
+	mockClient := &mockBatchClient{
+		map[string]*models.Job{},
+	}
+	store := memory.New()
+	jm := BatchWorkflowManager{
+		mockClient,
+		store,
+	}
+
+	wf := resources.KitchenSinkWorkflowDefinition(t)
+	input := `["test-start-input", "arg2"]`
+	tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
+	workflow, err := jm.CreateWorkflow(*wf, input, "", "test", tags)
+	assert.Nil(t, err)
+
+	t.Log("Retry for a running Workflow is not allowed")
+	_, err = jm.RetryWorkflow(*workflow, "second-state", `["args"]`)
+	assert.NotNil(t, err)
+
+	t.Log("Retry an existing Workflow if it is failed")
+	workflow.Status = models.WorkflowStatusFailed
+	for _, job := range workflow.Jobs {
+		job.Status = models.JobStatusFailed
+	}
+
+	assert.Nil(t, store.UpdateWorkflow(*workflow))
+	newWorkflow, err := jm.RetryWorkflow(*workflow, "second-state", `["args"]`)
+	assert.Nil(t, err)
+	ogWorkflow, err := store.GetWorkflowByID(workflow.ID)
+
+	assert.Equal(t, workflow.ID, ogWorkflow.ID)
+	assert.Equal(t, len(ogWorkflow.Jobs)-1, len(newWorkflow.Jobs))
+	assert.Equal(t, ogWorkflow.ID, newWorkflow.RetryFor)
+	assert.Contains(t, ogWorkflow.Retries, newWorkflow.ID)
+
+	t.Log("Original Workflow is not modified after retry")
+	assert.Equal(t, len(ogWorkflow.WorkflowDefinition.StateMachine.States),
+		len(resources.KitchenSinkWorkflowDefinition(t).StateMachine.States))
 }
 
 // TestGetStateResources tests that the correct stateResources are set for

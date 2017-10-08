@@ -15,12 +15,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/kardianos/osext"
 
-	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/batchclient"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/gen-go/server"
 	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // Config contains the configuration for the workflow-manager app

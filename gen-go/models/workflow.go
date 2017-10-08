@@ -35,6 +35,12 @@ type Workflow struct {
 	// queue
 	Queue string `json:"queue,omitempty"`
 
+	// workflow-id's of workflows created as retries for this workflow
+	Retries []string `json:"retries"`
+
+	// workflow-id of original workflow in case this is a retry
+	RetryFor string `json:"retryFor,omitempty"`
+
 	// status
 	Status WorkflowStatus `json:"status,omitempty"`
 
@@ -53,6 +59,11 @@ func (m *Workflow) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateJobs(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateRetries(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -92,6 +103,15 @@ func (m *Workflow) validateJobs(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *Workflow) validateRetries(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Retries) { // not required
+		return nil
 	}
 
 	return nil
