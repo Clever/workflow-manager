@@ -205,6 +205,10 @@ func (wm BatchWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason 
 	return nil
 }
 
+func (wm BatchWorkflowManager) StateResourcesStatus(def models.WorkflowDefinition, namespace string) ([]models.StateResource, error) {
+	return []models.StateResource{}, fmt.Errorf("Not implemented for Batch yet")
+}
+
 func (wm BatchWorkflowManager) scheduleJobs(workflow *models.Workflow,
 	stateResources map[string]*models.StateResource, input string, queue string) error {
 

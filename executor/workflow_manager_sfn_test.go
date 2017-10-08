@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/mocks/mock_cloudwatchiface"
 	"github.com/Clever/workflow-manager/mocks/mock_sfniface"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
@@ -480,13 +481,14 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockController := gomock.NewController(t)
 	mockSFNAPI := mock_sfniface.NewMockSFNAPI(mockController)
+	mockCWAPI := mock_cloudwatchiface.NewMockCloudWatchAPI(mockController)
 	store := memory.New()
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
 	require.NoError(t, store.SaveWorkflowDefinition(*workflowDefinition))
 
 	return &sfnManagerTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, store, "", "", ""),
+		manager:            NewSFNWorkflowManager(mockSFNAPI, mockCWAPI, store, "", "", ""),
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
 		store:              &store,

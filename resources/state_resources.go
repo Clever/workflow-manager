@@ -23,3 +23,14 @@ func NewBatchResource(name, namespace, arn string) *models.StateResource {
 		LastUpdated: strfmt.DateTime(time.Now()),
 	}
 }
+
+func NewSFNResource(name, namespace, arn string) models.StateResource {
+	return models.StateResource{
+		Name:        name,
+		Namespace:   namespace,
+		URI:         arn,
+		Type:        models.StateResourceTypeActivityARN,
+		LastUpdated: strfmt.DateTime(time.Now()),
+		Status:      &models.StateResourceStatus{},
+	}
+}

@@ -143,7 +143,7 @@ func (h Handler) PutStateResource(ctx context.Context, i *models.PutStateResourc
 func (h Handler) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
 	stateResource, err := h.store.GetStateResource(i.Name, i.Namespace)
 	if err != nil {
-		return &models.StateResource{}, err
+		return nil, err
 	}
 	return &stateResource, nil
 }
@@ -278,6 +278,15 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 	}
 
 	return h.manager.RetryWorkflow(workflow, input.Overrides.StartAt, effectiveInput)
+}
+
+func (h Handler) GetStateResourcesByWorkflowDefinition(ctx context.Context, input *models.GetStateResourcesByWorkflowDefinitionInput) ([]models.StateResource, error) {
+	wf, err := h.store.LatestWorkflowDefinition(input.WorkflowDefinitionName)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.manager.StateResourcesStatus(wf, input.Namespace)
 }
 
 // TODO: the functions below should probably just be functions on the respective resources.<Struct>

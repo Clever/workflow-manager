@@ -11,6 +11,8 @@ import (
 	"github.com/Clever/workflow-manager/store"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/go-openapi/strfmt"
@@ -35,15 +37,22 @@ var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 // SFNWorkflowManager manages workflows run through AWS Step Functions.
 type SFNWorkflowManager struct {
 	sfnapi    sfniface.SFNAPI
+	cwapi     cloudwatchiface.CloudWatchAPI
 	store     store.Store
 	region    string
 	roleARN   string
 	accountID string
 }
 
-func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, store store.Store, roleARN, region, accountID string) *SFNWorkflowManager {
+func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI,
+	cwapi cloudwatchiface.CloudWatchAPI,
+	store store.Store,
+	roleARN, region,
+	accountID string) *SFNWorkflowManager {
+
 	return &SFNWorkflowManager{
 		sfnapi:    sfnapi,
+		cwapi:     cwapi,
 		store:     store,
 		roleARN:   roleARN,
 		region:    region,
@@ -455,10 +464,69 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 	return wm.store.UpdateWorkflow(*workflow)
 }
 
+// StateResourcesStatus fetches the status for all state resources given a workflow definition and namespace from Cloudwatch
+func (wm *SFNWorkflowManager) StateResourcesStatus(def models.WorkflowDefinition, namespace string) ([]models.StateResource, error) {
+	stateResources := []models.StateResource{}
+
+	for name, state := range def.StateMachine.States {
+		stateResource := resources.NewSFNResource(name, namespace,
+			wdResourceToSLResource(state.Resource, wm.region, wm.accountID, namespace))
+
+		status, err := wm.getStatus(stateResource.URI)
+		if err != nil {
+			// TODO: maybe don't fail if one metric fails?
+			return stateResources, err
+		}
+		stateResource.Status = &status
+		stateResources = append(stateResources, stateResource)
+	}
+
+	return stateResources, nil
+}
+
 // isActivityDoesntExistFailure checks if an execution failed because an activity doesn't exist.
 // This currently results in a cryptic AWS error, so the logic is probably over-broad: https://console.aws.amazon.com/support/home?region=us-west-2#/case/?displayId=4514731511&language=en
 // If SFN creates a more descriptive error event we should change this.
 func isActivityDoesntExistFailure(details *sfn.ExecutionFailedEventDetails) bool {
 	return *details.Error == "States.Runtime" &&
 		strings.Contains(*details.Cause, "Internal Error")
+}
+
+// getStatus fetches the queued and running activities given an activityArn
+func (wm *SFNWorkflowManager) getStatus(activityArn string) (models.StateResourceStatus, error) {
+	stateResourceStatus := models.StateResourceStatus{}
+
+	activityDimension := &cloudwatch.Dimension{
+		Name:  aws.String("ActivityArn"),
+		Value: aws.String(activityArn),
+	}
+	metrics := map[string]int64{
+		"ActivitiesStarted":   0,
+		"ActivitiesScheduled": 0,
+	}
+	for metricName, _ := range metrics {
+		res, err := wm.cwapi.GetMetricStatistics(&cloudwatch.GetMetricStatisticsInput{
+			Dimensions: []*cloudwatch.Dimension{activityDimension},
+			StartTime:  aws.Time(time.Now().Add(-4 * time.Minute)),
+			EndTime:    aws.Time(time.Now()),
+			MetricName: aws.String(metricName),
+			Namespace:  aws.String("AWS/States"),
+			Period:     aws.Int64(60), // this metric is available at a minimum of 1 minute
+			Statistics: []*string{aws.String("Sum")},
+		})
+		if err != nil {
+			return stateResourceStatus, err
+		}
+		if len(res.Datapoints) > 0 {
+			datapoint := res.Datapoints[len(res.Datapoints)-1]
+			metrics[metricName] = int64(*datapoint.Sum)
+			// for now don't care about which datapoint's timestamp we store
+			stateResourceStatus.LastUpdated = strfmt.DateTime(*datapoint.Timestamp)
+		}
+	}
+
+	stateResourceStatus.Running = metrics["ActivitiesStarted"]
+	stateResourceStatus.Queued = metrics["ActivitiesScheduled"] - metrics["ActivitiesStarted"]
+
+	return stateResourceStatus, nil
 }

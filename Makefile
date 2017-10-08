@@ -48,6 +48,10 @@ generate-mocks:
 	rm -f mocks/mock_sfniface/mock_sfnapi.go
 	mockgen github.com/aws/aws-sdk-go/service/sfn/sfniface SFNAPI > mocks/mock_sfniface/mock_sfnapi.go
 
+	mkdir -p mocks/mock_cloudwatchiface
+	rm -f mocks/mock_cloudwatchiface/mock_cwapi.go
+	mockgen github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface CloudWatchAPI > mocks/mock_cloudwatchiface/mock_cwapi.go
+
 $(GOPATH)/bin/glide:
 	@go get github.com/Masterminds/glide
 

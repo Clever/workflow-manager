@@ -59,6 +59,19 @@ func (mr *MockControllerMockRecorder) PostStateResource(ctx, i interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostStateResource", reflect.TypeOf((*MockController)(nil).PostStateResource), ctx, i)
 }
 
+// GetStateResourcesByWorkflowDefinition mocks base method
+func (m *MockController) GetStateResourcesByWorkflowDefinition(ctx context.Context, i *models.GetStateResourcesByWorkflowDefinitionInput) ([]models.StateResource, error) {
+	ret := m.ctrl.Call(m, "GetStateResourcesByWorkflowDefinition", ctx, i)
+	ret0, _ := ret[0].([]models.StateResource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStateResourcesByWorkflowDefinition indicates an expected call of GetStateResourcesByWorkflowDefinition
+func (mr *MockControllerMockRecorder) GetStateResourcesByWorkflowDefinition(ctx, i interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateResourcesByWorkflowDefinition", reflect.TypeOf((*MockController)(nil).GetStateResourcesByWorkflowDefinition), ctx, i)
+}
+
 // DeleteStateResource mocks base method
 func (m *MockController) DeleteStateResource(ctx context.Context, i *models.DeleteStateResourceInput) error {
 	ret := m.ctrl.Call(m, "DeleteStateResource", ctx, i)

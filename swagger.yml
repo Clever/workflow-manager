@@ -7,7 +7,7 @@ info:
   # 2. merge the new clients, and, after merging, tag the commit with the version:
   #    git tag -a vX.Y.Z -m "vX.Y.Z"
   #    git push origin --tags
-  version: 0.6.3
+  version: 0.6.4
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -320,6 +320,29 @@ paths:
         404:
           $ref: "#/responses/NotFound"
 
+  /state-resources/{namespace}:
+    get:
+      summary: Get details about StateResource given the namespace and name
+      operationId: getStateResourcesByWorkflowDefinition
+      parameters:
+        - name: namespace
+          in: path
+          type: string
+          required: true
+        - name: workflowDefinitionName
+          in: query
+          type: string
+          required: true
+      responses:
+        200:
+          description: StateResource
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/StateResource"
+        404:
+          $ref: "#/responses/NotFound"
+
 definitions:
   InternalError:
     type: object
@@ -547,12 +570,25 @@ definitions:
         format: date-time
       type:
         $ref: '#/definitions/StateResourceType'
+      status:
+        $ref: '#/definitions/StateResourceStatus'
 
   StateResourceType:
     type: string
     enum:
       - "JobDefinitionARN"
       - "ActivityARN"
+
+  StateResourceStatus:
+    type: object
+    properties:
+      queued:
+        type: integer
+      running:
+        type: integer
+      lastUpdated:
+        type: string
+        format: date-time
 
   # States Language Types: https://states-language.net/spec.html
   SLStateMachine:
