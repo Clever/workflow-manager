@@ -238,6 +238,55 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 	)
 }
 
+func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusQueued
+	c.saveWorkflow(t, workflow)
+
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusFailed),
+		}, nil)
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}, gomock.Any()).
+		Do(func(
+			input *sfn.GetExecutionHistoryInput,
+			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+		) {
+			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
+				jobCreatedEvent,
+				&sfn.HistoryEvent{
+					Id:        aws.Int64(2),
+					Timestamp: aws.Time(jobFailedEventTimestamp),
+					Type:      aws.String(sfn.HistoryEventTypeExecutionFailed),
+					ExecutionFailedEventDetails: &sfn.ExecutionFailedEventDetails{
+						Cause: aws.String("Internal Error (49b863bd-3367-4035-a76d-bfb2e777ece3)"),
+						Error: aws.String("States.Runtime"),
+					},
+				},
+			}}, true)
+		})
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
+	require.Len(t, workflow.Jobs, 1)
+	assert.Equal(t, models.JobStatusFailed, workflow.Jobs[0].Status)
+	assert.Equal(t, "State resource does not exist", workflow.Jobs[0].StatusReason)
+	assert.WithinDuration(
+		t, jobFailedEventTimestamp, time.Time(workflow.Jobs[0].StoppedAt), 1*time.Second,
+	)
+}
+
 var jobSucceededEventTimestamp = jobCreatedEventTimestamp.Add(5 * time.Minute)
 var jobSucceededEvent = &sfn.HistoryEvent{
 	Id:        aws.Int64(3),
