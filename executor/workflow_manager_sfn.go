@@ -331,6 +331,15 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 		ExecutionArn: aws.String(execARN),
 	})
 	if err != nil {
+		log.ErrorD("describe-execution", logger.M{"workflow-id": workflow.ID, "error": err.Error()})
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case sfn.ErrCodeExecutionDoesNotExist:
+				workflow.LastUpdated = strfmt.DateTime(time.Now())
+				workflow.Status = models.WorkflowStatusFailed
+				return wm.store.UpdateWorkflow(*workflow)
+			}
+		}
 		return err
 	}
 
