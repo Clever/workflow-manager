@@ -27,10 +27,6 @@ type sfnManagerTestController struct {
 	workflowDefinition *models.WorkflowDefinition
 }
 
-func TestSFNUpdateWorkflowStatus(t *testing.T) {
-	t.Log("TODO")
-}
-
 type stateMachineNameInput struct {
 	wdName    string
 	wdVersion int64
@@ -64,6 +60,41 @@ func TestStateMachineName(t *testing.T) {
 		)
 		require.Equal(t, output, test.output, "input: %#v", test.input)
 	}
+}
+
+func TestStateMachineWithFullActivityARNs(t *testing.T) {
+	sm := models.SLStateMachine{
+		States: map[string]models.SLState{
+			"foostate": models.SLState{
+				Type:     models.SLStateTypeTask,
+				Resource: "resource-name",
+			},
+		},
+	}
+	smWithFullActivityARNs := stateMachineWithFullActivityARNs(sm, "region", "accountID", "namespace")
+	require.Equal(t, map[string]models.SLState{
+		"foostate": models.SLState{
+			Type:     models.SLStateTypeTask,
+			Resource: "arn:aws:states:region:accountID:activity:namespace--resource-name",
+		},
+	}, smWithFullActivityARNs.States)
+}
+
+func TestStateMachineWithDefaultRetriers(t *testing.T) {
+	sm := models.SLStateMachine{
+		States: map[string]models.SLState{
+			"foostate": models.SLState{
+				Type: models.SLStateTypeTask,
+			},
+		},
+	}
+	smWithRetry := stateMachineWithDefaultRetriers(sm)
+	require.Equal(t, map[string]models.SLState{
+		"foostate": models.SLState{
+			Type:  models.SLStateTypeTask,
+			Retry: []*models.SLRetrier{defaultSFNCLICommandTerminatedRetrier},
+		},
+	}, smWithRetry.States)
 }
 
 func TestCancelWorkflow(t *testing.T) {

@@ -14,12 +14,23 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
+	"github.com/mohae/deepcopy"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 const (
 	maxFailureReasonLines = 3
 )
+
+const sfncliCommandTerminated = "sfncli.CommandTerminated"
+
+var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
+	BackoffRate:     1.0,
+	ErrorEquals:     []models.SLErrorEquals{sfncliCommandTerminated},
+	IntervalSeconds: 10,
+	MaxAttempts:     swag.Int64(10),
+}
 
 // SFNWorkflowManager manages workflows run through AWS Step Functions.
 type SFNWorkflowManager struct {
@@ -45,25 +56,47 @@ func wdResourceToSLResource(wdResource, region, accountID, namespace string) str
 }
 
 // stateMachineWithFullActivityARNs converts resource names in states to full activity ARNs. It returns a new state machine.
-func stateMachineWithFullActivityARNs(stateMachine *models.SLStateMachine, region, accountID, namespace string) *models.SLStateMachine {
-
-	newStates := map[string]models.SLState{}
-	for stateName, state := range stateMachine.States {
-		// declare the var in order to generate a compile error if the copy below ever becomes a pointer copy
-		var newState models.SLState
-		newState = state // copy
-		newState.Resource = wdResourceToSLResource(state.Resource, region, accountID, namespace)
-		if newState.Retry == nil {
-			newState.Retry = []*models.SLRetrier{}
+// Our workflow definitions contain state machine definitions with short-hand for resource names, e.g. "Resource": "name-of-worker"
+// Convert this shorthand into a new state machine with full activity ARNs, e.g. "Resource": "arn:aws:states:us-west-2:589690932525:activity:production--name-of-worker"
+func stateMachineWithFullActivityARNs(oldSM models.SLStateMachine, region, accountID, namespace string) *models.SLStateMachine {
+	sm := deepcopy.Copy(oldSM).(models.SLStateMachine)
+	for stateName, s := range sm.States {
+		state := deepcopy.Copy(s).(models.SLState)
+		if state.Type != models.SLStateTypeTask {
+			continue
 		}
-		newStates[stateName] = newState
+		state.Resource = wdResourceToSLResource(state.Resource, region, accountID, namespace)
+		sm.States[stateName] = state
 	}
+	return &sm
+}
 
-	// make a copy (don't pointer copy!) of state machine replacing states map with modified states map
-	newStateMachine := *stateMachine // copy
-	newStateMachine.States = newStates
-
-	return &newStateMachine
+// stateMachineWithDefaultRetriers creates a new state machine that has the following retry properties on every state's retry array:
+// - non-nil. The default serialization of a nil slice is "null", which the AWS API dislikes.
+// - sfncli.CommandTerminated for any Task state. See sfncli: https://github.com/clever/sfncli.
+//   This is to ensure that states are retried on signaled termination of activities (e.g. deploys).
+func stateMachineWithDefaultRetriers(oldSM models.SLStateMachine) *models.SLStateMachine {
+	sm := deepcopy.Copy(oldSM).(models.SLStateMachine)
+	for stateName, s := range sm.States {
+		state := deepcopy.Copy(s).(models.SLState)
+		if state.Retry == nil {
+			state.Retry = []*models.SLRetrier{}
+		}
+		injectRetry := true
+		for _, retry := range state.Retry {
+			for _, errorEquals := range retry.ErrorEquals {
+				if errorEquals == sfncliCommandTerminated {
+					injectRetry = false
+					break
+				}
+			}
+		}
+		if injectRetry && state.Type == models.SLStateTypeTask {
+			state.Retry = append(state.Retry, defaultSFNCLICommandTerminatedRetrier)
+		}
+		sm.States[stateName] = state
+	}
+	return &sm
 }
 
 // https://docs.aws.amazon.com/step-functions/latest/apireference/API_CreateStateMachine.html#StepFunctions-CreateStateMachine-request-name
@@ -97,10 +130,8 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDef
 	}
 
 	// state machine doesn't exist, create it
-	// our state machine states don't contain full activity ARNs as resources
-	// instead we use shorthand that is convenient when writing out state machine definitions, e.g. "Resource": "name-of-worker"
-	// convert this shorthand into a new state machine with full activity ARNs, e.g. "Resource": "arn:aws:states:us-west-2:589690932525:activity:production--name-of-worker"
-	awsStateMachine := stateMachineWithFullActivityARNs(wd.StateMachine, wm.region, wm.accountID, namespace)
+	awsStateMachine := stateMachineWithFullActivityARNs(*wd.StateMachine, wm.region, wm.accountID, namespace)
+	awsStateMachine = stateMachineWithDefaultRetriers(*awsStateMachine)
 	awsStateMachineDefBytes, err := json.MarshalIndent(awsStateMachine, "", "  ")
 	if err != nil {
 		return nil, err
@@ -300,6 +331,15 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 		ExecutionArn: aws.String(execARN),
 	})
 	if err != nil {
+		log.ErrorD("describe-execution", logger.M{"workflow-id": workflow.ID, "error": err.Error()})
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case sfn.ErrCodeExecutionDoesNotExist:
+				workflow.LastUpdated = strfmt.DateTime(time.Now())
+				workflow.Status = models.WorkflowStatusFailed
+				return wm.store.UpdateWorkflow(*workflow)
+			}
+		}
 		return err
 	}
 
