@@ -83,12 +83,15 @@ func TestStateMachineWithFullActivityARNs(t *testing.T) {
 func TestStateMachineWithDefaultRetriers(t *testing.T) {
 	sm := models.SLStateMachine{
 		States: map[string]models.SLState{
-			"foostate": models.SLState{},
+			"foostate": models.SLState{
+				Type: models.SLStateTypeTask,
+			},
 		},
 	}
 	smWithRetry := stateMachineWithDefaultRetriers(sm)
 	require.Equal(t, map[string]models.SLState{
 		"foostate": models.SLState{
+			Type:  models.SLStateTypeTask,
 			Retry: []*models.SLRetrier{defaultSFNCLICommandTerminatedRetrier},
 		},
 	}, smWithRetry.States)
