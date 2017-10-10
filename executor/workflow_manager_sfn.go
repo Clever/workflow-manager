@@ -468,8 +468,8 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 func (wm *SFNWorkflowManager) StateResourcesStatus(def models.WorkflowDefinition, namespace string) ([]models.StateResource, error) {
 	stateResources := []models.StateResource{}
 
-	for name, state := range def.StateMachine.States {
-		stateResource := resources.NewSFNResource(name, namespace,
+	for _, state := range def.StateMachine.States {
+		stateResource := resources.NewSFNResource(state.Resource, namespace,
 			wdResourceToSLResource(state.Resource, wm.region, wm.accountID, namespace))
 
 		status, err := wm.getStatus(stateResource.URI)
@@ -495,7 +495,6 @@ func isActivityDoesntExistFailure(details *sfn.ExecutionFailedEventDetails) bool
 // getStatus fetches the queued and running activities given an activityArn
 func (wm *SFNWorkflowManager) getStatus(activityArn string) (models.StateResourceStatus, error) {
 	stateResourceStatus := models.StateResourceStatus{}
-
 	activityDimension := &cloudwatch.Dimension{
 		Name:  aws.String("ActivityArn"),
 		Value: aws.String(activityArn),
