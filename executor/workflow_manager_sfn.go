@@ -368,18 +368,15 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 			switch *evt.Type {
 			case sfn.HistoryEventTypeTaskStateEntered:
 				stateEntered := evt.StateEnteredEventDetails
-				var input string
-				if stateEntered.Input != nil {
-					input = *stateEntered.Input
-				}
+				input := aws.StringValue(stateEntered.Input)
 				state, ok := workflow.WorkflowDefinition.StateMachine.States[*stateEntered.Name]
 				var stateResourceName string
 				if ok {
 					stateResourceName = state.Resource
 				}
 				job := &models.Job{
-					CreatedAt: strfmt.DateTime(*evt.Timestamp),
-					StartedAt: strfmt.DateTime(*evt.Timestamp),
+					CreatedAt: strfmt.DateTime(aws.TimeValue(evt.Timestamp)),
+					StartedAt: strfmt.DateTime(aws.TimeValue(evt.Timestamp)),
 					// TODO: somehow match ActivityStarted events to state, capture worker name here
 					//ContainerId: ""/
 					Status: models.JobStatusCreated,
@@ -391,7 +388,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 						Name:        stateResourceName,
 						Type:        models.StateResourceTypeActivityARN,
 						Namespace:   workflow.Namespace,
-						LastUpdated: strfmt.DateTime(*evt.Timestamp),
+						LastUpdated: strfmt.DateTime(aws.TimeValue(evt.Timestamp)),
 					},
 				}
 				currentState = stateEntered.Name
@@ -408,7 +405,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 			case sfn.HistoryEventTypeActivityFailed:
 				if currentState != nil {
 					stateToJob[*currentState].Status = models.JobStatusFailed
-					stateToJob[*currentState].StoppedAt = strfmt.DateTime(*evt.Timestamp)
+					stateToJob[*currentState].StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 					if details := evt.ActivityFailedEventDetails; details != nil {
 						reasonLines := strings.Split(strings.TrimSpace(aws.StringValue(details.Cause)), "\n")
 						if len(reasonLines) > maxFailureReasonLines {
@@ -425,25 +422,34 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 				if currentState != nil {
 					job := stateToJob[*currentState]
 					job.Status = models.JobStatusAbortedByUser
-					job.StoppedAt = strfmt.DateTime(*evt.Timestamp)
+					job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 					if details := evt.ExecutionAbortedEventDetails; details != nil {
 						job.StatusReason = aws.StringValue(details.Cause)
 					}
 				}
+			case sfn.HistoryEventTypeExecutionFailed:
+				if currentState != nil {
+					job := stateToJob[*currentState]
+					job.Status = models.JobStatusFailed
+					job.StoppedAt = strfmt.DateTime(*evt.Timestamp)
+
+					if details := evt.ExecutionFailedEventDetails; details != nil {
+						if isActivityDoesntExistFailure(evt.ExecutionFailedEventDetails) {
+							job.StatusReason = "State resource does not exist"
+						} else {
+							// set unknown errors to StatusReason
+							job.StatusReason = fmt.Sprintf("%s: %s", aws.StringValue(details.Error),
+								aws.StringValue(details.Cause))
+						}
+					}
+				}
 			case sfn.HistoryEventTypeTaskStateExited:
 				stateExited := evt.StateExitedEventDetails
-				stateToJob[*stateExited.Name].StoppedAt = strfmt.DateTime(*evt.Timestamp)
+				stateToJob[*stateExited.Name].StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 				if stateExited.Output != nil {
 					stateToJob[*stateExited.Name].Output = *stateExited.Output
 				}
 				currentState = nil
-			case sfn.HistoryEventTypeExecutionFailed:
-				if currentState != nil && isActivityDoesntExistFailure(evt.ExecutionFailedEventDetails) {
-					job := stateToJob[*currentState]
-					job.Status = models.JobStatusFailed
-					job.StoppedAt = strfmt.DateTime(*evt.Timestamp)
-					job.StatusReason = "State resource does not exist"
-				}
 			}
 		}
 		return true
@@ -459,6 +465,6 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 // This currently results in a cryptic AWS error, so the logic is probably over-broad: https://console.aws.amazon.com/support/home?region=us-west-2#/case/?displayId=4514731511&language=en
 // If SFN creates a more descriptive error event we should change this.
 func isActivityDoesntExistFailure(details *sfn.ExecutionFailedEventDetails) bool {
-	return *details.Error == "States.Runtime" &&
-		strings.Contains(*details.Cause, "Internal Error")
+	return aws.StringValue(details.Error) == "States.Runtime" &&
+		strings.Contains(aws.StringValue(details.Cause), "Internal Error")
 }
