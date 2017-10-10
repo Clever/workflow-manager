@@ -349,107 +349,143 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 	//workflow.Output = describeStatus.Output
 
 	// Pull in execution history to populate jobs array
-	// Here we will begin to break the assumption that jobs are 1:1 with states, which is true in Batch
-	// since (1) it doesn't support complex branching, and (2) we schedule all jobs for a workflow at
-	// the time of  workflow submission.
-	// Step Functions supports complex branching, so jobs might not be 1:1 with states.
+	// Each Job corresponds to a type="Task" state, i.e. a state with some Resource that will process the input to the state.
+	// We only create a Job object if the State has been entered.
+	// Execution history events contain a "previous" event ID which is the "parent" event within the execution tree.
+	// E.g., if a state machine has two parallel Task states, the events for these states will overlap in the history, but the event IDs + previous event IDs will link together the parallel execution paths.
+	// In order to correctly associate events with the job they correspond to, maintain a map from event ID to job.
 	jobs := []*models.Job{}
-	stateToJob := map[string]*models.Job{}
-	// TODO: as soon as we have parallel states anything that relies on this might be incorrect
-	var currentState *string
+	eventIDToJob := map[int64]*models.Job{}
+	eventToJob := func(evt *sfn.HistoryEvent) *models.Job {
+		eventID := aws.Int64Value(evt.Id)
+		parentEventID := aws.Int64Value(evt.PreviousEventId)
+		switch *evt.Type {
+		case sfn.HistoryEventTypeExecutionStarted:
+			// very first event for an execution, so there are no jobs yet
+			return nil
+		case sfn.HistoryEventTypeTaskStateEntered:
+			// a job is created when a task state is entered
+			job := &models.Job{}
+			jobs = append(jobs, job)
+			eventIDToJob[eventID] = job
+			return job
+		default:
+			// associate this event with the same job as its parent event
+			job, ok := eventIDToJob[parentEventID]
+			if !ok {
+				// we should investigate these cases, since it means we have a gap in our interpretation of the event history
+				log.ErrorD("event-with-unknown-job", logger.M{"event-id": eventID, "execution-arn": execARN})
+				return nil
+			}
+			eventIDToJob[eventID] = job
+			return job
+		}
+	}
 	if err := wm.sfnapi.GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
 		ExecutionArn: aws.String(execARN),
 	}, func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool {
 		// NOTE: if pulling the entire execution history becomes infeasible, we can:
 		// 1) limit the results with `maxResults`
 		// 2) set `reverseOrder` to true to get most recent events first
-		// 3) store the last event we processed, and stop paging once we reach it
+		// 3) stop paging once we get to to the smallest job ID (aka event ID) that is still pending
 		for _, evt := range historyOutput.Events {
-			switch *evt.Type {
+			job := eventToJob(evt)
+			if job == nil {
+				continue
+			}
+			switch aws.StringValue(evt.Type) {
 			case sfn.HistoryEventTypeTaskStateEntered:
-				stateEntered := evt.StateEnteredEventDetails
-				input := aws.StringValue(stateEntered.Input)
-				state, ok := workflow.WorkflowDefinition.StateMachine.States[*stateEntered.Name]
-				var stateResourceName string
-				if ok {
-					stateResourceName = state.Resource
-				}
-				job := &models.Job{
-					CreatedAt: strfmt.DateTime(aws.TimeValue(evt.Timestamp)),
-					StartedAt: strfmt.DateTime(aws.TimeValue(evt.Timestamp)),
-					// TODO: somehow match ActivityStarted events to state, capture worker name here
-					//ContainerId: ""/
-					Status: models.JobStatusCreated,
-					Input:  input,
-					// event IDs start at 1 and are only unique to the execution, so this might not be ideal
-					ID:    fmt.Sprintf("%d", *evt.Id),
-					State: *stateEntered.Name,
-					StateResource: &models.StateResource{
+				// event IDs start at 1 and are only unique to the execution, so this might not be ideal
+				job.ID = fmt.Sprintf("%d", aws.Int64Value(evt.Id))
+				job.Attempts = []*models.JobAttempt{}
+				job.CreatedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				job.StartedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				job.Status = models.JobStatusCreated
+				if details := evt.StateEnteredEventDetails; details != nil {
+					stateName := aws.StringValue(details.Name)
+					stateDef, ok := workflow.WorkflowDefinition.StateMachine.States[stateName]
+					var stateResourceName string
+					if ok {
+						stateResourceName = stateDef.Resource
+					}
+					job.Input = aws.StringValue(details.Input)
+					job.State = stateName
+					job.StateResource = &models.StateResource{
 						Name:        stateResourceName,
 						Type:        models.StateResourceTypeActivityARN,
 						Namespace:   workflow.Namespace,
 						LastUpdated: strfmt.DateTime(aws.TimeValue(evt.Timestamp)),
-					},
+					}
 				}
-				currentState = stateEntered.Name
-				stateToJob[job.State] = job
-				jobs = append(jobs, job)
 			case sfn.HistoryEventTypeActivityScheduled:
-				if currentState != nil {
-					stateToJob[*currentState].Status = models.JobStatusQueued
+				if job.Status == models.JobStatusFailed {
+					// this is a retry, copy job data to attempt array, re-initialize job data
+					oldJobData := *job
+					*job = models.Job{}
+					job.ID = fmt.Sprintf("%d", aws.Int64Value(evt.Id))
+					job.Attempts = append(job.Attempts, &models.JobAttempt{
+						Reason:    oldJobData.StatusReason,
+						StartedAt: oldJobData.StartedAt,
+						StoppedAt: oldJobData.StoppedAt,
+						TaskARN:   oldJobData.Container,
+					})
+					job.CreatedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+					job.StartedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+					job.Input = oldJobData.Input
+					job.State = oldJobData.State
+					job.StateResource = &models.StateResource{
+						Name:        oldJobData.StateResource.Name,
+						Type:        oldJobData.StateResource.Type,
+						Namespace:   oldJobData.StateResource.Namespace,
+						LastUpdated: strfmt.DateTime(aws.TimeValue(evt.Timestamp)),
+					}
 				}
+				job.Status = models.JobStatusQueued
 			case sfn.HistoryEventTypeActivityStarted:
-				if currentState != nil {
-					stateToJob[*currentState].Status = models.JobStatusRunning
+				job.Status = models.JobStatusRunning
+				if details := evt.ActivityStartedEventDetails; details != nil {
+					job.Container = aws.StringValue(details.WorkerName)
 				}
 			case sfn.HistoryEventTypeActivityFailed:
-				if currentState != nil {
-					stateToJob[*currentState].Status = models.JobStatusFailed
-					stateToJob[*currentState].StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
-					if details := evt.ActivityFailedEventDetails; details != nil {
-						reasonLines := strings.Split(strings.TrimSpace(aws.StringValue(details.Cause)), "\n")
-						if len(reasonLines) > maxFailureReasonLines {
-							reasonLines = reasonLines[len(reasonLines)-maxFailureReasonLines:]
-						}
-						stateToJob[*currentState].StatusReason = strings.Join(reasonLines, "\n")
+				job.Status = models.JobStatusFailed
+				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				if details := evt.ActivityFailedEventDetails; details != nil {
+					reasonLines := strings.Split(strings.TrimSpace(aws.StringValue(details.Cause)), "\n")
+					if len(reasonLines) > maxFailureReasonLines {
+						reasonLines = reasonLines[len(reasonLines)-maxFailureReasonLines:]
 					}
+					if aws.StringValue(details.Error) != "" {
+						// TODO: need more natural place to put error name...
+						reasonLines = append([]string{aws.StringValue(details.Error)}, reasonLines...)
+					}
+					job.StatusReason = strings.TrimSpace(strings.Join(reasonLines, "\n"))
 				}
 			case sfn.HistoryEventTypeActivitySucceeded:
-				if currentState != nil {
-					stateToJob[*currentState].Status = models.JobStatusSucceeded
-				}
+				job.Status = models.JobStatusSucceeded
 			case sfn.HistoryEventTypeExecutionAborted:
-				if currentState != nil {
-					job := stateToJob[*currentState]
-					job.Status = models.JobStatusAbortedByUser
-					job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
-					if details := evt.ExecutionAbortedEventDetails; details != nil {
-						job.StatusReason = aws.StringValue(details.Cause)
-					}
+				job.Status = models.JobStatusAbortedByUser
+				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				if details := evt.ExecutionAbortedEventDetails; details != nil {
+					job.StatusReason = aws.StringValue(details.Cause)
 				}
 			case sfn.HistoryEventTypeExecutionFailed:
-				if currentState != nil {
-					job := stateToJob[*currentState]
-					job.Status = models.JobStatusFailed
-					job.StoppedAt = strfmt.DateTime(*evt.Timestamp)
-
-					if details := evt.ExecutionFailedEventDetails; details != nil {
-						if isActivityDoesntExistFailure(evt.ExecutionFailedEventDetails) {
-							job.StatusReason = "State resource does not exist"
-						} else {
-							// set unknown errors to StatusReason
-							job.StatusReason = fmt.Sprintf("%s: %s", aws.StringValue(details.Error),
-								aws.StringValue(details.Cause))
-						}
+				job.Status = models.JobStatusFailed
+				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				if details := evt.ExecutionFailedEventDetails; details != nil {
+					if isActivityDoesntExistFailure(evt.ExecutionFailedEventDetails) {
+						job.StatusReason = "State resource does not exist"
+					} else {
+						// set unknown errors to StatusReason
+						job.StatusReason = fmt.Sprintf("%s: %s", aws.StringValue(details.Error),
+							aws.StringValue(details.Cause))
 					}
 				}
 			case sfn.HistoryEventTypeTaskStateExited:
 				stateExited := evt.StateExitedEventDetails
-				stateToJob[*stateExited.Name].StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 				if stateExited.Output != nil {
-					stateToJob[*stateExited.Name].Output = *stateExited.Output
+					job.Output = aws.StringValue(stateExited.Output)
 				}
-				currentState = nil
 			}
 		}
 		return true
