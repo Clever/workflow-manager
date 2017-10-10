@@ -426,7 +426,6 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 					job := stateToJob[*currentState]
 					job.Status = models.JobStatusAbortedByUser
 					job.StoppedAt = strfmt.DateTime(*evt.Timestamp)
-
 					if details := evt.ExecutionAbortedEventDetails; details != nil {
 						job.StatusReason = aws.StringValue(details.Cause)
 					}
@@ -438,6 +437,13 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 					stateToJob[*stateExited.Name].Output = *stateExited.Output
 				}
 				currentState = nil
+			case sfn.HistoryEventTypeExecutionFailed:
+				if currentState != nil && isActivityDoesntExistFailure(evt.ExecutionFailedEventDetails) {
+					job := stateToJob[*currentState]
+					job.Status = models.JobStatusFailed
+					job.StoppedAt = strfmt.DateTime(*evt.Timestamp)
+					job.StatusReason = "State resource does not exist"
+				}
 			}
 		}
 		return true
@@ -447,4 +453,12 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 	workflow.Jobs = jobs
 
 	return wm.store.UpdateWorkflow(*workflow)
+}
+
+// isActivityDoesntExistFailure checks if an execution failed because an activity doesn't exist.
+// This currently results in a cryptic AWS error, so the logic is probably over-broad: https://console.aws.amazon.com/support/home?region=us-west-2#/case/?displayId=4514731511&language=en
+// If SFN creates a more descriptive error event we should change this.
+func isActivityDoesntExistFailure(details *sfn.ExecutionFailedEventDetails) bool {
+	return *details.Error == "States.Runtime" &&
+		strings.Contains(*details.Cause, "Internal Error")
 }
