@@ -119,6 +119,13 @@ func NewWithMiddleware(c Controller, addr string, m []func(http.Handler) http.Ha
 		r = r.WithContext(ctx)
 	})
 
+	router.Methods("GET").Path("/state-resources/{namespace}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.FromContext(r.Context()).AddContext("op", "getStateResourcesByWorkflowDefinition")
+		h.GetStateResourcesByWorkflowDefinitionHandler(r.Context(), w, r)
+		ctx := WithTracingOpName(r.Context(), "getStateResourcesByWorkflowDefinition")
+		r = r.WithContext(ctx)
+	})
+
 	router.Methods("DELETE").Path("/state-resources/{namespace}/{name}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.FromContext(r.Context()).AddContext("op", "deleteStateResource")
 		h.DeleteStateResourceHandler(r.Context(), w, r)

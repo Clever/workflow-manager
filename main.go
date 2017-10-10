@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/batch"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/kardianos/osext"
@@ -81,7 +82,8 @@ func main() {
 	)
 	wfmBatch := executor.NewBatchWorkflowManager(batch, db)
 	sfnapi := sfn.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion))
-	wfmSFN := executor.NewSFNWorkflowManager(sfnapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
+	cwapi := cloudwatch.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion))
+	wfmSFN := executor.NewSFNWorkflowManager(sfnapi, cwapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
 	wfmMulti := executor.NewMultiWorkflowManager(wfmBatch, map[models.Manager]executor.WorkflowManager{
 		models.ManagerBatch:         wfmBatch,
 		models.ManagerStepFunctions: wfmSFN,

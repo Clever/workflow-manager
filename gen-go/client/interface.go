@@ -27,6 +27,15 @@ type Client interface {
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error)
 
+	// GetStateResourcesByWorkflowDefinition makes a GET request to /state-resources/{namespace}
+	//
+	// 200: []models.StateResource
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	GetStateResourcesByWorkflowDefinition(ctx context.Context, i *models.GetStateResourcesByWorkflowDefinitionInput) ([]models.StateResource, error)
+
 	// DeleteStateResource makes a DELETE request to /state-resources/{namespace}/{name}
 	//
 	// 200: nil

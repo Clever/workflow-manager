@@ -15,6 +15,8 @@ type WorkflowManager interface {
 	RetryWorkflow(workflow models.Workflow, startAt, input string) (*models.Workflow, error)
 	CancelWorkflow(workflow *models.Workflow, reason string) error
 	UpdateWorkflowStatus(workflow *models.Workflow) error
+
+	StateResourcesStatus(def models.WorkflowDefinition, namespace string) ([]models.StateResource, error)
 }
 
 // PollForPendingWorkflowsAndUpdateStore polls the store for workflows in a pending state and

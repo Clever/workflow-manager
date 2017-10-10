@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/mocks/mock_cloudwatchiface"
 	"github.com/Clever/workflow-manager/mocks/mock_sfniface"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
@@ -22,6 +24,7 @@ type sfnManagerTestController struct {
 	manager            *SFNWorkflowManager
 	mockController     *gomock.Controller
 	mockSFNAPI         *mock_sfniface.MockSFNAPI
+	mockCWAPI          *mock_cloudwatchiface.MockCloudWatchAPI
 	store              store.Store
 	t                  *testing.T
 	workflowDefinition *models.WorkflowDefinition
@@ -477,18 +480,65 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 	assertCancelledJobData(t, workflow.Jobs[0])
 }
 
+func TestStateResourcesStatus(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	c.mockCWAPI.EXPECT().
+		GetMetricStatistics(gomock.Any()).
+		Return(&cloudwatch.GetMetricStatisticsOutput{
+			Datapoints: []*cloudwatch.Datapoint{&cloudwatch.Datapoint{
+				Sum:       aws.Float64(2),
+				Timestamp: aws.Time(time.Now()),
+			}},
+		}, nil).
+		Times(len(c.workflowDefinition.StateMachine.States) * 2)
+
+	stateResources, err := c.manager.StateResourcesStatus(*c.workflowDefinition, "namespace")
+	assert.Nil(t, err)
+	assert.Equal(t, len(c.workflowDefinition.StateMachine.States), len(stateResources))
+
+	t.Log("Queued and Running metrics are computed for all resources")
+	for _, stateResource := range stateResources {
+		assert.WithinDuration(t, time.Now(), time.Time(stateResource.Status.LastUpdated), 2*time.Second)
+		assert.Equal(t, stateResource.Status.Queued, int64(0))
+		assert.Equal(t, stateResource.Status.Running, int64(2))
+		assert.Equal(t, stateResource.Namespace, "namespace")
+		assert.Contains(t, stateResource.Name, "fake-resource")
+		assert.Contains(t, stateResource.URI, ":activity:namespace--fake-resource")
+	}
+
+	t.Log("getStatus fetches Cloudwatch metrics for a StateResource")
+
+	c.mockCWAPI.EXPECT().
+		GetMetricStatistics(gomock.Any()).
+		Do(func(input *cloudwatch.GetMetricStatisticsInput) {
+			assert.Contains(t, []string{"ActivitiesScheduled", "ActivitiesStarted"},
+				*input.MetricName)
+		}).
+		Return(&cloudwatch.GetMetricStatisticsOutput{
+			Datapoints: []*cloudwatch.Datapoint{&cloudwatch.Datapoint{
+				Sum:       aws.Float64(2),
+				Timestamp: aws.Time(time.Now()),
+			}},
+		}, nil).Times(2)
+	c.manager.getStatus("aws:..:states:namespace--fake-resource-1")
+}
+
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockController := gomock.NewController(t)
 	mockSFNAPI := mock_sfniface.NewMockSFNAPI(mockController)
+	mockCWAPI := mock_cloudwatchiface.NewMockCloudWatchAPI(mockController)
 	store := memory.New()
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
 	require.NoError(t, store.SaveWorkflowDefinition(*workflowDefinition))
 
 	return &sfnManagerTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, store, "", "", ""),
+		manager:            NewSFNWorkflowManager(mockSFNAPI, mockCWAPI, store, "", "", ""),
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
+		mockCWAPI:          mockCWAPI,
 		store:              &store,
 		t:                  t,
 		workflowDefinition: workflowDefinition,

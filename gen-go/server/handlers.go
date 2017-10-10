@@ -215,6 +215,134 @@ func newPostStateResourceInput(r *http.Request) (*models.NewStateResource, error
 	return &input, nil
 }
 
+// statusCodeForGetStateResourcesByWorkflowDefinition returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForGetStateResourcesByWorkflowDefinition(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *[]models.StateResource:
+		return 200
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case []models.StateResource:
+		return 200
+
+	case models.BadRequest:
+		return 400
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) GetStateResourcesByWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	input, err := newGetStateResourcesByWorkflowDefinitionInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = input.Validate()
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.GetStateResourcesByWorkflowDefinition(ctx, input)
+
+	// Success types that return an array should never return nil so let's make this easier
+	// for consumers by converting nil arrays to empty arrays
+	if resp == nil {
+		resp = []models.StateResource{}
+	}
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForGetStateResourcesByWorkflowDefinition(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCodeForGetStateResourcesByWorkflowDefinition(resp))
+	w.Write(respBytes)
+
+}
+
+// newGetStateResourcesByWorkflowDefinitionInput takes in an http.Request an returns the input struct.
+func newGetStateResourcesByWorkflowDefinitionInput(r *http.Request) (*models.GetStateResourcesByWorkflowDefinitionInput, error) {
+	var input models.GetStateResourcesByWorkflowDefinitionInput
+
+	var err error
+	_ = err
+
+	namespaceStr := mux.Vars(r)["namespace"]
+	if len(namespaceStr) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+	namespaceStrs := []string{namespaceStr}
+
+	if len(namespaceStrs) > 0 {
+		var namespaceTmp string
+		namespaceStr := namespaceStrs[0]
+		namespaceTmp, err = namespaceStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.Namespace = namespaceTmp
+	}
+
+	workflowDefinitionNameStrs := r.URL.Query()["workflowDefinitionName"]
+	if len(workflowDefinitionNameStrs) == 0 {
+		return nil, errors.New("parameter must be specified")
+	}
+
+	if len(workflowDefinitionNameStrs) > 0 {
+		var workflowDefinitionNameTmp string
+		workflowDefinitionNameStr := workflowDefinitionNameStrs[0]
+		workflowDefinitionNameTmp, err = workflowDefinitionNameStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.WorkflowDefinitionName = workflowDefinitionNameTmp
+	}
+
+	return &input, nil
+}
+
 // statusCodeForDeleteStateResource returns the status code corresponding to the returned
 // object. It returns -1 if the type doesn't correspond to anything.
 func statusCodeForDeleteStateResource(obj interface{}) int {

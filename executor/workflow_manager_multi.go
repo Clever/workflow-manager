@@ -58,3 +58,11 @@ func (mwm *MultiWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow)
 	}
 	return wm.UpdateWorkflowStatus(workflow)
 }
+
+func (mwm *MultiWorkflowManager) StateResourcesStatus(def models.WorkflowDefinition, namespace string) ([]models.StateResource, error) {
+	wm, err := mwm.manager(def.Manager)
+	if err != nil {
+		return nil, err
+	}
+	return wm.StateResourcesStatus(def, namespace)
+}

@@ -38,6 +38,38 @@ func (i HealthCheckInput) Path() (string, error) {
 	return path + "?" + urlVals.Encode(), nil
 }
 
+// GetStateResourcesByWorkflowDefinitionInput holds the input parameters for a getStateResourcesByWorkflowDefinition operation.
+type GetStateResourcesByWorkflowDefinitionInput struct {
+	Namespace              string
+	WorkflowDefinitionName string
+}
+
+// Validate returns an error if any of the GetStateResourcesByWorkflowDefinitionInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetStateResourcesByWorkflowDefinitionInput) Validate() error {
+
+	return nil
+}
+
+// Path returns the URI path for the input.
+func (i GetStateResourcesByWorkflowDefinitionInput) Path() (string, error) {
+	path := "/state-resources/{namespace}"
+	urlVals := url.Values{}
+
+	pathnamespace := i.Namespace
+	if pathnamespace == "" {
+		err := fmt.Errorf("namespace cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{namespace}", pathnamespace, -1)
+
+	urlVals.Add("workflowDefinitionName", i.WorkflowDefinitionName)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
 // DeleteStateResourceInput holds the input parameters for a deleteStateResource operation.
 type DeleteStateResourceInput struct {
 	Namespace string
