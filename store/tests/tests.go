@@ -289,7 +289,7 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 			Limit:          10,
 		})
 		require.NoError(t, err)
-		require.Equal(t, []*models.Job{}, workflows[0].Jobs)
+		require.Nil(t, workflows[0].Jobs)
 
 		definitionSummary := &models.WorkflowDefinition{
 			Name:    definition.Name,
