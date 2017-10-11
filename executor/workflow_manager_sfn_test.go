@@ -219,9 +219,10 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 
 var jobFailedEventTimestamp = jobCreatedEventTimestamp.Add(5 * time.Minute)
 var jobFailedEvent = &sfn.HistoryEvent{
-	Id:        aws.Int64(2),
-	Timestamp: aws.Time(jobFailedEventTimestamp),
-	Type:      aws.String(sfn.HistoryEventTypeActivityFailed),
+	Id:              aws.Int64(2),
+	PreviousEventId: aws.Int64(1),
+	Timestamp:       aws.Time(jobFailedEventTimestamp),
+	Type:            aws.String(sfn.HistoryEventTypeActivityFailed),
 	ActivityFailedEventDetails: &sfn.ActivityFailedEventDetails{
 		Cause: aws.String("line1\nline2\nline3\nline4\nline5\nline6\n\n"),
 	},
@@ -297,9 +298,10 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
 				&sfn.HistoryEvent{
-					Id:        aws.Int64(2),
-					Timestamp: aws.Time(jobFailedEventTimestamp),
-					Type:      aws.String(sfn.HistoryEventTypeExecutionFailed),
+					Id:              aws.Int64(2),
+					PreviousEventId: jobCreatedEvent.Id,
+					Timestamp:       aws.Time(jobFailedEventTimestamp),
+					Type:            aws.String(sfn.HistoryEventTypeExecutionFailed),
 					ExecutionFailedEventDetails: &sfn.ExecutionFailedEventDetails{
 						Cause: aws.String("Internal Error (49b863bd-3367-4035-a76d-bfb2e777ece3)"),
 						Error: aws.String("States.Runtime"),
@@ -320,15 +322,17 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 
 var jobSucceededEventTimestamp = jobCreatedEventTimestamp.Add(5 * time.Minute)
 var jobSucceededEvent = &sfn.HistoryEvent{
-	Id:        aws.Int64(3),
-	Timestamp: aws.Time(jobSucceededEventTimestamp),
-	Type:      aws.String(sfn.HistoryEventTypeActivitySucceeded),
+	Id:              aws.Int64(2),
+	PreviousEventId: aws.Int64(1),
+	Timestamp:       aws.Time(jobSucceededEventTimestamp),
+	Type:            aws.String(sfn.HistoryEventTypeActivitySucceeded),
 }
 var jobExitedEventTimestamp = jobSucceededEventTimestamp.Add(5 * time.Second)
 var jobExitedEvent = &sfn.HistoryEvent{
-	Id:        aws.Int64(4),
-	Timestamp: aws.Time(jobExitedEventTimestamp),
-	Type:      aws.String(sfn.HistoryEventTypeTaskStateExited),
+	Id:              aws.Int64(3),
+	PreviousEventId: aws.Int64(2),
+	Timestamp:       aws.Time(jobExitedEventTimestamp),
+	Type:            aws.String(sfn.HistoryEventTypeTaskStateExited),
 	StateExitedEventDetails: &sfn.StateExitedEventDetails{
 		Name:   jobCreatedEvent.StateEnteredEventDetails.Name,
 		Output: aws.String(`{out: "put"}`),
@@ -382,9 +386,10 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 
 var jobAbortedEventTimestamp = jobSucceededEventTimestamp.Add(5 * time.Minute)
 var jobAbortedEvent = &sfn.HistoryEvent{
-	Id:        aws.Int64(5),
-	Timestamp: aws.Time(jobAbortedEventTimestamp),
-	Type:      aws.String(sfn.HistoryEventTypeExecutionAborted),
+	Id:              aws.Int64(5),
+	PreviousEventId: aws.Int64(1),
+	Timestamp:       aws.Time(jobAbortedEventTimestamp),
+	Type:            aws.String(sfn.HistoryEventTypeExecutionAborted),
 	ExecutionAbortedEventDetails: &sfn.ExecutionAbortedEventDetails{
 		Cause: aws.String("sfn abort reason"),
 	},
