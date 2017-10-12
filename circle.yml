@@ -30,5 +30,8 @@ deployment:
       - $HOME/ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS $APP_NAME dev-infra confirm-then-deploy
       - $HOME/ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS $APP_NAME production confirm-then-deploy
       - $HOME/ci-scripts/circleci/npm-publish $NPM_TOKEN gen-js/
+      # create a VERSION file to push a github release
+      - cat ./swagger.yml | grep "^  version:" | cut -d":" -f2 | tr -d " " > ./VERSION
+      - $HOME/ci-scripts/circleci/github-release $GH_RELEASE_TOKEN
 general:
   build_dir: ../.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
