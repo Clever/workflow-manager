@@ -1,3 +1,2 @@
 - [ ] Update swagger.yml version
 - [ ] Run "make generate"
-- [ ] After merging, add a github tag to your merge commit
