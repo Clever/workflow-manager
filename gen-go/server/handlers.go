@@ -1216,10 +1216,13 @@ func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
 
 	limitStrs := r.URL.Query()["limit"]
 
+	if len(limitStrs) == 0 {
+		limitStrs = []string{"10"}
+	}
 	if len(limitStrs) > 0 {
-		var limitTmp int32
+		var limitTmp int64
 		limitStr := limitStrs[0]
-		limitTmp, err = swag.ConvertInt32(limitStr)
+		limitTmp, err = swag.ConvertInt64(limitStr)
 		if err != nil {
 			return nil, err
 		}

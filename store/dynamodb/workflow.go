@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/store"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
@@ -195,7 +194,7 @@ func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) getDefinitionStatusPa
 }
 
 func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) ConstructQuery(
-	query *store.WorkflowQuery,
+	query *models.WorkflowQuery,
 ) (*dynamodb.QueryInput, error) {
 	if query.Status == "" {
 		return nil, fmt.Errorf("workflow status filter is required for %s index", sk.Name())
@@ -209,14 +208,16 @@ func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) ConstructQuery(
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":workflowNameAndStatus": &dynamodb.AttributeValue{
 				S: aws.String(
-					sk.getDefinitionStatusPair(query.DefinitionName, query.Status),
+					sk.getDefinitionStatusPair(
+						aws.StringValue(query.WorkflowDefinitionName),
+						string(query.Status)),
 				),
 			},
 		},
 		KeyConditionExpression: aws.String("#WS = :workflowNameAndStatus"),
 	}
 
-	if query.SummaryOnly {
+	if aws.BoolValue(query.SummaryOnly) {
 		onlySummaryFields(queryInput)
 	}
 

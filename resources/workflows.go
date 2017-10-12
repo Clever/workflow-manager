@@ -11,18 +11,20 @@ import (
 // NewWorkflow creates a new Workflow struct for a WorkflowDefinition
 func NewWorkflow(wfd *models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) *models.Workflow {
 	return &models.Workflow{
-		ID:                 uuid.NewV4().String(),
-		CreatedAt:          strfmt.DateTime(time.Now()),
-		LastUpdated:        strfmt.DateTime(time.Now()),
-		WorkflowDefinition: wfd,
-		Status:             models.WorkflowStatusQueued,
-		Jobs:               []*models.Job{},
-		Namespace:          namespace,
-		Queue:              queue,
-		Input:              input,
-		Tags:               tags,
-		Retries:            []string{},
-		RetryFor:           "",
+		WorkflowSummary: models.WorkflowSummary{
+			ID:                 uuid.NewV4().String(),
+			CreatedAt:          strfmt.DateTime(time.Now()),
+			LastUpdated:        strfmt.DateTime(time.Now()),
+			WorkflowDefinition: wfd,
+			Status:             models.WorkflowStatusQueued,
+			Namespace:          namespace,
+			Queue:              queue,
+			Input:              input,
+			Tags:               tags,
+			Retries:            []string{},
+			RetryFor:           "",
+		},
+		Jobs: []*models.Job{},
 	}
 }
 

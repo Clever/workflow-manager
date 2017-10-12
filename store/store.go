@@ -23,20 +23,10 @@ type Store interface {
 	SaveWorkflow(workflow models.Workflow) error
 	UpdateWorkflow(workflow models.Workflow) error
 	GetWorkflowByID(id string) (models.Workflow, error)
-	GetWorkflows(query *WorkflowQuery) ([]models.Workflow, string, error)
+	GetWorkflows(query *models.WorkflowQuery) ([]models.Workflow, string, error)
 	GetPendingWorkflowIDs() ([]string, error)
 	LockWorkflow(id string) error
 	UnlockWorkflow(id string) error
-}
-
-// WorkflowQuery contains filtering options for workflow queries.
-type WorkflowQuery struct {
-	DefinitionName string
-	Limit          int
-	OldestFirst    bool
-	PageToken      string
-	Status         string
-	SummaryOnly    bool
 }
 
 // ErrWorkflowLocked is returned from LockWorfklow in the case of the workflow already being locked.

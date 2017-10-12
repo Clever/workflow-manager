@@ -4,21 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-openapi/swag"
+	"github.com/aws/aws-sdk-go/aws"
 
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
-)
-
-const (
-	// WorkflowsPageSizeMax defines the default page size for workflow queries.
-	// TODO: This can be bumped up a bit once ark is updated to use the `limit` query param.
-	WorkflowsPageSizeDefault int = 10
-
-	// WorkflowsPageSizeMax defines the maximum allowed page size limit for workflow queries.
-	WorkflowsPageSizeMax int = 10000
 )
 
 // Handler implements the wag Controller
@@ -182,25 +173,16 @@ func (h Handler) GetWorkflows(
 	ctx context.Context,
 	input *models.GetWorkflowsInput,
 ) ([]models.Workflow, string, error) {
-	limit := WorkflowsPageSizeDefault
-	if input.Limit != nil && *input.Limit > 0 {
-		limit = int(*input.Limit)
-	}
-	if limit > WorkflowsPageSizeMax {
-		limit = WorkflowsPageSizeMax
+
+	workflowQuery, err := paramsToWorkflowsQuery(input)
+	if err != nil {
+		return []models.Workflow{}, "", err
 	}
 
-	workflows, nextPageToken, err := h.store.GetWorkflows(&store.WorkflowQuery{
-		DefinitionName: input.WorkflowDefinitionName,
-		Limit:          limit,
-		OldestFirst:    swag.BoolValue(input.OldestFirst),
-		PageToken:      swag.StringValue(input.PageToken),
-		Status:         swag.StringValue(input.Status),
-		SummaryOnly:    swag.BoolValue(input.SummaryOnly),
-	})
+	workflows, nextPageToken, err := h.store.GetWorkflows(workflowQuery)
 	if err != nil {
 		if _, ok := err.(store.InvalidPageTokenError); ok {
-			return []models.Workflow{}, "", models.BadRequest{
+			return workflows, "", models.BadRequest{
 				Message: err.Error(),
 			}
 		}
@@ -208,11 +190,23 @@ func (h Handler) GetWorkflows(
 		return []models.Workflow{}, "", err
 	}
 
-	results := []models.Workflow{}
-	for _, workflow := range workflows {
-		results = append(results, workflow)
+	return workflows, nextPageToken, nil
+}
+
+func paramsToWorkflowsQuery(input *models.GetWorkflowsInput) (*models.WorkflowQuery, error) {
+	query := &models.WorkflowQuery{
+		WorkflowDefinitionName: aws.String(input.WorkflowDefinitionName),
+		Limit:       aws.Int64Value(input.Limit),
+		OldestFirst: aws.BoolValue(input.OldestFirst),
+		PageToken:   aws.StringValue(input.PageToken),
+		Status:      models.WorkflowStatus(aws.StringValue(input.Status)),
+		SummaryOnly: input.SummaryOnly,
 	}
-	return results, nextPageToken, nil
+
+	if err := query.Validate(nil); err != nil {
+		return nil, err
+	}
+	return query, nil
 }
 
 // GetWorkflowByID returns current details about a Workflow with the given workflowId
