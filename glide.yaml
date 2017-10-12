@@ -20,7 +20,7 @@ import:
   subpackages:
   - assert
 - package: github.com/kardianos/osext
-- package: gopkg.in/Clever/kayvee-go
+- package: gopkg.in/Clever/kayvee-go.v6
   version: ^6.10.0
 - package: github.com/golang/mock
   version: master
@@ -30,3 +30,4 @@ import:
   version: 83dd4ef
   repo: git@github.com:Clever/ddbsync.git
 - package: github.com/mohae/deepcopy
+- package: github.com/hashicorp/golang-lru

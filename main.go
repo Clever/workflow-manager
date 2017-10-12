@@ -17,6 +17,7 @@ import (
 
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/batchclient"
+	"github.com/Clever/workflow-manager/executor/sfncache"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/gen-go/server"
 	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
@@ -81,7 +82,11 @@ func main() {
 	)
 	wfmBatch := executor.NewBatchWorkflowManager(batch, db)
 	sfnapi := sfn.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion))
-	wfmSFN := executor.NewSFNWorkflowManager(sfnapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
+	cachedSFNAPI, err := sfncache.New(sfnapi)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
 	wfmMulti := executor.NewMultiWorkflowManager(wfmBatch, map[models.Manager]executor.WorkflowManager{
 		models.ManagerBatch:         wfmBatch,
 		models.ManagerStepFunctions: wfmSFN,
