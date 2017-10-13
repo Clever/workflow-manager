@@ -450,15 +450,12 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 				job.Status = models.JobStatusFailed
 				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 				if details := evt.ActivityFailedEventDetails; details != nil {
-					reasonLines := strings.Split(strings.TrimSpace(aws.StringValue(details.Cause)), "\n")
-					if len(reasonLines) > maxFailureReasonLines {
-						reasonLines = reasonLines[len(reasonLines)-maxFailureReasonLines:]
-					}
-					if aws.StringValue(details.Error) != "" {
-						// TODO: need more natural place to put error name...
-						reasonLines = append([]string{aws.StringValue(details.Error)}, reasonLines...)
-					}
-					job.StatusReason = strings.TrimSpace(strings.Join(reasonLines, "\n"))
+					// TODO: need more natural place to put error name...
+					job.StatusReason = strings.TrimSpace(fmt.Sprintf(
+						"%s\n%s",
+						getLastFewLines(aws.StringValue(details.Cause)),
+						aws.StringValue(details.Error),
+					))
 				}
 			case sfn.HistoryEventTypeActivitySucceeded:
 				job.Status = models.JobStatusSucceeded
@@ -476,8 +473,11 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 						job.StatusReason = "State resource does not exist"
 					} else {
 						// set unknown errors to StatusReason
-						job.StatusReason = fmt.Sprintf("%s: %s", aws.StringValue(details.Error),
-							aws.StringValue(details.Cause))
+						job.StatusReason = strings.TrimSpace(fmt.Sprintf(
+							"%s\n%s",
+							getLastFewLines(aws.StringValue(details.Cause)),
+							aws.StringValue(details.Error),
+						))
 					}
 				}
 			case sfn.HistoryEventTypeTaskStateExited:
@@ -503,4 +503,13 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 func isActivityDoesntExistFailure(details *sfn.ExecutionFailedEventDetails) bool {
 	return aws.StringValue(details.Error) == "States.Runtime" &&
 		strings.Contains(aws.StringValue(details.Cause), "Internal Error")
+}
+
+func getLastFewLines(rawLines string) string {
+	lastFewLines := strings.Split(strings.TrimSpace(rawLines), "\n")
+	if len(lastFewLines) > maxFailureReasonLines {
+		lastFewLines = lastFewLines[len(lastFewLines)-maxFailureReasonLines:]
+	}
+
+	return strings.Join(lastFewLines, "\n")
 }
