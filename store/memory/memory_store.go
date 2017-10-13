@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-openapi/strfmt"
 	"github.com/satori/go.uuid"
 
@@ -161,13 +162,17 @@ func (s MemoryStore) UpdateWorkflow(workflow models.Workflow) error {
 }
 
 func (s MemoryStore) GetWorkflows(
-	query *store.WorkflowQuery,
+	query *models.WorkflowQuery,
 ) ([]models.Workflow, string, error) {
 	workflows := []models.Workflow{}
 	for _, workflow := range s.workflows {
 		if s.matchesQuery(workflow, query) {
-			if query.SummaryOnly {
-				workflow.Jobs = []*models.Job{}
+			if aws.BoolValue(query.SummaryOnly) {
+				// remove everything but WorkflowSummary
+				workflow = models.Workflow{
+					WorkflowSummary: workflow.WorkflowSummary,
+				}
+				// we need to minimize the WorkflowDefinition
 				workflow.WorkflowDefinition = &models.WorkflowDefinition{
 					Name:    workflow.WorkflowDefinition.Name,
 					Version: workflow.WorkflowDefinition.Version,
@@ -198,7 +203,7 @@ func (s MemoryStore) GetWorkflows(
 		}
 	}
 
-	rangeEnd := rangeStart + query.Limit
+	rangeEnd := rangeStart + int(query.Limit)
 	if rangeEnd > len(workflows) {
 		rangeEnd = len(workflows)
 	}
@@ -210,12 +215,12 @@ func (s MemoryStore) GetWorkflows(
 	return workflows[rangeStart:rangeEnd], nextPageToken, nil
 }
 
-func (s MemoryStore) matchesQuery(workflow models.Workflow, query *store.WorkflowQuery) bool {
-	if workflow.WorkflowDefinition.Name != query.DefinitionName {
+func (s MemoryStore) matchesQuery(workflow models.Workflow, query *models.WorkflowQuery) bool {
+	if workflow.WorkflowDefinition.Name != aws.StringValue(query.WorkflowDefinitionName) {
 		return false
 	}
 
-	if query.Status != "" && string(workflow.Status) != query.Status {
+	if query.Status != "" && workflow.Status != query.Status {
 		return false
 	}
 

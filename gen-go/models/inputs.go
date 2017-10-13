@@ -286,7 +286,7 @@ func (i GetWorkflowDefinitionByNameAndVersionInput) Path() (string, error) {
 
 // GetWorkflowsInput holds the input parameters for a getWorkflows operation.
 type GetWorkflowsInput struct {
-	Limit                  *int32
+	Limit                  *int64
 	OldestFirst            *bool
 	PageToken              *string
 	Status                 *string
@@ -298,6 +298,12 @@ type GetWorkflowsInput struct {
 // requirements from the swagger yml file.
 func (i GetWorkflowsInput) Validate() error {
 
+	if i.Limit != nil {
+		if err := validate.MaximumInt("limit", "query", *i.Limit, int64(10000), false); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -307,7 +313,7 @@ func (i GetWorkflowsInput) Path() (string, error) {
 	urlVals := url.Values{}
 
 	if i.Limit != nil {
-		urlVals.Add("limit", strconv.FormatInt(int64(*i.Limit), 10))
+		urlVals.Add("limit", strconv.FormatInt(*i.Limit, 10))
 	}
 
 	if i.OldestFirst != nil {

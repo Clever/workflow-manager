@@ -290,20 +290,20 @@ Get the latest versions of all available WorkflowDefinitions
 **Reject**: <code>[InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError)</code>  
 **Reject**: <code>Error</code>  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| params | <code>Object</code> |  |
-| [params.limit] | <code>number</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
-| [params.oldestFirst] | <code>boolean</code> |  |
-| [params.pageToken] | <code>string</code> |  |
-| [params.status] | <code>string</code> |  |
-| [params.summaryOnly] | <code>boolean</code> | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
-| params.workflowDefinitionName | <code>string</code> |  |
-| [options] | <code>object</code> |  |
-| [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
-| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
-| [cb] | <code>function</code> |  |
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| params | <code>Object</code> |  |  |
+| [params.limit] | <code>number</code> | <code>10</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
+| [params.oldestFirst] | <code>boolean</code> |  |  |
+| [params.pageToken] | <code>string</code> |  |  |
+| [params.status] | <code>string</code> |  |  |
+| [params.summaryOnly] | <code>boolean</code> |  | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
+| params.workflowDefinitionName | <code>string</code> |  |  |
+| [options] | <code>object</code> |  |  |
+| [options.timeout] | <code>number</code> |  | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> |  | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> |  | A request specific retryPolicy |
+| [cb] | <code>function</code> |  |  |
 
 <a name="module_workflow-manager--WorkflowManager+getWorkflowsIter"></a>
 
@@ -311,19 +311,19 @@ Get the latest versions of all available WorkflowDefinitions
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Returns**: <code>Object</code> - iter<code>function</code> - iter.map - takes in a function, applies it to each resource, and returns a promise to the result as an array<code>function</code> - iter.toArray - returns a promise to the resources as an array<code>function</code> - iter.forEach - takes in a function, applies it to each resource  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| params | <code>Object</code> |  |
-| [params.limit] | <code>number</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
-| [params.oldestFirst] | <code>boolean</code> |  |
-| [params.pageToken] | <code>string</code> |  |
-| [params.status] | <code>string</code> |  |
-| [params.summaryOnly] | <code>boolean</code> | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
-| params.workflowDefinitionName | <code>string</code> |  |
-| [options] | <code>object</code> |  |
-| [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
-| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| params | <code>Object</code> |  |  |
+| [params.limit] | <code>number</code> | <code>10</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
+| [params.oldestFirst] | <code>boolean</code> |  |  |
+| [params.pageToken] | <code>string</code> |  |  |
+| [params.status] | <code>string</code> |  |  |
+| [params.summaryOnly] | <code>boolean</code> |  | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
+| params.workflowDefinitionName | <code>string</code> |  |  |
+| [options] | <code>object</code> |  |  |
+| [options.timeout] | <code>number</code> |  | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> |  | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> |  | A request specific retryPolicy |
 
 <a name="module_workflow-manager--WorkflowManager+startWorkflow"></a>
 

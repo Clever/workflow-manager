@@ -2,14 +2,40 @@ package dynamodb
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/store"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/go-openapi/strfmt"
 )
+
+// SummaryKeys are json paths to the Workflow fields we want to pull out of dynamodb
+// when summaryOnly=true in WorkflowQuery
+// This should be kept in sync with the WorkflowSummary model defined in swagger
+var SummaryKeys = []string{
+	"Workflow.createdAt",
+	"Workflow.id",
+	"Workflow.#I", // input
+	"Workflow.lastUpdated",
+	"Workflow.queue",
+	"Workflow.namespace",
+	"Workflow.retries",
+	"Workflow.retryFor",
+	"Workflow.#S", // status
+	"Workflow.tags",
+
+	"Workflow.workflowDefinition.#N",
+	"Workflow.workflowDefinition.version",
+}
+
+var summaryProjectionExpression = strings.Join(SummaryKeys, ", ")
+var summaryExpressionAttributeNames = map[string]*string{
+	"#S": aws.String("status"),
+	"#I": aws.String("input"),
+	"#N": aws.String("name"),
+}
 
 // ddbWorkflow represents the workflow as stored in dynamo.
 // Use this to make PutItem queries.
@@ -103,12 +129,13 @@ func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) AttributeDefinition
 	}
 }
 
-func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) ConstructQuery() (*dynamodb.QueryInput, error) {
+func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) ConstructQuery(summaryOnly bool) (*dynamodb.QueryInput, error) {
 	workflowNameAV, err := dynamodbattribute.Marshal(sk.WorkflowDefinitionName)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal workflow definition name: %s", err)
 	}
-	return &dynamodb.QueryInput{
+
+	queryInput := &dynamodb.QueryInput{
 		IndexName: aws.String(sk.Name()),
 		ExpressionAttributeNames: map[string]*string{
 			"#W": aws.String("_gsi-wn"),
@@ -117,7 +144,13 @@ func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) ConstructQuery() (*
 			":workflowName": workflowNameAV,
 		},
 		KeyConditionExpression: aws.String("#W = :workflowName"),
-	}, nil
+	}
+
+	if summaryOnly {
+		onlySummaryFields(queryInput)
+	}
+
+	return queryInput, nil
 }
 
 func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) KeySchema() []*dynamodb.KeySchemaElement {
@@ -161,13 +194,13 @@ func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) getDefinitionStatusPa
 }
 
 func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) ConstructQuery(
-	query *store.WorkflowQuery,
+	query *models.WorkflowQuery,
 ) (*dynamodb.QueryInput, error) {
 	if query.Status == "" {
 		return nil, fmt.Errorf("workflow status filter is required for %s index", sk.Name())
 	}
 
-	return &dynamodb.QueryInput{
+	queryInput := &dynamodb.QueryInput{
 		IndexName: aws.String(sk.Name()),
 		ExpressionAttributeNames: map[string]*string{
 			"#WS": aws.String("_gsi-wn-and-status"),
@@ -175,12 +208,20 @@ func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) ConstructQuery(
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":workflowNameAndStatus": &dynamodb.AttributeValue{
 				S: aws.String(
-					sk.getDefinitionStatusPair(query.DefinitionName, query.Status),
+					sk.getDefinitionStatusPair(
+						aws.StringValue(query.WorkflowDefinitionName),
+						string(query.Status)),
 				),
 			},
 		},
 		KeyConditionExpression: aws.String("#WS = :workflowNameAndStatus"),
-	}, nil
+	}
+
+	if aws.BoolValue(query.SummaryOnly) {
+		onlySummaryFields(queryInput)
+	}
+
+	return queryInput, nil
 }
 
 func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) KeySchema() []*dynamodb.KeySchemaElement {
@@ -247,5 +288,12 @@ func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) KeySchema() []*dynamodb.KeySc
 			AttributeName: aws.String("_gsi-lastUpdated"),
 			KeyType:       aws.String(dynamodb.KeyTypeRange),
 		},
+	}
+}
+
+func onlySummaryFields(queryInput *dynamodb.QueryInput) {
+	queryInput = queryInput.SetProjectionExpression(summaryProjectionExpression)
+	for name, exp := range summaryExpressionAttributeNames {
+		queryInput.ExpressionAttributeNames[name] = exp
 	}
 }

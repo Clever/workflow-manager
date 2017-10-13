@@ -545,9 +545,10 @@ func (d DynamoDB) GetWorkflowByID(id string) (models.Workflow, error) {
 }
 
 // GetWorkflows returns all workflows matching the given query.
-func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]models.Workflow, string, error) {
+func (d DynamoDB) GetWorkflows(query *models.WorkflowQuery) ([]models.Workflow, string, error) {
 	var workflows []models.Workflow
 	nextPageToken := ""
+	summaryOnly := aws.BoolValue(query.SummaryOnly)
 
 	var dbQuery *dynamodb.QueryInput
 	var err error
@@ -555,15 +556,15 @@ func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]models.Workflow, s
 		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.ConstructQuery(query)
 	} else {
 		dbQuery, err = ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
-			WorkflowDefinitionName: query.DefinitionName,
-		}.ConstructQuery()
+			WorkflowDefinitionName: aws.StringValue(query.WorkflowDefinitionName),
+		}.ConstructQuery(summaryOnly)
 	}
 	if err != nil {
 		return workflows, nextPageToken, err
 	}
 
 	dbQuery.TableName = aws.String(d.workflowsTable())
-	dbQuery.Limit = aws.Int64(int64(query.Limit))
+	dbQuery.Limit = aws.Int64(query.Limit)
 	dbQuery.ScanIndexForward = aws.Bool(query.OldestFirst)
 
 	pageKey, err := ParsePageKey(query.PageToken)
@@ -583,16 +584,6 @@ func (d DynamoDB) GetWorkflows(query *store.WorkflowQuery) ([]models.Workflow, s
 		workflow, err := DecodeWorkflow(item)
 		if err != nil {
 			return workflows, nextPageToken, err
-		}
-
-		// TODO: Optimization - use a projection expression instead to limit which fields are returned
-		// by the dynamodb query.
-		if query.SummaryOnly {
-			workflow.Jobs = []*models.Job{}
-			workflow.WorkflowDefinition = &models.WorkflowDefinition{
-				Name:    workflow.WorkflowDefinition.Name,
-				Version: workflow.WorkflowDefinition.Version,
-			}
 		}
 
 		workflows = append(workflows, workflow)

@@ -13,68 +13,24 @@ import (
 // Workflow workflow
 // swagger:model Workflow
 type Workflow struct {
-
-	// created at
-	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
-
-	// id
-	ID string `json:"id,omitempty"`
-
-	// input
-	Input string `json:"input,omitempty"`
+	WorkflowSummary
 
 	// jobs
 	Jobs []*Job `json:"jobs"`
 
-	// last updated
-	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
-
-	// namespace
-	Namespace string `json:"namespace,omitempty"`
-
-	// queue
-	Queue string `json:"queue,omitempty"`
-
-	// workflow-id's of workflows created as retries for this workflow
-	Retries []string `json:"retries"`
-
-	// workflow-id of original workflow in case this is a retry
-	RetryFor string `json:"retryFor,omitempty"`
-
-	// status
-	Status WorkflowStatus `json:"status,omitempty"`
-
 	// status reason
 	StatusReason string `json:"statusReason,omitempty"`
-
-	// tags: object with key-value pairs; keys and values should be strings
-	Tags map[string]interface{} `json:"tags,omitempty"`
-
-	// workflow definition
-	WorkflowDefinition *WorkflowDefinition `json:"workflowDefinition,omitempty"`
 }
 
 // Validate validates this workflow
 func (m *Workflow) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.WorkflowSummary.Validate(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateJobs(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateRetries(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateStatus(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateWorkflowDefinition(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
@@ -85,10 +41,6 @@ func (m *Workflow) Validate(formats strfmt.Registry) error {
 }
 
 func (m *Workflow) validateJobs(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Jobs) { // not required
-		return nil
-	}
 
 	for i := 0; i < len(m.Jobs); i++ {
 
@@ -103,44 +55,6 @@ func (m *Workflow) validateJobs(formats strfmt.Registry) error {
 			}
 		}
 
-	}
-
-	return nil
-}
-
-func (m *Workflow) validateRetries(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Retries) { // not required
-		return nil
-	}
-
-	return nil
-}
-
-func (m *Workflow) validateStatus(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Status) { // not required
-		return nil
-	}
-
-	if err := m.Status.Validate(formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Workflow) validateWorkflowDefinition(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.WorkflowDefinition) { // not required
-		return nil
-	}
-
-	if m.WorkflowDefinition != nil {
-
-		if err := m.WorkflowDefinition.Validate(formats); err != nil {
-			return err
-		}
 	}
 
 	return nil

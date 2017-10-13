@@ -1,9 +1,11 @@
 package tests
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -203,13 +205,15 @@ func GetWorkflowByID(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Nil(t, err)
 
 		expected := models.Workflow{
-			ID:                 workflow.ID,
-			WorkflowDefinition: wf,
-			Input:              `["input"]`,
-			Status:             models.WorkflowStatusQueued,
-			Namespace:          "namespace",
-			Queue:              "queue",
-			Tags:               tags,
+			WorkflowSummary: models.WorkflowSummary{
+				ID:                 workflow.ID,
+				WorkflowDefinition: wf,
+				Input:              `["input"]`,
+				Status:             models.WorkflowStatusQueued,
+				Namespace:          "namespace",
+				Queue:              "queue",
+				Tags:               tags,
+			},
 		}
 		require.Equal(t, savedWorkflow.Input, expected.Input)
 		require.Equal(t, savedWorkflow.Status, expected.Status)
@@ -248,9 +252,9 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		require.NoError(t, s.SaveWorkflow(*otherDefinitionWorkflow))
 
 		// Verify results for query with no status filtering:
-		workflows, _, err := s.GetWorkflows(&store.WorkflowQuery{
-			DefinitionName: definition.Name,
-			Limit:          10,
+		workflows, _, err := s.GetWorkflows(&models.WorkflowQuery{
+			WorkflowDefinitionName: aws.String(definition.Name),
+			Limit: 10,
 		})
 		require.NoError(t, err)
 		require.Len(t, workflows, 2)
@@ -258,10 +262,10 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Equal(t, runningWorkflow.ID, workflows[1].ID)
 
 		// Verify results for query with status filtering:
-		workflows, _, err = s.GetWorkflows(&store.WorkflowQuery{
-			DefinitionName: definition.Name,
-			Status:         string(models.WorkflowStatusRunning),
-			Limit:          10,
+		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+			WorkflowDefinitionName: aws.String(definition.Name),
+			Status:                 models.WorkflowStatusRunning,
+			Limit:                  10,
 		})
 		require.NoError(t, err)
 		require.Len(t, workflows, 1)
@@ -280,16 +284,20 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 			ID:    "job1",
 			Input: `["job input"]`,
 		}}
+		workflow.Retries = []string{"x"}
+		workflow.RetryFor = "y"
+		workflow.StatusReason = "test reason"
 		require.NoError(t, s.SaveWorkflow(*workflow))
 
 		// Verify details are excluded if SummaryOnly == true:
-		workflows, _, err := s.GetWorkflows(&store.WorkflowQuery{
-			DefinitionName: definition.Name,
-			SummaryOnly:    true,
-			Limit:          10,
+		workflows, _, err := s.GetWorkflows(&models.WorkflowQuery{
+			WorkflowDefinitionName: aws.String(definition.Name),
+			SummaryOnly:            aws.Bool(true),
+			Limit:                  10,
 		})
 		require.NoError(t, err)
-		require.Equal(t, []*models.Job{}, workflows[0].Jobs)
+		require.Nil(t, workflows[0].Jobs)
+		require.Empty(t, workflows[0].StatusReason)
 
 		definitionSummary := &models.WorkflowDefinition{
 			Name:    definition.Name,
@@ -297,16 +305,26 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 		}
 		require.Equal(t, definitionSummary, workflows[0].WorkflowDefinition)
 
+		// All fields of WorkflowSummary should be present
+		wsType := reflect.TypeOf(models.WorkflowSummary{})
+		workflowVal := reflect.ValueOf(workflows[0])
+		for i := 0; i < wsType.NumField(); i++ {
+			name := wsType.Field(i).Name
+			assert.NotNil(t, workflowVal.FieldByName(name).String(), "Field Name: %s", name)
+			assert.NotEmpty(t, workflowVal.FieldByName(name).String(), "Field Name: %s", name)
+		}
+
 		// Verify details are included if SummaryOnly == false:
-		workflows, _, err = s.GetWorkflows(&store.WorkflowQuery{
-			DefinitionName: definition.Name,
-			SummaryOnly:    false,
-			Limit:          10,
+		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+			WorkflowDefinitionName: aws.String(definition.Name),
+			SummaryOnly:            aws.Bool(false),
+			Limit:                  10,
 		})
 		require.NoError(t, err)
 		require.Equal(t, workflow.Jobs, workflows[0].Jobs)
 		require.Equal(t, definition.Name, workflows[0].WorkflowDefinition.Name)
 		require.Equal(t, definition.Version, workflows[0].WorkflowDefinition.Version)
+		require.Equal(t, workflow.StatusReason, workflows[0].StatusReason)
 		require.Equal(
 			t,
 			len(definition.StateMachine.States),
@@ -333,7 +351,7 @@ func GetWorkflowsPagination(s store.Store, t *testing.T) func(t *testing.T) {
 		require.NoError(t, s.SaveWorkflow(*workflow3))
 
 		limit := 1
-		getAllPages := func(query store.WorkflowQuery) []models.Workflow {
+		getAllPages := func(query models.WorkflowQuery) []models.Workflow {
 			nextPageToken := ""
 			nextQuery := query
 			workflows := []models.Workflow{}
@@ -361,10 +379,10 @@ func GetWorkflowsPagination(s store.Store, t *testing.T) func(t *testing.T) {
 
 			return workflows
 		}
-		query := store.WorkflowQuery{
-			DefinitionName: definition.Name,
-			Limit:          limit,
-			Status:         string(models.WorkflowStatusRunning),
+		query := models.WorkflowQuery{
+			WorkflowDefinitionName: aws.String(definition.Name),
+			Limit:  int64(limit),
+			Status: models.WorkflowStatusRunning,
 		}
 
 		workflows := getAllPages(query)
