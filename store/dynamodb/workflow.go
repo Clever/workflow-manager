@@ -13,6 +13,7 @@ import (
 
 // SummaryKeys are json paths to the Workflow fields we want to pull out of dynamodb
 // when summaryOnly=true in WorkflowQuery
+// This should be kept in sync with the WorkflowSummary model defined in swagger
 var SummaryKeys = []string{
 	"Workflow.createdAt",
 	"Workflow.id",
