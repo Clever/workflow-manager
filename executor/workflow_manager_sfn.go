@@ -390,11 +390,12 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 		// 3) stop paging once we get to to the smallest job ID (aka event ID) that is still pending
 		for _, evt := range historyOutput.Events {
 			job := eventToJob(evt)
-			if job == nil {
-				continue
-			}
 			switch aws.StringValue(evt.Type) {
 			case sfn.HistoryEventTypeTaskStateEntered:
+				if job == nil {
+					continue
+				}
+
 				// event IDs start at 1 and are only unique to the execution, so this might not be ideal
 				job.ID = fmt.Sprintf("%d", aws.Int64Value(evt.Id))
 				job.Attempts = []*models.JobAttempt{}
@@ -418,6 +419,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 					}
 				}
 			case sfn.HistoryEventTypeActivityScheduled:
+				if job == nil {
+					continue
+				}
+
 				if job.Status == models.JobStatusFailed {
 					// this is a retry, copy job data to attempt array, re-initialize job data
 					oldJobData := *job
@@ -442,11 +447,19 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 				}
 				job.Status = models.JobStatusQueued
 			case sfn.HistoryEventTypeActivityStarted:
+				if job == nil {
+					continue
+				}
+
 				job.Status = models.JobStatusRunning
 				if details := evt.ActivityStartedEventDetails; details != nil {
 					job.Container = aws.StringValue(details.WorkerName)
 				}
 			case sfn.HistoryEventTypeActivityFailed:
+				if job == nil {
+					continue
+				}
+
 				job.Status = models.JobStatusFailed
 				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 				if details := evt.ActivityFailedEventDetails; details != nil {
@@ -458,14 +471,26 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 					))
 				}
 			case sfn.HistoryEventTypeActivitySucceeded:
-				job.Status = models.JobStatusSucceeded
+				if job != nil {
+					job.Status = models.JobStatusSucceeded
+				}
 			case sfn.HistoryEventTypeExecutionAborted:
+				if job == nil {
+					// Execution-level event - update last seen job.
+					job = jobs[len(jobs)-1]
+				}
+
 				job.Status = models.JobStatusAbortedByUser
 				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 				if details := evt.ExecutionAbortedEventDetails; details != nil {
 					job.StatusReason = aws.StringValue(details.Cause)
 				}
 			case sfn.HistoryEventTypeExecutionFailed:
+				if job == nil {
+					// Execution-level event - update last seen job.
+					job = jobs[len(jobs)-1]
+				}
+
 				job.Status = models.JobStatusFailed
 				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 				if details := evt.ExecutionFailedEventDetails; details != nil {
@@ -481,6 +506,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 					}
 				}
 			case sfn.HistoryEventTypeTaskStateExited:
+				if job == nil {
+					continue
+				}
+
 				stateExited := evt.StateExitedEventDetails
 				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 				if stateExited.Output != nil {
