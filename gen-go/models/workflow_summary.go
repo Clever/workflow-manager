@@ -41,9 +41,6 @@ type WorkflowSummary struct {
 	// status
 	Status WorkflowStatus `json:"status,omitempty"`
 
-	// status reason
-	StatusReason string `json:"statusReason,omitempty"`
-
 	// tags: object with key-value pairs; keys and values should be strings
 	Tags map[string]interface{} `json:"tags,omitempty"`
 

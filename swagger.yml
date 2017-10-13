@@ -377,6 +377,8 @@ definitions:
       - $ref: '#/definitions/WorkflowSummary'
       - type: object
         properties:
+          statusReason:
+            type: string
           jobs:
             type: array
             items:
@@ -397,8 +399,6 @@ definitions:
         $ref: '#/definitions/WorkflowDefinition'
       status:
         $ref: '#/definitions/WorkflowStatus'
-      statusReason:
-        type: string
       namespace:
         type: string
       queue:

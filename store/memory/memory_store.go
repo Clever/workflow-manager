@@ -168,7 +168,11 @@ func (s MemoryStore) GetWorkflows(
 	for _, workflow := range s.workflows {
 		if s.matchesQuery(workflow, query) {
 			if aws.BoolValue(query.SummaryOnly) {
-				workflow.Jobs = nil
+				// remove everything but WorkflowSummary
+				workflow = models.Workflow{
+					WorkflowSummary: workflow.WorkflowSummary,
+				}
+				// we need to minimize the WorkflowDefinition
 				workflow.WorkflowDefinition = &models.WorkflowDefinition{
 					Name:    workflow.WorkflowDefinition.Name,
 					Version: workflow.WorkflowDefinition.Version,

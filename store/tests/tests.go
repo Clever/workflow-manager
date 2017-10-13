@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -285,6 +284,9 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 			ID:    "job1",
 			Input: `["job input"]`,
 		}}
+		workflow.Retries = []string{"x"}
+		workflow.RetryFor = "y"
+		workflow.StatusReason = "test reason"
 		require.NoError(t, s.SaveWorkflow(*workflow))
 
 		// Verify details are excluded if SummaryOnly == true:
@@ -295,6 +297,7 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Nil(t, workflows[0].Jobs)
+		require.Empty(t, workflows[0].StatusReason)
 
 		definitionSummary := &models.WorkflowDefinition{
 			Name:    definition.Name,
@@ -307,8 +310,8 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 		workflowVal := reflect.ValueOf(workflows[0])
 		for i := 0; i < wsType.NumField(); i++ {
 			name := wsType.Field(i).Name
-			fmt.Println(i, workflowVal.FieldByName(name).String())
-			assert.NotNil(t, workflowVal.FieldByName(name).String())
+			assert.NotNil(t, workflowVal.FieldByName(name).String(), "Field Name: %s", name)
+			assert.NotEmpty(t, workflowVal.FieldByName(name).String(), "Field Name: %s", name)
 		}
 
 		// Verify details are included if SummaryOnly == false:
@@ -321,6 +324,7 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Equal(t, workflow.Jobs, workflows[0].Jobs)
 		require.Equal(t, definition.Name, workflows[0].WorkflowDefinition.Name)
 		require.Equal(t, definition.Version, workflows[0].WorkflowDefinition.Version)
+		require.Equal(t, workflow.StatusReason, workflows[0].StatusReason)
 		require.Equal(
 			t,
 			len(definition.StateMachine.States),

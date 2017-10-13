@@ -17,6 +17,9 @@ type Workflow struct {
 
 	// jobs
 	Jobs []*Job `json:"jobs"`
+
+	// status reason
+	StatusReason string `json:"statusReason,omitempty"`
 }
 
 // Validate validates this workflow

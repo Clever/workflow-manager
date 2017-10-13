@@ -24,7 +24,6 @@ var SummaryKeys = []string{
 	"Workflow.retries",
 	"Workflow.retryFor",
 	"Workflow.#S", // status
-	"Workflow.statusReason",
 	"Workflow.tags",
 
 	"Workflow.workflowDefinition.#N",
