@@ -369,6 +369,12 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 			jobs = append(jobs, job)
 			eventIDToJob[eventID] = job
 			return job
+		case sfn.HistoryEventTypeExecutionAborted:
+			// Execution-level event - update last seen job.
+			return jobs[len(jobs)-1]
+		case sfn.HistoryEventTypeExecutionFailed:
+			// Execution-level event - update last seen job.
+			return jobs[len(jobs)-1]
 		default:
 			// associate this event with the same job as its parent event
 			job, ok := eventIDToJob[parentEventID]

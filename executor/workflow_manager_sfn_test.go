@@ -298,10 +298,9 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
 				&sfn.HistoryEvent{
-					Id:              aws.Int64(2),
-					PreviousEventId: jobCreatedEvent.Id,
-					Timestamp:       aws.Time(jobFailedEventTimestamp),
-					Type:            aws.String(sfn.HistoryEventTypeExecutionFailed),
+					Id:        aws.Int64(2),
+					Timestamp: aws.Time(jobFailedEventTimestamp),
+					Type:      aws.String(sfn.HistoryEventTypeExecutionFailed),
 					ExecutionFailedEventDetails: &sfn.ExecutionFailedEventDetails{
 						Cause: aws.String("Internal Error (49b863bd-3367-4035-a76d-bfb2e777ece3)"),
 						Error: aws.String("States.Runtime"),
@@ -386,10 +385,9 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 
 var jobAbortedEventTimestamp = jobSucceededEventTimestamp.Add(5 * time.Minute)
 var jobAbortedEvent = &sfn.HistoryEvent{
-	Id:              aws.Int64(5),
-	PreviousEventId: aws.Int64(1),
-	Timestamp:       aws.Time(jobAbortedEventTimestamp),
-	Type:            aws.String(sfn.HistoryEventTypeExecutionAborted),
+	Id:        aws.Int64(5),
+	Timestamp: aws.Time(jobAbortedEventTimestamp),
+	Type:      aws.String(sfn.HistoryEventTypeExecutionAborted),
 	ExecutionAbortedEventDetails: &sfn.ExecutionAbortedEventDetails{
 		Cause: aws.String("sfn abort reason"),
 	},
