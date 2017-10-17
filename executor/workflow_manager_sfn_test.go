@@ -352,6 +352,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 	workflow.Status = models.WorkflowStatusQueued
 	c.saveWorkflow(t, workflow)
 
+	executionOutput := `{"output": true}`
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecution(&sfn.DescribeExecutionInput{
@@ -359,6 +360,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 		}).
 		Return(&sfn.DescribeExecutionOutput{
 			Status: aws.String(sfn.ExecutionStatusSucceeded),
+			Output: aws.String(executionOutput),
 		}, nil)
 
 	c.mockSFNAPI.EXPECT().
@@ -378,6 +380,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 
 	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
 	assert.Equal(t, models.WorkflowStatusSucceeded, workflow.Status)
+	assert.Equal(t, executionOutput, workflow.Output)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertSucceededJobData(t, workflow.Jobs[0])

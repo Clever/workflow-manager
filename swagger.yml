@@ -5,7 +5,7 @@ info:
   # when changing the version here, make sure to
   # 1. re-run `make generate` to generate clients and server
   # 2. merge the new clients
-  version: 0.6.4
+  version: 0.6.5
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -378,6 +378,9 @@ definitions:
       - type: object
         properties:
           statusReason:
+            type: string
+          output:
+            # format: json
             type: string
           jobs:
             type: array
