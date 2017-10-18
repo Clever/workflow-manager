@@ -247,26 +247,34 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt,
 }
 
 func (wm *SFNWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason string) error {
-	// cancel execution
-	wd := workflow.WorkflowDefinition
-	execARN := wm.executionARN(workflow, wd)
-	_, err := wm.sfnapi.StopExecution(&sfn.StopExecutionInput{
-		ExecutionArn: aws.String(execARN),
-		Cause:        aws.String(reason),
-		// Error: aws.String(""), // TODO: Can we use this? "An arbitrary error code that identifies the cause of the termination."
-	})
-	if err != nil {
-		return err
+	if workflow.Status == models.WorkflowStatusSucceeded {
+		return fmt.Errorf("Cancellation not allowed. Workflow %s is %s", workflow.ID, workflow.Status)
 	}
 
+	// attempt to describe execution
+	wd := workflow.WorkflowDefinition
+	execARN := wm.executionARN(workflow, wd)
 	describeOutput, err := wm.sfnapi.DescribeExecution(&sfn.DescribeExecutionInput{
 		ExecutionArn: aws.String(execARN),
 	})
 	if err != nil {
 		return err
 	}
-
 	status := sfnStatusToWorkflowStatus(*describeOutput.Status)
+
+	if _, err = wm.sfnapi.StopExecution(&sfn.StopExecutionInput{
+		ExecutionArn: aws.String(execARN),
+		Cause:        aws.String(reason),
+		// Error: aws.String(""), // TODO: Can we use this? "An arbitrary error code that identifies the cause of the termination."
+	}); err != nil {
+		aerr, ok := err.(awserr.Error)
+		// AWS returns a DoesNotExist error when cancelling a failed workflow
+		executionFailedErr := (ok && aerr.Code() == sfn.ErrCodeExecutionDoesNotExist && status == models.WorkflowStatusFailed)
+		if !executionFailedErr {
+			return err
+		}
+	}
+
 	if status == models.WorkflowStatusFailed {
 		// SFN executions can't be moved from the failed state to the aborted state, so if the user
 		// cancels a failed workflow, we update the status in workflow-manager directly to preserve

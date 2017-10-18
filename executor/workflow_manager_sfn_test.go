@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -110,18 +111,18 @@ func TestCancelWorkflow(t *testing.T) {
 	reason := "i have my reasons"
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		StopExecution(&sfn.StopExecutionInput{
-			ExecutionArn: aws.String(sfnExecutionARN),
-			Cause:        aws.String(reason),
-		}).
-		Return(&sfn.StopExecutionOutput{}, nil)
-	c.mockSFNAPI.EXPECT().
 		DescribeExecution(&sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
 			Status: aws.String(sfn.ExecutionStatusAborted),
 		}, nil)
+	c.mockSFNAPI.EXPECT().
+		StopExecution(&sfn.StopExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			Cause:        aws.String(reason),
+		}).
+		Return(&sfn.StopExecutionOutput{}, nil)
 	require.NoError(t, c.manager.CancelWorkflow(workflow, reason))
 	assert.Equal(t, initialStatus, workflow.Status)
 	assert.Equal(t, reason, workflow.StatusReason)
@@ -129,18 +130,18 @@ func TestCancelWorkflow(t *testing.T) {
 	t.Log("Verify both status and status reason are updated if execution has already failed.")
 	newReason := "seriously, stop asking"
 	c.mockSFNAPI.EXPECT().
-		StopExecution(&sfn.StopExecutionInput{
-			ExecutionArn: aws.String(sfnExecutionARN),
-			Cause:        aws.String(newReason),
-		}).
-		Return(&sfn.StopExecutionOutput{}, nil)
-	c.mockSFNAPI.EXPECT().
 		DescribeExecution(&sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
 			Status: aws.String(sfn.ExecutionStatusFailed),
 		}, nil)
+	c.mockSFNAPI.EXPECT().
+		StopExecution(&sfn.StopExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			Cause:        aws.String(newReason),
+		}).
+		Return(&sfn.StopExecutionOutput{}, nil)
 	require.NoError(t, c.manager.CancelWorkflow(workflow, newReason))
 	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
 	assert.Equal(t, newReason, workflow.StatusReason)
@@ -148,8 +149,41 @@ func TestCancelWorkflow(t *testing.T) {
 	t.Log("Verify errors are propagated.")
 	cancelError := fmt.Errorf("nope")
 	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusFailed),
+		}, nil)
+	c.mockSFNAPI.EXPECT().
 		StopExecution(gomock.Any()).
 		Return(&sfn.StopExecutionOutput{}, cancelError)
+	require.Error(t, c.manager.CancelWorkflow(workflow, reason))
+
+	t.Log("Ignore DoesNotExist error when workflow is failed")
+	workflow.Status = models.WorkflowStatusFailed
+	c.updateWorkflow(t, workflow)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusFailed),
+		}, nil)
+	newReason = "not found, still cancel"
+	c.mockSFNAPI.EXPECT().
+		StopExecution(&sfn.StopExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			Cause:        aws.String(newReason),
+		}).
+		Return(nil, awserr.New(sfn.ErrCodeExecutionDoesNotExist, "test", fmt.Errorf("")))
+	require.NoError(t, c.manager.CancelWorkflow(workflow, newReason))
+	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
+	assert.Equal(t, newReason, workflow.StatusReason)
+
+	t.Log("Successful Workflows can not be cancelled.")
+	workflow.Status = models.WorkflowStatusSucceeded
+	c.updateWorkflow(t, workflow)
 	require.Error(t, c.manager.CancelWorkflow(workflow, reason))
 }
 
@@ -509,6 +543,10 @@ func (c *sfnManagerTestController) newWorkflow() *models.Workflow {
 
 func (c *sfnManagerTestController) saveWorkflow(t *testing.T, workflow *models.Workflow) {
 	require.NoError(t, c.store.SaveWorkflow(*workflow))
+}
+
+func (c *sfnManagerTestController) updateWorkflow(t *testing.T, workflow *models.Workflow) {
+	require.NoError(t, c.store.UpdateWorkflow(*workflow))
 }
 
 func (c *sfnManagerTestController) tearDown() {
