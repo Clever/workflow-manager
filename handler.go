@@ -274,27 +274,9 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 	return h.manager.RetryWorkflow(workflow, input.Overrides.StartAt, effectiveInput)
 }
 
-// TODO: the functions below should probably just be functions on the respective resources.<Struct>
-
 func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	if req.StateMachine.StartAt == "" {
 		return nil, fmt.Errorf("StartAt is a required field")
-	}
-
-	for _, s := range req.StateMachine.States {
-		if s.Type != "" && s.Type != models.SLStateTypeTask {
-			return nil, fmt.Errorf("Only States of `type=Task` are supported")
-		}
-	}
-
-	// ensure all states are defined and have a transition path
-	numStates := len(req.StateMachine.States)
-	if err := resources.RemoveInactiveStates(req.StateMachine); err != nil {
-		return nil, err
-	}
-	if len(req.StateMachine.States) != numStates {
-		return nil, fmt.Errorf("Invalid WorkflowDefinition: %d states have no transition path",
-			numStates-len(req.StateMachine.States))
 	}
 
 	return resources.NewWorkflowDefinition(req.Name, req.Manager, req.StateMachine)
