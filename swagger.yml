@@ -608,6 +608,95 @@ definitions:
         type: integer
       HeartbeatSeconds:
         type: integer
+      Choices:
+        x-omitempty: true
+        type: array
+        items:
+          $ref: '#/definitions/SLChoice'
+      Default:
+        type: string
+      Error:
+        type: string
+      Cause:
+        type: string
+
+  SLChoice:
+    type: object
+    properties:
+      Next:
+        type: string
+      Variable:
+        type: string
+      # x-nullable: true makes it so that these are pointers
+      # in the generated go types. This ensures that
+      # 1) you can create choices that involve the zero value of
+      #    int and string, and they will appear in the marshalled JSON.
+      # 2) these fields are omitted from JSON when not provided
+      StringEquals:
+        x-nullable: true
+        type: string
+      StringLessThan:
+        x-nullable: true
+        type: string
+      StringGreaterThan:
+        x-nullable: true
+        type: string
+      StringLessThanEquals:
+        x-nullable: true
+        type: string
+      StringGreaterThanEquals:
+        x-nullable: true
+        type: string
+      NumericEquals:
+        x-nullable: true
+        type: integer
+      NumericLessThan:
+        x-nullable: true
+        type: number
+      NumericGreaterThan:
+        x-nullable: true
+        type: number
+      NumericLessThanEquals:
+        x-nullable: true
+        type: integer
+      NumericGreaterThanEquals:
+        x-nullable: true
+        type: integer
+      BooleanEquals:
+        x-nullable: true
+        type: boolean
+      TimestampEquals:
+        x-nullable: true
+        type: string
+        format: date-time
+      TimestampLessThan:
+        x-nullable: true
+        type: string
+        format: date-time
+      TimestampGreaterThan:
+        x-nullable: true
+        type: string
+        format: date-time
+      TimestampLessThanEquals:
+        x-nullable: true
+        type: string
+        format: date-time
+      TimestampGreaterThanEquals:
+        x-nullable: true
+        type: string
+        format: date-time
+      And:
+        x-omitempty: true
+        type: array
+        items:
+          $ref: '#/definitions/SLChoice'
+      Or:
+        x-omitempty: true
+        type: array
+        items:
+          $ref: '#/definitions/SLChoice'
+      Not:
+        $ref: '#/definitions/SLChoice'
 
   SLRetrier:
     type: object

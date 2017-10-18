@@ -19,8 +19,14 @@ import (
 
 type SLState struct {
 
+	// choices
+	Choices []*SLChoice `json:"Choices,omitempty"`
+
 	// comment
 	Comment string `json:"Comment,omitempty"`
+
+	// default
+	Default string `json:"Default,omitempty"`
 
 	// end
 	End bool `json:"End,omitempty"`
@@ -53,7 +59,11 @@ type SLState struct {
 	Type SLStateType `json:"Type,omitempty"`
 }
 
+/* polymorph SLState Choices false */
+
 /* polymorph SLState Comment false */
+
+/* polymorph SLState Default false */
 
 /* polymorph SLState End false */
 
@@ -79,6 +89,11 @@ type SLState struct {
 func (m *SLState) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateChoices(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if err := m.validateRetry(formats); err != nil {
 		// prop
 		res = append(res, err)
@@ -92,6 +107,33 @@ func (m *SLState) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *SLState) validateChoices(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Choices) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Choices); i++ {
+
+		if swag.IsZero(m.Choices[i]) { // not required
+			continue
+		}
+
+		if m.Choices[i] != nil {
+
+			if err := m.Choices[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("Choices" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
