@@ -358,7 +358,12 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 		case sfn.HistoryEventTypeExecutionStarted:
 			// very first event for an execution, so there are no jobs yet
 			return nil
-		case sfn.HistoryEventTypeChoiceStateEntered, sfn.HistoryEventTypeChoiceStateExited, sfn.HistoryEventTypeFailStateEntered, sfn.HistoryEventTypeSucceedStateEntered, sfn.HistoryEventTypeSucceedStateExited, sfn.HistoryEventTypePassStateEntered, sfn.HistoryEventTypePassStateExited, sfn.HistoryEventTypeParallelStateEntered, sfn.HistoryEventTypeParallelStateExited, sfn.HistoryEventTypeWaitStateEntered, sfn.HistoryEventTypeWaitStateExited:
+		case sfn.HistoryEventTypeChoiceStateEntered, sfn.HistoryEventTypeChoiceStateExited,
+			sfn.HistoryEventTypeSucceedStateEntered, sfn.HistoryEventTypeSucceedStateExited,
+			sfn.HistoryEventTypePassStateEntered, sfn.HistoryEventTypePassStateExited,
+			sfn.HistoryEventTypeParallelStateEntered, sfn.HistoryEventTypeParallelStateExited,
+			sfn.HistoryEventTypeWaitStateEntered, sfn.HistoryEventTypeWaitStateExited,
+			sfn.HistoryEventTypeFailStateEntered:
 			// only Task states have jobs
 			return nil
 		case sfn.HistoryEventTypeTaskStateEntered:
