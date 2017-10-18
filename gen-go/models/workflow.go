@@ -18,6 +18,9 @@ type Workflow struct {
 	// jobs
 	Jobs []*Job `json:"jobs"`
 
+	// output
+	Output string `json:"output,omitempty"`
+
 	// status reason
 	StatusReason string `json:"statusReason,omitempty"`
 }

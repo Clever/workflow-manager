@@ -345,8 +345,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 
 	workflow.LastUpdated = strfmt.DateTime(time.Now())
 	workflow.Status = sfnStatusToWorkflowStatus(*describeOutput.Status)
-	// TODO: we should capture the output of a workflow
-	//workflow.Output = describeStatus.Output
+	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success
 
 	// Pull in execution history to populate jobs array
 	// Each Job corresponds to a type="Task" state, i.e. a state with some Resource that will process the input to the state.
