@@ -23,7 +23,7 @@ import:
 - package: gopkg.in/Clever/kayvee-go.v6
   version: ^6.10.0
 - package: github.com/golang/mock
-  version: master
+  version: 13f360950a79f5864a972c786a10a50e44b69541
   subpackages:
   - gomock
 - package: github.com/zencoder/ddbsync

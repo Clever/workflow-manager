@@ -3,9 +3,8 @@ info:
   title: workflow-manager
   description: Minimal Workflow orchestrator for AWS Batch
   # when changing the version here, make sure to
-  # 1. re-run `make generate` to generate clients and server
-  # 2. merge the new clients
-  version: 0.6.5
+  # re-run `make generate` to generate clients and server
+  version: 0.6.6
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -220,7 +219,7 @@ paths:
           required: true
       responses:
         200:
-          type: string
+          description: "Workflow cancelled"
         404:
           $ref: "#/responses/NotFound"
     post:
@@ -601,6 +600,7 @@ definitions:
       ResultPath:
         type: string
       Retry:
+        x-omitempty: true
         type: array
         items:
           $ref: '#/definitions/SLRetrier'

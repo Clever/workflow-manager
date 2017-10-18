@@ -1,5 +1,5 @@
-hash: 3320bb64171fe5ce66dcee92d76028c7d3c45a2e586736950af6f824d60fce68
-updated: 2017-10-12T18:55:36.303555411Z
+hash: eb4e626598943a05015cf3f07168a20aaf4a869f072ebebc7cdc28dc4d18f18b
+updated: 2017-10-18T20:01:41.160141602Z
 imports:
 - name: github.com/afex/hystrix-go
   version: f118cd938f786d24f46cc307981d8f63b7951020
@@ -8,9 +8,9 @@ imports:
   - hystrix/metric_collector
   - hystrix/rolling
 - name: github.com/asaskevich/govalidator
-  version: eb06e9c4d8e04c43e16e5241db85df221ec5c17f
+  version: ca5f9e638c83bac66bfac70ded5bded1503135a7
 - name: github.com/aws/aws-sdk-go
-  version: 64850c09d35fc1dc005ca76c13fed9382e34e7e3
+  version: 044a61f1536640ce1def6088c0914f5905990202
   subpackages:
   - aws
   - aws/awserr
@@ -48,7 +48,7 @@ imports:
 - name: github.com/Clever/discovery-go
   version: 2e485eaaf026d527548740ceff178c8859fcaa07
 - name: github.com/Clever/go-process-metrics
-  version: 5944a49b5051ebcc10feb08724689740b4eefa28
+  version: 17c3da159c36ee2bbb4198c8eeada7f68184350f
   subpackages:
   - metrics
 - name: github.com/davecgh/go-spew
@@ -62,7 +62,7 @@ imports:
 - name: github.com/go-errors/errors
   version: 8fa88b06e5974e97fbf9899a7f86a344bfd1f105
 - name: github.com/go-ini/ini
-  version: c787282c39ac1fc618827141a1f762240def08a3
+  version: 5b3e00af70a9484542169a976dcab8d03e601a17
 - name: github.com/go-openapi/analysis
   version: 8ed83f2ea9f00f945516462951a288eaa68bf0d6
 - name: github.com/go-openapi/errors
@@ -74,9 +74,9 @@ imports:
 - name: github.com/go-openapi/loads
   version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
 - name: github.com/go-openapi/runtime
-  version: bf2ff8f7150788b1c7256abb0805ba0410cbbabb
+  version: e8231e16de5bcda9839e03ae07c5c96a1fd82041
 - name: github.com/go-openapi/spec
-  version: 7abd5745472fff5eb3685386d5fb8bf38683154d
+  version: 48c2a7185575f9103a5a3863eff950bb776899d2
 - name: github.com/go-openapi/strfmt
   version: 610b6cacdcde6852f4de68998bd20ce1dac85b22
 - name: github.com/go-openapi/swag
@@ -84,11 +84,11 @@ imports:
 - name: github.com/go-openapi/validate
   version: dc8a684882cf70c9a529887104340f44e0e138e5
 - name: github.com/gogo/protobuf
-  version: 2adc21fd136931e0388e278825291678e1d98309
+  version: 117892bf1866fbaa2318c03e50e40564c8845457
   subpackages:
   - proto
 - name: github.com/golang/mock
-  version: 4887ba10eac80f57bfb3de234db4ac970d786511
+  version: 13f360950a79f5864a972c786a10a50e44b69541
   subpackages:
   - gomock
 - name: github.com/golang/protobuf
@@ -105,6 +105,8 @@ imports:
   version: 757bef944d0f21880861c2dd9c871ca543023cba
 - name: github.com/hashicorp/golang-lru
   version: 0a025b7e63adc15a622f29b0b2c4c3848243bbf6
+  subpackages:
+  - simplelru
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/kardianos/osext
@@ -117,13 +119,13 @@ imports:
   - thrift_0_9_2/lib/go/thrift
   - thrift_rpc
 - name: github.com/mailru/easyjson
-  version: 2a92e673c9a6302dd05c3a691ae1f24aef46457d
+  version: 3fd5e860b68f3cc81671ece2e226c78a6bbf54d3
   subpackages:
   - buffer
   - jlexer
   - jwriter
 - name: github.com/mitchellh/mapstructure
-  version: d0303fe809921458f417bcf828397a65db30a7e4
+  version: 06020f85339e21b2478f756a78e295255ffa4d6a
 - name: github.com/mohae/deepcopy
   version: c48cc78d482608239f6c4c92a4abd87eb8761c90
 - name: github.com/opentracing/basictracer-go
@@ -162,7 +164,7 @@ imports:
   subpackages:
   - models
 - name: golang.org/x/net
-  version: 278c6cf336eb9139d63479da09da0cfb40fdc4c8
+  version: 1087133bc4af3073e18add999345c6ae75918503
   subpackages:
   - context
   - context/ctxhttp
@@ -173,7 +175,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/text
-  version: 1cbadb444a806fd9430d14ad08967ed91da4fa0a
+  version: c01e4764d870b77f8abe5096ee19ad20d80e8075
   subpackages:
   - secure/bidirule
   - transform
@@ -181,11 +183,11 @@ imports:
   - unicode/norm
   - width
 - name: google.golang.org/genproto
-  version: 1e559d0a00eef8a9a43151db4665280bd8dd5886
+  version: f676e0f3ac6395ff1a529ae59a6670878a8371a6
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: c67cd636f91e849f8677733bcdd60ea8c15d4aa6
+  version: faebfcb7bf4702e9cf359637e8893ae415eb8705
   subpackages:
   - balancer
   - codes
@@ -203,6 +205,10 @@ imports:
   - status
   - tap
   - transport
+- name: gopkg.in/Clever/kayvee-go.v3
+  version: 056c92dcc68b40c5d6045f755197b3776f914154
+  subpackages:
+  - logger
 - name: gopkg.in/Clever/kayvee-go.v6
   version: e1e6fd8184162847c1123645e7058347a2fd3959
   subpackages:
