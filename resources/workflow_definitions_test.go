@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 
@@ -21,7 +22,6 @@ func TestOrderedStates(t *testing.T) {
 
 func TestRemoveInactiveStates(t *testing.T) {
 	wf := KitchenSinkWorkflowDefinition(t)
-	// save original state machine
 	numStates := len(wf.StateMachine.States)
 
 	t.Log("Removes states with no path to")
@@ -55,6 +55,11 @@ func TestRemoveInactiveStates(t *testing.T) {
 	wf = KitchenSinkWorkflowDefinition(t)
 	assert.Nil(t, RemoveInactiveStates(wf.StateMachine))
 	assert.Equal(t, numStates, len(wf.StateMachine.States))
+
+	t.Log("Works with choice and success states")
+	var sm models.SLStateMachine
+	assert.Nil(t, json.Unmarshal([]byte(awsExampleChoiceStateMachine), &sm))
+	assert.Nil(t, RemoveInactiveStates(&sm))
 }
 
 func TestCopyWorflowDefinition(t *testing.T) {

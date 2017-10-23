@@ -279,6 +279,16 @@ func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (
 		return nil, fmt.Errorf("StartAt is a required field")
 	}
 
+	// ensure all states are defined and have a transition path
+	numStates := len(req.StateMachine.States)
+	if err := resources.RemoveInactiveStates(req.StateMachine); err != nil {
+		return nil, err
+	}
+	if len(req.StateMachine.States) != numStates {
+		return nil, fmt.Errorf("Invalid WorkflowDefinition: %d states have no transition path",
+			numStates-len(req.StateMachine.States))
+	}
+
 	return resources.NewWorkflowDefinition(req.Name, req.Manager, req.StateMachine)
 }
 
