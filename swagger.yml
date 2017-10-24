@@ -4,7 +4,7 @@ info:
   description: Minimal Workflow orchestrator for AWS Batch
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.6.6
+  version: 0.6.7
   x-npm-package: workflow-manager
 schemes:
   - http

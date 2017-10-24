@@ -19,6 +19,9 @@ import (
 
 type SLState struct {
 
+	// cause
+	Cause string `json:"Cause,omitempty"`
+
 	// choices
 	Choices []*SLChoice `json:"Choices,omitempty"`
 
@@ -30,6 +33,9 @@ type SLState struct {
 
 	// end
 	End bool `json:"End,omitempty"`
+
+	// error
+	Error string `json:"Error,omitempty"`
 
 	// heartbeat seconds
 	HeartbeatSeconds int64 `json:"HeartbeatSeconds,omitempty"`
@@ -59,6 +65,8 @@ type SLState struct {
 	Type SLStateType `json:"Type,omitempty"`
 }
 
+/* polymorph SLState Cause false */
+
 /* polymorph SLState Choices false */
 
 /* polymorph SLState Comment false */
@@ -66,6 +74,8 @@ type SLState struct {
 /* polymorph SLState Default false */
 
 /* polymorph SLState End false */
+
+/* polymorph SLState Error false */
 
 /* polymorph SLState HeartbeatSeconds false */
 
