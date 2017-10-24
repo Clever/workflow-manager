@@ -60,6 +60,9 @@ func TestRemoveInactiveStates(t *testing.T) {
 	var sm models.SLStateMachine
 	assert.Nil(t, json.Unmarshal([]byte(awsExampleChoiceStateMachine), &sm))
 	assert.Nil(t, RemoveInactiveStates(&sm))
+	var smInvalid models.SLStateMachine
+	assert.Nil(t, json.Unmarshal([]byte(awsExampleChoiceStateMachineInvalid), &smInvalid))
+	assert.Error(t, RemoveInactiveStates(&smInvalid))
 }
 
 func TestCopyWorflowDefinition(t *testing.T) {

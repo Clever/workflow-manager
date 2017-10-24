@@ -122,6 +122,9 @@ func reachable(stateName string, stateMachine *models.SLStateMachine) bool {
 					return true
 				}
 			}
+			if state.Default == stateName {
+				return true
+			}
 		case models.SLStateTypeSucceed, models.SLStateTypeFail:
 			// these states don't contain transitions
 		case models.SLStateTypeParallel:
@@ -148,6 +151,9 @@ func hasValidTransitions(stateName string, state models.SLState, stateMachine *m
 			if !stateExists(choice.Next, stateMachine) {
 				return fmt.Errorf("invalid transition in '%s': '%s'", stateName, choice.Next)
 			}
+		}
+		if state.Default != "" && !stateExists(state.Default, stateMachine) {
+			return fmt.Errorf("invalid transition in '%s': '%s'", stateName, state.Default)
 		}
 		return nil
 	case models.SLStateTypeSucceed, models.SLStateTypeFail:
