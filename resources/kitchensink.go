@@ -20,6 +20,7 @@ func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 			StartAt: "start-state",
 			States: map[string]models.SLState{
 				"start-state": models.SLState{
+					Type:     models.SLStateTypeTask,
 					Next:     "second-state",
 					Resource: "fake-resource-1",
 					End:      false,
@@ -29,12 +30,14 @@ func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 					}},
 				},
 				"second-state": models.SLState{
+					Type:     models.SLStateTypeTask,
 					Next:     "end-state",
 					Resource: "fake-resource-2",
 					End:      false,
 					Retry:    []*models.SLRetrier{},
 				},
 				"end-state": models.SLState{
+					Type:     models.SLStateTypeTask,
 					Resource: "fake-resource-3",
 					End:      true,
 					Retry:    []*models.SLRetrier{},

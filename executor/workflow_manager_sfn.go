@@ -217,7 +217,6 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt,
 	if err := resources.RemoveInactiveStates(newDef.StateMachine); err != nil {
 		return nil, err
 	}
-
 	describeOutput, err := wm.describeOrCreateStateMachine(newDef, ogWorkflow.Namespace, ogWorkflow.Queue)
 	if err != nil {
 		return nil, err
@@ -369,6 +368,14 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 		switch *evt.Type {
 		case sfn.HistoryEventTypeExecutionStarted:
 			// very first event for an execution, so there are no jobs yet
+			return nil
+		case sfn.HistoryEventTypeChoiceStateEntered, sfn.HistoryEventTypeChoiceStateExited,
+			sfn.HistoryEventTypeSucceedStateEntered, sfn.HistoryEventTypeSucceedStateExited,
+			sfn.HistoryEventTypePassStateEntered, sfn.HistoryEventTypePassStateExited,
+			sfn.HistoryEventTypeParallelStateEntered, sfn.HistoryEventTypeParallelStateExited,
+			sfn.HistoryEventTypeWaitStateEntered, sfn.HistoryEventTypeWaitStateExited,
+			sfn.HistoryEventTypeFailStateEntered:
+			// only Task states have jobs
 			return nil
 		case sfn.HistoryEventTypeTaskStateEntered:
 			// a job is created when a task state is entered
