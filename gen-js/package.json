@@ -1,7 +1,7 @@
 {
   "name": "workflow-manager",
-  "version": "0.6.7",
-  "description": "Minimal Workflow orchestrator for AWS Batch",
+  "version": "0.6.8",
+  "description": "Orchestrator for AWS Step Functions",
   "main": "index.js",
   "dependencies": {
     "async": "^2.1.4",

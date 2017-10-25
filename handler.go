@@ -20,9 +20,6 @@ type Handler struct {
 
 // HealthCheck returns 200 if workflow-manager can respond to requests
 func (h Handler) HealthCheck(ctx context.Context) error {
-	// TODO: check that dependency clients are initialized and working
-	// 1. AWS Batch
-	// 2. DB
 	return nil
 }
 
@@ -101,7 +98,7 @@ func (h Handler) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, inpu
 
 // PostStateResource creates a new state resource
 func (h Handler) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
-	stateResource := resources.NewBatchResource(i.Name, i.Namespace, i.URI)
+	stateResource := resources.NewStateResource(i.Name, i.Namespace, i.URI)
 	if err := h.store.SaveStateResource(*stateResource); err != nil {
 		return &models.StateResource{}, err
 	}
@@ -121,8 +118,7 @@ func (h Handler) PutStateResource(ctx context.Context, i *models.PutStateResourc
 		}
 	}
 
-	stateResource := resources.NewBatchResource(
-		i.NewStateResource.Name, i.NewStateResource.Namespace, i.NewStateResource.URI)
+	stateResource := resources.NewStateResource(i.NewStateResource.Name, i.NewStateResource.Namespace, i.NewStateResource.URI)
 	if err := h.store.SaveStateResource(*stateResource); err != nil {
 		return &models.StateResource{}, err
 	}

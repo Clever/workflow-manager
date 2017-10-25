@@ -20,8 +20,6 @@ import (
 type Manager string
 
 const (
-	// ManagerBatch captures enum value "batch"
-	ManagerBatch Manager = "batch"
 	// ManagerStepFunctions captures enum value "step-functions"
 	ManagerStepFunctions Manager = "step-functions"
 )
@@ -31,7 +29,7 @@ var managerEnum []interface{}
 
 func init() {
 	var res []Manager
-	if err := json.Unmarshal([]byte(`["batch","step-functions"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["step-functions"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

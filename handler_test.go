@@ -11,7 +11,7 @@ import (
 func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 	workflowReq := models.NewWorkflowDefinitionRequest{
 		Name:    "test-workflow",
-		Manager: models.ManagerBatch,
+		Manager: models.ManagerStepFunctions,
 		StateMachine: &models.SLStateMachine{
 			StartAt: "start-state",
 			States: map[string]models.SLState{
