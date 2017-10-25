@@ -32,7 +32,12 @@ run-docker:
 	@docker run \
 	--env-file=<(echo -e $(_ARKLOC_ENV_FILE)) clever/workflow-manager:569f2dc
 
-generate: wag-generate-deps
+
+swagger2markup-cli-1.3.1.jar:
+	curl -L -O https://jcenter.bintray.com/io/github/swagger2markup/swagger2markup-cli/1.3.1/$@
+
+generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
+	java -jar swagger2markup-cli-1.3.1.jar convert -c docs/config.properties -i swagger.yml  -d docs/
 	$(call wag-generate,./swagger.yml,$(PKG))
 
 generate-mocks:

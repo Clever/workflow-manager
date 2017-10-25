@@ -1,10 +1,42 @@
 # workflow-manager
 
-Minimal Workflow orchestrator for AWS Batch and Step Functions
+Orchestrator for [AWS Step Functions](https://aws.amazon.com/step-functions/).
 
 ![](https://circleci.com/gh/Clever/workflow-manager/tree/master.svg?style=shield) [![GoDoc](https://godoc.org/github.com/Clever/workflow-manager?status.png)](http://godoc.org/github.com/Clever/workflow-manager)
 
 Owned by eng-infra
+
+## Motivation
+
+AWS Step Functions (SFN) is a service for running state machines as defined by the [States Language Spec](https://states-language.net/spec.html).
+
+`workflow-manager` exposes a data model and API on top of SFN that aims to hide some of the details of SFN and add features on top of what SFN provides.
+
+## Data model
+
+The full data model can be viewed in workflow-manager's [swagger.yml](swagger.yml).
+
+### Workflow Definitions
+
+Workflow definitions are [state machines](http://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-state-machine-structure.html): they receive input and process it through a series of [states](http://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-states.html).
+Workflow definitions additionally support:
+- Versioning
+- Shorthand for defining the `Resource` for a [`Task`](http://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-task-state.html) state.
+  SFN requires the `Resource` field to be a full Amazon ARN.
+  Workflow manager only requires the [Activity Name](http://docs.aws.amazon.com/step-functions/latest/dg/concepts-activities.html) and takes care of expanding it to the full ARN.
+
+The full schema for workflow definitions can be found [here](docs/definitions.md#workflowdefinition).
+
+### Workflows
+
+A workflow is created when you run a workflow definition with a particular input.
+Workflows add to the concept of [Executions](http://docs.aws.amazon.com/step-functions/latest/dg/concepts-state-machine-executions.html) in SFN by additionally supporting these parameters on submission:
+- namespaces: this parameter will be used when expanding `Resource`s in workflow definitions to their full AWS ARN.
+  This allows deployment / targeting of `Resource`s in different namespaces (i.e. environments).
+- queues: workflows can be submitted into different named queues
+
+Workflows store all of the data surrounding the execution of a workflow definition: initial input, the data passed between states, and the final output, etc.
+For more information, see the [full schema definition](docs/definitions.md#workflow) and the AWS documentation for [state machine data](http://docs.aws.amazon.com/step-functions/latest/dg/concepts-state-machine-data.html).
 
 ## Development
 
@@ -12,94 +44,65 @@ Owned by eng-infra
 
 * `main`: contains the api `handler`
 
-* `resources`: structs for the major concepts used by the `workflow-manager`:
+* `gen-go` / `gen-js`: (Go) server and (Go/JS) client code auto-generated from the swagger.yml specification.
 
-  * WorkflowDefinition:  describes a sequence of states with general information and instructions but without regard to specific running instances; can be reused
-  * Workflow: a sequence of jobs that is kicked off with a particular input; based on the workflow's workflow definition
-  * Job: a task to be run with specific resources and input as part of a kicked-off workflow; based on an individual state from the workflow definition
-  * StateResource: maps information from each state in a workflow definition to more specific resources requried to actually run the corresponding job
+* `docs`: auto-generated markdown documentation from the swagger.yml definition.
 
-Also contains `KitchenSink` which is a workflow definition resource that can be used by other packages in tests.
+* [`executor`](https://godoc.org/github.com/Clever/workflow-manager/executor): contains the main `WorkflowManager` interface for creating, stopping and updating Workflows.
+  This is where interactions with the SFN API occur.
 
-* `executor`: contains WorkflowManagers to handle jobs with AWS's Batch (`workflow_manager_batch`), Step Functions (`workflow_manager_sfn`), or a mix (`workflow_manager_multi`), as well as a wrapper around `aws-go-sdk`'s Batch API
+* [`resources`](https://godoc.org/github.com/Clever/workflow-manager/resources): methods for initializing and working with the auto-generated types.
 
-  * Suggestions for naming and organization welcome!
-  * `WorkflowManager` is the interface for creating, stopping and checking status for Workflows
-  *  WorkflowManagers also converts  the resource listed for each state to details that can be consumed by the `BatchClient` (or other) backends
+* [`store`](https://godoc.org/github.com/Clever/workflow-manager/store): Workflow Manager supports persisting its data model DynamoDB or in-memory data stores.
 
-* `store` defines an interface for the dynamodb store and contains a very simple in-memory implementation
+### Running a workflow at Clever
 
-### Setting up a workflow with Batch
+0. Run workflow-manager on your local machine (`ark start -l`)
 
-1. Setup a Batch environment in AWS with a `JobQueue` and a `ComputeEnvironment`.
+1. Use the existing `sfncli-test` workflow definition.
+  ```
+  curl -XGET http://localhost:8080/workflow-definitions/sfncli-test:master
+[
+	{
+		"createdAt": "2017-10-25T18:11:03.350Z",
+		"id": "5815bfaa-8f2a-49c6-8d69-3af91c4b960d",
+		"manager": "step-functions",
+		"name": "sfncli-test:master",
+		"stateMachine": {
+			"StartAt": "echo",
+			"States": {
+				"echo": {
+					"End": true,
+					"Resource": "echo",
+					"Type": "Task"
+				}
+			},
+			"TimeoutSeconds": 60,
+			"Version": "1.0"
+		}
+	}
+]
+  ```
 
-2. Create one or more `JobDefinitions` via the [AWS CLI](http://docs.aws.amazon.com/cli/latest/reference/batch/index.html)
-or [UI](https://console.aws.amazon.com/batch/home?region=us-east-1#/job-definitions/new) (with IAM Permissions)
+2. The `sfncli-test` workflow definition contains a single state that references an "echo" resource.
+   You can run this resource by going to the `sfncli` repo and running that locally via `ark start -l`.
 
-3. Your app role should have the [batchcli](https://github.com/Clever/batchcli/tree/master/README.md#AWS_Policy) policy appended to it
 
-4. Define a workflow definition json (see [example](./data/hello-workflow.post.json) with the resource as the `job-definition-name:version-number`
+3. Submit a workflow by making an API call to your locally running workflow-manager.
+   This can be done via `ark`:
 
-### Running a workflow
+   ```
+   echo '{"foo":"bar"}' | WORKFLOWMANAGER_URL=http://localhost:8080 ark wfbeta submit sfncli-test:master
+   ```
 
-0. Run workflow-manager on your local machine (`ark start -l`) or on an ECS cluster (`ark start workflow-manager`).
+4. Check on the status of the workflow. This can also be done via `ark`:
 
-1. Post the workflow using the API
-
-```sh
-curl -XPOST http://localhost:8080/workflow-definitions -d @data/hello-workflow.post.json
-```
-
-2. [optional]  Verify the workflow definition was created.
-
-```sh
-curl -XGET http://localhost:8080/workflow-definitions/hello-workflow
-```
-
-3. Start a workflow using this workflow definition
-
-```sh
-curl -XPOST http://localhost:8080/jobs/ -d '{
-  "workflowDefinition": {
-    "name": "hello-workflow",
-    "version": 0
-    },
-    "input": [
-      "arg1",
-      "arg2",
-      "arg3"
-    ]
-  }'
-```
-
-Look for the workflow ID to be displayed in the command line.
-
-4. Monitor the status of the workflow using
-
-```sh
-watch "curl -XGET http://localhost:8080/workflows/<workflow-id>"
-```
-
-OR
-
-```sh
-watch "curl -XGET http://localhost:8080/workflows?workflowDefinitionName=hello-workflow"
-```
-
-5. Cancel a workflow
-
-```sh
-curl -XDELETE http://localhost:8080/workflows/<workflow-id> -d '{"reason": "try out cancelling a workflow"}'
-```
+   ```
+   WORKFLOWMANAGER_URL=http://localhost:8080 ark wfbeta status -w <workflow id>
+   ```
 
 ### Updating the API
 
 - Update swagger.yml with your endpoints. See the [Swagger spec](http://swagger.io/specification/) for additional details on defining your swagger file.
 - Run `make generate` to generate the supporting code.
 - Run `make build`, `make run`, or `make test` - any of these should fail with helpful errors about how to start implementing the business logic.
-
-## Deploying
-
-```
-ark start workflow-manager
-```
