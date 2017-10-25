@@ -1,15 +1,8 @@
+---
 routes:
 
-  # matchers for tracking Jobs/Workflows/Tasks; prefix with `workflows.`
-
-  workflow-status-metrics:
-    matchers:
-      title: ["workflow-status-change"]
-    output:
-      type: "metrics"
-      series: "workflows.workflow-status"
-      dimensions: ["id", "name", "version", "status"]
-  workflow-status-alerts:
+  # matchers for tracking Jobs/Workflows; prefix with `workflows.`
+  workflow-status-alerts:  # currently for batch only
     matchers:
       title: ["workflow-status-change"]
     output:
@@ -19,7 +12,7 @@ routes:
       # 0 for ongoing; 1 for failed; -1 for cancelled
       value_field: "value"
       stat_type: "gauge"
-  job-status-alerts:
+  job-status-alerts:  # currently for batch only
     matchers:
       title: ["job-status"]
     output:
@@ -34,9 +27,19 @@ routes:
   # workflow-manager related matchers; prefix with workflow-mananger
   workflow-polling-alerts:
     matchers:
-      title: ["workflow-polling-error"]
+      title: ["polling-for-pending-workflows"]
+      level: ["error"]
     output:
       type: "alerts"
       series: "workflow-manager.workflow-polling-error"
-      dimensions: ["id", "status", "name"]
+      dimensions: ["id"]
+      stat_type: "counter"
+
+  execution-not-found-alert:
+    matchers:
+      title: ["execution-not-found"]
+    output:
+      type: "alerts"
+      series: "workflow-manager.execution-not-found"
+      dimensions: ["workflow-id", "execution-id"]
       stat_type: "counter"

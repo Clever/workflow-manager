@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -515,6 +516,85 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertCancelledJobData(t, workflow.Jobs[0])
+}
+
+func TestUpdateWorkflowStatusExecutionNotFound(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	t.Log("retry status updates if lastUpdatedTime < durationToRetryDescribeExecutions")
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusQueued
+	c.saveWorkflow(t, workflow)
+
+	executionOutput := `{"output": true}`
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	// fail the first time
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(nil, awserr.New(sfn.ErrCodeExecutionDoesNotExist, "test", errors.New("")))
+	// then success
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusSucceeded),
+			Output: aws.String(executionOutput),
+		}, nil)
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}, gomock.Any()).
+		Do(func(
+			input *sfn.GetExecutionHistoryInput,
+			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+		) {
+			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
+				jobCreatedEvent,
+				jobSucceededEvent,
+				jobExitedEvent,
+			}}, true)
+		})
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusQueued, workflow.Status)
+	require.Len(t, workflow.Jobs, 0)
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusSucceeded, workflow.Status)
+	require.Len(t, workflow.Jobs, 1)
+	assertBasicJobData(t, workflow.Jobs[0])
+	assertSucceededJobData(t, workflow.Jobs[0])
+
+	t.Log("Stop retrying after durationToRetryDescribeExecutions for ExecutionNotFound")
+	durationToRetryDescribeExecutions = 1 * time.Second
+	workflow = c.newWorkflow()
+	workflow.Status = models.WorkflowStatusQueued
+	c.saveWorkflow(t, workflow)
+
+	sfnExecutionARN = c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecution(&sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(nil, awserr.New(sfn.ErrCodeExecutionDoesNotExist,
+			"test",
+			errors.New("")),
+		).
+		Times(2)
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusQueued, workflow.Status)
+	require.Len(t, workflow.Jobs, 0)
+	time.Sleep(durationToRetryDescribeExecutions)
+
+	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
+	require.Len(t, workflow.Jobs, 0)
 }
 
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {

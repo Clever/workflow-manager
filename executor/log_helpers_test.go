@@ -42,9 +42,7 @@ func TestDataResultsRouting(t *testing.T) {
 		}},
 		models.WorkflowStatusRunning)
 	counts = mocklog.RuleCounts()
-	assert.Equal(3, len(counts))
-	assert.Contains(counts, "workflow-status-metrics")
-	assert.Equal(counts["workflow-status-metrics"], 1)
+	assert.Equal(2, len(counts))
 	assert.Contains(counts, "workflow-status-alerts")
 	assert.Equal(counts["workflow-status-alerts"], 1)
 }
