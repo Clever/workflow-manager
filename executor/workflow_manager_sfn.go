@@ -20,10 +20,11 @@ import (
 )
 
 const (
-	maxFailureReasonLines = 3
+	maxFailureReasonLines   = 3
+	sfncliCommandTerminated = "sfncli.CommandTerminated"
 )
 
-const sfncliCommandTerminated = "sfncli.CommandTerminated"
+var durationToRetryDescribeExecutions = 5 * time.Minute
 
 var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 	BackoffRate:     1.0,
@@ -342,9 +343,19 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case sfn.ErrCodeExecutionDoesNotExist:
-				workflow.LastUpdated = strfmt.DateTime(time.Now())
-				workflow.Status = models.WorkflowStatusFailed
-				return wm.store.UpdateWorkflow(*workflow)
+				log.ErrorD("execution-not-found", logger.M{
+					"workflow-id":  workflow.ID,
+					"execution-id": execARN,
+					"error":        err.Error()})
+
+				// only fail after 10 minutes to see if this is an eventual-consistency thing
+				if time.Time(workflow.LastUpdated).Before(time.Now().Add(-durationToRetryDescribeExecutions)) {
+					workflow.LastUpdated = strfmt.DateTime(time.Now())
+					workflow.Status = models.WorkflowStatusFailed
+					return wm.store.UpdateWorkflow(*workflow)
+				}
+				// don't save since that updates worklow.LastUpdated; also no changes made here
+				return nil
 			}
 		}
 		return err

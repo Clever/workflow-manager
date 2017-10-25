@@ -28,8 +28,10 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			if err := checkPendingWorkflows(wm, thestore); err != nil {
-				log.ErrorD("poll-for-pending-workflows", logger.M{"error": err.Error()})
+			if id, err := checkPendingWorkflows(wm, thestore); err != nil {
+				log.ErrorD("poll-for-pending-workflows", logger.M{"id": id, "error": err.Error()})
+			} else {
+				log.InfoD("poll-for-pending-workflows", logger.M{"id": id})
 			}
 		}
 	}
@@ -47,34 +49,35 @@ func lockAvailableWorkflow(thestore store.Store, workflowIDs []string) (string, 
 	return "", nil
 }
 
-func checkPendingWorkflows(wm WorkflowManager, thestore store.Store) error {
+func checkPendingWorkflows(wm WorkflowManager, thestore store.Store) (string, error) {
 	wfIDs, err := thestore.GetPendingWorkflowIDs()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// attempt to lock one of the workflows for updating
 	wfLockedID, err := lockAvailableWorkflow(thestore, wfIDs)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if wfLockedID == "" {
 		log.InfoD("pending-workflows-noop", logger.M{"pending": len(wfIDs)})
-		return nil
+		return "", nil
 	}
 
 	log.InfoD("pending-workflows-locked", logger.M{"id": wfLockedID})
 	defer func() {
 		log.InfoD("pending-workflows-unlocked", logger.M{"id": wfLockedID})
 		if err := thestore.UnlockWorkflow(wfLockedID); err != nil {
-			log.ErrorD("pending-workflows-unlock-error", logger.M{"error": err.Error()})
+			log.ErrorD("pending-workflows-unlock-error", logger.M{"id": wfLockedID, "error": err.Error()})
 		}
 	}()
 
 	wf, err := thestore.GetWorkflowByID(wfLockedID)
 	if err != nil {
-		return err
+		return wfLockedID, err
 	}
 
-	return wm.UpdateWorkflowStatus(&wf)
+	err = wm.UpdateWorkflowStatus(&wf)
+	return wfLockedID, err
 }
