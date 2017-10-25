@@ -109,10 +109,12 @@ func SaveWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 
 func SaveStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
-		sr := resources.NewBatchResource(
-			"name",
-			"namespace",
-			"aws:batch:arn")
+		sr := &models.StateResource{
+			Name:      "name",
+			Namespace: "namespace",
+			Type:      models.StateResourceTypeActivityARN,
+			URI:       "arn:activity",
+		}
 		require.Nil(t, s.SaveStateResource(*sr))
 		stateResource, err := s.GetStateResource(sr.Name, sr.Namespace)
 		require.Nil(t, err)
@@ -124,10 +126,12 @@ func SaveStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 
 func GetStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
-		sr := resources.NewBatchResource(
-			"name",
-			"namespace",
-			"aws:batch:arn")
+		sr := &models.StateResource{
+			Name:      "name",
+			Namespace: "namespace",
+			Type:      models.StateResourceTypeActivityARN,
+			URI:       "arn:activity",
+		}
 		require.Nil(t, s.SaveStateResource(*sr))
 		stateResource, err := s.GetStateResource(sr.Name, sr.Namespace)
 		require.Nil(t, err)
@@ -143,10 +147,12 @@ func GetStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 
 func DeleteStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
-		sr := resources.NewBatchResource(
-			"name",
-			"namespace",
-			"aws:batch:arn")
+		sr := &models.StateResource{
+			Name:      "name",
+			Namespace: "namespace",
+			Type:      models.StateResourceTypeActivityARN,
+			URI:       "arn:activity",
+		}
 		require.Nil(t, s.SaveStateResource(*sr))
 		stateResource, err := s.GetStateResource(sr.Name, sr.Namespace)
 		require.Nil(t, err)

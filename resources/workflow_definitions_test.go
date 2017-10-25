@@ -10,16 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOrderedStates(t *testing.T) {
-	// run multiple times since map ordering
-	for i := 0; i < 10; i++ {
-		wf := KitchenSinkWorkflowDefinition(t)
-		orderedStates, err := OrderedStates(wf.StateMachine.States)
-		assert.Nil(t, err)
-		assert.Equal(t, "start-state", orderedStates[0].StateName)
-	}
-}
-
 func TestRemoveInactiveStates(t *testing.T) {
 	wf := KitchenSinkWorkflowDefinition(t)
 	numStates := len(wf.StateMachine.States)

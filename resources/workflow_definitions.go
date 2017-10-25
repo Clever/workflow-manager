@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/toposort"
 	"github.com/go-openapi/strfmt"
 	"github.com/mohae/deepcopy"
 	uuid "github.com/satori/go.uuid"
@@ -42,54 +41,6 @@ func NewWorkflowDefinitionVersion(def *models.WorkflowDefinition, version int) *
 func CopyWorkflowDefinition(def models.WorkflowDefinition) models.WorkflowDefinition {
 	newDef := deepcopy.Copy(def).(models.WorkflowDefinition)
 	return newDef
-}
-
-type StateAndDeps struct {
-	StateName string
-	State     models.SLState
-	Deps      []string
-}
-
-func OrderedStates(states map[string]models.SLState) ([]StateAndDeps, error) {
-	var stateDeps = make(map[string][]string)
-	for stateName, state := range states {
-		if _, ok := stateDeps[stateName]; !ok {
-			stateDeps[stateName] = []string{}
-		}
-
-		if !state.End {
-			if _, ok := states[state.Next]; !ok {
-				return nil, fmt.Errorf("%s.Next=%s, but %s not defined",
-					stateName, state.Next, state.Next)
-			}
-
-			if _, ok := stateDeps[state.Next]; !ok {
-				stateDeps[state.Next] = []string{stateName}
-			} else {
-				stateDeps[state.Next] = append(stateDeps[state.Next], stateName)
-			}
-		}
-	}
-
-	// get toposorted states
-	sortedStates, err := toposort.Sort(stateDeps)
-	if err != nil {
-		return []StateAndDeps{}, err
-	}
-
-	// flatten but keep order
-	orderedStates := []StateAndDeps{}
-	for _, deps := range sortedStates {
-		for _, dep := range deps {
-			orderedStates = append(orderedStates, StateAndDeps{
-				StateName: dep,
-				State:     states[dep],
-				Deps:      stateDeps[dep],
-			})
-		}
-	}
-
-	return orderedStates, nil
 }
 
 func stateExists(stateName string, stateMachine *models.SLStateMachine) bool {

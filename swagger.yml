@@ -1,10 +1,10 @@
 swagger: '2.0'
 info:
   title: workflow-manager
-  description: Minimal Workflow orchestrator for AWS Batch
+  description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.6.7
+  version: 0.6.8
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -368,7 +368,6 @@ definitions:
   Manager:
     type: string
     enum:
-      - "batch"
       - "step-functions"
 
   Workflow:
