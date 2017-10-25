@@ -20,9 +20,6 @@ type Handler struct {
 
 // HealthCheck returns 200 if workflow-manager can respond to requests
 func (h Handler) HealthCheck(ctx context.Context) error {
-	// TODO: check that dependency clients are initialized and working
-	// 1. AWS Batch
-	// 2. DB
 	return nil
 }
 
