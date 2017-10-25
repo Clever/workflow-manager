@@ -98,12 +98,7 @@ func (h Handler) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, inpu
 
 // PostStateResource creates a new state resource
 func (h Handler) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
-	stateResource := &models.StateResource{
-		Name:      i.Name,
-		Namespace: i.Namespace,
-		URI:       i.URI,
-		Type:      models.StateResourceTypeActivityARN,
-	}
+	stateResource := resources.NewStateResource(i.Name, i.Namespace, i.URI)
 	if err := h.store.SaveStateResource(*stateResource); err != nil {
 		return &models.StateResource{}, err
 	}
@@ -123,12 +118,7 @@ func (h Handler) PutStateResource(ctx context.Context, i *models.PutStateResourc
 		}
 	}
 
-	stateResource := &models.StateResource{
-		Name:      i.NewStateResource.Name,
-		Namespace: i.NewStateResource.Namespace,
-		URI:       i.NewStateResource.URI,
-		Type:      models.StateResourceTypeActivityARN,
-	}
+	stateResource := resources.NewStateResource(i.NewStateResource.Name, i.NewStateResource.Namespace, i.NewStateResource.URI)
 	if err := h.store.SaveStateResource(*stateResource); err != nil {
 		return &models.StateResource{}, err
 	}
