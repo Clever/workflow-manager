@@ -1,8 +1,7 @@
 ---
 routes:
-
-  # matchers for tracking Jobs/Workflows; prefix with `workflows.`
   # workflow-manager related matchers; prefix with workflow-mananger
+
   workflow-polling-alerts:
     matchers:
       title: ["polling-for-pending-workflows"]
@@ -21,3 +20,13 @@ routes:
       series: "workflow-manager.execution-not-found"
       dimensions: ["workflow-id", "execution-id"]
       stat_type: "counter"
+
+  update-loop-lag-alert:
+    matchers:
+      title: ["pending-workflows-locked"]
+    output:
+      type: "alerts"
+      series: "workflow-manager.update-loop-lag-seconds"
+      value_field: "update-loop-lag-seconds"
+      stat_type: "gauge"
+      dimensions: []

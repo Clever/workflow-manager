@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"time"
+
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
@@ -35,5 +37,12 @@ func logWorkflowStatusChange(workflow *models.Workflow, previousStatus models.Wo
 		"status":          workflow.Status,
 		// 0 -> running; 1 -> failed; -1 -> cancelled
 		"value": resources.WorkflowStatusToInt(workflow.Status),
+	})
+}
+
+func logPendingWorkflowsLocked(wf models.Workflow) {
+	log.InfoD("pending-workflows-locked", logger.M{
+		"id": wf.ID,
+		"update-loop-lag-seconds": int(time.Now().Sub(time.Time(wf.LastUpdated)) / time.Second),
 	})
 }
