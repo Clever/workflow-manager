@@ -65,7 +65,6 @@ func checkPendingWorkflows(wm WorkflowManager, thestore store.Store) (string, er
 		return "", nil
 	}
 
-	log.InfoD("pending-workflows-locked", logger.M{"id": wfLockedID})
 	defer func() {
 		log.InfoD("pending-workflows-unlocked", logger.M{"id": wfLockedID})
 		if err := thestore.UnlockWorkflow(wfLockedID); err != nil {
@@ -78,6 +77,7 @@ func checkPendingWorkflows(wm WorkflowManager, thestore store.Store) (string, er
 		return wfLockedID, err
 	}
 
+	logPendingWorkflowsLocked(wf)
 	err = wm.UpdateWorkflowStatus(&wf)
 	return wfLockedID, err
 }
