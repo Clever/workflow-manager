@@ -20,7 +20,6 @@ func init() {
 func TestRoutingRules(t *testing.T) {
 	t.Run("update-loop-lag-alert", func(t *testing.T) {
 		mocklog := logger.NewMockCountLogger("workflow-manager")
-		// Overrides package level logger
 		log = mocklog
 		logPendingWorkflowsLocked(models.Workflow{
 			WorkflowSummary: models.WorkflowSummary{
@@ -33,5 +32,15 @@ func TestRoutingRules(t *testing.T) {
 		assert.Equal(t, 1, len(counts))
 		assert.Contains(t, counts, "update-loop-lag-alert")
 		assert.Equal(t, counts["update-loop-lag-alert"], 1)
+	})
+
+	t.Run("get-execution-history-count", func(t *testing.T) {
+		mocklog := logger.NewMockCountLogger("workflow-manager")
+		log = mocklog
+		LogGetExecutionHistoryCount(100)
+		counts := mocklog.RuleCounts()
+		assert.Equal(t, 1, len(counts))
+		assert.Contains(t, counts, "get-execution-history-count")
+		assert.Equal(t, counts["get-execution-history-count"], 1)
 	})
 }

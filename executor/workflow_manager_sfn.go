@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -412,7 +413,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 			return job
 		}
 	}
-	if err := wm.sfnapi.GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+	if err := wm.sfnapi.GetExecutionHistoryPagesWithContext(context.TODO(), &sfn.GetExecutionHistoryInput{
 		ExecutionArn: aws.String(execARN),
 	}, func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool {
 		// NOTE: if pulling the entire execution history becomes infeasible, we can:

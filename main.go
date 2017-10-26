@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/sfncache"
+	"github.com/Clever/workflow-manager/executor/sfncounter"
 	"github.com/Clever/workflow-manager/gen-go/server"
 	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
@@ -58,7 +60,8 @@ func main() {
 		PrefixWorkflows:           c.DynamoPrefixWorkflows,
 	})
 	sfnapi := sfn.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion))
-	cachedSFNAPI, err := sfncache.New(sfnapi)
+	countedSFNAPI := sfncounter.New(sfnapi)
+	cachedSFNAPI, err := sfncache.New(countedSFNAPI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -70,6 +73,7 @@ func main() {
 	s := server.New(h, *addr)
 
 	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db)
+	go logSFNCounts(countedSFNAPI)
 
 	if err := s.Serve(); err != nil {
 		log.Fatal(err)
@@ -115,4 +119,13 @@ func getEnvVarOrDefault(envVarName, defaultIfEmpty string) string {
 	}
 
 	return value
+}
+
+func logSFNCounts(sfnCounter *sfncounter.SFNCounter) {
+	ticker := time.NewTicker(10 * time.Second)
+	for _ = range ticker.C {
+		if val := sfnCounter.GetExecutionHistoryCount(); val != nil {
+			executor.LogGetExecutionHistoryCount(val.Int())
+		}
+	}
 }

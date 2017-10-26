@@ -30,3 +30,12 @@ routes:
       value_field: "update-loop-lag-seconds"
       stat_type: "gauge"
       dimensions: []
+
+  get-execution-history-count:
+    matchers:
+      title: ["get-execution-history-count"]
+    output:
+      type: "alerts"
+      series: "workflow-manager.get-execution-history-count"
+      stat_type: "counter"
+      dimensions: []

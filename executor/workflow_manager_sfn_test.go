@@ -235,10 +235,11 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 			Status: aws.String(sfn.ExecutionStatusRunning),
 		}, nil)
 	c.mockSFNAPI.EXPECT().
-		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}, gomock.Any()).
 		Do(func(
+			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
@@ -281,10 +282,11 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 		}, nil)
 
 	c.mockSFNAPI.EXPECT().
-		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}, gomock.Any()).
 		Do(func(
+			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
@@ -323,10 +325,11 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 		}, nil)
 
 	c.mockSFNAPI.EXPECT().
-		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}, gomock.Any()).
 		Do(func(
+			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
@@ -399,10 +402,11 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 		}, nil)
 
 	c.mockSFNAPI.EXPECT().
-		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}, gomock.Any()).
 		Do(func(
+			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
@@ -456,10 +460,11 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 		}, nil)
 
 	c.mockSFNAPI.EXPECT().
-		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}, gomock.Any()).
 		Do(func(
+			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
@@ -496,10 +501,11 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 		}, nil)
 
 	c.mockSFNAPI.EXPECT().
-		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}, gomock.Any()).
 		Do(func(
+			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
@@ -546,10 +552,11 @@ func TestUpdateWorkflowStatusExecutionNotFound(t *testing.T) {
 		}, nil)
 
 	c.mockSFNAPI.EXPECT().
-		GetExecutionHistoryPages(&sfn.GetExecutionHistoryInput{
+		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}, gomock.Any()).
 		Do(func(
+			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
