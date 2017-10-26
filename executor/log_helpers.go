@@ -46,3 +46,9 @@ func logPendingWorkflowsLocked(wf models.Workflow) {
 		"update-loop-lag-seconds": int(time.Now().Sub(time.Time(wf.LastUpdated)) / time.Second),
 	})
 }
+
+func LogGetExecutionHistoryCount(value int64) {
+	log.InfoD("get-execution-history-count", logger.M{
+		"value": value,
+	})
+}

@@ -31,3 +31,7 @@ import:
   repo: git@github.com:Clever/ddbsync.git
 - package: github.com/mohae/deepcopy
 - package: github.com/hashicorp/golang-lru
+- package: github.com/signalfx/golib
+  version: ^1.0.0
+  subpackages:
+  - datapoint

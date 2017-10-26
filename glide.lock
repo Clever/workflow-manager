@@ -1,5 +1,5 @@
-hash: eb4e626598943a05015cf3f07168a20aaf4a869f072ebebc7cdc28dc4d18f18b
-updated: 2017-10-18T20:01:41.160141602Z
+hash: 2225e3f62f575a40fad038725c96dec222f9ceacce04af358aa9d33694653e6b
+updated: 2017-10-26T16:20:25.574277975Z
 imports:
 - name: github.com/afex/hystrix-go
   version: f118cd938f786d24f46cc307981d8f63b7951020
@@ -8,9 +8,9 @@ imports:
   - hystrix/metric_collector
   - hystrix/rolling
 - name: github.com/asaskevich/govalidator
-  version: ca5f9e638c83bac66bfac70ded5bded1503135a7
+  version: ddb193b4c7bfa1d1c1923ae05a1ee8fb0cd45cf3
 - name: github.com/aws/aws-sdk-go
-  version: 044a61f1536640ce1def6088c0914f5905990202
+  version: f426770fd5a4bae6186b280d4af7dca83a4cdef4
   subpackages:
   - aws
   - aws/awserr
@@ -35,10 +35,7 @@ imports:
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
-  - private/protocol/restjson
   - private/protocol/xml/xmlutil
-  - service/batch
-  - service/batch/batchiface
   - service/dynamodb
   - service/dynamodb/dynamodbattribute
   - service/dynamodb/dynamodbiface
@@ -48,7 +45,7 @@ imports:
 - name: github.com/Clever/discovery-go
   version: 2e485eaaf026d527548740ceff178c8859fcaa07
 - name: github.com/Clever/go-process-metrics
-  version: 17c3da159c36ee2bbb4198c8eeada7f68184350f
+  version: 5944a49b5051ebcc10feb08724689740b4eefa28
   subpackages:
   - metrics
 - name: github.com/davecgh/go-spew
@@ -62,7 +59,7 @@ imports:
 - name: github.com/go-errors/errors
   version: 8fa88b06e5974e97fbf9899a7f86a344bfd1f105
 - name: github.com/go-ini/ini
-  version: 5b3e00af70a9484542169a976dcab8d03e601a17
+  version: f384f410798cbe7cdce40eec40b79ed32bb4f1ad
 - name: github.com/go-openapi/analysis
   version: 8ed83f2ea9f00f945516462951a288eaa68bf0d6
 - name: github.com/go-openapi/errors
@@ -72,17 +69,17 @@ imports:
 - name: github.com/go-openapi/jsonreference
   version: 36d33bfe519efae5632669801b180bf1a245da3b
 - name: github.com/go-openapi/loads
-  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
+  version: c3e1ca4c0b6160cac10aeef7e8b425cc95b9c820
 - name: github.com/go-openapi/runtime
   version: e8231e16de5bcda9839e03ae07c5c96a1fd82041
 - name: github.com/go-openapi/spec
-  version: 48c2a7185575f9103a5a3863eff950bb776899d2
+  version: 84b5bee7bcb76f3d17bcbaf421bac44bd5709ca6
 - name: github.com/go-openapi/strfmt
   version: 610b6cacdcde6852f4de68998bd20ce1dac85b22
 - name: github.com/go-openapi/swag
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
 - name: github.com/go-openapi/validate
-  version: dc8a684882cf70c9a529887104340f44e0e138e5
+  version: b6cfc35bf312e6fb320d85ed9fc3ac408dcb8694
 - name: github.com/gogo/protobuf
   version: 117892bf1866fbaa2318c03e50e40564c8845457
   subpackages:
@@ -92,7 +89,7 @@ imports:
   subpackages:
   - gomock
 - name: github.com/golang/protobuf
-  version: 130e6b02ab059e7b717a096f397c5b60111cae74
+  version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
   subpackages:
   - proto
   - ptypes
@@ -119,7 +116,7 @@ imports:
   - thrift_0_9_2/lib/go/thrift
   - thrift_rpc
 - name: github.com/mailru/easyjson
-  version: 3fd5e860b68f3cc81671ece2e226c78a6bbf54d3
+  version: 4d347d79dea0067c945f374f990601decb08abb5
   subpackages:
   - buffer
   - jlexer
@@ -147,6 +144,11 @@ imports:
   version: de5bf2ad457846296e2031421a34e2568e304e35
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/signalfx/golib
+  version: cb7680940d605b817db79790c241eed2a00fa6e6
+  subpackages:
+  - datapoint
+  - errors
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
@@ -164,7 +166,7 @@ imports:
   subpackages:
   - models
 - name: golang.org/x/net
-  version: 1087133bc4af3073e18add999345c6ae75918503
+  version: 4b14673ba32bee7f5ac0f990a48f033919fd418b
   subpackages:
   - context
   - context/ctxhttp
@@ -175,7 +177,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/text
-  version: c01e4764d870b77f8abe5096ee19ad20d80e8075
+  version: 6eab0e8f74e86c598ec3b6fad4888e0c11482d48
   subpackages:
   - secure/bidirule
   - transform
@@ -187,9 +189,10 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: faebfcb7bf4702e9cf359637e8893ae415eb8705
+  version: 0d57c57a68d6c3f0cf1d708ab380b10e092c759f
   subpackages:
   - balancer
+  - balancer/roundrobin
   - codes
   - connectivity
   - credentials
@@ -201,14 +204,12 @@ imports:
   - naming
   - peer
   - resolver
+  - resolver/dns
+  - resolver/passthrough
   - stats
   - status
   - tap
   - transport
-- name: gopkg.in/Clever/kayvee-go.v3
-  version: 056c92dcc68b40c5d6045f755197b3776f914154
-  subpackages:
-  - logger
 - name: gopkg.in/Clever/kayvee-go.v6
   version: e1e6fd8184162847c1123645e7058347a2fd3959
   subpackages:

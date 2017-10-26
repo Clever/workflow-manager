@@ -6,7 +6,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-type sfnCache struct {
+type SFNCache struct {
 	sfniface.SFNAPI
 	describeStateMachineCache *lru.Cache
 }
@@ -17,14 +17,14 @@ func New(sfnapi sfniface.SFNAPI) (sfniface.SFNAPI, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &sfnCache{
+	return &SFNCache{
 		SFNAPI: sfnapi,
 		describeStateMachineCache: describeStateMachineCache,
 	}, nil
 }
 
 // DescribeStateMachine is cached aggressively since state machines are immutable.
-func (s *sfnCache) DescribeStateMachine(i *sfn.DescribeStateMachineInput) (*sfn.DescribeStateMachineOutput, error) {
+func (s *SFNCache) DescribeStateMachine(i *sfn.DescribeStateMachineInput) (*sfn.DescribeStateMachineOutput, error) {
 	cacheKey := i.String()
 	cacheVal, ok := s.describeStateMachineCache.Get(cacheKey)
 	if ok {
