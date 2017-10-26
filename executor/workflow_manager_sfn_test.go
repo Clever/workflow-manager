@@ -196,7 +196,7 @@ func TestUpdateWorkflowStatusNoop(t *testing.T) {
 	workflow.Status = models.WorkflowStatusCancelled
 	c.saveWorkflow(t, workflow)
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
 	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
 }
 
@@ -246,7 +246,8 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{jobCreatedEvent}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
 	assert.Equal(t, models.WorkflowStatusRunning, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
@@ -296,7 +297,8 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
@@ -347,7 +349,8 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assert.Equal(t, models.JobStatusFailed, workflow.Jobs[0].Status)
@@ -417,7 +420,8 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
 	assert.Equal(t, models.WorkflowStatusSucceeded, workflow.Status)
 	assert.Equal(t, executionOutput, workflow.Output)
 	require.Len(t, workflow.Jobs, 1)
@@ -474,7 +478,8 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
 	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
 	assert.Equal(t, "cancelled by user", workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
@@ -516,7 +521,8 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
 	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
 	assert.Equal(t, "cancelled by user", workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
@@ -524,11 +530,11 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 	assertCancelledJobData(t, workflow.Jobs[0])
 }
 
-func TestUpdateWorkflowStatusExecutionNotFound(t *testing.T) {
+func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
+
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
-	t.Log("retry status updates if lastUpdatedTime < durationToRetryDescribeExecutions")
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
 	c.saveWorkflow(t, workflow)
@@ -567,23 +573,28 @@ func TestUpdateWorkflowStatusExecutionNotFound(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
 	assert.Equal(t, models.WorkflowStatusQueued, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
 	assert.Equal(t, models.WorkflowStatusSucceeded, workflow.Status)
+	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertSucceededJobData(t, workflow.Jobs[0])
+}
 
-	t.Log("Stop retrying after durationToRetryDescribeExecutions for ExecutionNotFound")
+func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 	durationToRetryDescribeExecutions = 1 * time.Second
-	workflow = c.newWorkflow()
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
 	c.saveWorkflow(t, workflow)
 
-	sfnExecutionARN = c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecution(&sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -594,12 +605,12 @@ func TestUpdateWorkflowStatusExecutionNotFound(t *testing.T) {
 		).
 		Times(2)
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
 	assert.Equal(t, models.WorkflowStatusQueued, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
 	time.Sleep(durationToRetryDescribeExecutions)
 
-	require.NoError(t, c.manager.UpdateWorkflowStatus(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
 }

@@ -320,7 +320,7 @@ func sfnStatusToWorkflowStatus(sfnStatus string) models.WorkflowStatus {
 	}
 }
 
-func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) error {
+func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) error {
 	// Avoid the extraneous processing for executions that have already stopped.
 	// This also prevents the WM "cancelled" state from getting overwritten for workflows cancelled
 	// by the user after a failure.
@@ -365,13 +365,23 @@ func (wm *SFNWorkflowManager) UpdateWorkflowStatus(workflow *models.Workflow) er
 	workflow.LastUpdated = strfmt.DateTime(time.Now())
 	workflow.Status = sfnStatusToWorkflowStatus(*describeOutput.Status)
 	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success
+	return wm.store.UpdateWorkflow(*workflow)
+}
 
+func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) error {
 	// Pull in execution history to populate jobs array
 	// Each Job corresponds to a type="Task" state, i.e. a state with some Resource that will process the input to the state.
 	// We only create a Job object if the State has been entered.
 	// Execution history events contain a "previous" event ID which is the "parent" event within the execution tree.
 	// E.g., if a state machine has two parallel Task states, the events for these states will overlap in the history, but the event IDs + previous event IDs will link together the parallel execution paths.
 	// In order to correctly associate events with the job they correspond to, maintain a map from event ID to job.
+	wd := workflow.WorkflowSummary.WorkflowDefinition
+	execARN := executionARN(
+		wm.region,
+		wm.accountID,
+		stateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
+		workflow.ID,
+	)
 	jobs := []*models.Job{}
 	eventIDToJob := map[int64]*models.Job{}
 	eventToJob := func(evt *sfn.HistoryEvent) *models.Job {
