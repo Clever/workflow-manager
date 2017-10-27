@@ -124,8 +124,6 @@ func getEnvVarOrDefault(envVarName, defaultIfEmpty string) string {
 func logSFNCounts(sfnCounter *sfncounter.SFNCounter) {
 	ticker := time.NewTicker(10 * time.Second)
 	for _ = range ticker.C {
-		if val := sfnCounter.GetExecutionHistoryCount(); val != nil {
-			executor.LogGetExecutionHistoryCount(val.Int())
-		}
+		executor.LogSFNCounts(sfnCounter.Counters())
 	}
 }

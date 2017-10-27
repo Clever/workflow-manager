@@ -15,7 +15,7 @@ func TestGetExecutionHistoryRequestCount(t *testing.T) {
 	defer mockController.Finish()
 	mockSFNAPI := mock_sfniface.NewMockSFNAPI(mockController)
 	countedSFN := New(mockSFNAPI)
-	// expect a request option to be added to the call to GetExecutionHistoryPagesWithContext
+	// expect a request option to be added
 	mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Eq(context.Background()), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil).
@@ -23,5 +23,19 @@ func TestGetExecutionHistoryRequestCount(t *testing.T) {
 	err := countedSFN.GetExecutionHistoryPagesWithContext(context.Background(), &sfn.GetExecutionHistoryInput{}, func(*sfn.GetExecutionHistoryOutput, bool) bool {
 		return true
 	})
+	require.Nil(t, err)
+}
+
+func TestDescribeExecutionRequestCount(t *testing.T) {
+	mockController := gomock.NewController(t)
+	defer mockController.Finish()
+	mockSFNAPI := mock_sfniface.NewMockSFNAPI(mockController)
+	countedSFN := New(mockSFNAPI)
+	// expect a request option to be added
+	mockSFNAPI.EXPECT().
+		DescribeExecutionWithContext(gomock.Eq(context.Background()), gomock.Any(), gomock.Any()).
+		Return(nil, nil).
+		Times(1)
+	_, err := countedSFN.DescribeExecutionWithContext(context.Background(), &sfn.DescribeExecutionInput{})
 	require.Nil(t, err)
 }

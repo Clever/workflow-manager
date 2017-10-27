@@ -112,7 +112,7 @@ func TestCancelWorkflow(t *testing.T) {
 	reason := "i have my reasons"
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -131,7 +131,7 @@ func TestCancelWorkflow(t *testing.T) {
 	t.Log("Verify both status and status reason are updated if execution has already failed.")
 	newReason := "seriously, stop asking"
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -150,7 +150,7 @@ func TestCancelWorkflow(t *testing.T) {
 	t.Log("Verify errors are propagated.")
 	cancelError := fmt.Errorf("nope")
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -165,7 +165,7 @@ func TestCancelWorkflow(t *testing.T) {
 	workflow.Status = models.WorkflowStatusFailed
 	c.updateWorkflow(t, workflow)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -228,7 +228,7 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -275,7 +275,7 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -319,7 +319,7 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -396,7 +396,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 	executionOutput := `{"output": true}`
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -456,7 +456,7 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -498,7 +498,7 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -543,13 +543,13 @@ func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	// fail the first time
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(nil, awserr.New(sfn.ErrCodeExecutionDoesNotExist, "test", errors.New("")))
 	// then success
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(&sfn.DescribeExecutionOutput{
@@ -596,7 +596,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecution(&sfn.DescribeExecutionInput{
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 		}).
 		Return(nil, awserr.New(sfn.ErrCodeExecutionDoesNotExist,
