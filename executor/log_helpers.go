@@ -3,6 +3,7 @@ package executor
 import (
 	"time"
 
+	"github.com/Clever/workflow-manager/executor/sfncounter"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
@@ -47,8 +48,9 @@ func logPendingWorkflowsLocked(wf models.Workflow) {
 	})
 }
 
-func LogGetExecutionHistoryCount(value int64) {
-	log.InfoD("get-execution-history-count", logger.M{
-		"value": value,
+func LogSFNCounts(counters sfncounter.Counters) {
+	log.InfoD("sfn-api-request-counters", logger.M{
+		"get-execution-history": counters.GetExecutionHistory,
+		"describe-execution":    counters.DescribeExecution,
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Clever/workflow-manager/executor/sfncounter"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
@@ -31,16 +32,21 @@ func TestRoutingRules(t *testing.T) {
 		counts := mocklog.RuleCounts()
 		assert.Equal(t, 1, len(counts))
 		assert.Contains(t, counts, "update-loop-lag-alert")
-		assert.Equal(t, counts["update-loop-lag-alert"], 1)
+		assert.Equal(t, 1, counts["update-loop-lag-alert"])
 	})
 
-	t.Run("get-execution-history-count", func(t *testing.T) {
+	t.Run("sfn-counters", func(t *testing.T) {
 		mocklog := logger.NewMockCountLogger("workflow-manager")
 		log = mocklog
-		LogGetExecutionHistoryCount(100)
+		LogSFNCounts(sfncounter.Counters{
+			GetExecutionHistory: 100,
+			DescribeExecution:   200,
+		})
 		counts := mocklog.RuleCounts()
-		assert.Equal(t, 1, len(counts))
-		assert.Contains(t, counts, "get-execution-history-count")
-		assert.Equal(t, counts["get-execution-history-count"], 1)
+		assert.Equal(t, 2, len(counts))
+		assert.Contains(t, counts, "get-execution-history-counter")
+		assert.Contains(t, counts, "describe-execution-counter")
+		assert.Equal(t, 1, counts["get-execution-history-counter"])
+		assert.Equal(t, 1, counts["describe-execution-counter"])
 	})
 }

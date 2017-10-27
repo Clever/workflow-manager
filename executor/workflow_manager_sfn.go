@@ -255,7 +255,7 @@ func (wm *SFNWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason s
 	// attempt to describe execution
 	wd := workflow.WorkflowDefinition
 	execARN := wm.executionARN(workflow, wd)
-	describeOutput, err := wm.sfnapi.DescribeExecution(&sfn.DescribeExecutionInput{
+	describeOutput, err := wm.sfnapi.DescribeExecutionWithContext(context.TODO(), &sfn.DescribeExecutionInput{
 		ExecutionArn: aws.String(execARN),
 	})
 	if err != nil {
@@ -336,7 +336,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) e
 		stateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
 		workflow.ID,
 	)
-	describeOutput, err := wm.sfnapi.DescribeExecution(&sfn.DescribeExecutionInput{
+	describeOutput, err := wm.sfnapi.DescribeExecutionWithContext(context.TODO(), &sfn.DescribeExecutionInput{
 		ExecutionArn: aws.String(execARN),
 	})
 	if err != nil {

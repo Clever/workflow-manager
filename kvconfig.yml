@@ -31,11 +31,22 @@ routes:
       stat_type: "gauge"
       dimensions: []
 
-  get-execution-history-count:
+  get-execution-history-counter:
     matchers:
-      title: ["get-execution-history-count"]
+      title: ["sfn-api-request-counters"]
     output:
       type: "alerts"
-      series: "workflow-manager.get-execution-history-count"
+      series: "workflow-manager.get-execution-history-counter"
       stat_type: "counter"
+      value_field: "get-execution-history"
+      dimensions: []
+
+  describe-execution-counter:
+    matchers:
+      title: ["sfn-api-request-counters"]
+    output:
+      type: "alerts"
+      series: "workflow-manager.describe-execution-counter"
+      stat_type: "counter"
+      value_field: "describe-execution"
       dimensions: []
