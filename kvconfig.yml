@@ -38,7 +38,7 @@ routes:
       type: "alerts"
       series: "workflow-manager.get-execution-history-counter"
       stat_type: "counter"
-      value_field: "get-execution-history"
+      value_field: "GetExecutionHistory"
       dimensions: []
 
   describe-execution-counter:
@@ -48,5 +48,5 @@ routes:
       type: "alerts"
       series: "workflow-manager.describe-execution-counter"
       stat_type: "counter"
-      value_field: "describe-execution"
+      value_field: "DescribeExecution"
       dimensions: []

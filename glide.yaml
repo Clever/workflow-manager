@@ -13,6 +13,9 @@ import:
   version: 757bef944d0f21880861c2dd9c871ca543023cba
 - package: github.com/aws/aws-sdk-go
   version: ^1.12.7
+- package: github.com/Clever/aws-sdk-go-counter
+  subpackages:
+  - counter
 - package: github.com/satori/go.uuid
   version: ^1.1.0
 - package: github.com/stretchr/testify
@@ -31,7 +34,3 @@ import:
   repo: git@github.com:Clever/ddbsync.git
 - package: github.com/mohae/deepcopy
 - package: github.com/hashicorp/golang-lru
-- package: github.com/signalfx/golib
-  version: ^1.0.0
-  subpackages:
-  - datapoint
