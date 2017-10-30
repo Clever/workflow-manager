@@ -1,5 +1,5 @@
-hash: 2225e3f62f575a40fad038725c96dec222f9ceacce04af358aa9d33694653e6b
-updated: 2017-10-26T16:20:25.574277975Z
+hash: d8ede20e83e5cfed001b39205832c31d25703758569953284b882938da4c88b0
+updated: 2017-10-30T18:46:09.719948822Z
 imports:
 - name: github.com/afex/hystrix-go
   version: f118cd938f786d24f46cc307981d8f63b7951020
@@ -10,7 +10,7 @@ imports:
 - name: github.com/asaskevich/govalidator
   version: ddb193b4c7bfa1d1c1923ae05a1ee8fb0cd45cf3
 - name: github.com/aws/aws-sdk-go
-  version: f426770fd5a4bae6186b280d4af7dca83a4cdef4
+  version: ee1f179877b2daf2aaabf71fa900773bf8842253
   subpackages:
   - aws
   - aws/awserr
@@ -42,6 +42,11 @@ imports:
   - service/sfn
   - service/sfn/sfniface
   - service/sts
+- name: github.com/Clever/aws-sdk-go-counter
+  version: c5c641688a3a6a2489b16041be917f5c13b2c9be
+  subpackages:
+  - counter
+  - counter/sfncounter
 - name: github.com/Clever/discovery-go
   version: 2e485eaaf026d527548740ceff178c8859fcaa07
 - name: github.com/Clever/go-process-metrics
@@ -59,7 +64,7 @@ imports:
 - name: github.com/go-errors/errors
   version: 8fa88b06e5974e97fbf9899a7f86a344bfd1f105
 - name: github.com/go-ini/ini
-  version: f384f410798cbe7cdce40eec40b79ed32bb4f1ad
+  version: f280b3ba517bf5fc98922624f21fb0e7a92adaec
 - name: github.com/go-openapi/analysis
   version: 8ed83f2ea9f00f945516462951a288eaa68bf0d6
 - name: github.com/go-openapi/errors
@@ -144,11 +149,6 @@ imports:
   version: de5bf2ad457846296e2031421a34e2568e304e35
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
-- name: github.com/signalfx/golib
-  version: cb7680940d605b817db79790c241eed2a00fa6e6
-  subpackages:
-  - datapoint
-  - errors
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
@@ -159,14 +159,14 @@ imports:
 - name: github.com/xeipuuv/gojsonreference
   version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - name: github.com/xeipuuv/gojsonschema
-  version: 3f523f4c14b6e925da10475eb0447c2f28614aac
+  version: 212d8a0df7acfab8bdd190a7a69f0ab7376edcc8
 - name: github.com/zencoder/ddbsync
   version: 83dd4ef1834424d47a7cde4a7f4361cfabbd7564
   repo: git@github.com:Clever/ddbsync.git
   subpackages:
   - models
 - name: golang.org/x/net
-  version: 4b14673ba32bee7f5ac0f990a48f033919fd418b
+  version: c73622c77280266305273cb545f54516ced95b93
   subpackages:
   - context
   - context/ctxhttp
@@ -189,7 +189,7 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 0d57c57a68d6c3f0cf1d708ab380b10e092c759f
+  version: a4ff4e29c4bb071c28d9a81571c0d8bbdc644f9f
   subpackages:
   - balancer
   - balancer/roundrobin

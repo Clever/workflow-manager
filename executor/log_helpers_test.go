@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Clever/workflow-manager/executor/sfncounter"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
@@ -38,9 +37,9 @@ func TestRoutingRules(t *testing.T) {
 	t.Run("sfn-counters", func(t *testing.T) {
 		mocklog := logger.NewMockCountLogger("workflow-manager")
 		log = mocklog
-		LogSFNCounts(sfncounter.Counters{
-			GetExecutionHistory: 100,
-			DescribeExecution:   200,
+		LogSFNCounts(map[string]int64{
+			"GetExecutionHistory": 100,
+			"DescribeExecution":   200,
 		})
 		counts := mocklog.RuleCounts()
 		assert.Equal(t, 2, len(counts))

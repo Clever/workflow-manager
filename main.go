@@ -14,9 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/kardianos/osext"
 
+	"github.com/Clever/aws-sdk-go-counter/counter/sfncounter"
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/sfncache"
-	"github.com/Clever/workflow-manager/executor/sfncounter"
 	"github.com/Clever/workflow-manager/gen-go/server"
 	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
@@ -121,7 +121,7 @@ func getEnvVarOrDefault(envVarName, defaultIfEmpty string) string {
 	return value
 }
 
-func logSFNCounts(sfnCounter *sfncounter.SFNCounter) {
+func logSFNCounts(sfnCounter *sfncounter.SFN) {
 	ticker := time.NewTicker(10 * time.Second)
 	for _ = range ticker.C {
 		executor.LogSFNCounts(sfnCounter.Counters())
