@@ -1,5 +1,5 @@
 hash: d8ede20e83e5cfed001b39205832c31d25703758569953284b882938da4c88b0
-updated: 2017-10-30T18:46:09.719948822Z
+updated: 2017-10-30T23:37:26.571442736Z
 imports:
 - name: github.com/afex/hystrix-go
   version: f118cd938f786d24f46cc307981d8f63b7951020
@@ -43,7 +43,7 @@ imports:
   - service/sfn/sfniface
   - service/sts
 - name: github.com/Clever/aws-sdk-go-counter
-  version: c5c641688a3a6a2489b16041be917f5c13b2c9be
+  version: b1230a6ea333f3750796bf06af12f5e53feadd6b
   subpackages:
   - counter
   - counter/sfncounter
@@ -189,7 +189,7 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: a4ff4e29c4bb071c28d9a81571c0d8bbdc644f9f
+  version: c91118c8fa0e1821c8fb860e15aaae5e6acb1add
   subpackages:
   - balancer
   - balancer/roundrobin
