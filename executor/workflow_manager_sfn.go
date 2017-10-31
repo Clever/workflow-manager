@@ -370,7 +370,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) e
 
 func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) error {
 	// Pull in execution history to populate jobs array
-	// Each Job corresponds to a type="Task" state, i.e. a state with some Resource that will process the input to the state.
+	// Each Job corresponds to a type={Task,Choice,Succeed} state, i.e. States we have currently tested and supported completely
 	// We only create a Job object if the State has been entered.
 	// Execution history events contain a "previous" event ID which is the "parent" event within the execution tree.
 	// E.g., if a state machine has two parallel Task states, the events for these states will overlap in the history, but the event IDs + previous event IDs will link together the parallel execution paths.
@@ -391,16 +391,14 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 		case sfn.HistoryEventTypeExecutionStarted:
 			// very first event for an execution, so there are no jobs yet
 			return nil
-		case sfn.HistoryEventTypeChoiceStateEntered, sfn.HistoryEventTypeChoiceStateExited,
-			sfn.HistoryEventTypeSucceedStateEntered, sfn.HistoryEventTypeSucceedStateExited,
-			sfn.HistoryEventTypePassStateEntered, sfn.HistoryEventTypePassStateExited,
+		case sfn.HistoryEventTypePassStateEntered, sfn.HistoryEventTypePassStateExited,
 			sfn.HistoryEventTypeParallelStateEntered, sfn.HistoryEventTypeParallelStateExited,
 			sfn.HistoryEventTypeWaitStateEntered, sfn.HistoryEventTypeWaitStateExited,
 			sfn.HistoryEventTypeFailStateEntered:
-			// only Task states have jobs
+			// only create Jobs for Task, Choice and Succeed states
 			return nil
-		case sfn.HistoryEventTypeTaskStateEntered:
-			// a job is created when a task state is entered
+		case sfn.HistoryEventTypeTaskStateEntered, sfn.HistoryEventTypeChoiceStateEntered, sfn.HistoryEventTypeSucceedStateEntered:
+			// a job is created when a supported state is entered
 			job := &models.Job{}
 			jobs = append(jobs, job)
 			eventIDToJob[eventID] = job
@@ -436,7 +434,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 				continue
 			}
 			switch aws.StringValue(evt.Type) {
-			case sfn.HistoryEventTypeTaskStateEntered:
+			case sfn.HistoryEventTypeTaskStateEntered, sfn.HistoryEventTypeChoiceStateEntered, sfn.HistoryEventTypeSucceedStateEntered:
 				// event IDs start at 1 and are only unique to the execution, so this might not be ideal
 				job.ID = fmt.Sprintf("%d", aws.Int64Value(evt.Id))
 				job.Attempts = []*models.JobAttempt{}
@@ -527,6 +525,13 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 				if stateExited.Output != nil {
 					job.Output = aws.StringValue(stateExited.Output)
+				}
+			case sfn.HistoryEventTypeChoiceStateExited, sfn.HistoryEventTypeSucceedStateExited:
+				job.Status = models.JobStatusSucceeded
+				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				details := evt.StateExitedEventDetails
+				if details.Output != nil {
+					job.Output = aws.StringValue(details.Output)
 				}
 			}
 		}
