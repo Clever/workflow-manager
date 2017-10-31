@@ -94,7 +94,9 @@ func stateMachineWithDefaultRetriers(oldSM models.SLStateMachine) *models.SLStat
 			}
 		}
 		if injectRetry && state.Type == models.SLStateTypeTask {
-			state.Retry = append(state.Retry, defaultSFNCLICommandTerminatedRetrier)
+			// Add the default retry before user defined ones since Error=States.ALL must
+			// always be the last in the retry list and could be defined in the workflow definition
+			state.Retry = append([]*models.SLRetrier{defaultSFNCLICommandTerminatedRetrier}, state.Retry...)
 		}
 		sm.States[stateName] = state
 	}

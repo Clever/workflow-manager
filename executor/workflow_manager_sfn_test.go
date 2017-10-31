@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,10 +84,16 @@ func TestStateMachineWithFullActivityARNs(t *testing.T) {
 }
 
 func TestStateMachineWithDefaultRetriers(t *testing.T) {
+	t.Log("Default Retry is prepended to State.Retry")
+	userRetry := &models.SLRetrier{
+		MaxAttempts: swag.Int64(1),
+		ErrorEquals: []models.SLErrorEquals{"States.ALL"},
+	}
 	sm := models.SLStateMachine{
 		States: map[string]models.SLState{
 			"foostate": models.SLState{
-				Type: models.SLStateTypeTask,
+				Type:  models.SLStateTypeTask,
+				Retry: []*models.SLRetrier{userRetry},
 			},
 		},
 	}
@@ -94,7 +101,28 @@ func TestStateMachineWithDefaultRetriers(t *testing.T) {
 	require.Equal(t, map[string]models.SLState{
 		"foostate": models.SLState{
 			Type:  models.SLStateTypeTask,
-			Retry: []*models.SLRetrier{defaultSFNCLICommandTerminatedRetrier},
+			Retry: []*models.SLRetrier{defaultSFNCLICommandTerminatedRetrier, userRetry},
+		},
+	}, smWithRetry.States)
+
+	t.Log("Ignore Default retry if custom sfncli.CommandTerminated is set")
+	customRetry := &models.SLRetrier{
+		MaxAttempts: swag.Int64(2),
+		ErrorEquals: []models.SLErrorEquals{sfncliCommandTerminated},
+	}
+	sm = models.SLStateMachine{
+		States: map[string]models.SLState{
+			"foostate": models.SLState{
+				Type:  models.SLStateTypeTask,
+				Retry: []*models.SLRetrier{customRetry},
+			},
+		},
+	}
+	smWithRetry = stateMachineWithDefaultRetriers(sm)
+	require.Equal(t, map[string]models.SLState{
+		"foostate": models.SLState{
+			Type:  models.SLStateTypeTask,
+			Retry: []*models.SLRetrier{customRetry},
 		},
 	}, smWithRetry.States)
 }
