@@ -38,4 +38,4 @@ routes:
       type: "alerts"
       series: "aws-sdk-go.counter"
       stat_type: "counter"
-      dimensions: ["aws-service", "aws-operation"]
+      dimensions: ["aws-service", "aws-operation", "app"]
