@@ -34,7 +34,7 @@ func TestRoutingRules(t *testing.T) {
 		assert.Equal(t, 1, counts["update-loop-lag-alert"])
 	})
 
-	t.Run("sfn-counters", func(t *testing.T) {
+	t.Run("aws-sdk-go-counter", func(t *testing.T) {
 		mocklog := logger.NewMockCountLogger("workflow-manager")
 		log = mocklog
 		LogSFNCounts(map[string]int64{
@@ -42,10 +42,8 @@ func TestRoutingRules(t *testing.T) {
 			"DescribeExecution":   200,
 		})
 		counts := mocklog.RuleCounts()
-		assert.Equal(t, 2, len(counts))
-		assert.Contains(t, counts, "get-execution-history-counter")
-		assert.Contains(t, counts, "describe-execution-counter")
-		assert.Equal(t, 1, counts["get-execution-history-counter"])
-		assert.Equal(t, 1, counts["describe-execution-counter"])
+		assert.Equal(t, 1, len(counts))
+		assert.Contains(t, counts, "aws-sdk-go-counter")
+		assert.Equal(t, 2, counts["aws-sdk-go-counter"])
 	})
 }

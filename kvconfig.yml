@@ -31,22 +31,11 @@ routes:
       stat_type: "gauge"
       dimensions: []
 
-  get-execution-history-counter:
+  aws-sdk-go-counter:
     matchers:
-      title: ["sfn-api-request-counters"]
+      title: ["aws-sdk-go-counter"]
     output:
       type: "alerts"
-      series: "workflow-manager.get-execution-history-counter"
+      series: "aws-sdk-go.counter"
       stat_type: "counter"
-      value_field: "GetExecutionHistory"
-      dimensions: []
-
-  describe-execution-counter:
-    matchers:
-      title: ["sfn-api-request-counters"]
-    output:
-      type: "alerts"
-      series: "workflow-manager.describe-execution-counter"
-      stat_type: "counter"
-      value_field: "DescribeExecution"
-      dimensions: []
+      dimensions: ["aws-service", "aws-operation"]

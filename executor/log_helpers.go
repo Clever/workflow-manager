@@ -47,10 +47,8 @@ func logPendingWorkflowsLocked(wf models.Workflow) {
 	})
 }
 
-func LogSFNCounts(sfncounters map[string]int64) {
-	m := logger.M{}
-	for k, v := range sfncounters {
-		m[k] = v
+func LogSFNCounts(sfnCounters map[string]int64) {
+	for k, v := range sfnCounters {
+		log.InfoD("aws-sdk-go-counter", logger.M{"value": v, "aws-operation": k, "aws-service": "sfn"})
 	}
-	log.InfoD("sfn-api-request-counters", m)
 }
