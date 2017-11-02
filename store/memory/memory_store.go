@@ -161,6 +161,14 @@ func (s MemoryStore) UpdateWorkflow(workflow models.Workflow) error {
 	return nil
 }
 
+func (s MemoryStore) DeleteWorkflowByID(workflowID string) error {
+	if _, ok := s.workflows[workflowID]; !ok {
+		return store.NewNotFound(workflowID)
+	}
+	delete(s.workflows, workflowID)
+	return nil
+}
+
 func (s MemoryStore) GetWorkflows(
 	query *models.WorkflowQuery,
 ) ([]models.Workflow, string, error) {

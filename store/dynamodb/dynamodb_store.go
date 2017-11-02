@@ -515,6 +515,31 @@ func (d DynamoDB) UpdateWorkflow(workflow models.Workflow) error {
 	return err
 }
 
+// DeleteWorkflow should only be used in cases where the Workflow has failed to start
+// and we need to remove it for cleanup. This removes the Workflow record from DynamoDB
+func (d DynamoDB) DeleteWorkflowByID(workflowID string) error {
+	_, err := d.ddb.DeleteItem(&dynamodb.DeleteItemInput{
+		TableName: aws.String(d.workflowsTable()),
+		Key: map[string]*dynamodb.AttributeValue{
+			"id": &dynamodb.AttributeValue{
+				S: aws.String(workflowID),
+			},
+		},
+		ExpressionAttributeNames: map[string]*string{
+			"#I": aws.String("id"),
+		},
+		ConditionExpression: aws.String("attribute_exists(#I)"),
+	})
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
+				return store.NewNotFound(workflowID)
+			}
+		}
+	}
+	return err
+}
+
 // GetWorkflowByID
 func (d DynamoDB) GetWorkflowByID(id string) (models.Workflow, error) {
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowPrimaryKey{

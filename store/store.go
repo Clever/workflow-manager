@@ -21,6 +21,7 @@ type Store interface {
 	DeleteStateResource(name, namespace string) error
 
 	SaveWorkflow(workflow models.Workflow) error
+	DeleteWorkflowByID(workflowID string) error
 	UpdateWorkflow(workflow models.Workflow) error
 	GetWorkflowByID(id string) (models.Workflow, error)
 	GetWorkflows(query *models.WorkflowQuery) ([]models.Workflow, string, error)
