@@ -203,6 +203,16 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input
 	// submit an execution using input, set execution name == our workflow GUID
 	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
 	if err != nil {
+		// since we failed to start execution, remove Workflow from store
+		if delErr := wm.store.DeleteWorkflowByID(workflow.ID); delErr != nil {
+			log.ErrorD("create-workflow", logger.M{
+				"id":            workflow.ID,
+				"workflow-name": workflow.WorkflowDefinition.Name,
+				"message":       "failed to delete stray workflow",
+				"error":         fmt.Sprintf("SFNError: %s;StoreError: %s", err, delErr),
+			})
+		}
+
 		return nil, err
 	}
 
