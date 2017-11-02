@@ -186,7 +186,12 @@ func (wm *SFNWorkflowManager) startExecution(stateMachineArn *string, workflowID
 	return err
 }
 
-func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error) {
+func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
+	input string,
+	namespace string,
+	queue string,
+	tags map[string]interface{}) (*models.Workflow, error) {
+
 	describeOutput, err := wm.describeOrCreateStateMachine(wd, namespace, queue)
 	if err != nil {
 		return nil, err

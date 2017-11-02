@@ -127,6 +127,88 @@ func TestStateMachineWithDefaultRetriers(t *testing.T) {
 	}, smWithRetry.States)
 }
 
+func TestCreateWorkflow(t *testing.T) {
+	input := "{\"json\": true}"
+
+	t.Run("CreateWorkflow for existing StateMachines", func(t *testing.T) {
+		c := newSFNManagerTestController(t)
+		defer c.tearDown()
+		stateMachineArn := stateMachineARN(c.manager.region, c.manager.accountID,
+			c.workflowDefinition.Name,
+			c.workflowDefinition.Version,
+			"namespace",
+			c.workflowDefinition.StateMachine.StartAt,
+		)
+		c.mockSFNAPI.EXPECT().
+			DescribeStateMachine(&sfn.DescribeStateMachineInput{
+				StateMachineArn: aws.String(stateMachineArn),
+			}).
+			Return(&sfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(stateMachineArn),
+			}, nil)
+		c.mockSFNAPI.EXPECT().
+			StartExecution(gomock.Any()).
+			Return(&sfn.StartExecutionOutput{}, nil)
+
+		workflow, err := c.manager.CreateWorkflow(*c.workflowDefinition,
+			input,
+			"namespace",
+			"queue",
+			map[string]interface{}{},
+		)
+		assert.Nil(t, err)
+		assert.NotNil(t, workflow)
+		assert.Equal(t, workflow.Namespace, "namespace")
+		assert.Equal(t, workflow.Input, input)
+
+		savedWorkflow, err := c.store.GetWorkflowByID(workflow.ID)
+		assert.Nil(t, err)
+		assert.Equal(t, workflow.CreatedAt.String(), savedWorkflow.CreatedAt.String())
+		assert.Equal(t, workflow.ID, savedWorkflow.ID)
+		pendingIDs, err := c.store.GetPendingWorkflowIDs()
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(pendingIDs))
+		assert.Equal(t, workflow.ID, pendingIDs[0]) // current workflow is pending
+	})
+
+	t.Run("CreateWorkflow deletes workflow on StartExecution failure", func(t *testing.T) {
+		c := newSFNManagerTestController(t)
+		defer c.tearDown()
+		stateMachineArn := stateMachineARN(c.manager.region, c.manager.accountID,
+			c.workflowDefinition.Name,
+			c.workflowDefinition.Version,
+			"namespace",
+			c.workflowDefinition.StateMachine.StartAt,
+		)
+		awsError := awserr.New("test", "test", errors.New(""))
+		c.mockSFNAPI.EXPECT().
+			DescribeStateMachine(&sfn.DescribeStateMachineInput{
+				StateMachineArn: aws.String(stateMachineArn),
+			}).
+			Return(&sfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(stateMachineArn),
+			}, nil)
+		c.mockSFNAPI.EXPECT().
+			StartExecution(gomock.Any()).
+			Return(nil, awsError)
+
+		workflow, err := c.manager.CreateWorkflow(*c.workflowDefinition,
+			input,
+			"namespace",
+			"queue",
+			map[string]interface{}{},
+		)
+		assert.NotNil(t, err)
+		assert.Nil(t, workflow)
+		assert.IsType(t, awsError, err)
+		assert.Equal(t, "test", err.(awserr.Error).Code()) // ensure this error came from sfn api
+
+		pendingIDs, err := c.store.GetPendingWorkflowIDs()
+		assert.Equal(t, 0, len(pendingIDs)) // new workflow not created
+
+	})
+}
+
 func TestCancelWorkflow(t *testing.T) {
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
