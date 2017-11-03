@@ -24,6 +24,7 @@ func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
 	t.Run("DeleteStateResource", DeleteStateResource(storeFactory(), t))
 	t.Run("SaveWorkflow", SaveWorkflow(storeFactory(), t))
 	t.Run("UpdateWorkflow", UpdateWorkflow(storeFactory(), t))
+	t.Run("DeleteWorkflow", DeleteWorkflow(storeFactory(), t))
 	t.Run("GetWorkflowByID", GetWorkflowByID(storeFactory(), t))
 	t.Run("GetWorkflows", GetWorkflows(storeFactory(), t))
 	t.Run("GetWorkflowsSummaryOnly", GetWorkflowsSummaryOnly(storeFactory(), t))
@@ -196,6 +197,26 @@ func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 		require.WithinDuration(t, time.Time(savedWorkflow.LastUpdated), time.Now(), 1*time.Second)
 		require.True(t, time.Time(savedWorkflow.LastUpdated).After(time.Time(savedWorkflow.CreatedAt)))
 		require.NotEqual(t, time.Time(savedWorkflow.LastUpdated), time.Time(savedWorkflow.CreatedAt))
+	}
+}
+
+func DeleteWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		wf := resources.KitchenSinkWorkflowDefinition(t)
+		require.Nil(t, s.SaveWorkflowDefinition(*wf))
+		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
+		workflow := resources.NewWorkflow(wf, `["input"]`, "namespace", "queue", tags)
+		require.Nil(t, s.SaveWorkflow(*workflow))
+
+		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
+		require.Nil(t, err)
+		require.Equal(t, savedWorkflow.Status, models.WorkflowStatusQueued)
+
+		require.Nil(t, s.DeleteWorkflowByID(workflow.ID))
+
+		savedWorkflow, err = s.GetWorkflowByID(workflow.ID)
+		require.Error(t, err)
+		require.IsType(t, models.NotFound{}, err)
 	}
 }
 
