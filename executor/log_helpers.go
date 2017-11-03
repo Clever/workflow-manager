@@ -12,11 +12,11 @@ var log = logger.New("workflow-manager")
 
 func logJobStatus(job *models.Job, workflow *models.Workflow) {
 	log.InfoD("job-status", logger.M{
-		"id":            job.ID,
-		"workflow-id":   workflow.ID,
-		"workflow-name": workflow.WorkflowDefinition.Name,
-		"state":         job.State,
-		"status":        job.Status,
+		"id":                       job.ID,
+		"workflow-id":              workflow.ID,
+		"workflow-definition-name": workflow.WorkflowDefinition.Name,
+		"state":                    job.State,
+		"status":                   job.Status,
 		// 0 -> running; 1 -> failed;
 		// -1 -> cancelled by user; -2 -> abort due to dependecy failure
 		"value": resources.JobStatusToInt(job.Status),
