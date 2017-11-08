@@ -21,7 +21,7 @@ type WorkflowManager interface {
 // PollForPendingWorkflowsAndUpdateStore polls the store for workflows in a pending state and
 // attempts to update them. It will stop polling when the context is done.
 func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store) {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(500 * time.Millisecond)
 	for {
 		select {
 		case <-ctx.Done():
