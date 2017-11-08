@@ -144,6 +144,7 @@ func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) ConstructQuery(summ
 			":workflowName": workflowNameAV,
 		},
 		KeyConditionExpression: aws.String("#W = :workflowName"),
+		ConsistentRead:         aws.Bool(true),
 	}
 
 	if summaryOnly {
@@ -215,6 +216,7 @@ func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) ConstructQuery(
 			},
 		},
 		KeyConditionExpression: aws.String("#WS = :workflowNameAndStatus"),
+		ConsistentRead:         aws.Bool(true),
 	}
 
 	if aws.BoolValue(query.SummaryOnly) {
@@ -275,6 +277,7 @@ func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) ConstructQuery() (*dynamodb.Q
 			":status": statusAV,
 		},
 		KeyConditionExpression: aws.String("#S = :status"),
+		ConsistentRead:         aws.Bool(true),
 	}, nil
 }
 
