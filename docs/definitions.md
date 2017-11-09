@@ -227,6 +227,7 @@
 |**retryFor**  <br>*optional*|workflow-id of original workflow in case this is a retry|string|
 |**status**  <br>*optional*||[WorkflowStatus](#workflowstatus)|
 |**statusReason**  <br>*optional*||string|
+|**stoppedAt**  <br>*optional*||string (date-time)|
 |**workflowDefinition**  <br>*optional*||[WorkflowDefinition](#workflowdefinition)|
 
 
@@ -292,6 +293,7 @@
 |**retries**  <br>*optional*|workflow-id's of workflows created as retries for this workflow|< string > array|
 |**retryFor**  <br>*optional*|workflow-id of original workflow in case this is a retry|string|
 |**status**  <br>*optional*||[WorkflowStatus](#workflowstatus)|
+|**stoppedAt**  <br>*optional*||string (date-time)|
 |**workflowDefinition**  <br>*optional*||[WorkflowDefinition](#workflowdefinition)|
 
 
