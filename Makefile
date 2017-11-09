@@ -49,8 +49,8 @@ generate-mocks:
 	rm -f mocks/mock_sfniface/mock_sfnapi.go
 	mockgen github.com/aws/aws-sdk-go/service/sfn/sfniface SFNAPI > mocks/mock_sfniface/mock_sfnapi.go
 
-$(GOPATH)/bin/glide:
-	@go get github.com/Masterminds/glide
 
-install_deps: $(GOPATH)/bin/glide
-	@$(GOPATH)/bin/glide install -v
+
+
+install_deps: golang-dep-vendor-deps
+	$(call golang-dep-vendor)
