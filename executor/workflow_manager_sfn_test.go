@@ -725,6 +725,62 @@ func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 	require.Len(t, workflow.Jobs, 0)
 }
 
+var workflowTimedOutEventTimestamp = jobCreatedEventTimestamp.Add(10 * time.Minute)
+var workflowTimedOutEvent = &sfn.HistoryEvent{
+	Id:        aws.Int64(8),
+	Timestamp: aws.Time(workflowTimedOutEventTimestamp),
+	Type:      aws.String(sfn.HistoryEventTypeExecutionTimedOut),
+}
+
+func assertWorkflowTimedOutJobData(t *testing.T, job *models.Job) {
+	assert.Equal(t, models.JobStatusFailed, job.Status)
+	assert.Equal(t, "Workflow timed out", resources.StatusReasonExecutionTimedOut)
+	assert.Contains(t, job.StatusReason, resources.StatusReasonExecutionTimedOut)
+	assert.WithinDuration(t, workflowTimedOutEventTimestamp, time.Time(job.StoppedAt), 1*time.Second)
+}
+
+func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusRunning
+	c.saveWorkflow(t, workflow)
+
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusTimedOut),
+		}, nil)
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}, gomock.Any()).
+		Do(func(
+			ctx aws.Context,
+			input *sfn.GetExecutionHistoryInput,
+			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+		) {
+			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
+				jobCreatedEvent,
+				workflowTimedOutEvent,
+			}}, true)
+		})
+
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
+	assert.Equal(t, "Workflow timed out", resources.StatusReasonExecutionTimedOut)
+	assert.Equal(t, resources.StatusReasonExecutionTimedOut, workflow.StatusReason)
+	require.Len(t, workflow.Jobs, 1)
+	assertBasicJobData(t, workflow.Jobs[0])
+	assertWorkflowTimedOutJobData(t, workflow.Jobs[0])
+}
+
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockController := gomock.NewController(t)
 	mockSFNAPI := mock_sfniface.NewMockSFNAPI(mockController)

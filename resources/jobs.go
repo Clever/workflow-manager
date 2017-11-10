@@ -39,3 +39,11 @@ func JobStatusToInt(status models.JobStatus) int {
 		return 0
 	}
 }
+
+const (
+	// StatusReasonActivityTimedOut contains extra information for status reasons for workflows & jobs
+	StatusReasonActivityTimedOut = "Job timed out"
+
+	// StatusReasonExecutionTimedOut contains extra information for status reasons for workflows & jobs
+	StatusReasonExecutionTimedOut = "Workflow timed out"
+)

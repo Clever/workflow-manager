@@ -381,7 +381,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) e
 
 	workflow.LastUpdated = strfmt.DateTime(time.Now())
 	workflow.Status = sfnStatusToWorkflowStatus(*describeOutput.Status)
-	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success
+	if *describeOutput.Status == sfn.ExecutionStatusTimedOut {
+		workflow.StatusReason = resources.StatusReasonExecutionTimedOut
+	}
+	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success  (TODO: actually this is only sent for success)
 	return wm.store.UpdateWorkflow(*workflow)
 }
 
@@ -424,6 +427,9 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 			// Execution-level event - update last seen job.
 			return jobs[len(jobs)-1]
 		case sfn.HistoryEventTypeExecutionFailed:
+			// Execution-level event - update last seen job.
+			return jobs[len(jobs)-1]
+		case sfn.HistoryEventTypeExecutionTimedOut:
 			// Execution-level event - update last seen job.
 			return jobs[len(jobs)-1]
 		default:
@@ -537,6 +543,19 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 						))
 					}
 				}
+			case sfn.HistoryEventTypeExecutionTimedOut:
+				job.Status = models.JobStatusFailed
+				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				if details := evt.ExecutionTimedOutEventDetails; details != nil {
+					job.StatusReason = strings.TrimSpace(fmt.Sprintf(
+						"%s\n%s\n%s",
+						resources.StatusReasonExecutionTimedOut,
+						aws.StringValue(details.Error),
+						getLastFewLines(aws.StringValue(details.Cause)),
+					))
+				} else {
+					job.StatusReason = resources.StatusReasonExecutionTimedOut
+				}
 			case sfn.HistoryEventTypeTaskStateExited:
 				stateExited := evt.StateExitedEventDetails
 				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
@@ -551,6 +570,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 					job.Output = aws.StringValue(details.Output)
 				}
 			}
+
 		}
 		return true
 	}); err != nil {
