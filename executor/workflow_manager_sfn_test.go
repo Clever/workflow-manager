@@ -725,6 +725,94 @@ func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 	require.Len(t, workflow.Jobs, 0)
 }
 
+var jobScheduledEventTimestamp = jobCreatedEventTimestamp.Add(1 * time.Minute)
+var jobScheduledEvent = &sfn.HistoryEvent{
+	Id:              aws.Int64(6),
+	PreviousEventId: aws.Int64(1), // job created
+	Timestamp:       aws.Time(jobScheduledEventTimestamp),
+	Type:            aws.String(sfn.HistoryEventTypeActivityScheduled),
+}
+var jobStartedEventTimestamp = jobScheduledEventTimestamp.Add(1 * time.Minute)
+var jobStartedEvent = &sfn.HistoryEvent{
+	Id:              aws.Int64(7),
+	PreviousEventId: aws.Int64(6),
+	Timestamp:       aws.Time(jobStartedEventTimestamp),
+	Type:            aws.String(sfn.HistoryEventTypeActivityStarted),
+}
+var jobTimedOutEventTimestamp = jobStartedEventTimestamp.Add(5 * time.Minute)
+var jobTimedOutEvent = &sfn.HistoryEvent{
+	Id:              aws.Int64(8),
+	PreviousEventId: aws.Int64(7),
+	Timestamp:       aws.Time(jobTimedOutEventTimestamp),
+	Type:            aws.String(sfn.HistoryEventTypeActivityTimedOut),
+	ActivityTimedOutEventDetails: &sfn.ActivityTimedOutEventDetails{
+		Error: aws.String("States.Timeout"), // this string will actually be States.Timeout
+		Cause: aws.String("(sfn cause for activity that timed out)"),
+	},
+}
+var jobTimedOutWorkflowFailedEventTimestamp = jobTimedOutEventTimestamp
+var jobTimedOutWorkflowFailedEvent = &sfn.HistoryEvent{
+	Id:              aws.Int64(9),
+	PreviousEventId: aws.Int64(8),
+	Timestamp:       aws.Time(jobTimedOutWorkflowFailedEventTimestamp),
+	Type:            aws.String(sfn.HistoryEventTypeExecutionFailed),
+	ExecutionFailedEventDetails: &sfn.ExecutionFailedEventDetails{
+		Error: aws.String("States.Timeout"),
+	},
+}
+
+func assertTimedOutJobData(t *testing.T, job *models.Job) {
+	assert.Equal(t, models.JobStatusFailed, job.Status)
+	// not currently using the details in TestUpdateWorkflowStatusJobTimedOut test
+	// also this format does not match the output in workflow_manager_sfn
+	assert.Equal(t, "Job timed out", resources.StatusReasonJobTimedOut)
+	assert.Contains(t, job.StatusReason, resources.StatusReasonJobTimedOut)
+	assert.WithinDuration(t, jobTimedOutEventTimestamp, time.Time(job.StoppedAt), 1*time.Second)
+}
+
+func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
+	c := newSFNManagerTestController(t)
+	defer c.tearDown()
+
+	workflow := c.newWorkflow()
+	workflow.Status = models.WorkflowStatusRunning
+	c.saveWorkflow(t, workflow)
+
+	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	c.mockSFNAPI.EXPECT().
+		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}).
+		Return(&sfn.DescribeExecutionOutput{
+			Status: aws.String(sfn.ExecutionStatusFailed), // when activity times out, execution immediately fails
+		}, nil)
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+		}, gomock.Any()).
+		Do(func(
+			ctx aws.Context,
+			input *sfn.GetExecutionHistoryInput,
+			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+		) {
+			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
+				jobCreatedEvent,
+				jobScheduledEvent,
+				jobStartedEvent, // ActivityStarted - starts timer for timeouts & heartbeat checks
+				jobTimedOutEvent,
+				jobTimedOutWorkflowFailedEvent,
+			}}, true)
+		})
+
+	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
+	require.Len(t, workflow.Jobs, 1)
+	assertBasicJobData(t, workflow.Jobs[0])
+	assertTimedOutJobData(t, workflow.Jobs[0])
+}
+
 var workflowTimedOutEventTimestamp = jobCreatedEventTimestamp.Add(10 * time.Minute)
 var workflowTimedOutEvent = &sfn.HistoryEvent{
 	Id:        aws.Int64(8),
@@ -734,8 +822,8 @@ var workflowTimedOutEvent = &sfn.HistoryEvent{
 
 func assertWorkflowTimedOutJobData(t *testing.T, job *models.Job) {
 	assert.Equal(t, models.JobStatusFailed, job.Status)
-	assert.Equal(t, "Workflow timed out", resources.StatusReasonExecutionTimedOut)
-	assert.Contains(t, job.StatusReason, resources.StatusReasonExecutionTimedOut)
+	assert.Equal(t, "Workflow timed out", resources.StatusReasonWorkflowTimedOut)
+	assert.Contains(t, job.StatusReason, resources.StatusReasonWorkflowTimedOut)
 	assert.WithinDuration(t, workflowTimedOutEventTimestamp, time.Time(job.StoppedAt), 1*time.Second)
 }
 
@@ -774,8 +862,8 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
-	assert.Equal(t, "Workflow timed out", resources.StatusReasonExecutionTimedOut)
-	assert.Equal(t, resources.StatusReasonExecutionTimedOut, workflow.StatusReason)
+	assert.Equal(t, "Workflow timed out", resources.StatusReasonWorkflowTimedOut)
+	assert.Equal(t, resources.StatusReasonWorkflowTimedOut, workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertWorkflowTimedOutJobData(t, workflow.Jobs[0])
