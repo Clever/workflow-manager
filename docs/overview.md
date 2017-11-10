@@ -3,11 +3,11 @@
 
 <a name="overview"></a>
 ## Overview
-Minimal Workflow orchestrator for AWS Batch
+Orchestrator for AWS Step Functions
 
 
 ### Version information
-*Version* : 0.6.7
+*Version* : 0.6.9
 
 
 ### URI scheme
