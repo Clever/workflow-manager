@@ -67,7 +67,7 @@
 
 <a name="manager"></a>
 ### Manager
-*Type* : enum (batch, step-functions)
+*Type* : enum (step-functions)
 
 
 <a name="newstateresource"></a>

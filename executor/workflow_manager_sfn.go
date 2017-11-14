@@ -381,7 +381,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) e
 
 	workflow.LastUpdated = strfmt.DateTime(time.Now())
 	workflow.Status = sfnStatusToWorkflowStatus(*describeOutput.Status)
-	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success
+	if *describeOutput.Status == sfn.ExecutionStatusTimedOut {
+		workflow.StatusReason = resources.StatusReasonWorkflowTimedOut
+	}
+	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success  (TODO: actually this is only sent for success)
 	return wm.store.UpdateWorkflow(*workflow)
 }
 
@@ -424,6 +427,9 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 			// Execution-level event - update last seen job.
 			return jobs[len(jobs)-1]
 		case sfn.HistoryEventTypeExecutionFailed:
+			// Execution-level event - update last seen job.
+			return jobs[len(jobs)-1]
+		case sfn.HistoryEventTypeExecutionTimedOut:
 			// Execution-level event - update last seen job.
 			return jobs[len(jobs)-1]
 		default:
@@ -514,6 +520,19 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 						aws.StringValue(details.Error),
 					))
 				}
+			case sfn.HistoryEventTypeActivityTimedOut:
+				job.Status = models.JobStatusFailed
+				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				if details := evt.ActivityTimedOutEventDetails; details != nil {
+					job.StatusReason = strings.TrimSpace(fmt.Sprintf(
+						"%s\n%s\n%s",
+						resources.StatusReasonJobTimedOut,
+						aws.StringValue(details.Error),
+						getLastFewLines(aws.StringValue(details.Cause)),
+					))
+				} else {
+					job.StatusReason = resources.StatusReasonJobTimedOut
+				}
 			case sfn.HistoryEventTypeActivitySucceeded:
 				job.Status = models.JobStatusSucceeded
 			case sfn.HistoryEventTypeExecutionAborted:
@@ -528,6 +547,8 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 				if details := evt.ExecutionFailedEventDetails; details != nil {
 					if isActivityDoesntExistFailure(evt.ExecutionFailedEventDetails) {
 						job.StatusReason = "State resource does not exist"
+					} else if isActivityTimedOutFailure(evt.ExecutionFailedEventDetails) {
+						// do not update job status reason -- it should already be updated based on the ActivityTimedOut event
 					} else {
 						// set unknown errors to StatusReason
 						job.StatusReason = strings.TrimSpace(fmt.Sprintf(
@@ -536,6 +557,19 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 							aws.StringValue(details.Error),
 						))
 					}
+				}
+			case sfn.HistoryEventTypeExecutionTimedOut:
+				job.Status = models.JobStatusFailed
+				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				if details := evt.ExecutionTimedOutEventDetails; details != nil {
+					job.StatusReason = strings.TrimSpace(fmt.Sprintf(
+						"%s\n%s\n%s",
+						resources.StatusReasonWorkflowTimedOut,
+						aws.StringValue(details.Error),
+						getLastFewLines(aws.StringValue(details.Cause)),
+					))
+				} else {
+					job.StatusReason = resources.StatusReasonWorkflowTimedOut
 				}
 			case sfn.HistoryEventTypeTaskStateExited:
 				stateExited := evt.StateExitedEventDetails
@@ -551,6 +585,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 					job.Output = aws.StringValue(details.Output)
 				}
 			}
+
 		}
 		return true
 	}); err != nil {
@@ -567,6 +602,12 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 func isActivityDoesntExistFailure(details *sfn.ExecutionFailedEventDetails) bool {
 	return aws.StringValue(details.Error) == "States.Runtime" &&
 		strings.Contains(aws.StringValue(details.Cause), "Internal Error")
+}
+
+// isActivityTimedOutFailure checks if an execution failed because an activity timed out,
+// based on the details of an 'execution failed' history event.
+func isActivityTimedOutFailure(details *sfn.ExecutionFailedEventDetails) bool {
+	return aws.StringValue(details.Error) == "States.Timeout"
 }
 
 func getLastFewLines(rawLines string) string {
