@@ -3,6 +3,7 @@ package dynamodb
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/aws/aws-sdk-go/aws"
@@ -30,6 +31,8 @@ var SummaryKeys = []string{
 	"Workflow.workflowDefinition.version",
 }
 
+const WorkflowTTL = 30 * 24 * time.Hour // 30 days
+
 var summaryProjectionExpression = strings.Join(SummaryKeys, ", ")
 var summaryExpressionAttributeNames = map[string]*string{
 	"#S": aws.String("status"),
@@ -44,6 +47,7 @@ type ddbWorkflow struct {
 	ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt
 	ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt
 	ddbWorkflowSecondaryKeyStatusLastUpdated
+	ddbWorkflowTTL
 	Workflow models.Workflow
 }
 
@@ -66,6 +70,9 @@ func EncodeWorkflow(workflow models.Workflow) (map[string]*dynamodb.AttributeVal
 		ddbWorkflowSecondaryKeyStatusLastUpdated: ddbWorkflowSecondaryKeyStatusLastUpdated{
 			Status:      workflow.Status,
 			LastUpdated: workflow.LastUpdated,
+		},
+		ddbWorkflowTTL: ddbWorkflowTTL{
+			TTL: strfmt.DateTime(time.Time(workflow.CreatedAt).Add(WorkflowTTL)),
 		},
 		Workflow: workflow,
 	})
@@ -288,6 +295,18 @@ func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) KeySchema() []*dynamodb.KeySc
 			AttributeName: aws.String("_gsi-lastUpdated"),
 			KeyType:       aws.String(dynamodb.KeyTypeRange),
 		},
+	}
+}
+
+// ddbWorkflowTTL is the time at which the workflow will get TTL'd by dynamo.
+type ddbWorkflowTTL struct {
+	TTL strfmt.DateTime `dynamodbav:"_ttl,unixtime"` // must be unix time to work with dynamodb builtin TTL support
+}
+
+func (ttl ddbWorkflowTTL) AttributeDefinition() *dynamodb.AttributeDefinition {
+	return &dynamodb.AttributeDefinition{
+		AttributeName: aws.String("_ttl"),
+		AttributeType: aws.String(dynamodb.ScalarAttributeTypeN),
 	}
 }
 

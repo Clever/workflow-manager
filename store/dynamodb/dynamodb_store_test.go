@@ -40,7 +40,8 @@ func TestDynamoDBStore(t *testing.T) {
 			PrefixWorkflowDefinitions: prefix,
 			PrefixWorkflows:           prefix,
 		})
-		if err := s.InitTables(); err != nil {
+		// InitTables(false) since dynamodb local doesn't support TTLs
+		if err := s.InitTables(false); err != nil {
 			t.Fatal(err)
 		}
 		return s
