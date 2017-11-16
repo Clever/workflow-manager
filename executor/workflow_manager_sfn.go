@@ -384,6 +384,9 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) e
 	if *describeOutput.Status == sfn.ExecutionStatusTimedOut {
 		workflow.StatusReason = resources.StatusReasonWorkflowTimedOut
 	}
+	if describeOutput.StopDate != nil {
+		workflow.StoppedAt = strfmt.DateTime(aws.TimeValue(describeOutput.StopDate))
+	}
 	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success  (TODO: actually this is only sent for success)
 	return wm.store.UpdateWorkflow(*workflow)
 }

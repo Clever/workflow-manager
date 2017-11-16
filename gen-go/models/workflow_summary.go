@@ -44,6 +44,9 @@ type WorkflowSummary struct {
 	// status
 	Status WorkflowStatus `json:"status,omitempty"`
 
+	// stopped at
+	StoppedAt strfmt.DateTime `json:"stoppedAt,omitempty"`
+
 	// tags: object with key-value pairs; keys and values should be strings
 	Tags map[string]interface{} `json:"tags,omitempty"`
 
@@ -68,6 +71,8 @@ type WorkflowSummary struct {
 /* polymorph WorkflowSummary retryFor false */
 
 /* polymorph WorkflowSummary status false */
+
+/* polymorph WorkflowSummary stoppedAt false */
 
 /* polymorph WorkflowSummary tags false */
 
