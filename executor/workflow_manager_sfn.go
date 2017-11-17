@@ -465,6 +465,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 				job.ID = fmt.Sprintf("%d", aws.Int64Value(evt.Id))
 				job.Attempts = []*models.JobAttempt{}
 				job.CreatedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
+				if *evt.Type != sfn.HistoryEventTypeTaskStateEntered {
+					// Non-task states technically start immediately, since they don't wait on resources:
+					job.StartedAt = job.CreatedAt
+				}
 				job.Status = models.JobStatusCreated
 				if details := evt.StateEnteredEventDetails; details != nil {
 					stateName := aws.StringValue(details.Name)
