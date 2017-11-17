@@ -83,7 +83,7 @@ func (d DynamoDB) dynamoItemsToWorkflowDefinitions(items []map[string]*dynamodb.
 }
 
 // InitTables creates the dynamo tables.
-func (d DynamoDB) InitTables() error {
+func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 	// create workflowDefinitions table from name, version -> workflow object
 	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
@@ -193,6 +193,17 @@ func (d DynamoDB) InitTables() error {
 		TableName: aws.String(d.workflowsTable()),
 	}); err != nil {
 		return err
+	}
+	if setupWorkflowsTTL {
+		if _, err := d.ddb.UpdateTimeToLive(&dynamodb.UpdateTimeToLiveInput{
+			TableName: aws.String(d.workflowsTable()),
+			TimeToLiveSpecification: &dynamodb.TimeToLiveSpecification{
+				AttributeName: ddbWorkflowTTL{}.AttributeDefinition().AttributeName,
+				Enabled:       aws.Bool(true),
+			},
+		}); err != nil {
+			return err
+		}
 	}
 
 	// create state-resources table from stateResource.{name, namespace} -> stateResource object
