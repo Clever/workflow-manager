@@ -274,6 +274,26 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 	return h.manager.RetryWorkflow(workflow, input.Overrides.StartAt, effectiveInput)
 }
 
+// ResolveWorkflowByID sets a workflow's ResolvedByUser to true if it is currently false.
+// If the workflow's ResolvedByUser field is already true, it identifies this situation as a conflict.
+func (h Handler) ResolveWorkflowByID(ctx context.Context, workflowID string) error {
+	workflow, err := h.store.GetWorkflowByID(workflowID)
+	if err != nil {
+		return err
+	}
+
+	// if workflow is already resolved by user, error
+	if workflow.ResolvedByUser {
+		return models.Conflict{
+			Message: fmt.Sprintf("workflow %s already resolved", workflow.ID),
+		}
+	}
+	// set the ResolvedByUser value to true
+	workflow.ResolvedByUser = true
+
+	return h.store.UpdateWorkflow(workflow)
+}
+
 func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	if req.StateMachine.StartAt == "" {
 		return nil, fmt.Errorf("StartAt is a required field")

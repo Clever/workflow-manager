@@ -24,6 +24,10 @@ responses:
     description: "Entity Not Found"
     schema:
       $ref: "#/definitions/NotFound"
+  Conflict:
+    description: "Conflict with Current State"  #409
+    schema:
+      $ref: "#/definitions/Conflict"
 
 paths:
   /_health:
@@ -225,7 +229,7 @@ paths:
         404:
           $ref: "#/responses/NotFound"
     post:
-      summary: Start a new Workflow using job outputs of a completed Workflow from the provided position
+      summary: Resume (restart) a Workflow using job outputs of a completed Workflow from the provided position
       operationId: resumeWorkflowByID
       parameters:
         - name: workflowID
@@ -244,6 +248,23 @@ paths:
             $ref: "#/definitions/Workflow"
         404:
           $ref: "#/responses/NotFound"
+
+  /workflows/{workflowID}/resolved:
+    post:
+      summary: Mark a workflow as resolved by user, given its workflowID. If the workflow is already marked resolved by user, the operation will fail.
+      operationId: resolveWorkflowByID
+      parameters:
+        - name: workflowID
+          in: path
+          type: string
+          required: true
+      responses:
+        201:
+          description: Workflow successfully resolved by user
+        404:
+          $ref: "#/responses/NotFound"
+        409:
+          $ref: "#/responses/Conflict"
 
   /state-resources:
     post:
@@ -340,6 +361,12 @@ definitions:
       message:
         type: string
 
+  Conflict:
+    type: object
+    properties:
+      message:
+        type: string
+
   NewWorkflowDefinitionRequest:
     type: object
     properties:
@@ -424,7 +451,6 @@ definitions:
         description: "tags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
           type: object
-
 
   WorkflowStatus:
     type: string
