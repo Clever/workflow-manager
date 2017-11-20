@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.7.0
+  version: 0.7.1
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -439,6 +439,8 @@ definitions:
       input:
         # format: json
         type: string
+      resolvedByUser:
+        type: boolean
       retryFor:
         description: "workflow-id of original workflow in case this is a retry"
         type: string
