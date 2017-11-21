@@ -171,12 +171,21 @@ paths:
           in: query
           type: string
         - name: status
+          description:
+            The status of the workflow (queued, running, etc.). Cannot be sent in the
+             same request as the resolvedByUser parameter.
           in: query
           type: string
+        - name: resolvedByUser
+          in: query
+          type: boolean
+          description:
+            A flag that indicates whether the workflow has been marked resolved by a user. Cannot
+             be sent in the same request as the status parameter.
         - name: summaryOnly
           description:
             Limits workflow data to the bare minimum - omits the full workflow definition and job
-            data.
+             data.
           in: query
           type: boolean
           default: false
@@ -191,6 +200,8 @@ paths:
             type: array
             items:
               $ref: "#/definitions/Workflow"
+        400:
+          $ref: "#/responses/BadRequest"
         404:
           $ref: "#/responses/NotFound"
 
@@ -462,6 +473,14 @@ definitions:
       - "failed"
       - "succeeded"
       - "cancelled"
+
+  ResolvedByUserWrapper:
+    type: object
+    properties:
+      value:
+        type: boolean
+      isSet:
+        type: boolean
 
   Job:
     type: object
@@ -809,3 +828,6 @@ definitions:
       summaryOnly:
         type: boolean
         default: false
+      resolvedByUserWrapper:
+        description: Tracks whether the resolvedByUser query parameter was sent or omitted in the request.
+        $ref: '#/definitions/ResolvedByUserWrapper'

@@ -143,6 +143,7 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 	for _, ads := range [][]*dynamodb.AttributeDefinition{
 		(ddbWorkflowPrimaryKey{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.AttributeDefinitions()),
+		(ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyStatusLastUpdated{}.AttributeDefinitions()),
 	} {
@@ -159,6 +160,17 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
 				},
 				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+					ReadCapacityUnits:  aws.Int64(1),
+					WriteCapacityUnits: aws.Int64(1),
+				},
+			},
+			{
+				IndexName: aws.String(ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.Name()), // @todo sanity check this
+				KeySchema: ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.KeySchema(),        // @todo sanity check this
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String(dynamodb.ProjectionTypeAll), // @todo check this
+				},
+				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{ // @todo check this
 					ReadCapacityUnits:  aws.Int64(1),
 					WriteCapacityUnits: aws.Int64(1),
 				},
@@ -588,8 +600,14 @@ func (d DynamoDB) GetWorkflows(query *models.WorkflowQuery) ([]models.Workflow, 
 
 	var dbQuery *dynamodb.QueryInput
 	var err error
+	// @todo - check on this
+	// Status should never be nonempty when ResolvedByUser.isSet is true, based on code in handler.
+	// If somehow both the status and resolved by user fields are used in the params, construct a
+	// query with the status and ignore the resolution value.
 	if query.Status != "" {
 		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.ConstructQuery(query)
+	} else if query.ResolvedByUserWrapper.isSet {
+		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.ConstructQuery(query)
 	} else {
 		dbQuery, err = ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
 			WorkflowDefinitionName: aws.StringValue(query.WorkflowDefinitionName),
