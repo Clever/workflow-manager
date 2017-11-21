@@ -162,7 +162,9 @@ func (wm *SFNWorkflowManager) startExecution(stateMachineArn *string, workflowID
 
 	var inputJSON map[string]interface{}
 	if err := json.Unmarshal([]byte(input), &inputJSON); err != nil {
-		return fmt.Errorf("input is not a valid JSON object: %s", err)
+		return models.BadRequest{
+			Message: fmt.Sprintf("input is not a valid JSON object: %s", err),
+		}
 	}
 	inputJSON["_EXECUTION_NAME"] = *executionName
 
