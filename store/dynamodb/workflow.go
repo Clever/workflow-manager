@@ -22,6 +22,7 @@ var SummaryKeys = []string{
 	"Workflow.lastUpdated",
 	"Workflow.queue",
 	"Workflow.namespace",
+	"Workflow.resolvedByUser",
 	"Workflow.retries",
 	"Workflow.retryFor",
 	"Workflow.#S", // status
@@ -46,6 +47,7 @@ type ddbWorkflow struct {
 	ddbWorkflowPrimaryKey
 	ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt
 	ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt
+	ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt
 	ddbWorkflowSecondaryKeyStatusLastUpdated
 	ddbWorkflowTTL
 	Workflow models.Workflow
@@ -65,6 +67,12 @@ func EncodeWorkflow(workflow models.Workflow) (map[string]*dynamodb.AttributeVal
 			DefinitionStatusPair: ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.getDefinitionStatusPair(
 				workflow.WorkflowDefinition.Name,
 				string(workflow.Status),
+			),
+		},
+		ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt: ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{
+			DefinitionResolvedByUserPair: ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.getDefinitionResolvedByUserPair(
+				workflow.WorkflowDefinition.Name,
+				bool(workflow.ResolvedByUser),
 			),
 		},
 		ddbWorkflowSecondaryKeyStatusLastUpdated: ddbWorkflowSecondaryKeyStatusLastUpdated{
@@ -174,7 +182,6 @@ func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) KeySchema() []*dyna
 }
 
 // ===============================
-
 // ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt is a global secondary index for querying
 // workflows by definition name and ResolvedByUser, sorted by creation time.
 type ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt struct {
@@ -186,11 +193,11 @@ func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) Name() string
 	return "workflownameandresolvedbyuser-createdat"
 }
 
-func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) AttributeDefinitions() []*dynamodb.AttributeDefinition {
+func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) AttributeDefinitions() []*dynamodb.AttributeDefinition {
 	return []*dynamodb.AttributeDefinition{
 		{
 			AttributeName: aws.String("_gsi-wn-and-resolvedbyuser"),
-			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS), /// @todo scalar attribute types?
+			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
 		},
 	}
 }
@@ -199,13 +206,13 @@ func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) getDefinition
 	definitionName string,
 	resolvedByUser bool,
 ) string {
-	return fmt.Sprintf("%s:%t", definitionName, status)
+	return fmt.Sprintf("%s:%t", definitionName, resolvedByUser)
 }
 
-func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) ConstructQuery( // @todo - rename to avoid rep? or redundant?
+func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) ConstructQuery(
 	query *models.WorkflowQuery,
 ) (*dynamodb.QueryInput, error) {
-	if !query.ResolvedByUserWrapper.isSet {
+	if !query.ResolvedByUserWrapper.IsSet {
 		return nil, fmt.Errorf("workflow 'resolved by user' (true/false) filter is required for %s index", sk.Name())
 	}
 	queryInput := &dynamodb.QueryInput{
@@ -218,7 +225,7 @@ func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) ConstructQuer
 				S: aws.String(
 					sk.getDefinitionResolvedByUserPair(
 						aws.StringValue(query.WorkflowDefinitionName),
-						bool(query.ResolvedByUserWrapper.value)),
+						bool(query.ResolvedByUserWrapper.Value)),
 				),
 			},
 		},
