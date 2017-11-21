@@ -230,6 +230,7 @@ POST /workflows
 |HTTP Code|Description|Schema|
 |---|---|---|
 |**200**|Responds with Workflow details including Id, Status, Jobs, Input, Namespace, and WorkflowDefinition|[Workflow](#workflow)|
+|**400**|Bad Request|[BadRequest](#badrequest)|
 |**404**|Entity Not Found|[NotFound](#notfound)|
 
 
