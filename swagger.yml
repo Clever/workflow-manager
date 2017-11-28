@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.6.11
+  version: 0.6.12
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -608,6 +608,11 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/SLRetrier'
+      Catch:
+        x-omitempty: true
+        type: array
+        items:
+          $ref: '#/definitions/SLCatcher'
       TimeoutSeconds:
         type: integer
       HeartbeatSeconds:
@@ -719,6 +724,18 @@ definitions:
         type: integer
         minimum: 0
         maximum: 10
+
+  SLCatcher:
+    type: object
+    properties:
+      ErrorEquals:
+        type: array
+        items:
+          $ref: '#/definitions/SLErrorEquals'
+      ResultPath:
+        type: string
+      Next:
+        type: string
 
   SLStateType:
     type: string
