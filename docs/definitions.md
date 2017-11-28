@@ -98,6 +98,16 @@
 |**message**  <br>*optional*|string|
 
 
+<a name="slcatcher"></a>
+### SLCatcher
+
+|Name|Schema|
+|---|---|
+|**ErrorEquals**  <br>*optional*|< [SLErrorEquals](#slerrorequals) > array|
+|**Next**  <br>*optional*|string|
+|**ResultPath**  <br>*optional*|string|
+
+
 <a name="slchoice"></a>
 ### SLChoice
 
@@ -147,6 +157,7 @@
 
 |Name|Schema|
 |---|---|
+|**Catch**  <br>*optional*|< [SLCatcher](#slcatcher) > array|
 |**Cause**  <br>*optional*|string|
 |**Choices**  <br>*optional*|< [SLChoice](#slchoice) > array|
 |**Comment**  <br>*optional*|string|
