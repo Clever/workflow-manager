@@ -67,6 +67,11 @@ func reachable(stateName string, stateMachine *models.SLStateMachine) bool {
 			if state.Next == stateName {
 				return true
 			}
+			for _, catcher := range state.Catch {
+				if catcher.Next == stateName {
+					return true
+				}
+			}
 		case models.SLStateTypeChoice:
 			for _, choice := range state.Choices {
 				if choice.Next == stateName {
