@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.6.12
+  version: 0.7.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -508,15 +508,18 @@ definitions:
     type: object
     properties:
       workflowDefinition:
+        # required
         $ref: '#/definitions/WorkflowDefinitionRef'
       input:
+        # required
         # format: json
         type: string
       namespace:
+        # required
         type: string
       queue:
+        # not required (defaults to "default")
         type: string
-        default: "default"
       tags:
         description: "tags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
