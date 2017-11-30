@@ -153,15 +153,16 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 		return &models.Workflow{}, err
 	}
 
-	if req.Queue == nil {
-		return &models.Workflow{}, fmt.Errorf("workflow queue cannot be nil")
+	if req.Queue == "" {
+		req.Queue = "default"
 	}
+
 	// verify request's tags (map[string]interface{}) are actually map[string]string
 	if err := validateTagsMap(req.Tags); err != nil {
 		return &models.Workflow{}, err
 	}
 
-	return h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, *req.Queue, req.Tags)
+	return h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, req.Queue, req.Tags)
 }
 
 // GetWorkflows returns a summary of all workflows matching the given query.
