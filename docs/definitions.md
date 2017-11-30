@@ -194,12 +194,12 @@
 <a name="startworkflowrequest"></a>
 ### StartWorkflowRequest
 
-|Name|Description|Schema|
-|---|---|---|
-|**input**  <br>*optional*||string|
-|**namespace**  <br>*optional*||string|
-|**queue**  <br>*optional*|**Default** : `"default"`|string|
-|**workflowDefinition**  <br>*optional*||[WorkflowDefinitionRef](#workflowdefinitionref)|
+|Name|Schema|
+|---|---|
+|**input**  <br>*optional*|string|
+|**namespace**  <br>*optional*|string|
+|**queue**  <br>*optional*|string|
+|**workflowDefinition**  <br>*optional*|[WorkflowDefinitionRef](#workflowdefinitionref)|
 
 
 <a name="stateresource"></a>
