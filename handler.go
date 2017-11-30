@@ -162,7 +162,7 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 		return &models.Workflow{}, err
 	}
 
-	return h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, *req.Queue, req.Tags)
+	return h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, req.Queue, req.Tags)
 }
 
 // GetWorkflows returns a summary of all workflows matching the given query.
