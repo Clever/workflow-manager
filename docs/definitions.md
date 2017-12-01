@@ -18,6 +18,14 @@
 |**reason**  <br>*optional*|string|
 
 
+<a name="conflict"></a>
+### Conflict
+
+|Name|Schema|
+|---|---|
+|**message**  <br>*optional*|string|
+
+
 <a name="internalerror"></a>
 ### InternalError
 
@@ -96,6 +104,15 @@
 |Name|Schema|
 |---|---|
 |**message**  <br>*optional*|string|
+
+
+<a name="resolvedbyuserwrapper"></a>
+### ResolvedByUserWrapper
+
+|Name|Schema|
+|---|---|
+|**isSet**  <br>*optional*|boolean|
+|**value**  <br>*optional*|boolean|
 
 
 <a name="slcatcher"></a>
@@ -234,6 +251,7 @@
 |**namespace**  <br>*optional*||string|
 |**output**  <br>*optional*||string|
 |**queue**  <br>*optional*||string|
+|**resolvedByUser**  <br>*optional*||boolean|
 |**retries**  <br>*optional*|workflow-id's of workflows created as retries for this workflow|< string > array|
 |**retryFor**  <br>*optional*|workflow-id of original workflow in case this is a retry|string|
 |**status**  <br>*optional*||[WorkflowStatus](#workflowstatus)|
@@ -280,6 +298,7 @@
 |**limit**  <br>*optional*|**Maximum value** : `10000`|integer|
 |**oldestFirst**  <br>*optional*||boolean|
 |**pageToken**  <br>*optional*||string|
+|**resolvedByUserWrapper**  <br>*optional*|Tracks whether the resolvedByUser query parameter was sent or omitted in the request.|[ResolvedByUserWrapper](#resolvedbyuserwrapper)|
 |**status**  <br>*optional*||[WorkflowStatus](#workflowstatus)|
 |**summaryOnly**  <br>*optional*|**Default** : `false`|boolean|
 |**workflowDefinitionName**  <br>*required*||string|
@@ -301,6 +320,7 @@
 |**lastUpdated**  <br>*optional*||string (date-time)|
 |**namespace**  <br>*optional*||string|
 |**queue**  <br>*optional*||string|
+|**resolvedByUser**  <br>*optional*||boolean|
 |**retries**  <br>*optional*|workflow-id's of workflows created as retries for this workflow|< string > array|
 |**retryFor**  <br>*optional*|workflow-id of original workflow in case this is a retry|string|
 |**status**  <br>*optional*||[WorkflowStatus](#workflowstatus)|

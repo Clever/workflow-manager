@@ -28,6 +28,9 @@ type WorkflowQuery struct {
 	// page token
 	PageToken string `json:"pageToken,omitempty"`
 
+	// Tracks whether the resolvedByUser query parameter was sent or omitted in the request.
+	ResolvedByUserWrapper *ResolvedByUserWrapper `json:"resolvedByUserWrapper,omitempty"`
+
 	// status
 	Status WorkflowStatus `json:"status,omitempty"`
 
@@ -45,6 +48,8 @@ type WorkflowQuery struct {
 
 /* polymorph WorkflowQuery pageToken false */
 
+/* polymorph WorkflowQuery resolvedByUserWrapper false */
+
 /* polymorph WorkflowQuery status false */
 
 /* polymorph WorkflowQuery summaryOnly false */
@@ -56,6 +61,11 @@ func (m *WorkflowQuery) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateLimit(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateResolvedByUserWrapper(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -84,6 +94,25 @@ func (m *WorkflowQuery) validateLimit(formats strfmt.Registry) error {
 
 	if err := validate.MaximumInt("limit", "body", int64(m.Limit), 10000, false); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *WorkflowQuery) validateResolvedByUserWrapper(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ResolvedByUserWrapper) { // not required
+		return nil
+	}
+
+	if m.ResolvedByUserWrapper != nil {
+
+		if err := m.ResolvedByUserWrapper.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("resolvedByUserWrapper")
+			}
+			return err
+		}
 	}
 
 	return nil

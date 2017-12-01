@@ -290,6 +290,7 @@ type GetWorkflowsInput struct {
 	OldestFirst            *bool
 	PageToken              *string
 	Status                 *string
+	ResolvedByUser         *bool
 	SummaryOnly            *bool
 	WorkflowDefinitionName string
 }
@@ -326,6 +327,10 @@ func (i GetWorkflowsInput) Path() (string, error) {
 
 	if i.Status != nil {
 		urlVals.Add("status", *i.Status)
+	}
+
+	if i.ResolvedByUser != nil {
+		urlVals.Add("resolvedByUser", strconv.FormatBool(*i.ResolvedByUser))
 	}
 
 	if i.SummaryOnly != nil {
@@ -421,6 +426,35 @@ func (i ResumeWorkflowByIDInput) Path() (string, error) {
 	urlVals := url.Values{}
 
 	pathworkflowID := i.WorkflowID
+	if pathworkflowID == "" {
+		err := fmt.Errorf("workflowID cannot be empty because it's a path parameter")
+		if err != nil {
+			return "", err
+		}
+	}
+	path = strings.Replace(path, "{workflowID}", pathworkflowID, -1)
+
+	return path + "?" + urlVals.Encode(), nil
+}
+
+// ResolveWorkflowByIDInput holds the input parameters for a resolveWorkflowByID operation.
+type ResolveWorkflowByIDInput struct {
+	WorkflowID string
+}
+
+// ValidateResolveWorkflowByIDInput returns an error if the input parameter doesn't
+// satisfy the requirements in the swagger yml file.
+func ValidateResolveWorkflowByIDInput(workflowID string) error {
+
+	return nil
+}
+
+// ResolveWorkflowByIDInputPath returns the URI path for the input.
+func ResolveWorkflowByIDInputPath(workflowID string) (string, error) {
+	path := "/workflows/{workflowID}/resolved"
+	urlVals := url.Values{}
+
+	pathworkflowID := workflowID
 	if pathworkflowID == "" {
 		err := fmt.Errorf("workflowID cannot be empty because it's a path parameter")
 		if err != nil {

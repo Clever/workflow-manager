@@ -142,6 +142,16 @@ type Client interface {
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
 	ResumeWorkflowByID(ctx context.Context, i *models.ResumeWorkflowByIDInput) (*models.Workflow, error)
+
+	// ResolveWorkflowByID makes a POST request to /workflows/{workflowID}/resolved
+	//
+	// 201: nil
+	// 400: *models.BadRequest
+	// 404: *models.NotFound
+	// 409: *models.Conflict
+	// 500: *models.InternalError
+	// default: client side HTTP errors, for example: context.DeadlineExceeded.
+	ResolveWorkflowByID(ctx context.Context, workflowID string) error
 }
 
 // GetWorkflowsIter defines the methods available on GetWorkflows iterators.

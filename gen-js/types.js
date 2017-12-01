@@ -48,3 +48,19 @@ module.exports.Errors.NotFound = class extends Error {
   }
 };
 
+/**
+ * Conflict
+ * @extends Error
+ * @memberof module:workflow-manager
+ * @alias module:workflow-manager.Errors.Conflict
+ * @property {string} message
+ */
+module.exports.Errors.Conflict = class extends Error {
+  constructor(body) {
+    super(body.message);
+    for (const k of Object.keys(body)) {
+      this[k] = body[k];
+    }
+  }
+};
+

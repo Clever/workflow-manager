@@ -1849,6 +1849,119 @@ func (c *WagClient) doResumeWorkflowByIDRequest(ctx context.Context, req *http.R
 	}
 }
 
+// ResolveWorkflowByID makes a POST request to /workflows/{workflowID}/resolved
+//
+// 201: nil
+// 400: *models.BadRequest
+// 404: *models.NotFound
+// 409: *models.Conflict
+// 500: *models.InternalError
+// default: client side HTTP errors, for example: context.DeadlineExceeded.
+func (c *WagClient) ResolveWorkflowByID(ctx context.Context, workflowID string) error {
+	headers := make(map[string]string)
+
+	var body []byte
+	path, err := models.ResolveWorkflowByIDInputPath(workflowID)
+
+	if err != nil {
+		return err
+	}
+
+	path = c.basePath + path
+
+	req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
+
+	if err != nil {
+		return err
+	}
+
+	return c.doResolveWorkflowByIDRequest(ctx, req, headers)
+}
+
+func (c *WagClient) doResolveWorkflowByIDRequest(ctx context.Context, req *http.Request, headers map[string]string) error {
+	client := &http.Client{Transport: c.transport}
+
+	for field, value := range headers {
+		req.Header.Set(field, value)
+	}
+
+	// Add the opname for doers like tracing
+	ctx = context.WithValue(ctx, opNameCtx{}, "resolveWorkflowByID")
+	req = req.WithContext(ctx)
+	// Don't add the timeout in a "doer" because we don't want to call "defer.cancel()"
+	// until we've finished all the processing of the request object. Otherwise we'll cancel
+	// our own request before we've finished it.
+	if c.defaultTimeout != 0 {
+		ctx, cancel := context.WithTimeout(req.Context(), c.defaultTimeout)
+		defer cancel()
+		req = req.WithContext(ctx)
+	}
+	resp, err := c.requestDoer.Do(client, req)
+	retCode := 0
+	if resp != nil {
+		retCode = resp.StatusCode
+	}
+
+	// log all client failures and non-successful HT
+	logData := logger.M{
+		"backend":     "workflow-manager",
+		"method":      req.Method,
+		"uri":         req.URL,
+		"status_code": retCode,
+	}
+	if err == nil && retCode > 399 {
+		logData["message"] = resp.Status
+		c.logger.ErrorD("client-request-finished", logData)
+	}
+	if err != nil {
+		logData["message"] = err.Error()
+		c.logger.ErrorD("client-request-finished", logData)
+		return err
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+
+	case 201:
+
+		return nil
+
+	case 400:
+
+		var output models.BadRequest
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return err
+		}
+		return &output
+
+	case 404:
+
+		var output models.NotFound
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return err
+		}
+		return &output
+
+	case 409:
+
+		var output models.Conflict
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return err
+		}
+		return &output
+
+	case 500:
+
+		var output models.InternalError
+		if err := json.NewDecoder(resp.Body).Decode(&output); err != nil {
+			return err
+		}
+		return &output
+
+	default:
+		return &models.InternalError{Message: "Unknown response"}
+	}
+}
+
 func shortHash(s string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(s)))[0:6]
 }

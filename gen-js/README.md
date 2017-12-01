@@ -42,6 +42,7 @@ workflow-manager client library.
             * [.CancelWorkflow(params, [options], [cb])](#module_workflow-manager--WorkflowManager+CancelWorkflow) ⇒ <code>Promise</code>
             * [.getWorkflowByID(workflowID, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowByID) ⇒ <code>Promise</code>
             * [.resumeWorkflowByID(params, [options], [cb])](#module_workflow-manager--WorkflowManager+resumeWorkflowByID) ⇒ <code>Promise</code>
+            * [.resolveWorkflowByID(workflowID, [options], [cb])](#module_workflow-manager--WorkflowManager+resolveWorkflowByID) ⇒ <code>Promise</code>
         * _static_
             * [.RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)
                 * [.Exponential](#module_workflow-manager--WorkflowManager.RetryPolicies.Exponential)
@@ -51,6 +52,7 @@ workflow-manager client library.
                 * [.BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest) ⇐ <code>Error</code>
                 * [.InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError) ⇐ <code>Error</code>
                 * [.NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound) ⇐ <code>Error</code>
+                * [.Conflict](#module_workflow-manager--WorkflowManager.Errors.Conflict) ⇐ <code>Error</code>
             * [.DefaultCircuitOptions](#module_workflow-manager--WorkflowManager.DefaultCircuitOptions)
 
 <a name="exp_module_workflow-manager--WorkflowManager"></a>
@@ -296,7 +298,8 @@ Get the latest versions of all available WorkflowDefinitions
 | [params.limit] | <code>number</code> | <code>10</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
 | [params.oldestFirst] | <code>boolean</code> |  |  |
 | [params.pageToken] | <code>string</code> |  |  |
-| [params.status] | <code>string</code> |  |  |
+| [params.status] | <code>string</code> |  | The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter. |
+| [params.resolvedByUser] | <code>boolean</code> |  | A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter. |
 | [params.summaryOnly] | <code>boolean</code> |  | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
 | params.workflowDefinitionName | <code>string</code> |  |  |
 | [options] | <code>object</code> |  |  |
@@ -317,7 +320,8 @@ Get the latest versions of all available WorkflowDefinitions
 | [params.limit] | <code>number</code> | <code>10</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
 | [params.oldestFirst] | <code>boolean</code> |  |  |
 | [params.pageToken] | <code>string</code> |  |  |
-| [params.status] | <code>string</code> |  |  |
+| [params.status] | <code>string</code> |  | The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter. |
+| [params.resolvedByUser] | <code>boolean</code> |  | A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter. |
 | [params.summaryOnly] | <code>boolean</code> |  | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
 | params.workflowDefinitionName | <code>string</code> |  |  |
 | [options] | <code>object</code> |  |  |
@@ -405,6 +409,26 @@ Get the latest versions of all available WorkflowDefinitions
 | [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
+<a name="module_workflow-manager--WorkflowManager+resolveWorkflowByID"></a>
+
+#### workflowManager.resolveWorkflowByID(workflowID, [options], [cb]) ⇒ <code>Promise</code>
+**Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
+**Fulfill**: <code>undefined</code>  
+**Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
+**Reject**: <code>[NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound)</code>  
+**Reject**: <code>[Conflict](#module_workflow-manager--WorkflowManager.Errors.Conflict)</code>  
+**Reject**: <code>[InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError)</code>  
+**Reject**: <code>Error</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| workflowID | <code>string</code> |  |
+| [options] | <code>object</code> |  |
+| [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |
+| [options.retryPolicy] | <code>[RetryPolicies](#module_workflow-manager--WorkflowManager.RetryPolicies)</code> | A request specific retryPolicy |
+| [cb] | <code>function</code> |  |
+
 <a name="module_workflow-manager--WorkflowManager.RetryPolicies"></a>
 
 #### WorkflowManager.RetryPolicies
@@ -446,6 +470,7 @@ Errors returned by methods.
     * [.BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest) ⇐ <code>Error</code>
     * [.InternalError](#module_workflow-manager--WorkflowManager.Errors.InternalError) ⇐ <code>Error</code>
     * [.NotFound](#module_workflow-manager--WorkflowManager.Errors.NotFound) ⇐ <code>Error</code>
+    * [.Conflict](#module_workflow-manager--WorkflowManager.Errors.Conflict) ⇐ <code>Error</code>
 
 <a name="module_workflow-manager--WorkflowManager.Errors.BadRequest"></a>
 
@@ -477,6 +502,19 @@ InternalError
 
 ##### Errors.NotFound ⇐ <code>Error</code>
 NotFound
+
+**Kind**: static class of <code>[Errors](#module_workflow-manager--WorkflowManager.Errors)</code>  
+**Extends:** <code>Error</code>  
+**Properties**
+
+| Name | Type |
+| --- | --- |
+| message | <code>string</code> | 
+
+<a name="module_workflow-manager--WorkflowManager.Errors.Conflict"></a>
+
+##### Errors.Conflict ⇐ <code>Error</code>
+Conflict
 
 **Kind**: static class of <code>[Errors](#module_workflow-manager--WorkflowManager.Errors)</code>  
 **Extends:** <code>Error</code>  

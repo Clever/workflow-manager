@@ -248,7 +248,8 @@ GET /workflows
 |**Query**|**limit**  <br>*optional*|Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000.|integer|`10`|
 |**Query**|**oldestFirst**  <br>*optional*||boolean||
 |**Query**|**pageToken**  <br>*optional*||string||
-|**Query**|**status**  <br>*optional*||string||
+|**Query**|**resolvedByUser**  <br>*optional*|A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter.|boolean||
+|**Query**|**status**  <br>*optional*|The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter.|string||
 |**Query**|**summaryOnly**  <br>*optional*|Limits workflow data to the bare minimum - omits the full workflow definition and job data.|boolean|`"false"`|
 |**Query**|**workflowDefinitionName**  <br>*required*||string||
 
@@ -258,11 +259,12 @@ GET /workflows
 |HTTP Code|Description|Schema|
 |---|---|---|
 |**200**|Workflow|< [Workflow](#workflow) > array|
+|**400**|Bad Request|[BadRequest](#badrequest)|
 |**404**|Entity Not Found|[NotFound](#notfound)|
 
 
 <a name="resumeworkflowbyid"></a>
-### Start a new Workflow using job outputs of a completed Workflow from the provided position
+### Resume (restart) a Workflow using job outputs of a completed Workflow from the provided position
 ```
 POST /workflows/{workflowID}
 ```
@@ -327,6 +329,29 @@ DELETE /workflows/{workflowID}
 |---|---|---|
 |**200**|Workflow cancelled|No Content|
 |**404**|Entity Not Found|[NotFound](#notfound)|
+
+
+<a name="resolveworkflowbyid"></a>
+### Mark a workflow as resolved by user, given its workflowID. If the workflow is already marked resolved by user, the operation will fail.
+```
+POST /workflows/{workflowID}/resolved
+```
+
+
+#### Parameters
+
+|Type|Name|Schema|
+|---|---|---|
+|**Path**|**workflowID**  <br>*required*|string|
+
+
+#### Responses
+
+|HTTP Code|Description|Schema|
+|---|---|---|
+|**201**|Workflow successfully resolved by user|No Content|
+|**404**|Entity Not Found|[NotFound](#notfound)|
+|**409**|Conflict with Current State|[Conflict](#conflict)|
 
 
 
