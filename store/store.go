@@ -66,3 +66,19 @@ func NewInvalidPageTokenError(cause error) InvalidPageTokenError {
 func (e InvalidPageTokenError) Error() string {
 	return fmt.Sprintf("invalid page token: %v", e.cause)
 }
+
+// InvalidQueryStructureError is returned for workflow queries that have a disallowed structure,
+//  like including both a Status and a ResolvedByUser value.
+type InvalidQueryStructureError struct {
+	cause string
+}
+
+// Error implements the error interface for InvalidQueryStructureError.
+func (e InvalidQueryStructureError) Error() string {
+	return fmt.Sprintf("Invalid query structure: %v", e.cause)
+}
+
+// NewInvalidQueryStructureError creates an InvalidQueryStructureErorr
+func NewInvalidQueryStructureError(cause string) InvalidQueryStructureError {
+	return InvalidQueryStructureError{cause}
+}
