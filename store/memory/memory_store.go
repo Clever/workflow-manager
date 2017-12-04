@@ -173,6 +173,14 @@ func (s MemoryStore) GetWorkflows(
 	query *models.WorkflowQuery,
 ) ([]models.Workflow, string, error) {
 	workflows := []models.Workflow{}
+
+	statusIsSet := query.Status != ""
+	resolvedByUserIsSet := query.ResolvedByUserWrapper != nil && query.ResolvedByUserWrapper.IsSet
+	// status should never be nonempty when ResolvedByUser.IsSet is true, based on handler.
+	if statusIsSet && resolvedByUserIsSet {
+		return workflows, "", store.NewInvalidQueryStructureError("query cannot contain Status when ResolvedByUser value is set.")
+	}
+
 	for _, workflow := range s.workflows {
 		if s.matchesQuery(workflow, query) {
 			if aws.BoolValue(query.SummaryOnly) {
@@ -229,6 +237,10 @@ func (s MemoryStore) matchesQuery(workflow models.Workflow, query *models.Workfl
 	}
 
 	if query.Status != "" && workflow.Status != query.Status {
+		return false
+	}
+
+	if query.ResolvedByUserWrapper != nil && query.ResolvedByUserWrapper.IsSet && workflow.ResolvedByUser != query.ResolvedByUserWrapper.Value {
 		return false
 	}
 

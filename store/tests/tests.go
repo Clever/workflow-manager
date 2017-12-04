@@ -260,13 +260,24 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 
 		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
 
-		runningWorkflow := resources.NewWorkflow(definition, `["input"]`, "namespace", "queue", tags)
+		runningWorkflow := resources.NewWorkflow(definition, `["input for running workflow"]`, "namespace", "queue", tags)
 		runningWorkflow.Status = models.WorkflowStatusRunning
 		require.NoError(t, s.SaveWorkflow(*runningWorkflow))
 
-		failedWorkflow := resources.NewWorkflow(definition, `["input"]`, "namespace", "queue", tags)
+		// TODO: what happens when we mark a running/queued/etc workflow resolved?
+		runningResolvedWorkflow := resources.NewWorkflow(definition, `["input for resolved running workflow"]`, "namespace", "queue", tags)
+		runningResolvedWorkflow.Status = models.WorkflowStatusRunning
+		runningResolvedWorkflow.ResolvedByUser = true
+		require.NoError(t, s.SaveWorkflow(*runningResolvedWorkflow))
+
+		failedWorkflow := resources.NewWorkflow(definition, `["input for failed workflow"]`, "namespace", "queue", tags)
 		failedWorkflow.Status = models.WorkflowStatusFailed
 		require.NoError(t, s.SaveWorkflow(*failedWorkflow))
+
+		failedResolvedWorkflow := resources.NewWorkflow(definition, `["input for resolved failed workflow"]`, "namespace", "queue", tags)
+		failedResolvedWorkflow.Status = models.WorkflowStatusFailed
+		failedResolvedWorkflow.ResolvedByUser = true
+		require.NoError(t, s.SaveWorkflow(*failedResolvedWorkflow))
 
 		// Set up workflows for a separate definition that will be ignored by the query:
 		otherWorkflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
@@ -278,25 +289,90 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		otherDefinitionWorkflow.Status = models.WorkflowStatusRunning
 		require.NoError(t, s.SaveWorkflow(*otherDefinitionWorkflow))
 
-		// Verify results for query with no status filtering:
+		// Verify results for query with no status or resolvedByUser filtering:
 		workflows, _, err := s.GetWorkflows(&models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			Limit: 10,
 		})
 		require.NoError(t, err)
-		require.Len(t, workflows, 2)
-		require.Equal(t, failedWorkflow.ID, workflows[0].ID)
-		require.Equal(t, runningWorkflow.ID, workflows[1].ID)
+		require.Len(t, workflows, 4)
+		// ordered by createdAt, recent first
+		require.Equal(t, failedResolvedWorkflow.ID, workflows[0].ID)
+		require.Equal(t, failedWorkflow.ID, workflows[1].ID)
+		require.Equal(t, runningResolvedWorkflow.ID, workflows[2].ID)
+		require.Equal(t, runningWorkflow.ID, workflows[3].ID)
 
-		// Verify results for query with status filtering:
+		// Verify ResolvedByUser is ignored when not set,
+		//   with explicit inclusion of ResolvedByUserWrapper false
+		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+			WorkflowDefinitionName: aws.String(definition.Name),
+			ResolvedByUserWrapper: &models.ResolvedByUserWrapper{
+				IsSet: false,
+				Value: true,
+			},
+			Limit: 10,
+		})
+		require.NoError(t, err)
+		require.Len(t, workflows, 4)
+		// ordered by createdAt, recent first
+		require.Equal(t, failedResolvedWorkflow.ID, workflows[0].ID)
+		require.Equal(t, failedWorkflow.ID, workflows[1].ID)
+		require.Equal(t, runningResolvedWorkflow.ID, workflows[2].ID)
+		require.Equal(t, runningWorkflow.ID, workflows[3].ID)
+
+		// Verify results for query with running status filtering:
 		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			Status:                 models.WorkflowStatusRunning,
 			Limit:                  10,
 		})
 		require.NoError(t, err)
-		require.Len(t, workflows, 1)
-		require.Equal(t, runningWorkflow.ID, workflows[0].ID)
+		require.Len(t, workflows, 2)
+		// ordered by createdAt, recent first
+		require.Equal(t, runningResolvedWorkflow.ID, workflows[0].ID)
+		require.Equal(t, runningWorkflow.ID, workflows[1].ID)
+
+		// Verify results for query with resolvedByUser filtering for resolved false:
+		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+			WorkflowDefinitionName: aws.String(definition.Name),
+			ResolvedByUserWrapper: &models.ResolvedByUserWrapper{
+				IsSet: true,
+				Value: false,
+			},
+			Limit: 10,
+		})
+		require.NoError(t, err)
+		require.Len(t, workflows, 2)
+		// ordered by createdAt, recent first
+		require.Equal(t, failedWorkflow.ID, workflows[0].ID)
+		require.Equal(t, runningWorkflow.ID, workflows[1].ID)
+
+		// Verify results for query with resolvedByUser filtering for resolved true:
+		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+			WorkflowDefinitionName: aws.String(definition.Name),
+			ResolvedByUserWrapper: &models.ResolvedByUserWrapper{
+				IsSet: true,
+				Value: true,
+			},
+			Limit: 10,
+		})
+		require.NoError(t, err)
+		require.Len(t, workflows, 2)
+		// ordered by createdAt, recent first
+		require.Equal(t, failedResolvedWorkflow.ID, workflows[0].ID)
+		require.Equal(t, runningResolvedWorkflow.ID, workflows[1].ID)
+
+		// Verify error for query that has both status and resolvedByUser filtering:
+		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+			WorkflowDefinitionName: aws.String(definition.Name),
+			Status:                 models.WorkflowStatusRunning,
+			ResolvedByUserWrapper: &models.ResolvedByUserWrapper{
+				IsSet: true,
+				Value: true,
+			},
+			Limit: 10,
+		})
+		require.Error(t, err)
 	}
 }
 

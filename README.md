@@ -31,11 +31,12 @@ The full schema for workflow definitions can be found [here](docs/definitions.md
 
 A workflow is created when you run a workflow definition with a particular input.
 Workflows add to the concept of [Executions](http://docs.aws.amazon.com/step-functions/latest/dg/concepts-state-machine-executions.html) in SFN by additionally supporting these parameters on submission:
-- namespaces: this parameter will be used when expanding `Resource`s in workflow definitions to their full AWS ARN.
+- `namespace`: this parameter will be used when expanding `Resource`s in workflow definitions to their full AWS ARN.
   This allows deployment / targeting of `Resource`s in different namespaces (i.e. environments).
-- queues: workflows can be submitted into different named queues
+- `queue`: workflows can be submitted into different named queues
 
-Workflows store all of the data surrounding the execution of a workflow definition: initial input, the data passed between states, and the final output, etc.
+Workflows store all of the data surrounding the execution of a workflow definition: initial input, the data passed between states, the final output, etc.
+
 For more information, see the [full schema definition](docs/definitions.md#workflow) and the AWS documentation for [state machine data](http://docs.aws.amazon.com/step-functions/latest/dg/concepts-state-machine-data.html).
 
 ## Development
@@ -62,6 +63,10 @@ For more information, see the [full schema definition](docs/definitions.md#workf
 1. Use the existing `sfncli-test` workflow definition.
   ```
   curl -XGET http://localhost:8080/workflow-definitions/sfncli-test:master
+  ```
+
+  ```
+  # sample output:
 [
 	{
 		"createdAt": "2017-10-25T18:11:03.350Z",

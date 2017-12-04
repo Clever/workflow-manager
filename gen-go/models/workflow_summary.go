@@ -35,6 +35,9 @@ type WorkflowSummary struct {
 	// queue
 	Queue string `json:"queue,omitempty"`
 
+	// resolved by user
+	ResolvedByUser bool `json:"resolvedByUser,omitempty"`
+
 	// workflow-id's of workflows created as retries for this workflow
 	Retries []string `json:"retries"`
 
@@ -65,6 +68,8 @@ type WorkflowSummary struct {
 /* polymorph WorkflowSummary namespace false */
 
 /* polymorph WorkflowSummary queue false */
+
+/* polymorph WorkflowSummary resolvedByUser false */
 
 /* polymorph WorkflowSummary retries false */
 

@@ -143,6 +143,7 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 	for _, ads := range [][]*dynamodb.AttributeDefinition{
 		(ddbWorkflowPrimaryKey{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.AttributeDefinitions()),
+		(ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyStatusLastUpdated{}.AttributeDefinitions()),
 	} {
@@ -155,6 +156,17 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 			{
 				IndexName: aws.String(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.Name()),
 				KeySchema: ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.KeySchema(),
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
+				},
+				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+					ReadCapacityUnits:  aws.Int64(1),
+					WriteCapacityUnits: aws.Int64(1),
+				},
+			},
+			{
+				IndexName: aws.String(ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.Name()),
+				KeySchema: ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.KeySchema(),
 				Projection: &dynamodb.Projection{
 					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
 				},
@@ -588,9 +600,21 @@ func (d DynamoDB) GetWorkflows(query *models.WorkflowQuery) ([]models.Workflow, 
 
 	var dbQuery *dynamodb.QueryInput
 	var err error
-	if query.Status != "" {
+	statusIsSet := query.Status != ""
+	resolvedByUserIsSet := query.ResolvedByUserWrapper != nil && query.ResolvedByUserWrapper.IsSet
+	// status should never be nonempty when ResolvedByUser.IsSet is true, based on handler.
+	if statusIsSet && resolvedByUserIsSet {
+		return workflows, nextPageToken, store.NewInvalidQueryStructureError("query cannot contain Status when ResolvedByUser value is set.")
+	}
+
+	if statusIsSet {
+		// if query includes status, query by status
 		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.ConstructQuery(query)
+	} else if resolvedByUserIsSet {
+		// otherwise, if query includes a ResolvedByUser value that is set, query with the ResolvedByUser value
+		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.ConstructQuery(query)
 	} else {
+		// otherwise, query on just the workflow definition name
 		dbQuery, err = ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
 			WorkflowDefinitionName: aws.StringValue(query.WorkflowDefinitionName),
 		}.ConstructQuery(summaryOnly)

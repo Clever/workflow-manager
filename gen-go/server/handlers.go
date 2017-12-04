@@ -1265,6 +1265,18 @@ func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
 		input.Status = &statusTmp
 	}
 
+	resolvedByUserStrs := r.URL.Query()["resolvedByUser"]
+
+	if len(resolvedByUserStrs) > 0 {
+		var resolvedByUserTmp bool
+		resolvedByUserStr := resolvedByUserStrs[0]
+		resolvedByUserTmp, err = strconv.ParseBool(resolvedByUserStr)
+		if err != nil {
+			return nil, err
+		}
+		input.ResolvedByUser = &resolvedByUserTmp
+	}
+
 	summaryOnlyStrs := r.URL.Query()["summaryOnly"]
 
 	if len(summaryOnlyStrs) == 0 {
@@ -1710,4 +1722,87 @@ func newResumeWorkflowByIDInput(r *http.Request) (*models.ResumeWorkflowByIDInpu
 	}
 
 	return &input, nil
+}
+
+// statusCodeForResolveWorkflowByID returns the status code corresponding to the returned
+// object. It returns -1 if the type doesn't correspond to anything.
+func statusCodeForResolveWorkflowByID(obj interface{}) int {
+
+	switch obj.(type) {
+
+	case *models.BadRequest:
+		return 400
+
+	case *models.Conflict:
+		return 409
+
+	case *models.InternalError:
+		return 500
+
+	case *models.NotFound:
+		return 404
+
+	case models.BadRequest:
+		return 400
+
+	case models.Conflict:
+		return 409
+
+	case models.InternalError:
+		return 500
+
+	case models.NotFound:
+		return 404
+
+	default:
+		return -1
+	}
+}
+
+func (h handler) ResolveWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
+	workflowID, err := newResolveWorkflowByIDInput(r)
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = models.ValidateResolveWorkflowByIDInput(workflowID)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	err = h.ResolveWorkflowByID(ctx, workflowID)
+
+	if err != nil {
+		logger.FromContext(ctx).AddContext("error", err.Error())
+		if btErr, ok := err.(*errors.Error); ok {
+			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		}
+		statusCode := statusCodeForResolveWorkflowByID(err)
+		if statusCode == -1 {
+			err = models.InternalError{Message: err.Error()}
+			statusCode = 500
+		}
+		http.Error(w, jsonMarshalNoError(err), statusCode)
+		return
+	}
+
+	w.WriteHeader(201)
+	w.Write([]byte(""))
+
+}
+
+// newResolveWorkflowByIDInput takes in an http.Request an returns the workflowID parameter
+// that it contains. It returns an error if the request doesn't contain the parameter.
+func newResolveWorkflowByIDInput(r *http.Request) (string, error) {
+	workflowID := mux.Vars(r)["workflowID"]
+	if len(workflowID) == 0 {
+		return "", errors.New("Parameter workflowID must be specified")
+	}
+	return workflowID, nil
 }

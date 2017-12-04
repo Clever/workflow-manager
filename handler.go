@@ -170,7 +170,6 @@ func (h Handler) GetWorkflows(
 	ctx context.Context,
 	input *models.GetWorkflowsInput,
 ) ([]models.Workflow, string, error) {
-
 	workflowQuery, err := paramsToWorkflowsQuery(input)
 	if err != nil {
 		return []models.Workflow{}, "", err
@@ -183,7 +182,6 @@ func (h Handler) GetWorkflows(
 				Message: err.Error(),
 			}
 		}
-
 		return []models.Workflow{}, "", err
 	}
 
@@ -191,13 +189,27 @@ func (h Handler) GetWorkflows(
 }
 
 func paramsToWorkflowsQuery(input *models.GetWorkflowsInput) (*models.WorkflowQuery, error) {
+	// due to limitations of DynamoDB indices, only search by status or resolvedByUser, not both at once
+	if input.Status != nil && input.ResolvedByUser != nil {
+		return &models.WorkflowQuery{}, models.BadRequest{
+			Message: "Request cannot contain both status and resolvedByUser.",
+		}
+	}
+	resolvedByUserInformation := &models.ResolvedByUserWrapper{}
+	if input.ResolvedByUser != nil {
+		resolvedByUserInformation = &models.ResolvedByUserWrapper{
+			Value: aws.BoolValue(input.ResolvedByUser),
+			IsSet: true,
+		}
+	}
 	query := &models.WorkflowQuery{
 		WorkflowDefinitionName: aws.String(input.WorkflowDefinitionName),
-		Limit:       aws.Int64Value(input.Limit),
-		OldestFirst: aws.BoolValue(input.OldestFirst),
-		PageToken:   aws.StringValue(input.PageToken),
-		Status:      models.WorkflowStatus(aws.StringValue(input.Status)),
-		SummaryOnly: input.SummaryOnly,
+		Limit:                 aws.Int64Value(input.Limit),
+		OldestFirst:           aws.BoolValue(input.OldestFirst),
+		PageToken:             aws.StringValue(input.PageToken),
+		Status:                models.WorkflowStatus(aws.StringValue(input.Status)),
+		ResolvedByUserWrapper: resolvedByUserInformation,
+		SummaryOnly:           input.SummaryOnly,
 	}
 
 	if err := query.Validate(nil); err != nil {
@@ -274,6 +286,26 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 	return h.manager.RetryWorkflow(workflow, input.Overrides.StartAt, effectiveInput)
 }
 
+// ResolveWorkflowByID sets a workflow's ResolvedByUser to true if it is currently false.
+// If the workflow's ResolvedByUser field is already true, it identifies this situation as a conflict.
+func (h Handler) ResolveWorkflowByID(ctx context.Context, workflowID string) error {
+	workflow, err := h.store.GetWorkflowByID(workflowID)
+	if err != nil {
+		return err
+	}
+
+	// if workflow is already resolved by user, error
+	if workflow.ResolvedByUser {
+		return models.Conflict{
+			Message: fmt.Sprintf("workflow %s already resolved", workflow.ID),
+		}
+	}
+	// set the ResolvedByUser value to true
+	workflow.ResolvedByUser = true
+
+	return h.store.UpdateWorkflow(workflow)
+}
+
 func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	if req.StateMachine.StartAt == "" {
 		return nil, fmt.Errorf("StartAt is a required field")
@@ -292,6 +324,7 @@ func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (
 	return resources.NewWorkflowDefinition(req.Name, req.Manager, req.StateMachine)
 }
 
+// validateTagsMap ensures that all tags values are strings
 func validateTagsMap(apiTags map[string]interface{}) error {
 	for _, val := range apiTags {
 		if _, ok := val.(string); !ok {

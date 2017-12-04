@@ -45,3 +45,56 @@ func TestValidateTagsMap(t *testing.T) {
 	apiTags["num"] = 4
 	assert.Error(t, validateTagsMap(apiTags))
 }
+
+func TestParamsToWorkflowsQuery(t *testing.T) {
+	boolTrue := true
+	boolFalse := false
+	failedString := "failed"
+	definitionName := "defName"
+	// error if status and resolvedByUser are both sent
+	inputWithStatusAndResolvedTrue := &models.GetWorkflowsInput{
+		ResolvedByUser:         &boolTrue,
+		Status:                 &failedString,
+		WorkflowDefinitionName: definitionName,
+	}
+
+	workflowQuery, err := paramsToWorkflowsQuery(inputWithStatusAndResolvedTrue)
+	assert.Error(t, err)
+	assert.IsType(t, models.BadRequest{}, err)
+
+	// if status and resolvedByUser are sent, verify error
+	inputWithStatusAndResolvedFalse := &models.GetWorkflowsInput{
+		ResolvedByUser:         &boolFalse,
+		Status:                 &failedString,
+		WorkflowDefinitionName: definitionName,
+	}
+	workflowQuery, err = paramsToWorkflowsQuery(inputWithStatusAndResolvedFalse)
+	assert.Error(t, err)
+
+	// if resolvedByUser is sent, verify that the wrapper is created correctly
+	inputWithResolvedTrue := &models.GetWorkflowsInput{
+		ResolvedByUser:         &boolTrue,
+		WorkflowDefinitionName: definitionName,
+	}
+	workflowQuery, err = paramsToWorkflowsQuery(inputWithResolvedTrue)
+	assert.NoError(t, err)
+	assert.Equal(t, true, workflowQuery.ResolvedByUserWrapper.IsSet)
+	assert.Equal(t, true, workflowQuery.ResolvedByUserWrapper.Value)
+
+	inputWithResolvedFalse := &models.GetWorkflowsInput{
+		ResolvedByUser:         &boolFalse,
+		WorkflowDefinitionName: definitionName,
+	}
+	workflowQuery, err = paramsToWorkflowsQuery(inputWithResolvedFalse)
+	assert.NoError(t, err)
+	assert.Equal(t, true, workflowQuery.ResolvedByUserWrapper.IsSet)
+	assert.Equal(t, false, workflowQuery.ResolvedByUserWrapper.Value)
+
+	// if resolvedByUser is NOT sent, verify that the wrapper is created correctly
+	inputWithNameOnly := &models.GetWorkflowsInput{
+		WorkflowDefinitionName: definitionName,
+	}
+	workflowQuery, err = paramsToWorkflowsQuery(inputWithNameOnly)
+	assert.NoError(t, err)
+	assert.Equal(t, false, workflowQuery.ResolvedByUserWrapper.IsSet)
+}

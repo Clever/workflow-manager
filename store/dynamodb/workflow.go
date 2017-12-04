@@ -22,6 +22,7 @@ var SummaryKeys = []string{
 	"Workflow.lastUpdated",
 	"Workflow.queue",
 	"Workflow.namespace",
+	"Workflow.resolvedByUser",
 	"Workflow.retries",
 	"Workflow.retryFor",
 	"Workflow.#S", // status
@@ -46,6 +47,7 @@ type ddbWorkflow struct {
 	ddbWorkflowPrimaryKey
 	ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt
 	ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt
+	ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt
 	ddbWorkflowSecondaryKeyStatusLastUpdated
 	ddbWorkflowTTL
 	Workflow models.Workflow
@@ -65,6 +67,12 @@ func EncodeWorkflow(workflow models.Workflow) (map[string]*dynamodb.AttributeVal
 			DefinitionStatusPair: ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.getDefinitionStatusPair(
 				workflow.WorkflowDefinition.Name,
 				string(workflow.Status),
+			),
+		},
+		ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt: ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{
+			DefinitionResolvedByUserPair: ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.getDefinitionResolvedByUserPair(
+				workflow.WorkflowDefinition.Name,
+				bool(workflow.ResolvedByUser),
 			),
 		},
 		ddbWorkflowSecondaryKeyStatusLastUpdated: ddbWorkflowSecondaryKeyStatusLastUpdated{
@@ -172,6 +180,79 @@ func (sk ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt) KeySchema() []*dyna
 		},
 	}
 }
+
+// ===============================
+// ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt is a global secondary index for querying
+// workflows by definition name and ResolvedByUser, sorted by creation time.
+type ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt struct {
+	DefinitionResolvedByUserPair string `dynamodbav:"_gsi-wn-and-resolvedbyuser,omitempty"`
+	// NOTE: _gsi-ca is already serialized by ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt.
+}
+
+func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) Name() string {
+	return "workflownameandresolvedbyuser-createdat"
+}
+
+func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) AttributeDefinitions() []*dynamodb.AttributeDefinition {
+	return []*dynamodb.AttributeDefinition{
+		{
+			AttributeName: aws.String("_gsi-wn-and-resolvedbyuser"),
+			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
+		},
+	}
+}
+
+func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) getDefinitionResolvedByUserPair(
+	definitionName string,
+	resolvedByUser bool,
+) string {
+	return fmt.Sprintf("%s:%t", definitionName, resolvedByUser)
+}
+
+func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) ConstructQuery(
+	query *models.WorkflowQuery,
+) (*dynamodb.QueryInput, error) {
+	if !query.ResolvedByUserWrapper.IsSet {
+		return nil, fmt.Errorf("workflow 'resolved by user' (true/false) filter is required for %s index", sk.Name())
+	}
+	queryInput := &dynamodb.QueryInput{
+		IndexName: aws.String(sk.Name()),
+		ExpressionAttributeNames: map[string]*string{
+			"#WR": aws.String("_gsi-wn-and-resolvedbyuser"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":workflowNameAndResolvedByUser": &dynamodb.AttributeValue{
+				S: aws.String(
+					sk.getDefinitionResolvedByUserPair(
+						aws.StringValue(query.WorkflowDefinitionName),
+						bool(query.ResolvedByUserWrapper.Value)),
+				),
+			},
+		},
+		KeyConditionExpression: aws.String("#WR = :workflowNameAndResolvedByUser"),
+	}
+
+	if aws.BoolValue(query.SummaryOnly) {
+		onlySummaryFields(queryInput)
+	}
+
+	return queryInput, nil
+}
+
+func (sk ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt) KeySchema() []*dynamodb.KeySchemaElement {
+	return []*dynamodb.KeySchemaElement{
+		{
+			AttributeName: aws.String("_gsi-wn-and-resolvedbyuser"),
+			KeyType:       aws.String(dynamodb.KeyTypeHash),
+		},
+		{
+			AttributeName: aws.String("_gsi-ca"),
+			KeyType:       aws.String(dynamodb.KeyTypeRange),
+		},
+	}
+}
+
+// ===============================
 
 // ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt is a global secondary index for querying
 // workflows by definition name and status, sorted by creation time.

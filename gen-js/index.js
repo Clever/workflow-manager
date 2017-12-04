@@ -1464,7 +1464,8 @@ class WorkflowManager {
    * @param {number} [params.limit=10] - Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000.
    * @param {boolean} [params.oldestFirst]
    * @param {string} [params.pageToken]
-   * @param {string} [params.status]
+   * @param {string} [params.status] - The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter.
+   * @param {boolean} [params.resolvedByUser] - A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter.
    * @param {boolean} [params.summaryOnly] - Limits workflow data to the bare minimum - omits the full workflow definition and job data.
    * @param {string} params.workflowDefinitionName
    * @param {object} [options]
@@ -1527,6 +1528,10 @@ class WorkflowManager {
   
       if (typeof params.status !== "undefined") {
         query["status"] = params.status;
+      }
+  
+      if (typeof params.resolvedByUser !== "undefined") {
+        query["resolvedByUser"] = params.resolvedByUser;
       }
   
       if (typeof params.summaryOnly !== "undefined") {
@@ -1613,7 +1618,8 @@ class WorkflowManager {
    * @param {number} [params.limit=10] - Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000.
    * @param {boolean} [params.oldestFirst]
    * @param {string} [params.pageToken]
-   * @param {string} [params.status]
+   * @param {string} [params.status] - The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter.
+   * @param {boolean} [params.resolvedByUser] - A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter.
    * @param {boolean} [params.summaryOnly] - Limits workflow data to the bare minimum - omits the full workflow definition and job data.
    * @param {string} params.workflowDefinitionName
    * @param {object} [options]
@@ -1665,6 +1671,10 @@ class WorkflowManager {
   
       if (typeof params.status !== "undefined") {
         query["status"] = params.status;
+      }
+  
+      if (typeof params.resolvedByUser !== "undefined") {
+        query["resolvedByUser"] = params.resolvedByUser;
       }
   
       if (typeof params.summaryOnly !== "undefined") {
@@ -2270,6 +2280,140 @@ class WorkflowManager {
             
             case 404:
               var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 500:
+              var err = new Errors.InternalError(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            default:
+              var err = new Error("Received unexpected statusCode " + response.statusCode);
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+          }
+        });
+      }());
+    });
+  }
+
+  /**
+   * @param {string} workflowID
+   * @param {object} [options]
+   * @param {number} [options.timeout] - A request specific timeout
+   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
+   * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
+   * @param {function} [cb]
+   * @returns {Promise}
+   * @fulfill {undefined}
+   * @reject {module:workflow-manager.Errors.BadRequest}
+   * @reject {module:workflow-manager.Errors.NotFound}
+   * @reject {module:workflow-manager.Errors.Conflict}
+   * @reject {module:workflow-manager.Errors.InternalError}
+   * @reject {Error}
+   */
+  resolveWorkflowByID(workflowID, options, cb) {
+    return this._hystrixCommand.execute(this._resolveWorkflowByID, arguments);
+  }
+  _resolveWorkflowByID(workflowID, options, cb) {
+    const params = {};
+    params["workflowID"] = workflowID;
+
+    if (!cb && typeof options === "function") {
+      cb = options;
+      options = undefined;
+    }
+
+    return new Promise((resolve, reject) => {
+      const rejecter = (err) => {
+        reject(err);
+        if (cb) {
+          cb(err);
+        }
+      };
+      const resolver = (data) => {
+        resolve(data);
+        if (cb) {
+          cb(null, data);
+        }
+      };
+
+
+      if (!options) {
+        options = {};
+      }
+
+      const timeout = options.timeout || this.timeout;
+      const span = options.span;
+
+      const headers = {};
+      if (!params.workflowID) {
+        rejecter(new Error("workflowID must be non-empty because it's a path parameter"));
+        return;
+      }
+
+      const query = {};
+
+      if (span) {
+        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        span.logEvent("POST /workflows/{workflowID}/resolved");
+        span.setTag("span.kind", "client");
+      }
+
+      const requestOptions = {
+        method: "POST",
+        uri: this.address + "/workflows/" + params.workflowID + "/resolved",
+        json: true,
+        timeout,
+        headers,
+        qs: query,
+        useQuerystring: true,
+      };
+  
+
+      const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
+      const backoffs = retryPolicy.backoffs();
+      const logger = this.logger;
+  
+      let retries = 0;
+      (function requestOnce() {
+        request(requestOptions, (err, response, body) => {
+          if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
+            const backoff = backoffs[retries];
+            retries += 1;
+            setTimeout(requestOnce, backoff);
+            return;
+          }
+          if (err) {
+            err._fromRequest = true;
+            responseLog(logger, requestOptions, response, err)
+            rejecter(err);
+            return;
+          }
+
+          switch (response.statusCode) {
+            case 201:
+              resolver();
+              break;
+            
+            case 400:
+              var err = new Errors.BadRequest(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 404:
+              var err = new Errors.NotFound(body || {});
+              responseLog(logger, requestOptions, response, err);
+              rejecter(err);
+              return;
+            
+            case 409:
+              var err = new Errors.Conflict(body || {});
               responseLog(logger, requestOptions, response, err);
               rejecter(err);
               return;
