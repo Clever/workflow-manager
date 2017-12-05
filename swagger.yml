@@ -653,6 +653,8 @@ definitions:
         type: string
       ResultPath:
         type: string
+      Result:
+        type: string
       Retry:
         x-omitempty: true
         type: array
