@@ -186,6 +186,7 @@
 |**Next**  <br>*optional*|string|
 |**OutputPath**  <br>*optional*|string|
 |**Resource**  <br>*optional*|string|
+|**Result**  <br>*optional*|string|
 |**ResultPath**  <br>*optional*|string|
 |**Retry**  <br>*optional*|< [SLRetrier](#slretrier) > array|
 |**TimeoutSeconds**  <br>*optional*|integer|
