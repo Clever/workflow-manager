@@ -55,6 +55,9 @@ type SLState struct {
 	// resource
 	Resource string `json:"Resource,omitempty"`
 
+	// result
+	Result string `json:"Result,omitempty"`
+
 	// result path
 	ResultPath string `json:"ResultPath,omitempty"`
 
@@ -91,6 +94,8 @@ type SLState struct {
 /* polymorph SLState OutputPath false */
 
 /* polymorph SLState Resource false */
+
+/* polymorph SLState Result false */
 
 /* polymorph SLState ResultPath false */
 
