@@ -20,6 +20,9 @@ type JobAttempt struct {
 	// container instance a r n
 	ContainerInstanceARN string `json:"containerInstanceARN,omitempty"`
 
+	// created at
+	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
+
 	// exit code
 	ExitCode int64 `json:"exitCode,omitempty"`
 
@@ -37,6 +40,8 @@ type JobAttempt struct {
 }
 
 /* polymorph JobAttempt containerInstanceARN false */
+
+/* polymorph JobAttempt createdAt false */
 
 /* polymorph JobAttempt exitCode false */
 
