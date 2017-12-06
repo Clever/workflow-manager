@@ -496,6 +496,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 					job.ID = fmt.Sprintf("%d", aws.Int64Value(evt.Id))
 					job.Attempts = append(job.Attempts, &models.JobAttempt{
 						Reason:    oldJobData.StatusReason,
+						CreatedAt: oldJobData.CreatedAt,
 						StartedAt: oldJobData.StartedAt,
 						StoppedAt: oldJobData.StoppedAt,
 						TaskARN:   oldJobData.Container,
