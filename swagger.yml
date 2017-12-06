@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.7.2
+  version: 0.7.3
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -536,6 +536,9 @@ definitions:
   JobAttempt:
     type: object
     properties:
+      createdAt:
+        type: string
+        format: date-time
       startedAt:
         type: string
         format: date-time

@@ -61,6 +61,7 @@
 |Name|Schema|
 |---|---|
 |**containerInstanceARN**  <br>*optional*|string|
+|**createdAt**  <br>*optional*|string (date-time)|
 |**exitCode**  <br>*optional*|integer|
 |**reason**  <br>*optional*|string|
 |**startedAt**  <br>*optional*|string (date-time)|
