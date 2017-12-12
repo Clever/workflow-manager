@@ -389,6 +389,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) e
 	if describeOutput.StopDate != nil {
 		workflow.StoppedAt = strfmt.DateTime(aws.TimeValue(describeOutput.StopDate))
 	}
+	if workflow.Status == models.WorkflowStatusCancelled || workflow.Status == models.WorkflowStatusSucceeded {
+		workflow.ResolvedByUser = true
+	}
+
 	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success  (TODO: actually this is only sent for success)
 	return wm.store.UpdateWorkflow(*workflow)
 }
