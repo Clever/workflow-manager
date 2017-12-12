@@ -2,7 +2,6 @@ package executor
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -222,13 +221,6 @@ func TestCancelWorkflow(t *testing.T) {
 	reason := "i have my reasons"
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
-			ExecutionArn: aws.String(sfnExecutionARN),
-		}).
-		Return(&sfn.DescribeExecutionOutput{
-			Status: aws.String(sfn.ExecutionStatusAborted),
-		}, nil)
-	c.mockSFNAPI.EXPECT().
 		StopExecution(&sfn.StopExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 			Cause:        aws.String(reason),
@@ -238,61 +230,12 @@ func TestCancelWorkflow(t *testing.T) {
 	assert.Equal(t, initialStatus, workflow.Status)
 	assert.Equal(t, reason, workflow.StatusReason)
 
-	t.Log("Verify both status and status reason are updated if execution has already failed.")
-	newReason := "seriously, stop asking"
-	c.mockSFNAPI.EXPECT().
-		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
-			ExecutionArn: aws.String(sfnExecutionARN),
-		}).
-		Return(&sfn.DescribeExecutionOutput{
-			Status: aws.String(sfn.ExecutionStatusFailed),
-		}, nil)
-	c.mockSFNAPI.EXPECT().
-		StopExecution(&sfn.StopExecutionInput{
-			ExecutionArn: aws.String(sfnExecutionARN),
-			Cause:        aws.String(newReason),
-		}).
-		Return(&sfn.StopExecutionOutput{}, nil)
-	require.NoError(t, c.manager.CancelWorkflow(workflow, newReason))
-	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
-	assert.Equal(t, newReason, workflow.StatusReason)
-
-	t.Log("Verify errors are propagated.")
-	cancelError := fmt.Errorf("nope")
-	c.mockSFNAPI.EXPECT().
-		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
-			ExecutionArn: aws.String(sfnExecutionARN),
-		}).
-		Return(&sfn.DescribeExecutionOutput{
-			Status: aws.String(sfn.ExecutionStatusFailed),
-		}, nil)
-	c.mockSFNAPI.EXPECT().
-		StopExecution(gomock.Any()).
-		Return(&sfn.StopExecutionOutput{}, cancelError)
-	require.Error(t, c.manager.CancelWorkflow(workflow, reason))
-
-	t.Log("Ignore DoesNotExist error when workflow is failed")
+	t.Log("Failed Workflows cannot be cancelled.")
 	workflow.Status = models.WorkflowStatusFailed
 	c.updateWorkflow(t, workflow)
-	c.mockSFNAPI.EXPECT().
-		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
-			ExecutionArn: aws.String(sfnExecutionARN),
-		}).
-		Return(&sfn.DescribeExecutionOutput{
-			Status: aws.String(sfn.ExecutionStatusFailed),
-		}, nil)
-	newReason = "not found, still cancel"
-	c.mockSFNAPI.EXPECT().
-		StopExecution(&sfn.StopExecutionInput{
-			ExecutionArn: aws.String(sfnExecutionARN),
-			Cause:        aws.String(newReason),
-		}).
-		Return(nil, awserr.New(sfn.ErrCodeExecutionDoesNotExist, "test", fmt.Errorf("")))
-	require.NoError(t, c.manager.CancelWorkflow(workflow, newReason))
-	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
-	assert.Equal(t, newReason, workflow.StatusReason)
+	require.Error(t, c.manager.CancelWorkflow(workflow, reason))
 
-	t.Log("Successful Workflows can not be cancelled.")
+	t.Log("Successful Workflows cannot be cancelled.")
 	workflow.Status = models.WorkflowStatusSucceeded
 	c.updateWorkflow(t, workflow)
 	require.Error(t, c.manager.CancelWorkflow(workflow, reason))
