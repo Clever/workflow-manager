@@ -97,17 +97,23 @@ For more information, see the [full schema definition](docs/definitions.md#workf
    This can be done via `ark`:
 
    ```
-   echo '{"foo":"bar"}' | WORKFLOWMANAGER_URL=http://localhost:8080 ark wfbeta submit sfncli-test:master
+   WORKFLOWMANAGER_URL=http://localhost:8080 ark submit sfncli-test:master '{"foo":true}'
    ```
 
 4. Check on the status of the workflow. This can also be done via `ark`:
 
    ```
-   WORKFLOWMANAGER_URL=http://localhost:8080 ark wfbeta status -w <workflow id>
+   WORKFLOWMANAGER_URL=http://localhost:8080 ark workflows --workflow-id <id> --follow/full
    ```
+   
+   
+### Updating the Data Store at Clever
+
+- If you need to add an index to the DynamoDB store, update the DynamoDB configuration in through the `infra` repo in addition to making code changes in this repo. The list of indices can be verified in the AWS console.
 
 ### Updating the API
 
 - Update swagger.yml with your endpoints. See the [Swagger spec](http://swagger.io/specification/) for additional details on defining your swagger file.
 - Run `make generate` to generate the supporting code.
 - Run `make build`, `make run`, or `make test` - any of these should fail with helpful errors about how to start implementing the business logic.
+
