@@ -683,6 +683,16 @@ definitions:
         type: string
       Cause:
         type: string
+      # The below properties apply to `Wait` states
+      # http://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-wait-state.html
+      Seconds:
+        type: integer
+      Timestamp:
+        type: string
+      SecondsPath:
+        type: string
+      TimestampPath:
+        type: string
 
   SLChoice:
     type: object
