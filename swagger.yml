@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.7.3
+  version: 0.7.4
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -682,6 +682,16 @@ definitions:
       Error:
         type: string
       Cause:
+        type: string
+      # The below properties apply to `Wait` states
+      # http://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-wait-state.html
+      Seconds:
+        type: integer
+      Timestamp:
+        type: string
+      SecondsPath:
+        type: string
+      TimestampPath:
         type: string
 
   SLChoice:

@@ -190,7 +190,11 @@
 |**Result**  <br>*optional*|string|
 |**ResultPath**  <br>*optional*|string|
 |**Retry**  <br>*optional*|< [SLRetrier](#slretrier) > array|
+|**Seconds**  <br>*optional*|integer|
+|**SecondsPath**  <br>*optional*|string|
 |**TimeoutSeconds**  <br>*optional*|integer|
+|**Timestamp**  <br>*optional*|string|
+|**TimestampPath**  <br>*optional*|string|
 |**Type**  <br>*optional*|[SLStateType](#slstatetype)|
 
 

@@ -64,8 +64,20 @@ type SLState struct {
 	// retry
 	Retry []*SLRetrier `json:"Retry,omitempty"`
 
+	// seconds
+	Seconds int64 `json:"Seconds,omitempty"`
+
+	// seconds path
+	SecondsPath string `json:"SecondsPath,omitempty"`
+
 	// timeout seconds
 	TimeoutSeconds int64 `json:"TimeoutSeconds,omitempty"`
+
+	// timestamp
+	Timestamp string `json:"Timestamp,omitempty"`
+
+	// timestamp path
+	TimestampPath string `json:"TimestampPath,omitempty"`
 
 	// type
 	Type SLStateType `json:"Type,omitempty"`
@@ -101,7 +113,15 @@ type SLState struct {
 
 /* polymorph SLState Retry false */
 
+/* polymorph SLState Seconds false */
+
+/* polymorph SLState SecondsPath false */
+
 /* polymorph SLState TimeoutSeconds false */
+
+/* polymorph SLState Timestamp false */
+
+/* polymorph SLState TimestampPath false */
 
 /* polymorph SLState Type false */
 
