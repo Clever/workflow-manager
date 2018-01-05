@@ -26,7 +26,7 @@ build:
 	cp ./kvconfig.yml ./build/kvconfig.yml
 
 run: build
-	build/$(EXECUTABLE)
+	TZ=UTC build/$(EXECUTABLE)
 
 run-docker:
 	@docker run \
