@@ -303,6 +303,7 @@ func (wm *SFNWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason s
 	}
 
 	workflow.StatusReason = reason
+	workflow.ResolvedByUser = true
 	return wm.store.UpdateWorkflow(*workflow)
 }
 
@@ -389,7 +390,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) e
 	if describeOutput.StopDate != nil {
 		workflow.StoppedAt = strfmt.DateTime(aws.TimeValue(describeOutput.StopDate))
 	}
-	if workflow.Status == models.WorkflowStatusCancelled || workflow.Status == models.WorkflowStatusSucceeded {
+	if workflow.Status == models.WorkflowStatusSucceeded {
 		workflow.ResolvedByUser = true
 	}
 
