@@ -40,6 +40,7 @@ var _ Client = (*WagClient)(nil)
 
 // New creates a new client. The base path and http transport are configurable.
 func New(basePath string) *WagClient {
+	basePath = strings.TrimSuffix(basePath, "/")
 	base := baseDoer{}
 	tracing := tracingDoer{d: base}
 	// For the short-term don't use the default retry policy since its 5 retries can 5X
@@ -58,7 +59,7 @@ func New(basePath string) *WagClient {
 		requestDoer:    circuit,
 		retryDoer:      &retry,
 		circuitDoer:    circuit,
-		defaultTimeout: 10 * time.Second,
+		defaultTimeout: 5 * time.Second,
 		transport:      &http.Transport{},
 		basePath:       basePath,
 		logger:         logger,
