@@ -1,6 +1,6 @@
 {
   "name": "workflow-manager",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Orchestrator for AWS Step Functions",
   "main": "index.js",
   "dependencies": {
