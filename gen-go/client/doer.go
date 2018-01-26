@@ -247,12 +247,7 @@ func (d *circuitBreakerDoer) init() {
 
 		go http.Serve(listener, hystrixStreamHandler)
 		go func() {
-			// We log every 10 seconds because the hysterix metrics are on a 10-second
-			// rolling window. This let's us sum up the hysterix metrics to get fairly
-			// accurate total numbers (note that this isn't perfect because our timing
-			// doesn't perfectly match hysterix's, and we also log when the circuit breaker
-			// status changes)
-			logFrequency := 10 * time.Second
+			logFrequency := 30 * time.Second
 			lastEventSeen := map[string]HystrixSSEEvent{}
 			lastEventLogTime := map[string]time.Time{}
 
@@ -282,7 +277,7 @@ func (d *circuitBreakerDoer) init() {
 					// log the circuit state if it's either
 					// (1) the first event we've seen for the circuit or
 					// (2) the circuit open state has changed or
-					// (3) 10 seconds have passed since we logged something for the circuit
+					// (3) 30 seconds have passed since we logged something for the circuit
 					if !ok {
 						lastEventLogTime[e.Name] = time.Now()
 						logEvent(d.logger, e)
