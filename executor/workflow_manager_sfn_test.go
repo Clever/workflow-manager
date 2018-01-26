@@ -216,6 +216,7 @@ func TestCancelWorkflow(t *testing.T) {
 	initialStatus := models.WorkflowStatusRunning
 	workflow.Status = initialStatus
 	c.saveWorkflow(t, workflow)
+	assert.Equal(t, false, workflow.ResolvedByUser)
 
 	t.Log("Verify execution is stopped and status reason is updated.")
 	reason := "i have my reasons"
@@ -228,6 +229,7 @@ func TestCancelWorkflow(t *testing.T) {
 		Return(&sfn.StopExecutionOutput{}, nil)
 	require.NoError(t, c.manager.CancelWorkflow(workflow, reason))
 	assert.Equal(t, initialStatus, workflow.Status)
+	assert.Equal(t, true, workflow.ResolvedByUser)
 	assert.Equal(t, reason, workflow.StatusReason)
 
 	t.Log("Failed Workflows cannot be cancelled.")

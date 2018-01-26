@@ -673,6 +673,7 @@ func (b byLastUpdatedTime) Less(i, j int) bool {
 // workflows ordered by their last updated time. Workflows with the oldest last updated
 // time are returned first.
 func (d DynamoDB) GetPendingWorkflowIDs() ([]string, error) {
+	// TODO: Replace this with ResolvedByUser?
 	var pendingWorkflows []models.Workflow
 	for _, statusToQuery := range []models.WorkflowStatus{models.WorkflowStatusQueued, models.WorkflowStatusRunning} {
 		query, err := ddbWorkflowSecondaryKeyStatusLastUpdated{
