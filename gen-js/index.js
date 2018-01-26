@@ -127,7 +127,7 @@ class WorkflowManager {
    * @param {bool} [options.discovery] - Use clever-discovery to locate the server. Must provide
    * this or the address argument
    * @param {number} [options.timeout] - The timeout to use for all client requests,
-   * in milliseconds. This can be overridden on a per-request basis. Default is 5000ms.
+   * in milliseconds. This can be overridden on a per-request basis.
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy=RetryPolicies.Single] - The logic to
    * determine which requests to retry, as well as how many times to retry.
    * @param {module:kayvee.Logger} [options.logger=logger.New("workflow-manager-wagclient")] - The Kayvee 
@@ -160,8 +160,6 @@ class WorkflowManager {
     }
     if (options.timeout) {
       this.timeout = options.timeout;
-    } else {
-      this.timeout = 5000;
     }
     if (options.retryPolicy) {
       this.retryPolicy = options.retryPolicy;

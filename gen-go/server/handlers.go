@@ -291,7 +291,7 @@ func newDeleteStateResourceInput(r *http.Request) (*models.DeleteStateResourceIn
 
 	namespaceStr := mux.Vars(r)["namespace"]
 	if len(namespaceStr) == 0 {
-		return nil, errors.New("path parameter 'namespace' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	namespaceStrs := []string{namespaceStr}
 
@@ -307,7 +307,7 @@ func newDeleteStateResourceInput(r *http.Request) (*models.DeleteStateResourceIn
 
 	nameStr := mux.Vars(r)["name"]
 	if len(nameStr) == 0 {
-		return nil, errors.New("path parameter 'name' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	nameStrs := []string{nameStr}
 
@@ -414,7 +414,7 @@ func newGetStateResourceInput(r *http.Request) (*models.GetStateResourceInput, e
 
 	namespaceStr := mux.Vars(r)["namespace"]
 	if len(namespaceStr) == 0 {
-		return nil, errors.New("path parameter 'namespace' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	namespaceStrs := []string{namespaceStr}
 
@@ -430,7 +430,7 @@ func newGetStateResourceInput(r *http.Request) (*models.GetStateResourceInput, e
 
 	nameStr := mux.Vars(r)["name"]
 	if len(nameStr) == 0 {
-		return nil, errors.New("path parameter 'name' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	nameStrs := []string{nameStr}
 
@@ -531,7 +531,7 @@ func newPutStateResourceInput(r *http.Request) (*models.PutStateResourceInput, e
 
 	namespaceStr := mux.Vars(r)["namespace"]
 	if len(namespaceStr) == 0 {
-		return nil, errors.New("path parameter 'namespace' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	namespaceStrs := []string{namespaceStr}
 
@@ -547,7 +547,7 @@ func newPutStateResourceInput(r *http.Request) (*models.PutStateResourceInput, e
 
 	nameStr := mux.Vars(r)["name"]
 	if len(nameStr) == 0 {
-		return nil, errors.New("path parameter 'name' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	nameStrs := []string{nameStr}
 
@@ -838,7 +838,7 @@ func newGetWorkflowDefinitionVersionsByNameInput(r *http.Request) (*models.GetWo
 
 	nameStr := mux.Vars(r)["name"]
 	if len(nameStr) == 0 {
-		return nil, errors.New("path parameter 'name' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	nameStrs := []string{nameStr}
 
@@ -969,7 +969,7 @@ func newUpdateWorkflowDefinitionInput(r *http.Request) (*models.UpdateWorkflowDe
 
 	nameStr := mux.Vars(r)["name"]
 	if len(nameStr) == 0 {
-		return nil, errors.New("path parameter 'name' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	nameStrs := []string{nameStr}
 
@@ -1076,7 +1076,7 @@ func newGetWorkflowDefinitionByNameAndVersionInput(r *http.Request) (*models.Get
 
 	nameStr := mux.Vars(r)["name"]
 	if len(nameStr) == 0 {
-		return nil, errors.New("path parameter 'name' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	nameStrs := []string{nameStr}
 
@@ -1092,7 +1092,7 @@ func newGetWorkflowDefinitionByNameAndVersionInput(r *http.Request) (*models.Get
 
 	versionStr := mux.Vars(r)["version"]
 	if len(versionStr) == 0 {
-		return nil, errors.New("path parameter 'version' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	versionStrs := []string{versionStr}
 
@@ -1294,7 +1294,7 @@ func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
 
 	workflowDefinitionNameStrs := r.URL.Query()["workflowDefinitionName"]
 	if len(workflowDefinitionNameStrs) == 0 {
-		return nil, errors.New("query parameter 'workflowDefinitionName' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 
 	if len(workflowDefinitionNameStrs) > 0 {
@@ -1485,7 +1485,7 @@ func newCancelWorkflowInput(r *http.Request) (*models.CancelWorkflowInput, error
 
 	workflowIDStr := mux.Vars(r)["workflowID"]
 	if len(workflowIDStr) == 0 {
-		return nil, errors.New("path parameter 'workflowID' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	workflowIDStrs := []string{workflowIDStr}
 
@@ -1501,7 +1501,7 @@ func newCancelWorkflowInput(r *http.Request) (*models.CancelWorkflowInput, error
 
 	data, err := ioutil.ReadAll(r.Body)
 	if len(data) == 0 {
-		return nil, errors.New("request body is required, but was empty")
+		return nil, errors.New("parameter must be specified")
 	}
 
 	if len(data) > 0 {
@@ -1695,7 +1695,7 @@ func newResumeWorkflowByIDInput(r *http.Request) (*models.ResumeWorkflowByIDInpu
 
 	workflowIDStr := mux.Vars(r)["workflowID"]
 	if len(workflowIDStr) == 0 {
-		return nil, errors.New("path parameter 'workflowID' must be specified")
+		return nil, errors.New("parameter must be specified")
 	}
 	workflowIDStrs := []string{workflowIDStr}
 
@@ -1711,7 +1711,7 @@ func newResumeWorkflowByIDInput(r *http.Request) (*models.ResumeWorkflowByIDInpu
 
 	data, err := ioutil.ReadAll(r.Body)
 	if len(data) == 0 {
-		return nil, errors.New("request body is required, but was empty")
+		return nil, errors.New("parameter must be specified")
 	}
 
 	if len(data) > 0 {
