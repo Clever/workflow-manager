@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/Clever/aws-sdk-go-counter"
   packages = ["counter/sfncounter"]
-  revision = "b1230a6ea333f3750796bf06af12f5e53feadd6b"
+  revision = "6cdff7b1a4b593eafacf9c31ece8a830136f4125"
 
 [[projects]]
   name = "github.com/Clever/discovery-go"
@@ -43,8 +43,8 @@
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
   packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/json/jsonutil","private/protocol/jsonrpc","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/xml/xmlutil","service/dynamodb","service/dynamodb/dynamodbattribute","service/dynamodb/dynamodbiface","service/sfn","service/sfn/sfniface","service/sts"]
-  revision = "ee1f179877b2daf2aaabf71fa900773bf8842253"
-  version = "v1.12.19"
+  revision = "1b176c5c6b57adb03bb982c21930e708ebca5a77"
+  version = "v1.12.70"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -55,6 +55,12 @@
   name = "github.com/donovanhide/eventsource"
   packages = ["."]
   revision = "b8f31a59085e69dd2678cf51840db2ac625cb741"
+
+[[projects]]
+  name = "github.com/ghodss/yaml"
+  packages = ["."]
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/go-errors/errors"
@@ -130,10 +136,10 @@
   revision = "117892bf1866fbaa2318c03e50e40564c8845457"
 
 [[projects]]
+  branch = "master"
   name = "github.com/golang/mock"
-  packages = ["gomock"]
-  revision = "13f360950a79f5864a972c786a10a50e44b69541"
-  version = "v1.0.0"
+  packages = ["gomock","mockgen","mockgen/model"]
+  revision = "b3e60bcdc577185fce3cf625fc96b62857ce5574"
 
 [[projects]]
   branch = "master"
@@ -292,6 +298,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c907729bf747709bd5037ad407b33f9b934f43fef25691b6c95cc992b0e8bd63"
+  inputs-digest = "ff7c54c56463aa93667326b903b318d4f9af32084f862f5d004af8850ef900f5"
   solver-name = "gps-cdcl"
   solver-version = 1
