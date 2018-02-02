@@ -3,7 +3,7 @@ package sfncache
 import (
 	"testing"
 
-	"github.com/Clever/workflow-manager/mocks/mock_sfniface"
+	"github.com/Clever/workflow-manager/mocks"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -13,7 +13,7 @@ func TestDescribeStateMachineCache(t *testing.T) {
 	mockController := gomock.NewController(t)
 	defer mockController.Finish()
 	expectedOutput := &sfn.DescribeStateMachineOutput{}
-	mockSFNAPI := mock_sfniface.NewMockSFNAPI(mockController)
+	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
 	mockSFNAPI.EXPECT().
 		DescribeStateMachine(gomock.Any()).
 		Return(expectedOutput, nil).

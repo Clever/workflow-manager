@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/mocks/mock_sfniface"
+	"github.com/Clever/workflow-manager/mocks"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"github.com/Clever/workflow-manager/store/memory"
@@ -23,7 +23,7 @@ import (
 type sfnManagerTestController struct {
 	manager            *SFNWorkflowManager
 	mockController     *gomock.Controller
-	mockSFNAPI         *mock_sfniface.MockSFNAPI
+	mockSFNAPI         *mocks.MockSFNAPI
 	store              store.Store
 	t                  *testing.T
 	workflowDefinition *models.WorkflowDefinition
@@ -816,7 +816,7 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockController := gomock.NewController(t)
-	mockSFNAPI := mock_sfniface.NewMockSFNAPI(mockController)
+	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
 	store := memory.New()
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)

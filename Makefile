@@ -42,11 +42,9 @@ generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 
 install_deps: golang-dep-vendor-deps
 	$(call golang-dep-vendor)
-	go build -o bin/mockgen    ./vendor/github.com/golang/mock/mockgen
-	mkdir -p mocks/mock_dynamodbiface
-	rm -f mocks/mock_dynamodbiface/mock_dynamodbapi.go
-	bin/mockgen -package mock_dynamodbiface -source ./vendor/github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface/interface.go DynamoDBAPI > mocks/mock_dynamodbiface/mock_dynamodbapi.go
-
-	mkdir -p mocks/mock_sfniface
-	rm -f mocks/mock_sfniface/mock_sfnapi.go
-	bin/mockgen -package mock_sfniface -source ./vendor/github.com/aws/aws-sdk-go/service/sfn/sfniface/interface.go SFNAPI > mocks/mock_sfniface/mock_sfnapi.go
+	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
+	mkdir -p mocks/
+	rm -rf mocks/*
+	for svc in dynamodb sfn; do \
+	  bin/mockgen -package mocks -source ./vendor/github.com/aws/aws-sdk-go/service/$${svc}/$${svc}iface/interface.go > mocks/$${svc}.go; \
+	done
