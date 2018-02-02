@@ -40,17 +40,13 @@ generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 	java -jar swagger2markup-cli-1.3.1.jar convert -c docs/config.properties -i swagger.yml  -d docs/
 	$(call wag-generate,./swagger.yml,$(PKG))
 
-generate-mocks:
+install_deps: golang-dep-vendor-deps
+	$(call golang-dep-vendor)
+	go build -o bin/mockgen    ./vendor/github.com/golang/mock/mockgen
 	mkdir -p mocks/mock_dynamodbiface
 	rm -f mocks/mock_dynamodbiface/mock_dynamodbapi.go
-	mockgen github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface DynamoDBAPI > mocks/mock_dynamodbiface/mock_dynamodbapi.go
+	bin/mockgen -package mock_dynamodbiface -source ./vendor/github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface/interface.go DynamoDBAPI > mocks/mock_dynamodbiface/mock_dynamodbapi.go
 
 	mkdir -p mocks/mock_sfniface
 	rm -f mocks/mock_sfniface/mock_sfnapi.go
-	mockgen github.com/aws/aws-sdk-go/service/sfn/sfniface SFNAPI > mocks/mock_sfniface/mock_sfnapi.go
-
-
-
-
-install_deps: golang-dep-vendor-deps
-	$(call golang-dep-vendor)
+	bin/mockgen -package mock_sfniface -source ./vendor/github.com/aws/aws-sdk-go/service/sfn/sfniface/interface.go SFNAPI > mocks/mock_sfniface/mock_sfnapi.go
