@@ -71,6 +71,10 @@ func TestStateMachineWithFullActivityARNs(t *testing.T) {
 				Type:     models.SLStateTypeTask,
 				Resource: "resource-name",
 			},
+			"foostatelambda": models.SLState{
+				Type:     models.SLStateTypeTask,
+				Resource: "lambda:resource-name",
+			},
 		},
 	}
 	smWithFullActivityARNs := stateMachineWithFullActivityARNs(sm, "region", "accountID", "namespace")
@@ -78,6 +82,10 @@ func TestStateMachineWithFullActivityARNs(t *testing.T) {
 		"foostate": models.SLState{
 			Type:     models.SLStateTypeTask,
 			Resource: "arn:aws:states:region:accountID:activity:namespace--resource-name",
+		},
+		"foostatelambda": models.SLState{
+			Type:     models.SLStateTypeTask,
+			Resource: "arn:aws:lambda:region:accountID:function:namespace--resource-name",
 		},
 	}, smWithFullActivityARNs.States)
 }

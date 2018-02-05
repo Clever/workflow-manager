@@ -7,7 +7,7 @@ Orchestrator for AWS Step Functions
 
 
 ### Version information
-*Version* : 0.8.3
+*Version* : 0.9.0
 
 
 ### URI scheme
@@ -17,6 +17,3 @@ Orchestrator for AWS Step Functions
 ### Produces
 
 * `application/json`
-
-
-
