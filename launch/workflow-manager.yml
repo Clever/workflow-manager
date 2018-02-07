@@ -14,7 +14,8 @@ resources:
 autoscaling:
   metric: cpu
   metric_target: 65
-use_iam_roles: true
+aws:
+  custom: true
 expose:
 - name: default
   port: 80
