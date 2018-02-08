@@ -23,6 +23,8 @@ const (
 	StateResourceTypeJobDefinitionARN StateResourceType = "JobDefinitionARN"
 	// StateResourceTypeActivityARN captures enum value "ActivityARN"
 	StateResourceTypeActivityARN StateResourceType = "ActivityARN"
+	// StateResourceTypeLambdaFunctionARN captures enum value "LambdaFunctionARN"
+	StateResourceTypeLambdaFunctionARN StateResourceType = "LambdaFunctionARN"
 )
 
 // for schema
@@ -30,7 +32,7 @@ var stateResourceTypeEnum []interface{}
 
 func init() {
 	var res []StateResourceType
-	if err := json.Unmarshal([]byte(`["JobDefinitionARN","ActivityARN"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["JobDefinitionARN","ActivityARN","LambdaFunctionARN"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

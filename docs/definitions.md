@@ -239,7 +239,7 @@
 
 <a name="stateresourcetype"></a>
 ### StateResourceType
-*Type* : enum (JobDefinitionARN, ActivityARN)
+*Type* : enum (JobDefinitionARN, ActivityARN, LambdaFunctionARN)
 
 
 <a name="workflow"></a>

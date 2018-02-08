@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.8.3
+  version: 0.9.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -619,6 +619,7 @@ definitions:
     enum:
       - "JobDefinitionARN"
       - "ActivityARN"
+      - "LambdaFunctionARN"
 
   # States Language Types: https://states-language.net/spec.html
   SLStateMachine:
