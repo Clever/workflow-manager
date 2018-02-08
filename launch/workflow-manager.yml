@@ -9,7 +9,7 @@ env:
   - AWS_SFN_ACCOUNT_ID
 resources:
   cpu: 0.4
-  soft_mem_limit: 0.1
+  soft_mem_limit: 0.15
   max_mem: 0.3
 autoscaling:
   metric: cpu
