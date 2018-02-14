@@ -11,7 +11,8 @@ resources:
   cpu: 0.4
   soft_mem_limit: 0.15
   max_mem: 0.3
-use_iam_roles: true
+aws:
+  custom: true
 expose:
 - name: default
   port: 80
