@@ -57,6 +57,10 @@ func wdResourceToSLResource(wdResource, region, accountID, namespace string) str
 	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s--%s", region, accountID, namespace, wdResource)
 }
 
+func wdResourceToSLResourceLambda(wdResource, region, accountID, namespace string) string {
+	return fmt.Sprintf("arn:aws:lambda:%s:%s:function:%s--%s", region, accountID, namespace, strings.TrimPrefix(wdResource, "lambda:"))
+}
+
 // stateMachineWithFullActivityARNs converts resource names in states to full activity ARNs. It returns a new state machine.
 // Our workflow definitions contain state machine definitions with short-hand for resource names, e.g. "Resource": "name-of-worker"
 // Convert this shorthand into a new state machine with full activity ARNs, e.g. "Resource": "arn:aws:states:us-west-2:589690932525:activity:production--name-of-worker"
@@ -67,7 +71,11 @@ func stateMachineWithFullActivityARNs(oldSM models.SLStateMachine, region, accou
 		if state.Type != models.SLStateTypeTask {
 			continue
 		}
-		state.Resource = wdResourceToSLResource(state.Resource, region, accountID, namespace)
+		if strings.HasPrefix(state.Resource, "lambda:") {
+			state.Resource = wdResourceToSLResourceLambda(state.Resource, region, accountID, namespace)
+		} else {
+			state.Resource = wdResourceToSLResource(state.Resource, region, accountID, namespace)
+		}
 		sm.States[stateName] = state
 	}
 	return &sm
@@ -458,21 +466,29 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 				job.Status = models.JobStatusCreated
 				if details := evt.StateEnteredEventDetails; details != nil {
 					stateName := aws.StringValue(details.Name)
-					stateDef, ok := workflow.WorkflowDefinition.StateMachine.States[stateName]
 					var stateResourceName string
+					var stateResourceType models.StateResourceType
+					stateDef, ok := workflow.WorkflowDefinition.StateMachine.States[stateName]
 					if ok {
-						stateResourceName = stateDef.Resource
+						if strings.HasPrefix(stateDef.Resource, "lambda:") {
+							stateResourceName = strings.TrimPrefix(stateDef.Resource, "lambda:")
+							stateResourceType = models.StateResourceTypeLambdaFunctionARN
+						} else {
+							stateResourceName = stateDef.Resource
+							stateResourceType = models.StateResourceTypeActivityARN
+						}
 					}
 					job.Input = aws.StringValue(details.Input)
 					job.State = stateName
+
 					job.StateResource = &models.StateResource{
 						Name:        stateResourceName,
-						Type:        models.StateResourceTypeActivityARN,
+						Type:        stateResourceType,
 						Namespace:   workflow.Namespace,
 						LastUpdated: strfmt.DateTime(aws.TimeValue(evt.Timestamp)),
 					}
 				}
-			case sfn.HistoryEventTypeActivityScheduled:
+			case sfn.HistoryEventTypeActivityScheduled, sfn.HistoryEventTypeLambdaFunctionScheduled:
 				if job.Status == models.JobStatusFailed {
 					// this is a retry, copy job data to attempt array, re-initialize job data
 					oldJobData := *job
@@ -496,37 +512,33 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 					}
 				}
 				job.Status = models.JobStatusQueued
-			case sfn.HistoryEventTypeActivityStarted:
+			case sfn.HistoryEventTypeActivityStarted, sfn.HistoryEventTypeLambdaFunctionStarted:
 				job.Status = models.JobStatusRunning
 				job.StartedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 				if details := evt.ActivityStartedEventDetails; details != nil {
 					job.Container = aws.StringValue(details.WorkerName)
 				}
-			case sfn.HistoryEventTypeActivityFailed:
+			case sfn.HistoryEventTypeActivityFailed, sfn.HistoryEventTypeLambdaFunctionFailed, sfn.HistoryEventTypeLambdaFunctionScheduleFailed, sfn.HistoryEventTypeLambdaFunctionStartFailed:
 				job.Status = models.JobStatusFailed
 				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
-				if details := evt.ActivityFailedEventDetails; details != nil {
-					// TODO: need more natural place to put error name...
-					job.StatusReason = strings.TrimSpace(fmt.Sprintf(
-						"%s\n%s",
-						getLastFewLines(aws.StringValue(details.Cause)),
-						aws.StringValue(details.Error),
-					))
-				}
-			case sfn.HistoryEventTypeActivityTimedOut:
+				cause, errorName := causeAndErrorNameFromFailureEvent(evt)
+				// TODO: need more natural place to put error name...
+				job.StatusReason = strings.TrimSpace(fmt.Sprintf(
+					"%s\n%s",
+					getLastFewLines(cause),
+					errorName,
+				))
+			case sfn.HistoryEventTypeActivityTimedOut, sfn.HistoryEventTypeLambdaFunctionTimedOut:
 				job.Status = models.JobStatusFailed
 				job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
-				if details := evt.ActivityTimedOutEventDetails; details != nil {
-					job.StatusReason = strings.TrimSpace(fmt.Sprintf(
-						"%s\n%s\n%s",
-						resources.StatusReasonJobTimedOut,
-						aws.StringValue(details.Error),
-						getLastFewLines(aws.StringValue(details.Cause)),
-					))
-				} else {
-					job.StatusReason = resources.StatusReasonJobTimedOut
-				}
-			case sfn.HistoryEventTypeActivitySucceeded:
+				cause, errorName := causeAndErrorNameFromFailureEvent(evt)
+				job.StatusReason = strings.TrimSpace(fmt.Sprintf(
+					"%s\n%s\n%s",
+					resources.StatusReasonJobTimedOut,
+					errorName,
+					getLastFewLines(cause),
+				))
+			case sfn.HistoryEventTypeActivitySucceeded, sfn.HistoryEventTypeLambdaFunctionSucceeded:
 				job.Status = models.JobStatusSucceeded
 			case sfn.HistoryEventTypeExecutionAborted:
 				job.Status = models.JobStatusAbortedByUser
@@ -610,4 +622,31 @@ func getLastFewLines(rawLines string) string {
 	}
 
 	return strings.Join(lastFewLines, "\n")
+}
+
+func causeAndErrorNameFromFailureEvent(evt *sfn.HistoryEvent) (string, string) {
+	switch aws.StringValue(evt.Type) {
+	case sfn.HistoryEventTypeActivityFailed:
+		return aws.StringValue(evt.ActivityFailedEventDetails.Cause), aws.StringValue(evt.ActivityFailedEventDetails.Error)
+	case sfn.HistoryEventTypeActivityScheduleFailed:
+		return aws.StringValue(evt.ActivityScheduleFailedEventDetails.Cause), aws.StringValue(evt.ActivityScheduleFailedEventDetails.Error)
+	case sfn.HistoryEventTypeActivityTimedOut:
+		return aws.StringValue(evt.ActivityTimedOutEventDetails.Cause), aws.StringValue(evt.ActivityTimedOutEventDetails.Error)
+	case sfn.HistoryEventTypeExecutionAborted:
+		return aws.StringValue(evt.ExecutionAbortedEventDetails.Cause), aws.StringValue(evt.ExecutionAbortedEventDetails.Error)
+	case sfn.HistoryEventTypeExecutionFailed:
+		return aws.StringValue(evt.ExecutionFailedEventDetails.Cause), aws.StringValue(evt.ExecutionFailedEventDetails.Error)
+	case sfn.HistoryEventTypeExecutionTimedOut:
+		return aws.StringValue(evt.ExecutionTimedOutEventDetails.Cause), aws.StringValue(evt.ExecutionTimedOutEventDetails.Error)
+	case sfn.HistoryEventTypeLambdaFunctionFailed:
+		return aws.StringValue(evt.LambdaFunctionFailedEventDetails.Cause), aws.StringValue(evt.LambdaFunctionFailedEventDetails.Error)
+	case sfn.HistoryEventTypeLambdaFunctionScheduleFailed:
+		return aws.StringValue(evt.LambdaFunctionScheduleFailedEventDetails.Cause), aws.StringValue(evt.LambdaFunctionScheduleFailedEventDetails.Error)
+	case sfn.HistoryEventTypeLambdaFunctionStartFailed:
+		return aws.StringValue(evt.LambdaFunctionStartFailedEventDetails.Cause), aws.StringValue(evt.LambdaFunctionStartFailedEventDetails.Error)
+	case sfn.HistoryEventTypeLambdaFunctionTimedOut:
+		return aws.StringValue(evt.LambdaFunctionTimedOutEventDetails.Cause), aws.StringValue(evt.LambdaFunctionTimedOutEventDetails.Error)
+	default:
+		return "", ""
+	}
 }

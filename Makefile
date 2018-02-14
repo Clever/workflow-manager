@@ -22,11 +22,11 @@ dynamodb-test:
 	./run_dynamodb_store_test.sh
 
 build:
-	CGO_ENABLED=0 go build -installsuffix cgo -o build/$(EXECUTABLE) $(PKG)
-	cp ./kvconfig.yml ./build/kvconfig.yml
+	$(call golang-build,$(PKG),$(EXECUTABLE))
+	cp ./kvconfig.yml ./bin/kvconfig.yml
 
 run: build
-	TZ=UTC build/$(EXECUTABLE)
+	TZ=UTC bin/$(EXECUTABLE)
 
 run-docker:
 	@docker run \

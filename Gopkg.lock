@@ -43,8 +43,8 @@
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
   packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/json/jsonutil","private/protocol/jsonrpc","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/xml/xmlutil","service/dynamodb","service/dynamodb/dynamodbattribute","service/dynamodb/dynamodbiface","service/sfn","service/sfn/sfniface","service/sts"]
-  revision = "1b176c5c6b57adb03bb982c21930e708ebca5a77"
-  version = "v1.12.70"
+  revision = "0cbaf57ea311890e62f0b01652529295079e9e95"
+  version = "v1.12.71"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -136,10 +136,10 @@
   revision = "117892bf1866fbaa2318c03e50e40564c8845457"
 
 [[projects]]
-  branch = "master"
   name = "github.com/golang/mock"
   packages = ["gomock","mockgen","mockgen/model"]
-  revision = "b3e60bcdc577185fce3cf625fc96b62857ce5574"
+  revision = "13f360950a79f5864a972c786a10a50e44b69541"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -298,6 +298,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0ef3bd0131db77db7b5586e32d71d46f085b41f786c9c3e13eb1dba631f22833"
+  inputs-digest = "4cfca21b0ba14c7b8a4e3e3458fc9beb2e3703026543610e04cd50475c8d9fde"
   solver-name = "gps-cdcl"
   solver-version = 1
