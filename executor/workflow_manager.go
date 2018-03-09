@@ -36,7 +36,7 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 			return
 		case <-ticker.C:
 			out, err := sqsapi.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
-				MaxNumberOfMessages: aws.Int64(1),
+				MaxNumberOfMessages: aws.Int64(10),
 				QueueUrl:            aws.String(sqsQueueURL),
 			})
 			if err != nil {
