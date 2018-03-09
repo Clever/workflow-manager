@@ -3,7 +3,6 @@ package executor
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
@@ -27,14 +26,12 @@ type WorkflowManager interface {
 // PollForPendingWorkflowsAndUpdateStore polls an SQS queue for workflows needing an update.
 // It will stop polling when the context is done.
 func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) {
-	ticker := time.NewTicker(500 * time.Millisecond)
 	for {
 		select {
 		case <-ctx.Done():
-			log.InfoD("poll-for-pending-workflows-done", logger.M{})
-			ticker.Stop()
+			log.Info("poll-for-pending-workflows-done")
 			return
-		case <-ticker.C:
+		default:
 			out, err := sqsapi.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
 				MaxNumberOfMessages: aws.Int64(10),
 				QueueUrl:            aws.String(sqsQueueURL),
