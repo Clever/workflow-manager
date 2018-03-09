@@ -237,14 +237,13 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
 		return nil, err
 	}
 
-	//mav := &sqs.MessageAttributeValue{}
+	// start update loop for this workflow
 	_, err = wm.sqsapi.SendMessage(&sqs.SendMessageInput{
-		MessageBody: aws.String(workflow.ID),
-		QueueUrl:    aws.String(wm.sqsQueueURL),
-		//MessageAttributes: map[string]*sqs.MessageAttributeValue{"workflow-id": mav.SetStringValue(workflow.ID).SetDataType("String")},
+		MessageBody:  aws.String(workflow.ID),
+		QueueUrl:     aws.String(wm.sqsQueueURL),
+		DelaySeconds: aws.Int64(30),
 	})
 	if err != nil {
-		// failed to start update loop for Workflow
 		return nil, err
 	}
 

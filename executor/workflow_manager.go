@@ -2,10 +2,10 @@ package executor
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 
@@ -44,7 +44,6 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 }
 
 func checkPendingWorkflows(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
-	// TODO: use context
 	out, err := sqsapi.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
 		MaxNumberOfMessages: aws.Int64(1),
 		QueueUrl:            aws.String(sqsQueueURL),
@@ -59,25 +58,7 @@ func checkPendingWorkflows(ctx context.Context, wm WorkflowManager, thestore sto
 
 	// TODO: update this + MaxNumberOfMessages to loop over many
 	m := out.Messages[0]
-
-	fmt.Println(m)
-	for key, val := range m.MessageAttributes {
-		fmt.Println(key, *val)
-	}
-	//wfID, ok := m.MessageAttributes["workflow-id"]
 	wfID := *m.Body
-	//if !ok {
-	//// Cleanup malformed messages
-	//_, err = sqsapi.DeleteMessage(&sqs.DeleteMessageInput{
-	//QueueUrl:      aws.String("https://sqs.us-west-1.amazonaws.com/589690932525/workflow-manager-update-loop-dev"), // TODO
-	//ReceiptHandle: m.ReceiptHandle,
-	//})
-	//if err != nil {
-	//return "", err
-	//}
-
-	//return "", fmt.Errorf("SQS message lacks 'workflow-id' attribute")
-	//}
 
 	wf, err := thestore.GetWorkflowByID(wfID)
 	if err != nil {
@@ -89,8 +70,17 @@ func checkPendingWorkflows(ctx context.Context, wm WorkflowManager, thestore sto
 		return "", err
 	}
 
-	// Delete message from queue
-	_, err = sqsapi.DeleteMessage(&sqs.DeleteMessageInput{
+	// If workflow is not yet complete, send message to SQS to request a future update.
+	if !resources.WorkflowIsDone(&wf) {
+		_, err = sqsapi.SendMessageWithContext(ctx, &sqs.SendMessageInput{
+			MessageBody:  aws.String(wfID),
+			QueueUrl:     aws.String(sqsQueueURL),
+			DelaySeconds: aws.Int64(30),
+		})
+	}
+
+	// Delete processed message from queue
+	_, err = sqsapi.DeleteMessageWithContext(ctx, &sqs.DeleteMessageInput{
 		QueueUrl:      aws.String(sqsQueueURL),
 		ReceiptHandle: m.ReceiptHandle,
 	})
