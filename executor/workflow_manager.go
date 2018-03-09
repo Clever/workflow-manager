@@ -25,7 +25,7 @@ type WorkflowManager interface {
 
 // PollForPendingWorkflowsAndUpdateStore polls an SQS queue for workflows needing an update.
 // It will stop polling when the context is done.
-func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI) {
+func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	for {
 		select {
@@ -34,7 +34,7 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			if id, err := checkPendingWorkflows(wm, thestore, sqsapi); err != nil {
+			if id, err := checkPendingWorkflows(ctx, wm, thestore, sqsapi, sqsQueueURL); err != nil {
 				log.ErrorD("poll-for-pending-workflows", logger.M{"id": id, "error": err.Error()})
 			} else {
 				log.InfoD("poll-for-pending-workflows", logger.M{"id": id})
@@ -43,11 +43,11 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 	}
 }
 
-func checkPendingWorkflows(wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI) (string, error) {
-	// TODO: use context?
-	out, err := sqsapi.ReceiveMessage(&sqs.ReceiveMessageInput{
+func checkPendingWorkflows(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
+	// TODO: use context
+	out, err := sqsapi.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
 		MaxNumberOfMessages: aws.Int64(1),
-		QueueUrl:            aws.String("https://sqs.us-west-1.amazonaws.com/589690932525/workflow-manager-update-loop-dev"), // TODO
+		QueueUrl:            aws.String(sqsQueueURL),
 	})
 	if err != nil {
 		return "", err
@@ -91,7 +91,7 @@ func checkPendingWorkflows(wm WorkflowManager, thestore store.Store, sqsapi sqsi
 
 	// Delete message from queue
 	_, err = sqsapi.DeleteMessage(&sqs.DeleteMessageInput{
-		QueueUrl:      aws.String("https://sqs.us-west-1.amazonaws.com/589690932525/workflow-manager-update-loop-dev"), // TODO
+		QueueUrl:      aws.String(sqsQueueURL),
 		ReceiptHandle: m.ReceiptHandle,
 	})
 	if err != nil {

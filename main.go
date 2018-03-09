@@ -32,6 +32,8 @@ type Config struct {
 	SFNRegion                       string
 	SFNAccountID                    string
 	SFNRoleARN                      string
+	SQSRegion                       string
+	SQSQueueURL                     string
 }
 
 func setupRouting() {
@@ -67,16 +69,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// TODO: add SQSRegion config
-	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.DynamoRegion))
-	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
+	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.SQSRegion))
+	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL)
 	h := Handler{
 		store:   db,
 		manager: wfmSFN,
 	}
 	s := server.New(h, *addr)
 
-	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db, sqsapi)
+	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db, sqsapi, c.SQSQueueURL)
 	go logSFNCounts(countedSFNAPI)
 
 	if err := s.Serve(); err != nil {
@@ -113,6 +114,8 @@ func loadConfig() Config {
 		SFNRegion:    os.Getenv("AWS_SFN_REGION"),
 		SFNAccountID: os.Getenv("AWS_SFN_ACCOUNT_ID"),
 		SFNRoleARN:   os.Getenv("AWS_SFN_ROLE_ARN"),
+		SQSRegion:    os.Getenv("AWS_SQS_REGION"),
+		SQSQueueURL:  os.Getenv("AWS_SQS_URL"),
 	}
 }
 

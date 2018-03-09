@@ -38,22 +38,24 @@ var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 
 // SFNWorkflowManager manages workflows run through AWS Step Functions.
 type SFNWorkflowManager struct {
-	sfnapi    sfniface.SFNAPI
-	sqsapi    sqsiface.SQSAPI
-	store     store.Store
-	region    string
-	roleARN   string
-	accountID string
+	sfnapi      sfniface.SFNAPI
+	sqsapi      sqsiface.SQSAPI
+	store       store.Store
+	region      string
+	roleARN     string
+	accountID   string
+	sqsQueueURL string
 }
 
-func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, store store.Store, roleARN, region, accountID string) *SFNWorkflowManager {
+func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, store store.Store, roleARN, region, accountID, sqsQueueURL string) *SFNWorkflowManager {
 	return &SFNWorkflowManager{
-		sfnapi:    sfnapi,
-		sqsapi:    sqsapi,
-		store:     store,
-		roleARN:   roleARN,
-		region:    region,
-		accountID: accountID,
+		sfnapi:      sfnapi,
+		sqsapi:      sqsapi,
+		store:       store,
+		roleARN:     roleARN,
+		region:      region,
+		accountID:   accountID,
+		sqsQueueURL: sqsQueueURL,
 	}
 }
 
@@ -237,9 +239,8 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
 
 	//mav := &sqs.MessageAttributeValue{}
 	_, err = wm.sqsapi.SendMessage(&sqs.SendMessageInput{
-		//MessageBody:       aws.String("n/a"),
 		MessageBody: aws.String(workflow.ID),
-		QueueUrl:    aws.String("https://sqs.us-west-1.amazonaws.com/589690932525/workflow-manager-update-loop-dev"), // TODO
+		QueueUrl:    aws.String(wm.sqsQueueURL),
 		//MessageAttributes: map[string]*sqs.MessageAttributeValue{"workflow-id": mav.SetStringValue(workflow.ID).SetDataType("String")},
 	})
 	if err != nil {

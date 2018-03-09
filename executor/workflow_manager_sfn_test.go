@@ -837,7 +837,7 @@ func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	require.NoError(t, store.SaveWorkflowDefinition(*workflowDefinition))
 
 	return &sfnManagerTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, store, "", "", ""),
+		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, store, "", "", "", ""),
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
 		mockSQSAPI:         mockSQSAPI,
