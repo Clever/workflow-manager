@@ -60,6 +60,19 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 	}
 }
 
+// updateLoopDelay is the minimum amount of time between each update to a
+// workflow's state. State is sync'd from workflow manager's backend, Step Functions.
+const updateLoopDelay = 30
+
+func createPendingWorkflow(ctx context.Context, workflowID string, sqsapi sqsiface.SQSAPI, sqsQueueURL string) error {
+	_, err := sqsapi.SendMessageWithContext(ctx, &sqs.SendMessageInput{
+		MessageBody:  aws.String(workflowID),
+		QueueUrl:     aws.String(sqsQueueURL),
+		DelaySeconds: aws.Int64(updateLoopDelay),
+	})
+	return err
+}
+
 func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
 	wfID := *m.Body
 	wf, err := thestore.GetWorkflowByID(wfID)
@@ -77,7 +90,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 		_, err = sqsapi.SendMessageWithContext(ctx, &sqs.SendMessageInput{
 			MessageBody:  aws.String(wfID),
 			QueueUrl:     aws.String(sqsQueueURL),
-			DelaySeconds: aws.Int64(30),
+			DelaySeconds: aws.Int64(updateLoopDelay),
 		})
 	}
 

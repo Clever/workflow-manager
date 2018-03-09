@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -238,11 +237,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
 	}
 
 	// start update loop for this workflow
-	_, err = wm.sqsapi.SendMessage(&sqs.SendMessageInput{
-		MessageBody:  aws.String(workflow.ID),
-		QueueUrl:     aws.String(wm.sqsQueueURL),
-		DelaySeconds: aws.Int64(30),
-	})
+	err = createPendingWorkflow(context.TODO(), workflow.ID, wm.sqsapi, wm.sqsQueueURL)
 	if err != nil {
 		return nil, err
 	}
