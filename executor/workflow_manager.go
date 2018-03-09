@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -34,32 +35,33 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			if id, err := checkPendingWorkflows(ctx, wm, thestore, sqsapi, sqsQueueURL); err != nil {
-				log.ErrorD("poll-for-pending-workflows", logger.M{"id": id, "error": err.Error()})
-			} else {
-				log.InfoD("poll-for-pending-workflows", logger.M{"id": id})
+			out, err := sqsapi.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
+				MaxNumberOfMessages: aws.Int64(1),
+				QueueUrl:            aws.String(sqsQueueURL),
+			})
+			if err != nil {
+				log.ErrorD("poll-for-pending-workflows", logger.M{"error": err.Error()})
 			}
+
+			var wg sync.WaitGroup
+			wg.Add(len(out.Messages))
+			for _, message := range out.Messages {
+				go func(m *sqs.Message) {
+					defer wg.Done()
+					if id, err := updatePendingWorkflow(ctx, m, wm, thestore, sqsapi, sqsQueueURL); err != nil {
+						log.ErrorD("update-pending-workflow", logger.M{"id": id, "error": err.Error()})
+					} else {
+						log.InfoD("update-pending-workflow", logger.M{"id": id})
+					}
+				}(message)
+			}
+			wg.Wait()
 		}
 	}
 }
 
-func checkPendingWorkflows(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
-	out, err := sqsapi.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
-		MaxNumberOfMessages: aws.Int64(1),
-		QueueUrl:            aws.String(sqsQueueURL),
-	})
-	if err != nil {
-		return "", err
-	}
-
-	if len(out.Messages) == 0 {
-		return "n/a", nil
-	}
-
-	// TODO: update this + MaxNumberOfMessages to loop over many
-	m := out.Messages[0]
+func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
 	wfID := *m.Body
-
 	wf, err := thestore.GetWorkflowByID(wfID)
 	if err != nil {
 		return "", err
