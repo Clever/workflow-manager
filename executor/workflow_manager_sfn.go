@@ -14,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/mohae/deepcopy"
@@ -37,15 +39,17 @@ var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 // SFNWorkflowManager manages workflows run through AWS Step Functions.
 type SFNWorkflowManager struct {
 	sfnapi    sfniface.SFNAPI
+	sqsapi    sqsiface.SQSAPI
 	store     store.Store
 	region    string
 	roleARN   string
 	accountID string
 }
 
-func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, store store.Store, roleARN, region, accountID string) *SFNWorkflowManager {
+func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, store store.Store, roleARN, region, accountID string) *SFNWorkflowManager {
 	return &SFNWorkflowManager{
 		sfnapi:    sfnapi,
+		sqsapi:    sqsapi,
 		store:     store,
 		roleARN:   roleARN,
 		region:    region,
@@ -228,6 +232,18 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
 			})
 		}
 
+		return nil, err
+	}
+
+	//mav := &sqs.MessageAttributeValue{}
+	_, err = wm.sqsapi.SendMessage(&sqs.SendMessageInput{
+		//MessageBody:       aws.String("n/a"),
+		MessageBody: aws.String(workflow.ID),
+		QueueUrl:    aws.String("https://sqs.us-west-1.amazonaws.com/589690932525/workflow-manager-update-loop-dev"), // TODO
+		//MessageAttributes: map[string]*sqs.MessageAttributeValue{"workflow-id": mav.SetStringValue(workflow.ID).SetDataType("String")},
+	})
+	if err != nil {
+		// failed to start update loop for Workflow
 		return nil, err
 	}
 

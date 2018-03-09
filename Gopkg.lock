@@ -77,6 +77,8 @@
     "service/dynamodb/dynamodbiface",
     "service/sfn",
     "service/sfn/sfniface",
+    "service/sqs",
+    "service/sqs/sqsiface",
     "service/sts"
   ]
   revision = "63324a33d7e42a386c04d4daec764a3de243492e"
@@ -418,6 +420,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "529e399b9790be801944ca5da8a83cba69f7f5c38a587001b933a0e300e857c8"
+  inputs-digest = "f1b79e260b282a33ade9dc3dbfea87e8071072dc17ad0cc5a4dd17857c9d8b4b"
   solver-name = "gps-cdcl"
   solver-version = 1

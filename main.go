@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/kardianos/osext"
 
 	"github.com/Clever/aws-sdk-go-counter/counter/sfncounter"
@@ -65,14 +66,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
+
+	// TODO: add SQSRegion config
+	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.DynamoRegion))
+	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
 	h := Handler{
 		store:   db,
 		manager: wfmSFN,
 	}
 	s := server.New(h, *addr)
 
-	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db)
+	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db, sqsapi)
 	go logSFNCounts(countedSFNAPI)
 
 	if err := s.Serve(); err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -24,6 +25,7 @@ type sfnManagerTestController struct {
 	manager            *SFNWorkflowManager
 	mockController     *gomock.Controller
 	mockSFNAPI         *mocks.MockSFNAPI
+	mockSQSAPI         *mocks.MockSQSAPI
 	store              store.Store
 	t                  *testing.T
 	workflowDefinition *models.WorkflowDefinition
@@ -156,6 +158,9 @@ func TestCreateWorkflow(t *testing.T) {
 		c.mockSFNAPI.EXPECT().
 			StartExecution(gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
+		c.mockSQSAPI.EXPECT().
+			SendMessage(gomock.Any()).
+			Return(&sqs.SendMessageOutput{}, nil)
 
 		workflow, err := c.manager.CreateWorkflow(*c.workflowDefinition,
 			input,
@@ -825,15 +830,17 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockController := gomock.NewController(t)
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
+	mockSQSAPI := mocks.NewMockSQSAPI(mockController)
 	store := memory.New()
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
 	require.NoError(t, store.SaveWorkflowDefinition(*workflowDefinition))
 
 	return &sfnManagerTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, store, "", "", ""),
+		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, store, "", "", ""),
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
+		mockSQSAPI:         mockSQSAPI,
 		store:              &store,
 		t:                  t,
 		workflowDefinition: workflowDefinition,
