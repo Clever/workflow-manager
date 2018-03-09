@@ -1,7 +1,6 @@
 package store
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -25,13 +24,7 @@ type Store interface {
 	UpdateWorkflow(workflow models.Workflow) error
 	GetWorkflowByID(id string) (models.Workflow, error)
 	GetWorkflows(query *models.WorkflowQuery) ([]models.Workflow, string, error)
-	GetPendingWorkflowIDs() ([]string, error)
-	LockWorkflow(id string) error
-	UnlockWorkflow(id string) error
 }
-
-// ErrWorkflowLocked is returned from LockWorfklow in the case of the workflow already being locked.
-var ErrWorkflowLocked = errors.New("workflow already locked")
 
 type ConflictError struct {
 	name string

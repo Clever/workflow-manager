@@ -31,8 +31,6 @@ func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
 	t.Run("GetWorkflows", GetWorkflows(storeFactory(), t))
 	t.Run("GetWorkflowsSummaryOnly", GetWorkflowsSummaryOnly(storeFactory(), t))
 	t.Run("GetWorkflowsPagination", GetWorkflowsPagination(storeFactory(), t))
-	t.Run("GetPendingWorkflowIDs", GetPendingWorkflowIDs(storeFactory(), t))
-	t.Run("LockWorkflow/UnlockWorkflow", LockUnlockWorkflow(storeFactory(), t))
 }
 
 func UpdateWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
@@ -542,54 +540,5 @@ func GetWorkflowsPagination(s store.Store, t *testing.T) func(t *testing.T) {
 		assert.IsType(t, store.InvalidPageTokenError{}, err)
 		assert.Equal(t, "", nextPageToken)
 		assert.Len(t, workflows, 0)
-	}
-}
-
-func GetPendingWorkflowIDs(s store.Store, t *testing.T) func(t *testing.T) {
-	return func(t *testing.T) {
-		wf1 := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf1))
-		wf2 := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf2))
-		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
-		workflow1 := resources.NewWorkflow(wf1, `["input"]`, "namespace", "queue", tags)
-		require.Nil(t, s.SaveWorkflow(*workflow1))
-		workflow2 := resources.NewWorkflow(wf2, `["input"]`, "namespace", "queue", tags)
-		require.Nil(t, s.SaveWorkflow(*workflow2))
-
-		pendingWorkflowIDs, err := s.GetPendingWorkflowIDs()
-		require.Nil(t, err)
-		require.Equal(t, pendingWorkflowIDs, []string{workflow1.ID, workflow2.ID})
-
-		workflow1.Status = models.WorkflowStatusRunning
-		require.Nil(t, s.UpdateWorkflow(*workflow1))
-
-		pendingWorkflowIDs, err = s.GetPendingWorkflowIDs()
-		require.Nil(t, err)
-		require.Equal(t, pendingWorkflowIDs, []string{workflow2.ID, workflow1.ID})
-
-		workflow2.Status = models.WorkflowStatusSucceeded
-		require.Nil(t, s.UpdateWorkflow(*workflow2))
-
-		pendingWorkflowIDs, err = s.GetPendingWorkflowIDs()
-		require.Nil(t, err)
-		require.Equal(t, pendingWorkflowIDs, []string{workflow1.ID})
-
-	}
-}
-
-func LockUnlockWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
-	return func(t *testing.T) {
-		wfd1 := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wfd1))
-		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
-		wf1 := resources.NewWorkflow(wfd1, `["input"]`, "namespace", "queue", tags)
-		require.Nil(t, s.SaveWorkflow(*wf1))
-
-		require.Nil(t, s.LockWorkflow(wf1.ID))
-		require.Equal(t, s.LockWorkflow(wf1.ID), store.ErrWorkflowLocked)
-		require.Nil(t, s.UnlockWorkflow(wf1.ID))
-		require.Nil(t, s.UnlockWorkflow(wf1.ID)) // unlocking an unlocked workflow is ok
-		require.Nil(t, s.LockWorkflow(wf1.ID))   // can reacquire the lock
 	}
 }
