@@ -21,6 +21,16 @@ routes:
       dimensions: ["workflow-id", "execution-id"]
       stat_type: "counter"
 
+  update-loop-lag-alert:
+    matchers:
+      title: ["pending-workflow-update-lag"]
+    output:
+      type: "alerts"
+      series: "workflow-manager.update-loop-lag-seconds"
+      value_field: "update-loop-lag-seconds"
+      stat_type: "gauge"
+      dimensions: []
+
   aws-sdk-go-counter:
     matchers:
       title: ["aws-sdk-go-counter"]

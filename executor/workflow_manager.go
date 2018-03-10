@@ -100,5 +100,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 		return "", err
 	}
 
+	logPendingWorkflowUpdateLag(wf)
+
 	return wfID, nil
 }
