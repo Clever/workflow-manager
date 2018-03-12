@@ -123,7 +123,7 @@ func getEnvVarOrDefault(envVarName, defaultIfEmpty string) string {
 
 func logSFNCounts(sfnCounter *sfncounter.SFN) {
 	ticker := time.NewTicker(30 * time.Second)
-	for _ = range ticker.C {
+	for range ticker.C {
 		executor.LogSFNCounts(sfnCounter.Counters())
 	}
 }
