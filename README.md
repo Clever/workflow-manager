@@ -110,6 +110,7 @@ For more information, see the [full schema definition](docs/definitions.md#workf
 ### Updating the Data Store at Clever
 
 - If you need to add an index to the DynamoDB store, update the DynamoDB configuration in through the `infra` repo in addition to making code changes in this repo. The list of indices can be verified in the AWS console.
+- The DynamoDB store ignores `Workflow.Jobs` in case the size of the Workflow > 400KB due to DynamoDB limits.
 
 ### Updating the API
 
