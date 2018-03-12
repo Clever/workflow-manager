@@ -19,6 +19,9 @@ import (
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
+// AWS ValidationException message when item is > 400KB
+const errMessageItemTooLarge = "Item size has exceeded the maximum allowed size"
+
 type DynamoDB struct {
 	ddb         dynamodbiface.DynamoDBAPI
 	tableConfig TableConfig
@@ -530,8 +533,22 @@ func (d DynamoDB) UpdateWorkflow(workflow models.Workflow) error {
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
+			switch awsErr.Code() {
+			case dynamodb.ErrCodeConditionalCheckFailedException:
 				return store.NewNotFound(workflow.ID)
+			case "ValidationException":
+				if awsErr.Message() == errMessageItemTooLarge {
+					log.WarnD("workflow-too-large", logger.M{
+						"error":     awsErr.Message(),
+						"id":        workflow.ID,
+						"name":      workflow.WorkflowDefinition.Name,
+						"namespace": workflow.Namespace,
+					})
+					// try again without jobs
+					wfCopy := resources.CopyWorkflow(workflow)
+					wfCopy.Jobs = nil
+					return d.UpdateWorkflow(wfCopy)
+				}
 			}
 		}
 	}

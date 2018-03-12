@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -24,6 +25,7 @@ func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
 	t.Run("DeleteStateResource", DeleteStateResource(storeFactory(), t))
 	t.Run("SaveWorkflow", SaveWorkflow(storeFactory(), t))
 	t.Run("UpdateWorkflow", UpdateWorkflow(storeFactory(), t))
+	t.Run("UpdateLargeWorkflow", UpdateLargeWorkflow(storeFactory(), t))
 	t.Run("DeleteWorkflow", DeleteWorkflow(storeFactory(), t))
 	t.Run("GetWorkflowByID", GetWorkflowByID(storeFactory(), t))
 	t.Run("GetWorkflows", GetWorkflows(storeFactory(), t))
@@ -197,6 +199,39 @@ func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 		require.WithinDuration(t, time.Time(savedWorkflow.LastUpdated), time.Now(), 1*time.Second)
 		require.True(t, time.Time(savedWorkflow.LastUpdated).After(time.Time(savedWorkflow.CreatedAt)))
 		require.NotEqual(t, time.Time(savedWorkflow.LastUpdated), time.Time(savedWorkflow.CreatedAt))
+	}
+}
+
+func UpdateLargeWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		wf := resources.KitchenSinkWorkflowDefinition(t)
+		require.Nil(t, s.SaveWorkflowDefinition(*wf))
+		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
+		workflow := resources.NewWorkflow(wf, `["input"]`, "namespace", "queue", tags)
+		require.Nil(t, s.SaveWorkflow(*workflow))
+
+		updatedWorkflow, err := s.GetWorkflowByID(workflow.ID)
+		jobs := []*models.Job{}
+		for i := 0; i < 4000; i++ {
+			text := fmt.Sprintf("%d-test-id", i)
+			jobs = append(jobs, &models.Job{
+				Container:    "test container",
+				ID:           text,
+				Name:         text,
+				Output:       text,
+				Status:       models.JobStatusCreated,
+				StatusReason: text,
+			})
+		}
+		updatedWorkflow.Jobs = jobs
+		err = s.UpdateWorkflow(updatedWorkflow)
+		require.Nil(t, err)
+
+		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
+		require.NoError(t, err)
+		require.Equal(t, savedWorkflow.Status, updatedWorkflow.Status)
+		// Large Workflows don't save Jobs in DynamoDB
+		//require.Equal(t, len(savedWorkflow.Jobs), len(updatedWorkflow.Jobs))
 	}
 }
 

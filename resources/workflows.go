@@ -5,6 +5,7 @@ import (
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/go-openapi/strfmt"
+	"github.com/mohae/deepcopy"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -75,4 +76,12 @@ func WorkflowIsDone(wf *models.Workflow) bool {
 	return (wf.Status == models.WorkflowStatusCancelled ||
 		wf.Status == models.WorkflowStatusFailed ||
 		wf.Status == models.WorkflowStatusSucceeded)
+}
+
+// CopyWorkflow creates a copy of an existing Worflow including WorkflowID
+//
+// This is used to save sligtly different copies of Workflows in the store
+func CopyWorkflow(workflow models.Workflow) models.Workflow {
+	newWorkflow := deepcopy.Copy(workflow).(models.Workflow)
+	return newWorkflow
 }
