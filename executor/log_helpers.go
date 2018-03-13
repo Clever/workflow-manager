@@ -40,8 +40,8 @@ func logWorkflowStatusChange(workflow *models.Workflow, previousStatus models.Wo
 	})
 }
 
-func logPendingWorkflowsLocked(wf models.Workflow) {
-	log.InfoD("pending-workflows-locked", logger.M{
+func logPendingWorkflowUpdateLag(wf models.Workflow) {
+	log.InfoD("pending-workflow-update-lag", logger.M{
 		"id": wf.ID,
 		"update-loop-lag-seconds": int(time.Now().Sub(time.Time(wf.LastUpdated)) / time.Second),
 	})

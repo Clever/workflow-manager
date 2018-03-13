@@ -2,7 +2,6 @@ package dynamodb
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -683,62 +682,4 @@ func (b byLastUpdatedTime) Len() int      { return len(b) }
 func (b byLastUpdatedTime) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 func (b byLastUpdatedTime) Less(i, j int) bool {
 	return time.Time(b[i].LastUpdated).Before(time.Time(b[j].LastUpdated))
-}
-
-// GetPendingWorkflowIDs gets workflows that are either Queued or Running.
-// It uses a global secondary index on status and last updated time in order to return
-// workflows ordered by their last updated time. Workflows with the oldest last updated
-// time are returned first.
-func (d DynamoDB) GetPendingWorkflowIDs() ([]string, error) {
-	// TODO: Replace this with ResolvedByUser?
-	var pendingWorkflows []models.Workflow
-	for _, statusToQuery := range []models.WorkflowStatus{models.WorkflowStatusQueued, models.WorkflowStatusRunning} {
-		query, err := ddbWorkflowSecondaryKeyStatusLastUpdated{
-			Status: statusToQuery,
-		}.ConstructQuery()
-		if err != nil {
-			return nil, err
-		}
-		query.TableName = aws.String(d.workflowsTable())
-		query.Limit = aws.Int64(5)
-		res, err := d.ddb.Query(query)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, item := range res.Items {
-			workflow, err := DecodeWorkflow(item)
-			if err != nil {
-				return nil, err
-			}
-			pendingWorkflows = append(pendingWorkflows, workflow)
-		}
-	}
-
-	sort.Sort(byLastUpdatedTime(pendingWorkflows))
-
-	pendingWorkflowIDs := []string{}
-	for _, pendingWorkflow := range pendingWorkflows {
-		pendingWorkflowIDs = append(pendingWorkflowIDs, pendingWorkflow.ID)
-	}
-	return pendingWorkflowIDs, nil
-}
-
-// LockWorkflow acquires a lock on modifying a workflow.
-func (d DynamoDB) LockWorkflow(id string) error {
-	mu := ddbsync.NewMutex(id, 30 /* seconds */, d.lockDB, 0 /* no reattempts, so irrelevant */)
-	if err := mu.AttemptLock(); err != nil {
-		if err == ddbsync.ErrLockAlreadyHeld {
-			return store.ErrWorkflowLocked
-		}
-		return err
-	}
-	return nil
-}
-
-// UnlockWorkflow releases a lock (if it exists) on modifying a workflow.
-func (d DynamoDB) UnlockWorkflow(id string) error {
-	mu := ddbsync.NewMutex(id, 30 /* seconds */, d.lockDB, 0 /* no reattempts, so irrelevant */)
-	mu.Unlock()
-	return nil
 }

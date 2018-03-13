@@ -21,7 +21,7 @@ func TestRoutingRules(t *testing.T) {
 	t.Run("update-loop-lag-alert", func(t *testing.T) {
 		mocklog := logger.NewMockCountLogger("workflow-manager")
 		log = mocklog
-		logPendingWorkflowsLocked(models.Workflow{
+		logPendingWorkflowUpdateLag(models.Workflow{
 			WorkflowSummary: models.WorkflowSummary{
 				ID:                 "id",
 				LastUpdated:        strfmt.DateTime(time.Now()),

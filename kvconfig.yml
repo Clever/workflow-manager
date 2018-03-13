@@ -23,7 +23,7 @@ routes:
 
   update-loop-lag-alert:
     matchers:
-      title: ["pending-workflows-locked"]
+      title: ["pending-workflow-update-lag"]
     output:
       type: "alerts"
       series: "workflow-manager.update-loop-lag-seconds"

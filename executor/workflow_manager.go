@@ -2,11 +2,16 @@ package executor
 
 import (
 	"context"
-	"time"
+	"sync"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 )
 
 // WorkflowManager is the interface for creating, stopping and checking status for Workflows
@@ -18,67 +23,84 @@ type WorkflowManager interface {
 	UpdateWorkflowHistory(workflow *models.Workflow) error
 }
 
-// PollForPendingWorkflowsAndUpdateStore polls the store for workflows in a pending state and
-// attempts to update them. It will stop polling when the context is done.
-func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store) {
-	ticker := time.NewTicker(500 * time.Millisecond)
+// PollForPendingWorkflowsAndUpdateStore polls an SQS queue for workflows needing an update.
+// It will stop polling when the context is done.
+func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.InfoD("poll-for-pending-workflows-done", logger.M{})
-			ticker.Stop()
+			log.Info("poll-for-pending-workflows-done")
 			return
-		case <-ticker.C:
-			if id, err := checkPendingWorkflows(wm, thestore); err != nil {
-				log.ErrorD("poll-for-pending-workflows", logger.M{"id": id, "error": err.Error()})
-			} else {
-				log.InfoD("poll-for-pending-workflows", logger.M{"id": id})
+		default:
+			out, err := sqsapi.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
+				MaxNumberOfMessages: aws.Int64(10),
+				QueueUrl:            aws.String(sqsQueueURL),
+			})
+			if err != nil {
+				log.ErrorD("poll-for-pending-workflows", logger.M{"error": err.Error()})
 			}
+
+			var wg sync.WaitGroup
+			wg.Add(len(out.Messages))
+			for _, message := range out.Messages {
+				go func(m *sqs.Message) {
+					defer wg.Done()
+					if id, err := updatePendingWorkflow(ctx, m, wm, thestore, sqsapi, sqsQueueURL); err != nil {
+						log.ErrorD("update-pending-workflow", logger.M{"id": id, "error": err.Error()})
+					} else {
+						log.InfoD("update-pending-workflow", logger.M{"id": id})
+					}
+				}(message)
+			}
+			wg.Wait()
 		}
 	}
 }
 
-func lockAvailableWorkflow(thestore store.Store, workflowIDs []string) (string, error) {
-	for _, wfID := range workflowIDs {
-		if err := thestore.LockWorkflow(wfID); err == nil {
-			return wfID, nil
-		} else if err != store.ErrWorkflowLocked {
-			// an error reading from the Store
-			return "", err
-		}
-	}
-	return "", nil
+// updateLoopDelay is the minimum amount of time between each update to a
+// workflow's state. State is sync'd from workflow manager's backend, Step Functions.
+const updateLoopDelay = 30
+
+func createPendingWorkflow(ctx context.Context, workflowID string, sqsapi sqsiface.SQSAPI, sqsQueueURL string) error {
+	_, err := sqsapi.SendMessageWithContext(ctx, &sqs.SendMessageInput{
+		MessageBody:  aws.String(workflowID),
+		QueueUrl:     aws.String(sqsQueueURL),
+		DelaySeconds: aws.Int64(updateLoopDelay),
+	})
+	return err
 }
 
-func checkPendingWorkflows(wm WorkflowManager, thestore store.Store) (string, error) {
-	wfIDs, err := thestore.GetPendingWorkflowIDs()
+func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
+	wfID := *m.Body
+	wf, err := thestore.GetWorkflowByID(wfID)
 	if err != nil {
 		return "", err
 	}
 
-	// attempt to lock one of the workflows for updating
-	wfLockedID, err := lockAvailableWorkflow(thestore, wfIDs)
-	if err != nil {
-		return "", err
-	}
-	if wfLockedID == "" {
-		log.InfoD("pending-workflows-noop", logger.M{"pending": len(wfIDs)})
-		return "", nil
-	}
-
-	defer func() {
-		log.InfoD("pending-workflows-unlocked", logger.M{"id": wfLockedID})
-		if err := thestore.UnlockWorkflow(wfLockedID); err != nil {
-			log.ErrorD("pending-workflows-unlock-error", logger.M{"id": wfLockedID, "error": err.Error()})
-		}
-	}()
-
-	wf, err := thestore.GetWorkflowByID(wfLockedID)
-	if err != nil {
-		return wfLockedID, err
-	}
-
-	logPendingWorkflowsLocked(wf)
 	err = wm.UpdateWorkflowSummary(&wf)
-	return wfLockedID, err
+	if err != nil {
+		return "", err
+	}
+
+	// If workflow is not yet complete, send message to SQS to request a future update.
+	if !resources.WorkflowIsDone(&wf) {
+		_, err = sqsapi.SendMessageWithContext(ctx, &sqs.SendMessageInput{
+			MessageBody:  aws.String(wfID),
+			QueueUrl:     aws.String(sqsQueueURL),
+			DelaySeconds: aws.Int64(updateLoopDelay),
+		})
+	}
+
+	// Delete processed message from queue
+	_, err = sqsapi.DeleteMessageWithContext(ctx, &sqs.DeleteMessageInput{
+		QueueUrl:      aws.String(sqsQueueURL),
+		ReceiptHandle: m.ReceiptHandle,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	logPendingWorkflowUpdateLag(wf)
+
+	return wfID, nil
 }

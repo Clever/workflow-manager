@@ -7,11 +7,18 @@ env:
   - AWS_SFN_REGION
   - AWS_SFN_ROLE_ARN
   - AWS_SFN_ACCOUNT_ID
+  - AWS_SQS_REGION
+  - AWS_SQS_URL 
 resources:
   cpu: 0.4
   soft_mem_limit: 0.15
   max_mem: 0.3
 aws:
+  sqs:
+    read:
+    - workflow-manager-update-loop
+    write:
+    - workflow-manager-update-loop
   custom: true
 expose:
 - name: default

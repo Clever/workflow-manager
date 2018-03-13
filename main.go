@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/kardianos/osext"
 
 	"github.com/Clever/aws-sdk-go-counter/counter/sfncounter"
@@ -31,6 +32,8 @@ type Config struct {
 	SFNRegion                       string
 	SFNAccountID                    string
 	SFNRoleARN                      string
+	SQSRegion                       string
+	SQSQueueURL                     string
 }
 
 func setupRouting() {
@@ -65,14 +68,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID)
+
+	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.SQSRegion))
+	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL)
 	h := Handler{
 		store:   db,
 		manager: wfmSFN,
 	}
 	s := server.New(h, *addr)
 
-	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db)
+	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db, sqsapi, c.SQSQueueURL)
 	go logSFNCounts(countedSFNAPI)
 
 	if err := s.Serve(); err != nil {
@@ -109,6 +114,8 @@ func loadConfig() Config {
 		SFNRegion:    os.Getenv("AWS_SFN_REGION"),
 		SFNAccountID: os.Getenv("AWS_SFN_ACCOUNT_ID"),
 		SFNRoleARN:   os.Getenv("AWS_SFN_ROLE_ARN"),
+		SQSRegion:    os.Getenv("AWS_SQS_REGION"),
+		SQSQueueURL:  os.Getenv("AWS_SQS_URL"),
 	}
 }
 

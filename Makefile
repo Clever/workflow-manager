@@ -1,7 +1,7 @@
 include golang.mk
 include wag.mk
 
-.PHONY: all test build run dynamodb-test
+.PHONY: all test build run dynamodb-test mocks
 SHELL := /bin/bash
 APP_NAME ?= workflow-manager
 EXECUTABLE = $(APP_NAME)
@@ -42,9 +42,12 @@ generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 
 install_deps: golang-dep-vendor-deps
 	$(call golang-dep-vendor)
+	make mocks
+
+mocks:
 	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
 	mkdir -p mocks/
 	rm -rf mocks/*
-	for svc in dynamodb sfn; do \
+	for svc in dynamodb sfn sqs; do \
 	  bin/mockgen -package mocks -source ./vendor/github.com/aws/aws-sdk-go/service/$${svc}/$${svc}iface/interface.go > mocks/$${svc}.go; \
 	done

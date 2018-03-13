@@ -262,34 +262,3 @@ func (b byLastUpdatedTime) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 func (b byLastUpdatedTime) Less(i, j int) bool {
 	return time.Time(b[i].LastUpdated).Before(time.Time(b[j].LastUpdated))
 }
-
-func (s MemoryStore) GetPendingWorkflowIDs() ([]string, error) {
-	var pendingWorkflows []models.Workflow
-	for _, wf := range s.workflows {
-		if !(wf.Status == models.WorkflowStatusQueued || wf.Status == models.WorkflowStatusRunning) {
-			continue
-		}
-		wfcopy := wf // don't store loop variables
-		pendingWorkflows = append(pendingWorkflows, wfcopy)
-	}
-	sort.Sort(byLastUpdatedTime(pendingWorkflows))
-	pendingWorkflowIDs := []string{}
-	for _, pendingWorkflow := range pendingWorkflows {
-		pendingWorkflowIDs = append(pendingWorkflowIDs, pendingWorkflow.ID)
-	}
-	return pendingWorkflowIDs, nil
-
-}
-
-func (s MemoryStore) LockWorkflow(id string) error {
-	if _, ok := s.workflowsLocked[id]; ok {
-		return store.ErrWorkflowLocked
-	}
-	s.workflowsLocked[id] = struct{}{}
-	return nil
-}
-
-func (s MemoryStore) UnlockWorkflow(id string) error {
-	delete(s.workflowsLocked, id)
-	return nil
-}

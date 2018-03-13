@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/mohae/deepcopy"
@@ -36,20 +37,24 @@ var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 
 // SFNWorkflowManager manages workflows run through AWS Step Functions.
 type SFNWorkflowManager struct {
-	sfnapi    sfniface.SFNAPI
-	store     store.Store
-	region    string
-	roleARN   string
-	accountID string
+	sfnapi      sfniface.SFNAPI
+	sqsapi      sqsiface.SQSAPI
+	store       store.Store
+	region      string
+	roleARN     string
+	accountID   string
+	sqsQueueURL string
 }
 
-func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, store store.Store, roleARN, region, accountID string) *SFNWorkflowManager {
+func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, store store.Store, roleARN, region, accountID, sqsQueueURL string) *SFNWorkflowManager {
 	return &SFNWorkflowManager{
-		sfnapi:    sfnapi,
-		store:     store,
-		roleARN:   roleARN,
-		region:    region,
-		accountID: accountID,
+		sfnapi:      sfnapi,
+		sqsapi:      sqsapi,
+		store:       store,
+		roleARN:     roleARN,
+		region:      region,
+		accountID:   accountID,
+		sqsQueueURL: sqsQueueURL,
 	}
 }
 
@@ -228,6 +233,12 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
 			})
 		}
 
+		return nil, err
+	}
+
+	// start update loop for this workflow
+	err = createPendingWorkflow(context.TODO(), workflow.ID, wm.sqsapi, wm.sqsQueueURL)
+	if err != nil {
 		return nil, err
 	}
 
