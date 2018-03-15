@@ -48,7 +48,6 @@ type ddbWorkflow struct {
 	ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt
 	ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt
 	ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt
-	ddbWorkflowSecondaryKeyStatusLastUpdated
 	ddbWorkflowTTL
 	Workflow models.Workflow
 }
@@ -74,10 +73,6 @@ func EncodeWorkflow(workflow models.Workflow) (map[string]*dynamodb.AttributeVal
 				workflow.WorkflowDefinition.Name,
 				bool(workflow.ResolvedByUser),
 			),
-		},
-		ddbWorkflowSecondaryKeyStatusLastUpdated: ddbWorkflowSecondaryKeyStatusLastUpdated{
-			Status:      workflow.Status,
-			LastUpdated: workflow.LastUpdated,
 		},
 		ddbWorkflowTTL: ddbWorkflowTTL{
 			TTL: strfmt.DateTime(time.Time(workflow.CreatedAt).Add(WorkflowTTL)),
@@ -320,60 +315,6 @@ func (sk ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt) KeySchema() []*dynamo
 		},
 		{
 			AttributeName: aws.String("_gsi-ca"),
-			KeyType:       aws.String(dynamodb.KeyTypeRange),
-		},
-	}
-}
-
-// ddbWorkflowSecondaryKeyStatusLastUpdated is a global secondary index that
-// allows us to query for the oldest in terms of (last updated time) workflow in a pending state.
-type ddbWorkflowSecondaryKeyStatusLastUpdated struct {
-	Status      models.WorkflowStatus `dynamodbav:"_gsi-status,omitempty"`
-	LastUpdated strfmt.DateTime       `dynamodbav:"_gsi-lastUpdated,omitempty"`
-}
-
-func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) Name() string {
-	return "status-lastUpdated"
-}
-
-func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) AttributeDefinitions() []*dynamodb.AttributeDefinition {
-	return []*dynamodb.AttributeDefinition{
-		{
-			AttributeName: aws.String("_gsi-status"),
-			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
-		},
-		{
-			AttributeName: aws.String("_gsi-lastUpdated"),
-			AttributeType: aws.String(dynamodb.ScalarAttributeTypeS),
-		},
-	}
-}
-
-func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) ConstructQuery() (*dynamodb.QueryInput, error) {
-	statusAV, err := dynamodbattribute.Marshal(sk.Status)
-	if err != nil {
-		return nil, fmt.Errorf("could not marshal workflow status type: %s", err)
-	}
-	return &dynamodb.QueryInput{
-		IndexName: aws.String(sk.Name()),
-		ExpressionAttributeNames: map[string]*string{
-			"#S": aws.String("_gsi-status"),
-		},
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":status": statusAV,
-		},
-		KeyConditionExpression: aws.String("#S = :status"),
-	}, nil
-}
-
-func (sk ddbWorkflowSecondaryKeyStatusLastUpdated) KeySchema() []*dynamodb.KeySchemaElement {
-	return []*dynamodb.KeySchemaElement{
-		{
-			AttributeName: aws.String("_gsi-status"),
-			KeyType:       aws.String(dynamodb.KeyTypeHash),
-		},
-		{
-			AttributeName: aws.String("_gsi-lastUpdated"),
 			KeyType:       aws.String(dynamodb.KeyTypeRange),
 		},
 	}

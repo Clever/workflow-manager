@@ -147,7 +147,6 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 		(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.AttributeDefinitions()),
-		(ddbWorkflowSecondaryKeyStatusLastUpdated{}.AttributeDefinitions()),
 	} {
 		workflowAttributeDefinitions = append(workflowAttributeDefinitions, ads...)
 	}
@@ -180,17 +179,6 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 			{
 				IndexName: aws.String(ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.Name()),
 				KeySchema: ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.KeySchema(),
-				Projection: &dynamodb.Projection{
-					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
-				},
-				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-					ReadCapacityUnits:  aws.Int64(1),
-					WriteCapacityUnits: aws.Int64(1),
-				},
-			},
-			{
-				IndexName: aws.String(ddbWorkflowSecondaryKeyStatusLastUpdated{}.Name()),
-				KeySchema: ddbWorkflowSecondaryKeyStatusLastUpdated{}.KeySchema(),
 				Projection: &dynamodb.Projection{
 					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
 				},

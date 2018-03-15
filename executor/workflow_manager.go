@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
@@ -10,6 +11,8 @@ import (
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 )
@@ -23,10 +26,21 @@ type WorkflowManager interface {
 	UpdateWorkflowHistory(workflow *models.Workflow) error
 }
 
+var backoffDuration = time.Second * 5
+var shouldBackoff = false
+var shouldBackoffOnce *sync.Once
+
 // PollForPendingWorkflowsAndUpdateStore polls an SQS queue for workflows needing an update.
 // It will stop polling when the context is done.
 func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) {
 	for {
+		if shouldBackoff {
+			log.WarnD("poll-for-pending-workflows-backoff", logger.M{"duration": backoffDuration.String()})
+			time.Sleep(backoffDuration)
+		}
+		shouldBackoff = false
+		shouldBackoffOnce = &sync.Once{}
+
 		select {
 		case <-ctx.Done():
 			log.Info("poll-for-pending-workflows-done")
@@ -46,6 +60,15 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 				go func(m *sqs.Message) {
 					defer wg.Done()
 					if id, err := updatePendingWorkflow(ctx, m, wm, thestore, sqsapi, sqsQueueURL); err != nil {
+						// If we're seeing DynamoDB throttling, let's wait before running our next poll loop
+						if aerr, ok := err.(awserr.Error); ok {
+							switch aerr.Code() {
+							case dynamodb.ErrCodeProvisionedThroughputExceededException:
+								shouldBackoffOnce.Do(func() {
+									shouldBackoff = true
+								})
+							}
+						}
 						log.ErrorD("update-pending-workflow", logger.M{"id": id, "error": err.Error()})
 					} else {
 						log.InfoD("update-pending-workflow", logger.M{"id": id})
