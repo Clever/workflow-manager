@@ -35,6 +35,7 @@ var shouldBackoffOnce *sync.Once
 func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) {
 	for {
 		if shouldBackoff {
+			log.WarnD("poll-for-pending-workflows-backoff", logger.M{"duration": backoffDuration.String()})
 			time.Sleep(backoffDuration)
 		}
 		shouldBackoff = false
