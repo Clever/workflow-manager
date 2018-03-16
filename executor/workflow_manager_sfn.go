@@ -27,6 +27,7 @@ const (
 )
 
 var durationToRetryDescribeExecutions = 5 * time.Minute
+var durationToFetchHistoryPages = time.Minute
 
 var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 	BackoffRate:     1.0,
@@ -452,7 +453,14 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 			return job
 		}
 	}
-	if err := wm.sfnapi.GetExecutionHistoryPagesWithContext(context.TODO(), &sfn.GetExecutionHistoryInput{
+
+	// Setup a context with a timeout of one minute since
+	// we don't want to pull very large workflow histories
+	// TODO: this should be a context passed by the handler
+	ctx, cancel := context.WithTimeout(context.Background(), durationToFetchHistoryPages)
+	defer cancel()
+
+	if err := wm.sfnapi.GetExecutionHistoryPagesWithContext(ctx, &sfn.GetExecutionHistoryInput{
 		ExecutionArn: aws.String(execARN),
 	}, func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool {
 		// NOTE: if pulling the entire execution history becomes infeasible, we can:
