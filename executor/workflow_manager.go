@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -28,7 +27,6 @@ type WorkflowManager interface {
 
 var backoffDuration = time.Second * 5
 var shouldBackoff = false
-var shouldBackoffOnce *sync.Once
 
 // PollForPendingWorkflowsAndUpdateStore polls an SQS queue for workflows needing an update.
 // It will stop polling when the context is done.
@@ -39,7 +37,6 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 			time.Sleep(backoffDuration)
 		}
 		shouldBackoff = false
-		shouldBackoffOnce = &sync.Once{}
 
 		select {
 		case <-ctx.Done():
@@ -54,28 +51,22 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 				log.ErrorD("poll-for-pending-workflows", logger.M{"error": err.Error()})
 			}
 
-			var wg sync.WaitGroup
-			wg.Add(len(out.Messages))
 			for _, message := range out.Messages {
-				go func(m *sqs.Message) {
-					defer wg.Done()
-					if id, err := updatePendingWorkflow(ctx, m, wm, thestore, sqsapi, sqsQueueURL); err != nil {
-						// If we're seeing DynamoDB throttling, let's wait before running our next poll loop
-						if aerr, ok := err.(awserr.Error); ok {
-							switch aerr.Code() {
-							case dynamodb.ErrCodeProvisionedThroughputExceededException:
-								shouldBackoffOnce.Do(func() {
-									shouldBackoff = true
-								})
-							}
+				if id, err := updatePendingWorkflow(ctx, message, wm, thestore, sqsapi, sqsQueueURL); err != nil {
+					log.ErrorD("update-pending-workflow", logger.M{"id": id, "error": err.Error()})
+
+					// If we're seeing DynamoDB throttling, let's wait before running our next poll loop
+					if aerr, ok := err.(awserr.Error); ok {
+						switch aerr.Code() {
+						case dynamodb.ErrCodeProvisionedThroughputExceededException:
+							shouldBackoff = true
+							break
 						}
-						log.ErrorD("update-pending-workflow", logger.M{"id": id, "error": err.Error()})
-					} else {
-						log.InfoD("update-pending-workflow", logger.M{"id": id})
 					}
-				}(message)
+				} else {
+					log.InfoD("update-pending-workflow", logger.M{"id": id})
+				}
 			}
-			wg.Wait()
 		}
 	}
 }
