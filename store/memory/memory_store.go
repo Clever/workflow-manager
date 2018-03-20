@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"time"
@@ -38,7 +39,7 @@ func New() MemoryStore {
 	}
 }
 
-func (s MemoryStore) SaveWorkflowDefinition(def models.WorkflowDefinition) error {
+func (s MemoryStore) SaveWorkflowDefinition(ctx context.Context, def models.WorkflowDefinition) error {
 
 	if _, ok := s.workflowDefinitions[def.Name]; ok {
 		return store.NewConflict(def.Name)
@@ -48,8 +49,8 @@ func (s MemoryStore) SaveWorkflowDefinition(def models.WorkflowDefinition) error
 	return nil
 }
 
-func (s MemoryStore) UpdateWorkflowDefinition(def models.WorkflowDefinition) (models.WorkflowDefinition, error) {
-	last, err := s.LatestWorkflowDefinition(def.Name)
+func (s MemoryStore) UpdateWorkflowDefinition(ctx context.Context, def models.WorkflowDefinition) (models.WorkflowDefinition, error) {
+	last, err := s.LatestWorkflowDefinition(ctx, def.Name)
 	if err != nil {
 		return def, err
 	}
@@ -62,7 +63,7 @@ func (s MemoryStore) UpdateWorkflowDefinition(def models.WorkflowDefinition) (mo
 }
 
 // GetWorkflowDefinitions returns the latest version of all stored workflow definitions
-func (s MemoryStore) GetWorkflowDefinitions() ([]models.WorkflowDefinition, error) {
+func (s MemoryStore) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
 	workflowDefinitions := []models.WorkflowDefinition{}
 	// for each workflow definition
 	for _, versionedWorkflowDefinitions := range s.workflowDefinitions {
@@ -76,7 +77,7 @@ func (s MemoryStore) GetWorkflowDefinitions() ([]models.WorkflowDefinition, erro
 }
 
 // GetWorkflowDefinitionVersions gets all versions of a workflow definition
-func (s MemoryStore) GetWorkflowDefinitionVersions(name string) ([]models.WorkflowDefinition, error) {
+func (s MemoryStore) GetWorkflowDefinitionVersions(ctx context.Context, name string) ([]models.WorkflowDefinition, error) {
 	workflowDefinitions, ok := s.workflowDefinitions[name]
 	if !ok {
 		return []models.WorkflowDefinition{}, store.NewNotFound(name)
@@ -85,7 +86,7 @@ func (s MemoryStore) GetWorkflowDefinitionVersions(name string) ([]models.Workfl
 	return workflowDefinitions, nil
 }
 
-func (s MemoryStore) GetWorkflowDefinition(name string, version int) (models.WorkflowDefinition, error) {
+func (s MemoryStore) GetWorkflowDefinition(ctx context.Context, name string, version int) (models.WorkflowDefinition, error) {
 	if _, ok := s.workflowDefinitions[name]; !ok {
 		return models.WorkflowDefinition{}, store.NewNotFound(name)
 	}
@@ -97,15 +98,15 @@ func (s MemoryStore) GetWorkflowDefinition(name string, version int) (models.Wor
 	return s.workflowDefinitions[name][version], nil
 }
 
-func (s MemoryStore) LatestWorkflowDefinition(name string) (models.WorkflowDefinition, error) {
+func (s MemoryStore) LatestWorkflowDefinition(ctx context.Context, name string) (models.WorkflowDefinition, error) {
 	if _, ok := s.workflowDefinitions[name]; !ok {
 		return models.WorkflowDefinition{}, store.NewNotFound(name)
 	}
 
-	return s.GetWorkflowDefinition(name, len(s.workflowDefinitions[name])-1)
+	return s.GetWorkflowDefinition(ctx, name, len(s.workflowDefinitions[name])-1)
 }
 
-func (s MemoryStore) SaveStateResource(res models.StateResource) error {
+func (s MemoryStore) SaveStateResource(ctx context.Context, res models.StateResource) error {
 	resourceName := res.Name
 	if res.Namespace != "" {
 		resourceName = fmt.Sprintf("%s--%s", res.Namespace, res.Name)
@@ -115,7 +116,7 @@ func (s MemoryStore) SaveStateResource(res models.StateResource) error {
 	return nil
 }
 
-func (s MemoryStore) GetStateResource(name, namespace string) (models.StateResource, error) {
+func (s MemoryStore) GetStateResource(ctx context.Context, name, namespace string) (models.StateResource, error) {
 	resourceName := name
 	if namespace != "" {
 		resourceName = fmt.Sprintf("%s--%s", namespace, name)
@@ -128,7 +129,7 @@ func (s MemoryStore) GetStateResource(name, namespace string) (models.StateResou
 	return s.stateResources[resourceName], nil
 }
 
-func (s MemoryStore) DeleteStateResource(name, namespace string) error {
+func (s MemoryStore) DeleteStateResource(ctx context.Context, name, namespace string) error {
 	resourceName := name
 	if namespace != "" {
 		resourceName = fmt.Sprintf("%s--%s", namespace, name)
@@ -142,7 +143,7 @@ func (s MemoryStore) DeleteStateResource(name, namespace string) error {
 	return nil
 }
 
-func (s MemoryStore) SaveWorkflow(workflow models.Workflow) error {
+func (s MemoryStore) SaveWorkflow(ctx context.Context, workflow models.Workflow) error {
 	if _, ok := s.workflows[workflow.ID]; ok {
 		return store.NewConflict(workflow.ID)
 	}
@@ -152,7 +153,7 @@ func (s MemoryStore) SaveWorkflow(workflow models.Workflow) error {
 	return nil
 }
 
-func (s MemoryStore) UpdateWorkflow(workflow models.Workflow) error {
+func (s MemoryStore) UpdateWorkflow(ctx context.Context, workflow models.Workflow) error {
 	if _, ok := s.workflows[workflow.ID]; !ok {
 		return store.NewNotFound(workflow.ID)
 	}
@@ -161,7 +162,7 @@ func (s MemoryStore) UpdateWorkflow(workflow models.Workflow) error {
 	return nil
 }
 
-func (s MemoryStore) DeleteWorkflowByID(workflowID string) error {
+func (s MemoryStore) DeleteWorkflowByID(ctx context.Context, workflowID string) error {
 	if _, ok := s.workflows[workflowID]; !ok {
 		return store.NewNotFound(workflowID)
 	}
@@ -169,7 +170,7 @@ func (s MemoryStore) DeleteWorkflowByID(workflowID string) error {
 	return nil
 }
 
-func (s MemoryStore) GetWorkflows(
+func (s MemoryStore) GetWorkflows(ctx context.Context,
 	query *models.WorkflowQuery,
 ) ([]models.Workflow, string, error) {
 	workflows := []models.Workflow{}
@@ -247,7 +248,7 @@ func (s MemoryStore) matchesQuery(workflow models.Workflow, query *models.Workfl
 	return true
 }
 
-func (s MemoryStore) GetWorkflowByID(id string) (models.Workflow, error) {
+func (s MemoryStore) GetWorkflowByID(ctx context.Context, id string) (models.Workflow, error) {
 	if _, ok := s.workflows[id]; !ok {
 		return models.Workflow{}, store.NewNotFound(id)
 	}

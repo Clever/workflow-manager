@@ -18,11 +18,11 @@ import (
 
 // WorkflowManager is the interface for creating, stopping and checking status for Workflows
 type WorkflowManager interface {
-	CreateWorkflow(def models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error)
-	RetryWorkflow(workflow models.Workflow, startAt, input string) (*models.Workflow, error)
-	CancelWorkflow(workflow *models.Workflow, reason string) error
-	UpdateWorkflowSummary(workflow *models.Workflow) error
-	UpdateWorkflowHistory(workflow *models.Workflow) error
+	CreateWorkflow(ctx context.Context, def models.WorkflowDefinition, input string, namespace string, queue string, tags map[string]interface{}) (*models.Workflow, error)
+	RetryWorkflow(ctx context.Context, workflow models.Workflow, startAt, input string) (*models.Workflow, error)
+	CancelWorkflow(ctx context.Context, workflow *models.Workflow, reason string) error
+	UpdateWorkflowSummary(ctx context.Context, workflow *models.Workflow) error
+	UpdateWorkflowHistory(ctx context.Context, workflow *models.Workflow) error
 }
 
 var backoffDuration = time.Second * 5
@@ -86,14 +86,14 @@ func createPendingWorkflow(ctx context.Context, workflowID string, sqsapi sqsifa
 
 func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
 	wfID := *m.Body
-	wf, err := thestore.GetWorkflowByID(wfID)
+	wf, err := thestore.GetWorkflowByID(ctx, wfID)
 	if err != nil {
 		return "", err
 	}
 
 	logPendingWorkflowUpdateLag(wf)
 
-	err = wm.UpdateWorkflowSummary(&wf)
+	err = wm.UpdateWorkflowSummary(ctx, &wf)
 	if err != nil {
 		return "", err
 	}

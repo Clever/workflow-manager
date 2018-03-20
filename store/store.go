@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -8,22 +9,22 @@ import (
 
 // Store defines the interface for persistence of Workflow Manager resources.
 type Store interface {
-	SaveWorkflowDefinition(wfd models.WorkflowDefinition) error
-	UpdateWorkflowDefinition(wfd models.WorkflowDefinition) (models.WorkflowDefinition, error)
-	GetWorkflowDefinitions() ([]models.WorkflowDefinition, error)
-	GetWorkflowDefinitionVersions(name string) ([]models.WorkflowDefinition, error)
-	GetWorkflowDefinition(name string, version int) (models.WorkflowDefinition, error)
-	LatestWorkflowDefinition(name string) (models.WorkflowDefinition, error)
+	SaveWorkflowDefinition(ctx context.Context, wfd models.WorkflowDefinition) error
+	UpdateWorkflowDefinition(ctx context.Context, wfd models.WorkflowDefinition) (models.WorkflowDefinition, error)
+	GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error)
+	GetWorkflowDefinitionVersions(ctx context.Context, name string) ([]models.WorkflowDefinition, error)
+	GetWorkflowDefinition(ctx context.Context, name string, version int) (models.WorkflowDefinition, error)
+	LatestWorkflowDefinition(ctx context.Context, name string) (models.WorkflowDefinition, error)
 
-	SaveStateResource(res models.StateResource) error
-	GetStateResource(name, namespace string) (models.StateResource, error)
-	DeleteStateResource(name, namespace string) error
+	SaveStateResource(ctx context.Context, res models.StateResource) error
+	GetStateResource(ctx context.Context, name, namespace string) (models.StateResource, error)
+	DeleteStateResource(ctx context.Context, name, namespace string) error
 
-	SaveWorkflow(workflow models.Workflow) error
-	DeleteWorkflowByID(workflowID string) error
-	UpdateWorkflow(workflow models.Workflow) error
-	GetWorkflowByID(id string) (models.Workflow, error)
-	GetWorkflows(query *models.WorkflowQuery) ([]models.Workflow, string, error)
+	SaveWorkflow(ctx context.Context, workflow models.Workflow) error
+	DeleteWorkflowByID(ctx context.Context, workflowID string) error
+	UpdateWorkflow(ctx context.Context, workflow models.Workflow) error
+	GetWorkflowByID(ctx context.Context, id string) (models.Workflow, error)
+	GetWorkflows(ctx context.Context, query *models.WorkflowQuery) ([]models.Workflow, string, error)
 }
 
 type ConflictError struct {

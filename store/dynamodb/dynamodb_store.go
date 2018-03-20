@@ -1,6 +1,7 @@
 package dynamodb
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -85,9 +86,9 @@ func (d DynamoDB) dynamoItemsToWorkflowDefinitions(items []map[string]*dynamodb.
 }
 
 // InitTables creates the dynamo tables.
-func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
+func (d DynamoDB) InitTables(ctx context.Context, setupWorkflowsTTL bool) error {
 	// create workflowDefinitions table from name, version -> workflow object
-	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
+	if _, err := d.ddb.CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
 				AttributeName: aws.String("name"),
@@ -118,7 +119,7 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 	}
 
 	// create latest workflowDefinitions table from name -> workflow object
-	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
+	if _, err := d.ddb.CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
 				AttributeName: aws.String("name"),
@@ -150,7 +151,7 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 	} {
 		workflowAttributeDefinitions = append(workflowAttributeDefinitions, ads...)
 	}
-	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
+	if _, err := d.ddb.CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: workflowAttributeDefinitions,
 		KeySchema:            ddbWorkflowPrimaryKey{}.KeySchema(),
 		GlobalSecondaryIndexes: []*dynamodb.GlobalSecondaryIndex{
@@ -197,7 +198,7 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 		return err
 	}
 	if setupWorkflowsTTL {
-		if _, err := d.ddb.UpdateTimeToLive(&dynamodb.UpdateTimeToLiveInput{
+		if _, err := d.ddb.UpdateTimeToLiveWithContext(ctx, &dynamodb.UpdateTimeToLiveInput{
 			TableName: aws.String(d.workflowsTable()),
 			TimeToLiveSpecification: &dynamodb.TimeToLiveSpecification{
 				AttributeName: ddbWorkflowTTL{}.AttributeDefinition().AttributeName,
@@ -209,7 +210,7 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 	}
 
 	// create state-resources table from stateResource.{name, namespace} -> stateResource object
-	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
+	if _, err := d.ddb.CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: ddbStateResourcePrimaryKey{}.AttributeDefinitions(),
 		KeySchema:            ddbStateResourcePrimaryKey{}.KeySchema(),
 		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
@@ -222,7 +223,7 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 	}
 
 	// create locks table. This should probably be exposed in ddbsync
-	if _, err := d.ddb.CreateTable(&dynamodb.CreateTableInput{
+	if _, err := d.ddb.CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
 				AttributeName: aws.String("Name"),
@@ -249,7 +250,7 @@ func (d DynamoDB) InitTables(setupWorkflowsTTL bool) error {
 
 // SaveWorkflowDefinition saves a workflow definition.
 // If the workflow already exists, it will return a store.ConflictError.
-func (d DynamoDB) SaveWorkflowDefinition(def models.WorkflowDefinition) error {
+func (d DynamoDB) SaveWorkflowDefinition(ctx context.Context, def models.WorkflowDefinition) error {
 	def.CreatedAt = strfmt.DateTime(time.Now())
 
 	data, err := EncodeWorkflowDefinition(def)
@@ -257,7 +258,7 @@ func (d DynamoDB) SaveWorkflowDefinition(def models.WorkflowDefinition) error {
 		return err
 	}
 
-	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
+	_, err = d.ddb.PutItemWithContext(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(d.workflowDefinitionsTable()),
 		Item:      data,
 		ExpressionAttributeNames: map[string]*string{
@@ -274,7 +275,7 @@ func (d DynamoDB) SaveWorkflowDefinition(def models.WorkflowDefinition) error {
 		}
 		return err
 	}
-	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
+	_, err = d.ddb.PutItemWithContext(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(d.latestWorkflowDefinitionsTable()),
 		Item:      data,
 	})
@@ -285,27 +286,27 @@ func (d DynamoDB) SaveWorkflowDefinition(def models.WorkflowDefinition) error {
 // UpdateWorkflowDefinition updates an existing workflow definition.
 // The version will be set to the version following the latest definition.
 // The workflow definition returned contains this new version number.
-func (d DynamoDB) UpdateWorkflowDefinition(def models.WorkflowDefinition) (models.WorkflowDefinition, error) {
+func (d DynamoDB) UpdateWorkflowDefinition(ctx context.Context, def models.WorkflowDefinition) (models.WorkflowDefinition, error) {
 	// TODO we should change this to use the latest-workflows table with a projection expressions
-	latest, err := d.LatestWorkflowDefinition(def.Name) // TODO: only need version here, can optimize query
+	latest, err := d.LatestWorkflowDefinition(ctx, def.Name) // TODO: only need version here, can optimize query
 	if err != nil {
 		return def, err
 	}
 
 	// TODO: this isn't thread safe...
 	newVersion := resources.NewWorkflowDefinitionVersion(&def, int(latest.Version+1))
-	if err := d.SaveWorkflowDefinition(*newVersion); err != nil {
+	if err := d.SaveWorkflowDefinition(ctx, *newVersion); err != nil {
 		return def, err
 	}
 
 	// need to perform a get to return any mutations that happened in Save, e.g. CreatedAt
-	return d.GetWorkflowDefinition(newVersion.Name, int(newVersion.Version))
+	return d.GetWorkflowDefinition(ctx, newVersion.Name, int(newVersion.Version))
 }
 
 // GetWorkflowDefinitions returns the latest version of all stored workflow definitions
-func (d DynamoDB) GetWorkflowDefinitions() ([]models.WorkflowDefinition, error) {
+func (d DynamoDB) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
 	// Scan returns the entire table
-	results, err := d.ddb.Scan(&dynamodb.ScanInput{
+	results, err := d.ddb.ScanWithContext(ctx, &dynamodb.ScanInput{
 		ConsistentRead: aws.Bool(true),
 		TableName:      aws.String(d.latestWorkflowDefinitionsTable()),
 	})
@@ -316,8 +317,8 @@ func (d DynamoDB) GetWorkflowDefinitions() ([]models.WorkflowDefinition, error) 
 }
 
 // GetWorkflowDefinitionVersions gets all versions of a workflow definition
-func (d DynamoDB) GetWorkflowDefinitionVersions(name string) ([]models.WorkflowDefinition, error) {
-	results, err := d.ddb.Query(&dynamodb.QueryInput{
+func (d DynamoDB) GetWorkflowDefinitionVersions(ctx context.Context, name string) ([]models.WorkflowDefinition, error) {
+	results, err := d.ddb.QueryWithContext(ctx, &dynamodb.QueryInput{
 		TableName: aws.String(d.workflowDefinitionsTable()),
 		ExpressionAttributeNames: map[string]*string{
 			"#N": aws.String("name"),
@@ -341,7 +342,7 @@ func (d DynamoDB) GetWorkflowDefinitionVersions(name string) ([]models.WorkflowD
 }
 
 // GetWorkflowDefinition gets the specific version of a workflow definition
-func (d DynamoDB) GetWorkflowDefinition(name string, version int) (models.WorkflowDefinition, error) {
+func (d DynamoDB) GetWorkflowDefinition(ctx context.Context, name string, version int) (models.WorkflowDefinition, error) {
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowDefinitionPrimaryKey{
 		Name:    name,
 		Version: int64(version),
@@ -349,7 +350,7 @@ func (d DynamoDB) GetWorkflowDefinition(name string, version int) (models.Workfl
 	if err != nil {
 		return models.WorkflowDefinition{}, err
 	}
-	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
+	res, err := d.ddb.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		Key:       key,
 		TableName: aws.String(d.workflowDefinitionsTable()),
 	})
@@ -370,8 +371,8 @@ func (d DynamoDB) GetWorkflowDefinition(name string, version int) (models.Workfl
 }
 
 // LatestWorkflowDefinition gets the latest version of a workflow definition.
-func (d DynamoDB) LatestWorkflowDefinition(name string) (models.WorkflowDefinition, error) {
-	res, err := d.ddb.Query(&dynamodb.QueryInput{
+func (d DynamoDB) LatestWorkflowDefinition(ctx context.Context, name string) (models.WorkflowDefinition, error) {
+	res, err := d.ddb.QueryWithContext(ctx, &dynamodb.QueryInput{
 		TableName: aws.String(d.latestWorkflowDefinitionsTable()),
 		ExpressionAttributeNames: map[string]*string{
 			"#N": aws.String("name"),
@@ -399,13 +400,13 @@ func (d DynamoDB) LatestWorkflowDefinition(name string) (models.WorkflowDefiniti
 
 // SaveStateResource creates or updates a StateResource in dynamo
 // always overwrite old resource in store
-func (d DynamoDB) SaveStateResource(stateResource models.StateResource) error {
+func (d DynamoDB) SaveStateResource(ctx context.Context, stateResource models.StateResource) error {
 	data, err := EncodeStateResource(stateResource)
 	if err != nil {
 		return err
 	}
 
-	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
+	_, err = d.ddb.PutItemWithContext(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(d.stateResourcesTable()),
 		Item:      data,
 	})
@@ -414,7 +415,7 @@ func (d DynamoDB) SaveStateResource(stateResource models.StateResource) error {
 }
 
 // GetStateResource gets the StateResource matching the name and namespace.
-func (d DynamoDB) GetStateResource(name, namespace string) (models.StateResource, error) {
+func (d DynamoDB) GetStateResource(ctx context.Context, name, namespace string) (models.StateResource, error) {
 	key, err := dynamodbattribute.MarshalMap(ddbStateResourcePrimaryKey{
 		Name:      name,
 		Namespace: namespace,
@@ -422,7 +423,7 @@ func (d DynamoDB) GetStateResource(name, namespace string) (models.StateResource
 	if err != nil {
 		return models.StateResource{}, err
 	}
-	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
+	res, err := d.ddb.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		Key:            key,
 		TableName:      aws.String(d.stateResourcesTable()),
 		ConsistentRead: aws.Bool(true),
@@ -444,7 +445,7 @@ func (d DynamoDB) GetStateResource(name, namespace string) (models.StateResource
 }
 
 // DeleteStateResource removes an existing StateResource matching the name and namespace
-func (d DynamoDB) DeleteStateResource(name, namespace string) error {
+func (d DynamoDB) DeleteStateResource(ctx context.Context, name, namespace string) error {
 	// TODO: maybe we want to mark for deletion instead?
 	key, err := dynamodbattribute.MarshalMap(ddbStateResourcePrimaryKey{
 		Name:      name,
@@ -454,7 +455,7 @@ func (d DynamoDB) DeleteStateResource(name, namespace string) error {
 		return err
 	}
 
-	_, err = d.ddb.DeleteItem(&dynamodb.DeleteItemInput{
+	_, err = d.ddb.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
 		Key:       key,
 		TableName: aws.String(d.stateResourcesTable()),
 		ExpressionAttributeNames: map[string]*string{
@@ -477,7 +478,7 @@ func (d DynamoDB) DeleteStateResource(name, namespace string) error {
 }
 
 // SaveWorkflow saves a workflow to dynamo.
-func (d DynamoDB) SaveWorkflow(workflow models.Workflow) error {
+func (d DynamoDB) SaveWorkflow(ctx context.Context, workflow models.Workflow) error {
 	workflow.CreatedAt = strfmt.DateTime(time.Now())
 	workflow.LastUpdated = workflow.CreatedAt
 
@@ -485,7 +486,7 @@ func (d DynamoDB) SaveWorkflow(workflow models.Workflow) error {
 	if err != nil {
 		return err
 	}
-	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
+	_, err = d.ddb.PutItemWithContext(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(d.workflowsTable()),
 		Item:      data,
 		ExpressionAttributeNames: map[string]*string{
@@ -503,14 +504,14 @@ func (d DynamoDB) SaveWorkflow(workflow models.Workflow) error {
 	return err
 }
 
-func (d DynamoDB) UpdateWorkflow(workflow models.Workflow) error {
+func (d DynamoDB) UpdateWorkflow(ctx context.Context, workflow models.Workflow) error {
 	workflow.LastUpdated = strfmt.DateTime(time.Now())
 
 	data, err := EncodeWorkflow(workflow)
 	if err != nil {
 		return err
 	}
-	_, err = d.ddb.PutItem(&dynamodb.PutItemInput{
+	_, err = d.ddb.PutItemWithContext(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(d.workflowsTable()),
 		Item:      data,
 		ExpressionAttributeNames: map[string]*string{
@@ -534,7 +535,7 @@ func (d DynamoDB) UpdateWorkflow(workflow models.Workflow) error {
 					// try again without jobs
 					wfCopy := resources.CopyWorkflow(workflow)
 					wfCopy.Jobs = nil
-					return d.UpdateWorkflow(wfCopy)
+					return d.UpdateWorkflow(ctx, wfCopy)
 				}
 			}
 		}
@@ -544,8 +545,8 @@ func (d DynamoDB) UpdateWorkflow(workflow models.Workflow) error {
 
 // DeleteWorkflow should only be used in cases where the Workflow has failed to start
 // and we need to remove it for cleanup. This removes the Workflow record from DynamoDB
-func (d DynamoDB) DeleteWorkflowByID(workflowID string) error {
-	_, err := d.ddb.DeleteItem(&dynamodb.DeleteItemInput{
+func (d DynamoDB) DeleteWorkflowByID(ctx context.Context, workflowID string) error {
+	_, err := d.ddb.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
 		TableName: aws.String(d.workflowsTable()),
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{
@@ -568,14 +569,14 @@ func (d DynamoDB) DeleteWorkflowByID(workflowID string) error {
 }
 
 // GetWorkflowByID
-func (d DynamoDB) GetWorkflowByID(id string) (models.Workflow, error) {
+func (d DynamoDB) GetWorkflowByID(ctx context.Context, id string) (models.Workflow, error) {
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowPrimaryKey{
 		ID: id,
 	})
 	if err != nil {
 		return models.Workflow{}, err
 	}
-	res, err := d.ddb.GetItem(&dynamodb.GetItemInput{
+	res, err := d.ddb.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		Key:            key,
 		TableName:      aws.String(d.workflowsTable()),
 		ConsistentRead: aws.Bool(true),
@@ -597,7 +598,7 @@ func (d DynamoDB) GetWorkflowByID(id string) (models.Workflow, error) {
 }
 
 // GetWorkflows returns all workflows matching the given query.
-func (d DynamoDB) GetWorkflows(query *models.WorkflowQuery) ([]models.Workflow, string, error) {
+func (d DynamoDB) GetWorkflows(ctx context.Context, query *models.WorkflowQuery) ([]models.Workflow, string, error) {
 	var workflows []models.Workflow
 	nextPageToken := ""
 	summaryOnly := aws.BoolValue(query.SummaryOnly)
@@ -639,7 +640,7 @@ func (d DynamoDB) GetWorkflows(query *models.WorkflowQuery) ([]models.Workflow, 
 		dbQuery.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue(*pageKey))
 	}
 
-	res, err := d.ddb.Query(dbQuery)
+	res, err := d.ddb.QueryWithContext(ctx, dbQuery)
 	if err != nil {
 		return workflows, nextPageToken, err
 	}
