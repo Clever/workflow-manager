@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"time"
@@ -75,7 +76,20 @@ func main() {
 		store:   db,
 		manager: wfmSFN,
 	}
-	s := server.New(h, *addr)
+	timeout := 5 * time.Second
+	s := server.NewWithMiddleware(h, *addr, []func(http.Handler) http.Handler{
+		func(handler http.Handler) http.Handler {
+			return http.TimeoutHandler(handler, timeout, "Request timed out")
+		},
+		func(handler http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				newCtx, cancel := context.WithTimeout(r.Context(), timeout)
+				defer cancel()
+				r = r.WithContext(newCtx)
+				handler.ServeHTTP(w, r)
+			})
+		},
+	})
 
 	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db, sqsapi, c.SQSQueueURL)
 	go logSFNCounts(countedSFNAPI)
