@@ -202,7 +202,7 @@ func (wm *SFNWorkflowManager) startExecution(stateMachineArn *string, workflowID
 	return err
 }
 
-func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
+func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.WorkflowDefinition,
 	input string,
 	namespace string,
 	queue string,
@@ -217,7 +217,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
 	// i.e. execution was started but we failed to save workflow
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
 	workflow := resources.NewWorkflow(&wd, input, namespace, queue, tags)
-	if err := wm.store.SaveWorkflow(*workflow); err != nil {
+	if err := wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
 
@@ -225,7 +225,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
 	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
 	if err != nil {
 		// since we failed to start execution, remove Workflow from store
-		if delErr := wm.store.DeleteWorkflowByID(workflow.ID); delErr != nil {
+		if delErr := wm.store.DeleteWorkflowByID(ctx, workflow.ID); delErr != nil {
 			log.ErrorD("create-workflow", logger.M{
 				"id": workflow.ID,
 				"workflow-definition-name": workflow.WorkflowDefinition.Name,
@@ -246,7 +246,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(wd models.WorkflowDefinition,
 	return workflow, nil
 }
 
-func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
+func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
 	// don't allow resume if workflow is still active
 	if !resources.WorkflowIsDone(&ogWorkflow) {
 		return nil, fmt.Errorf("Workflow %s active: %s", ogWorkflow.ID, ogWorkflow.Status)
@@ -269,11 +269,11 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt,
 
 	// save the workflow before starting execution to ensure we don't have untracked executions
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
-	if err = wm.store.SaveWorkflow(*workflow); err != nil {
+	if err = wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
 	// also update ogWorkflow
-	if err = wm.store.UpdateWorkflow(ogWorkflow); err != nil {
+	if err = wm.store.UpdateWorkflow(ctx, ogWorkflow); err != nil {
 		return nil, err
 	}
 
@@ -286,7 +286,7 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ogWorkflow models.Workflow, startAt,
 	return workflow, nil
 }
 
-func (wm *SFNWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason string) error {
+func (wm *SFNWorkflowManager) CancelWorkflow(ctx context.Context, workflow *models.Workflow, reason string) error {
 	if workflow.Status == models.WorkflowStatusSucceeded || workflow.Status == models.WorkflowStatusFailed {
 		return fmt.Errorf("Cancellation not allowed. Workflow %s is %s", workflow.ID, workflow.Status)
 	}
@@ -303,7 +303,7 @@ func (wm *SFNWorkflowManager) CancelWorkflow(workflow *models.Workflow, reason s
 
 	workflow.StatusReason = reason
 	workflow.ResolvedByUser = true
-	return wm.store.UpdateWorkflow(*workflow)
+	return wm.store.UpdateWorkflow(ctx, *workflow)
 }
 
 func (wm *SFNWorkflowManager) executionARN(
@@ -339,7 +339,7 @@ func sfnStatusToWorkflowStatus(sfnStatus string) models.WorkflowStatus {
 	}
 }
 
-func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) error {
+func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflow *models.Workflow) error {
 	// Avoid the extraneous processing for executions that have already stopped.
 	// This also prevents the WM "cancelled" state from getting overwritten for workflows cancelled
 	// by the user after a failure.
@@ -372,7 +372,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) e
 				if time.Time(workflow.LastUpdated).Before(time.Now().Add(-durationToRetryDescribeExecutions)) {
 					workflow.LastUpdated = strfmt.DateTime(time.Now())
 					workflow.Status = models.WorkflowStatusFailed
-					return wm.store.UpdateWorkflow(*workflow)
+					return wm.store.UpdateWorkflow(ctx, *workflow)
 				}
 				// don't save since that updates worklow.LastUpdated; also no changes made here
 				return nil
@@ -394,10 +394,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(workflow *models.Workflow) e
 	}
 
 	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success  (TODO: actually this is only sent for success)
-	return wm.store.UpdateWorkflow(*workflow)
+	return wm.store.UpdateWorkflow(ctx, *workflow)
 }
 
-func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) error {
+func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflow *models.Workflow) error {
 	// Pull in execution history to populate jobs array
 	// Each Job corresponds to a type={Task,Choice,Succeed} state, i.e. States we have currently tested and supported completely
 	// We only create a Job object if the State has been entered.
@@ -617,7 +617,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(workflow *models.Workflow) e
 	}
 	workflow.Jobs = jobs
 
-	return wm.store.UpdateWorkflow(*workflow)
+	return wm.store.UpdateWorkflow(ctx, *workflow)
 }
 
 // isActivityDoesntExistFailure checks if an execution failed because an activity doesn't exist.

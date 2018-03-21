@@ -141,6 +141,8 @@ func TestCreateWorkflow(t *testing.T) {
 	input := "{\"json\": true}"
 
 	t.Run("CreateWorkflow for existing StateMachines", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
 		stateMachineArn := stateMachineARN(c.manager.region, c.manager.accountID,
@@ -163,7 +165,7 @@ func TestCreateWorkflow(t *testing.T) {
 			SendMessageWithContext(gomock.Any(), gomock.Any()).
 			Return(&sqs.SendMessageOutput{}, nil)
 
-		workflow, err := c.manager.CreateWorkflow(*c.workflowDefinition,
+		workflow, err := c.manager.CreateWorkflow(ctx, *c.workflowDefinition,
 			input,
 			"namespace",
 			"queue",
@@ -174,7 +176,7 @@ func TestCreateWorkflow(t *testing.T) {
 		assert.Equal(t, workflow.Namespace, "namespace")
 		assert.Equal(t, workflow.Input, input)
 
-		savedWorkflow, err := c.store.GetWorkflowByID(workflow.ID)
+		savedWorkflow, err := c.store.GetWorkflowByID(ctx, workflow.ID)
 		assert.Nil(t, err)
 		assert.Equal(t, workflow.CreatedAt.String(), savedWorkflow.CreatedAt.String())
 		assert.Equal(t, workflow.ID, savedWorkflow.ID)
@@ -215,6 +217,8 @@ func TestCreateWorkflow(t *testing.T) {
 	})
 
 	t.Run("CreateWorkflow deletes workflow on StartExecution failure", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
 		stateMachineArn := stateMachineARN(c.manager.region, c.manager.accountID,
@@ -235,7 +239,7 @@ func TestCreateWorkflow(t *testing.T) {
 			StartExecution(gomock.Any()).
 			Return(nil, awsError)
 
-		workflow, err := c.manager.CreateWorkflow(*c.workflowDefinition,
+		workflow, err := c.manager.CreateWorkflow(ctx, *c.workflowDefinition,
 			input,
 			"namespace",
 			"queue",
@@ -249,13 +253,15 @@ func TestCreateWorkflow(t *testing.T) {
 }
 
 func TestCancelWorkflow(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	initialStatus := models.WorkflowStatusRunning
 	workflow.Status = initialStatus
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 	assert.Equal(t, false, workflow.ResolvedByUser)
 
 	t.Log("Verify execution is stopped and status reason is updated.")
@@ -267,31 +273,33 @@ func TestCancelWorkflow(t *testing.T) {
 			Cause:        aws.String(reason),
 		}).
 		Return(&sfn.StopExecutionOutput{}, nil)
-	require.NoError(t, c.manager.CancelWorkflow(workflow, reason))
+	require.NoError(t, c.manager.CancelWorkflow(ctx, workflow, reason))
 	assert.Equal(t, initialStatus, workflow.Status)
 	assert.Equal(t, true, workflow.ResolvedByUser)
 	assert.Equal(t, reason, workflow.StatusReason)
 
 	t.Log("Failed Workflows cannot be cancelled.")
 	workflow.Status = models.WorkflowStatusFailed
-	c.updateWorkflow(t, workflow)
-	require.Error(t, c.manager.CancelWorkflow(workflow, reason))
+	c.updateWorkflow(ctx, t, workflow)
+	require.Error(t, c.manager.CancelWorkflow(ctx, workflow, reason))
 
 	t.Log("Successful Workflows cannot be cancelled.")
 	workflow.Status = models.WorkflowStatusSucceeded
-	c.updateWorkflow(t, workflow)
-	require.Error(t, c.manager.CancelWorkflow(workflow, reason))
+	c.updateWorkflow(ctx, t, workflow)
+	require.Error(t, c.manager.CancelWorkflow(ctx, workflow, reason))
 }
 
 func TestUpdateWorkflowStatusNoop(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusCancelled
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
 }
 
@@ -314,12 +322,14 @@ func assertBasicJobData(t *testing.T, job *models.Job) {
 }
 
 func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
@@ -341,8 +351,8 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{jobCreatedEvent}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
-	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusRunning, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
@@ -361,12 +371,14 @@ var jobFailedEvent = &sfn.HistoryEvent{
 }
 
 func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
@@ -392,8 +404,8 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
-	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
@@ -405,12 +417,14 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 }
 
 func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
@@ -444,8 +458,8 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
-	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assert.Equal(t, models.JobStatusFailed, workflow.Jobs[0].Status)
@@ -481,12 +495,14 @@ func assertSucceededJobData(t *testing.T, job *models.Job) {
 }
 
 func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	executionOutput := `{"output": true}`
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
@@ -515,8 +531,8 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
-	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusSucceeded, workflow.Status)
 	assert.Equal(t, executionOutput, workflow.Output)
 	require.Len(t, workflow.Jobs, 1)
@@ -541,13 +557,15 @@ func assertCancelledJobData(t *testing.T, job *models.Job) {
 }
 
 func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
 	workflow.StatusReason = "cancelled by user"
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
@@ -573,8 +591,8 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
-	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
 	assert.Equal(t, "cancelled by user", workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
@@ -583,13 +601,15 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 }
 
 func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
 	workflow.StatusReason = "cancelled by user"
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
@@ -616,8 +636,8 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
-	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
 	assert.Equal(t, "cancelled by user", workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
@@ -626,13 +646,14 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 }
 
 func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
-
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	executionOutput := `{"output": true}`
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
@@ -668,26 +689,28 @@ func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusQueued, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusSucceeded, workflow.Status)
-	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertSucceededJobData(t, workflow.Jobs[0])
 }
 
 func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	durationToRetryDescribeExecutions = 1 * time.Second
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusQueued
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
@@ -700,12 +723,12 @@ func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 		).
 		Times(2)
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusQueued, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
 	time.Sleep(durationToRetryDescribeExecutions)
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
 }
@@ -756,12 +779,14 @@ func assertTimedOutJobData(t *testing.T, job *models.Job) {
 }
 
 func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusRunning
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
@@ -790,8 +815,8 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
-	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
@@ -813,12 +838,14 @@ func assertWorkflowTimedOutJobData(t *testing.T, job *models.Job) {
 }
 
 func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := newSFNManagerTestController(t)
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusRunning
-	c.saveWorkflow(t, workflow)
+	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
@@ -844,8 +871,8 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(workflow))
-	require.NoError(t, c.manager.UpdateWorkflowHistory(workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	// TODO: this line below is not testing anything. Verify what needs to go in this assertion
 	assert.Equal(t, "Workflow timed out", resources.StatusReasonWorkflowTimedOut)
@@ -862,7 +889,7 @@ func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	store := memory.New()
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
-	require.NoError(t, store.SaveWorkflowDefinition(*workflowDefinition))
+	require.NoError(t, store.SaveWorkflowDefinition(context.Background(), *workflowDefinition))
 
 	return &sfnManagerTestController{
 		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, store, "", "", "", ""),
@@ -881,12 +908,12 @@ func (c *sfnManagerTestController) newWorkflow() *models.Workflow {
 	)
 }
 
-func (c *sfnManagerTestController) saveWorkflow(t *testing.T, workflow *models.Workflow) {
-	require.NoError(t, c.store.SaveWorkflow(*workflow))
+func (c *sfnManagerTestController) saveWorkflow(ctx context.Context, t *testing.T, workflow *models.Workflow) {
+	require.NoError(t, c.store.SaveWorkflow(ctx, *workflow))
 }
 
-func (c *sfnManagerTestController) updateWorkflow(t *testing.T, workflow *models.Workflow) {
-	require.NoError(t, c.store.UpdateWorkflow(*workflow))
+func (c *sfnManagerTestController) updateWorkflow(ctx context.Context, t *testing.T, workflow *models.Workflow) {
+	require.NoError(t, c.store.UpdateWorkflow(ctx, *workflow))
 }
 
 func (c *sfnManagerTestController) tearDown() {

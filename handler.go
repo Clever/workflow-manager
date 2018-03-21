@@ -38,7 +38,7 @@ func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowDefReq *mode
 		return nil, err
 	}
 
-	if err := h.store.SaveWorkflowDefinition(*workflowDef); err != nil {
+	if err := h.store.SaveWorkflowDefinition(ctx, *workflowDef); err != nil {
 		return nil, err
 	}
 
@@ -60,7 +60,7 @@ func (h Handler) UpdateWorkflowDefinition(ctx context.Context, input *models.Upd
 		return &models.WorkflowDefinition{}, err
 	}
 
-	updatedWorkflow, err := h.store.UpdateWorkflowDefinition(*workflow)
+	updatedWorkflow, err := h.store.UpdateWorkflowDefinition(ctx, *workflow)
 	if err != nil {
 		return &models.WorkflowDefinition{}, err
 	}
@@ -70,7 +70,7 @@ func (h Handler) UpdateWorkflowDefinition(ctx context.Context, input *models.Upd
 
 // GetWorkflowDefinitions retrieves a list of the latest version of each workflow
 func (h Handler) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
-	return h.store.GetWorkflowDefinitions()
+	return h.store.GetWorkflowDefinitions(ctx)
 }
 
 // GetWorkflowDefinitionVersionsByName fetches either:
@@ -78,18 +78,18 @@ func (h Handler) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowD
 //  2. The most recent version of a workflow by name
 func (h Handler) GetWorkflowDefinitionVersionsByName(ctx context.Context, input *models.GetWorkflowDefinitionVersionsByNameInput) ([]models.WorkflowDefinition, error) {
 	if *input.Latest == true {
-		workflow, err := h.store.LatestWorkflowDefinition(input.Name)
+		workflow, err := h.store.LatestWorkflowDefinition(ctx, input.Name)
 		if err != nil {
 			return []models.WorkflowDefinition{}, err
 		}
 		return []models.WorkflowDefinition{workflow}, nil
 	}
-	return h.store.GetWorkflowDefinitionVersions(input.Name)
+	return h.store.GetWorkflowDefinitionVersions(ctx, input.Name)
 }
 
 // GetWorkflowDefinitionByNameAndVersion allows fetching an existing WorkflowDefinition by providing it's name and version
 func (h Handler) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, input *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
-	wfd, err := h.store.GetWorkflowDefinition(input.Name, int(input.Version))
+	wfd, err := h.store.GetWorkflowDefinition(ctx, input.Name, int(input.Version))
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (h Handler) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, inpu
 // PostStateResource creates a new state resource
 func (h Handler) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
 	stateResource := resources.NewStateResource(i.Name, i.Namespace, i.URI)
-	if err := h.store.SaveStateResource(*stateResource); err != nil {
+	if err := h.store.SaveStateResource(ctx, *stateResource); err != nil {
 		return &models.StateResource{}, err
 	}
 	return stateResource, nil
@@ -119,7 +119,7 @@ func (h Handler) PutStateResource(ctx context.Context, i *models.PutStateResourc
 	}
 
 	stateResource := resources.NewStateResource(i.NewStateResource.Name, i.NewStateResource.Namespace, i.NewStateResource.URI)
-	if err := h.store.SaveStateResource(*stateResource); err != nil {
+	if err := h.store.SaveStateResource(ctx, *stateResource); err != nil {
 		return &models.StateResource{}, err
 	}
 
@@ -128,7 +128,7 @@ func (h Handler) PutStateResource(ctx context.Context, i *models.PutStateResourc
 
 // GetStateResource fetches a StateResource given a name and namespace
 func (h Handler) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
-	stateResource, err := h.store.GetStateResource(i.Name, i.Namespace)
+	stateResource, err := h.store.GetStateResource(ctx, i.Name, i.Namespace)
 	if err != nil {
 		return &models.StateResource{}, err
 	}
@@ -137,7 +137,7 @@ func (h Handler) GetStateResource(ctx context.Context, i *models.GetStateResourc
 
 // DeleteStateResource removes a StateResource given a name and namespace
 func (h Handler) DeleteStateResource(ctx context.Context, i *models.DeleteStateResourceInput) error {
-	return h.store.DeleteStateResource(i.Name, i.Namespace)
+	return h.store.DeleteStateResource(ctx, i.Name, i.Namespace)
 }
 
 // StartWorkflow starts a new Workflow for the given WorkflowDefinition
@@ -145,9 +145,9 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 	var workflowDefinition models.WorkflowDefinition
 	var err error
 	if req.WorkflowDefinition.Version < 0 {
-		workflowDefinition, err = h.store.LatestWorkflowDefinition(req.WorkflowDefinition.Name)
+		workflowDefinition, err = h.store.LatestWorkflowDefinition(ctx, req.WorkflowDefinition.Name)
 	} else {
-		workflowDefinition, err = h.store.GetWorkflowDefinition(req.WorkflowDefinition.Name, int(req.WorkflowDefinition.Version))
+		workflowDefinition, err = h.store.GetWorkflowDefinition(ctx, req.WorkflowDefinition.Name, int(req.WorkflowDefinition.Version))
 	}
 	if err != nil {
 		return &models.Workflow{}, err
@@ -162,7 +162,7 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 		return &models.Workflow{}, err
 	}
 
-	return h.manager.CreateWorkflow(workflowDefinition, req.Input, req.Namespace, req.Queue, req.Tags)
+	return h.manager.CreateWorkflow(ctx, workflowDefinition, req.Input, req.Namespace, req.Queue, req.Tags)
 }
 
 // GetWorkflows returns a summary of all workflows matching the given query.
@@ -175,7 +175,7 @@ func (h Handler) GetWorkflows(
 		return []models.Workflow{}, "", err
 	}
 
-	workflows, nextPageToken, err := h.store.GetWorkflows(workflowQuery)
+	workflows, nextPageToken, err := h.store.GetWorkflows(ctx, workflowQuery)
 	if err != nil {
 		if _, ok := err.(store.InvalidPageTokenError); ok {
 			return workflows, "", models.BadRequest{
@@ -220,16 +220,16 @@ func paramsToWorkflowsQuery(input *models.GetWorkflowsInput) (*models.WorkflowQu
 
 // GetWorkflowByID returns current details about a Workflow with the given workflowId
 func (h Handler) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
-	workflow, err := h.store.GetWorkflowByID(workflowID)
+	workflow, err := h.store.GetWorkflowByID(ctx, workflowID)
 	if err != nil {
 		return &models.Workflow{}, err
 	}
 
-	if err := h.manager.UpdateWorkflowSummary(&workflow); err != nil {
+	if err := h.manager.UpdateWorkflowSummary(ctx, &workflow); err != nil {
 		return &models.Workflow{}, err
 	}
 
-	if err := h.manager.UpdateWorkflowHistory(&workflow); err != nil {
+	if err := h.manager.UpdateWorkflowHistory(ctx, &workflow); err != nil {
 		return &models.Workflow{}, err
 	}
 
@@ -239,18 +239,18 @@ func (h Handler) GetWorkflowByID(ctx context.Context, workflowID string) (*model
 // CancelWorkflow cancels all the jobs currently running or queued for the Workflow and
 // marks the workflow as cancelled
 func (h Handler) CancelWorkflow(ctx context.Context, input *models.CancelWorkflowInput) error {
-	workflow, err := h.store.GetWorkflowByID(input.WorkflowID)
+	workflow, err := h.store.GetWorkflowByID(ctx, input.WorkflowID)
 	if err != nil {
 		return err
 	}
 
-	return h.manager.CancelWorkflow(&workflow, input.Reason.Reason)
+	return h.manager.CancelWorkflow(ctx, &workflow, input.Reason.Reason)
 }
 
 // ResumeWorkflowByID starts a new Workflow based on an existing completed Workflow
 // from the provided position. Uses existing inputs and outputs when required
 func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWorkflowByIDInput) (*models.Workflow, error) {
-	workflow, err := h.store.GetWorkflowByID(input.WorkflowID)
+	workflow, err := h.store.GetWorkflowByID(ctx, input.WorkflowID)
 	if err != nil {
 		return &models.Workflow{}, err
 	}
@@ -283,13 +283,13 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 		}
 	}
 
-	return h.manager.RetryWorkflow(workflow, input.Overrides.StartAt, effectiveInput)
+	return h.manager.RetryWorkflow(ctx, workflow, input.Overrides.StartAt, effectiveInput)
 }
 
 // ResolveWorkflowByID sets a workflow's ResolvedByUser to true if it is currently false.
 // If the workflow's ResolvedByUser field is already true, it identifies this situation as a conflict.
 func (h Handler) ResolveWorkflowByID(ctx context.Context, workflowID string) error {
-	workflow, err := h.store.GetWorkflowByID(workflowID)
+	workflow, err := h.store.GetWorkflowByID(ctx, workflowID)
 	if err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func (h Handler) ResolveWorkflowByID(ctx context.Context, workflowID string) err
 	// set the ResolvedByUser value to true
 	workflow.ResolvedByUser = true
 
-	return h.store.UpdateWorkflow(workflow)
+	return h.store.UpdateWorkflow(ctx, workflow)
 }
 
 func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {

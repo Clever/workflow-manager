@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
@@ -35,12 +36,14 @@ func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
 
 func UpdateWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		// create kitchensink workflow
 		wf := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf))
+		require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
 
 		// get kitchensink workflow
-		wflatest, err := s.LatestWorkflowDefinition(wf.Name)
+		wflatest, err := s.LatestWorkflowDefinition(ctx, wf.Name)
 		require.Nil(t, err)
 		require.Equal(t, wflatest.Version, int64(0))
 		require.Equal(t, wflatest.StateMachine.StartAt, "start-state")
@@ -48,7 +51,7 @@ func UpdateWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 
 		// update kitchensink workflow
 		wflatest.StateMachine.Comment = "update the description"
-		wfupdated, err := s.UpdateWorkflowDefinition(wflatest)
+		wfupdated, err := s.UpdateWorkflowDefinition(ctx, wflatest)
 		require.Nil(t, err)
 		require.Equal(t, wfupdated.StateMachine.Comment, "update the description")
 		require.Equal(t, wfupdated.Version, wflatest.Version+1)
@@ -56,7 +59,7 @@ func UpdateWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 		require.True(t, time.Time(wfupdated.CreatedAt).After(time.Time(wflatest.CreatedAt)))
 
 		// get kitchensink workflow
-		wflatest2, err := s.LatestWorkflowDefinition(wf.Name)
+		wflatest2, err := s.LatestWorkflowDefinition(ctx, wf.Name)
 		require.Nil(t, err)
 		require.Equal(t, wflatest2.Version, wfupdated.Version)
 		require.WithinDuration(t, time.Time(wflatest2.CreatedAt), time.Now(), 1*time.Second)
@@ -66,12 +69,14 @@ func UpdateWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 
 func GetWorkflowDefinitions(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		numWfs := 2
 		for wfNum := 0; wfNum < numWfs; wfNum++ {
 			wf := resources.KitchenSinkWorkflowDefinition(t)
-			require.Nil(t, s.SaveWorkflowDefinition(*wf))
+			require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
 		}
-		wfs, err := s.GetWorkflowDefinitions()
+		wfs, err := s.GetWorkflowDefinitions(ctx)
 		require.Nil(t, err)
 		require.Equal(t, numWfs, len(wfs))
 		// TODO more sophisticated test against versions, etc
@@ -80,16 +85,18 @@ func GetWorkflowDefinitions(s store.Store, t *testing.T) func(t *testing.T) {
 
 func GetWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		wf := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf))
-		gwf, err := s.GetWorkflowDefinition(wf.Name, int(wf.Version))
+		require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
+		gwf, err := s.GetWorkflowDefinition(ctx, wf.Name, int(wf.Version))
 		require.Nil(t, err)
 		require.Equal(t, wf.Name, gwf.Name)
 		require.Equal(t, wf.Version, gwf.Version)
 		require.WithinDuration(t, time.Time(gwf.CreatedAt), time.Now(), 1*time.Second)
 		// TODO: deeper test of equality
 
-		_, err = s.GetWorkflowDefinition("doesntexist", 1)
+		_, err = s.GetWorkflowDefinition(ctx, "doesntexist", 1)
 		require.NotNil(t, err)
 		require.IsType(t, err, models.NotFound{})
 	}
@@ -97,10 +104,12 @@ func GetWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 
 func SaveWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		wf := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf))
+		require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
 
-		err := s.SaveWorkflowDefinition(*wf)
+		err := s.SaveWorkflowDefinition(ctx, *wf)
 		require.NotNil(t, err)
 		require.IsType(t, err, store.ConflictError{})
 
@@ -110,14 +119,16 @@ func SaveWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 
 func SaveStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		sr := &models.StateResource{
 			Name:      "name",
 			Namespace: "namespace",
 			Type:      models.StateResourceTypeActivityARN,
 			URI:       "arn:activity",
 		}
-		require.Nil(t, s.SaveStateResource(*sr))
-		stateResource, err := s.GetStateResource(sr.Name, sr.Namespace)
+		require.Nil(t, s.SaveStateResource(ctx, *sr))
+		stateResource, err := s.GetStateResource(ctx, sr.Name, sr.Namespace)
 		require.Nil(t, err)
 		require.Equal(t, sr.Name, stateResource.Name)
 		require.Equal(t, sr.Namespace, stateResource.Namespace)
@@ -127,20 +138,22 @@ func SaveStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 
 func GetStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		sr := &models.StateResource{
 			Name:      "name",
 			Namespace: "namespace",
 			Type:      models.StateResourceTypeActivityARN,
 			URI:       "arn:activity",
 		}
-		require.Nil(t, s.SaveStateResource(*sr))
-		stateResource, err := s.GetStateResource(sr.Name, sr.Namespace)
+		require.Nil(t, s.SaveStateResource(ctx, *sr))
+		stateResource, err := s.GetStateResource(ctx, sr.Name, sr.Namespace)
 		require.Nil(t, err)
 		require.Equal(t, sr.Name, stateResource.Name)
 		require.Equal(t, sr.Namespace, stateResource.Namespace)
 		require.Equal(t, sr.URI, stateResource.URI)
 
-		_, err = s.GetStateResource("doesntexist", "nope")
+		_, err = s.GetStateResource(ctx, "doesntexist", "nope")
 		require.NotNil(t, err)
 		require.IsType(t, err, models.NotFound{})
 	}
@@ -148,19 +161,21 @@ func GetStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 
 func DeleteStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		sr := &models.StateResource{
 			Name:      "name",
 			Namespace: "namespace",
 			Type:      models.StateResourceTypeActivityARN,
 			URI:       "arn:activity",
 		}
-		require.Nil(t, s.SaveStateResource(*sr))
-		stateResource, err := s.GetStateResource(sr.Name, sr.Namespace)
+		require.Nil(t, s.SaveStateResource(ctx, *sr))
+		stateResource, err := s.GetStateResource(ctx, sr.Name, sr.Namespace)
 		require.Nil(t, err)
 		require.Equal(t, sr.Name, stateResource.Name)
 
-		require.Nil(t, s.DeleteStateResource(sr.Name, sr.Namespace))
-		_, err = s.GetStateResource(sr.Name, sr.Namespace)
+		require.Nil(t, s.DeleteStateResource(ctx, sr.Name, sr.Namespace))
+		_, err = s.GetStateResource(ctx, sr.Name, sr.Namespace)
 		require.Error(t, err)
 		require.IsType(t, err, models.NotFound{})
 	}
@@ -168,29 +183,33 @@ func DeleteStateResource(s store.Store, t *testing.T) func(t *testing.T) {
 
 func SaveWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		wf := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf))
+		require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
 		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
 		workflow := resources.NewWorkflow(wf, `["input"]`, "namespace", "queue", tags)
-		require.Nil(t, s.SaveWorkflow(*workflow))
+		require.Nil(t, s.SaveWorkflow(ctx, *workflow))
 		// TODO: test behavior when workflow is invalid, e.g. breaks a length limit on a field / array
 	}
 }
 
 func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		wf := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf))
+		require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
 		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
 		workflow := resources.NewWorkflow(wf, `["input"]`, "namespace", "queue", tags)
-		require.Nil(t, s.SaveWorkflow(*workflow))
+		require.Nil(t, s.SaveWorkflow(ctx, *workflow))
 
-		updatedWorkflow, err := s.GetWorkflowByID(workflow.ID)
+		updatedWorkflow, err := s.GetWorkflowByID(ctx, workflow.ID)
 		require.Nil(t, err)
 		updatedWorkflow.Status = models.WorkflowStatusSucceeded
-		require.Nil(t, s.UpdateWorkflow(updatedWorkflow))
+		require.Nil(t, s.UpdateWorkflow(ctx, updatedWorkflow))
 
-		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
+		savedWorkflow, err := s.GetWorkflowByID(ctx, workflow.ID)
 		require.Nil(t, err)
 		require.Equal(t, savedWorkflow.Status, models.WorkflowStatusSucceeded)
 		require.WithinDuration(t, time.Time(savedWorkflow.CreatedAt), time.Now(), 1*time.Second)
@@ -202,13 +221,15 @@ func UpdateWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 
 func UpdateLargeWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		wf := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf))
+		require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
 		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
 		workflow := resources.NewWorkflow(wf, `["input"]`, "namespace", "queue", tags)
-		require.Nil(t, s.SaveWorkflow(*workflow))
+		require.Nil(t, s.SaveWorkflow(ctx, *workflow))
 
-		updatedWorkflow, err := s.GetWorkflowByID(workflow.ID)
+		updatedWorkflow, err := s.GetWorkflowByID(ctx, workflow.ID)
 		jobs := []*models.Job{}
 		for i := 0; i < 4000; i++ {
 			text := fmt.Sprintf("%d-test-id", i)
@@ -222,10 +243,10 @@ func UpdateLargeWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 			})
 		}
 		updatedWorkflow.Jobs = jobs
-		err = s.UpdateWorkflow(updatedWorkflow)
+		err = s.UpdateWorkflow(ctx, updatedWorkflow)
 		require.Nil(t, err)
 
-		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
+		savedWorkflow, err := s.GetWorkflowByID(ctx, workflow.ID)
 		require.NoError(t, err)
 		require.Equal(t, savedWorkflow.Status, updatedWorkflow.Status)
 		// Large Workflows don't save Jobs in DynamoDB
@@ -235,19 +256,21 @@ func UpdateLargeWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 
 func DeleteWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		wf := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf))
+		require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
 		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
 		workflow := resources.NewWorkflow(wf, `["input"]`, "namespace", "queue", tags)
-		require.Nil(t, s.SaveWorkflow(*workflow))
+		require.Nil(t, s.SaveWorkflow(ctx, *workflow))
 
-		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
+		savedWorkflow, err := s.GetWorkflowByID(ctx, workflow.ID)
 		require.Nil(t, err)
 		require.Equal(t, savedWorkflow.Status, models.WorkflowStatusQueued)
 
-		require.Nil(t, s.DeleteWorkflowByID(workflow.ID))
+		require.Nil(t, s.DeleteWorkflowByID(ctx, workflow.ID))
 
-		savedWorkflow, err = s.GetWorkflowByID(workflow.ID)
+		savedWorkflow, err = s.GetWorkflowByID(ctx, workflow.ID)
 		require.Error(t, err)
 		require.IsType(t, models.NotFound{}, err)
 	}
@@ -255,13 +278,15 @@ func DeleteWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 
 func GetWorkflowByID(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		wf := resources.KitchenSinkWorkflowDefinition(t)
-		require.Nil(t, s.SaveWorkflowDefinition(*wf))
+		require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
 		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
 		workflow := resources.NewWorkflow(wf, `["input"]`, "namespace", "queue", tags)
-		require.Nil(t, s.SaveWorkflow(*workflow))
+		require.Nil(t, s.SaveWorkflow(ctx, *workflow))
 
-		savedWorkflow, err := s.GetWorkflowByID(workflow.ID)
+		savedWorkflow, err := s.GetWorkflowByID(ctx, workflow.ID)
 		require.Nil(t, err)
 
 		expected := models.Workflow{
@@ -287,43 +312,45 @@ func GetWorkflowByID(s store.Store, t *testing.T) func(t *testing.T) {
 
 func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		// Set up workflows:
 		definition := resources.KitchenSinkWorkflowDefinition(t)
-		require.NoError(t, s.SaveWorkflowDefinition(*definition))
+		require.NoError(t, s.SaveWorkflowDefinition(ctx, *definition))
 
 		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
 
 		runningWorkflow := resources.NewWorkflow(definition, `["input for running workflow"]`, "namespace", "queue", tags)
 		runningWorkflow.Status = models.WorkflowStatusRunning
-		require.NoError(t, s.SaveWorkflow(*runningWorkflow))
+		require.NoError(t, s.SaveWorkflow(ctx, *runningWorkflow))
 
 		// TODO: what happens when we mark a running/queued/etc workflow resolved?
 		runningResolvedWorkflow := resources.NewWorkflow(definition, `["input for resolved running workflow"]`, "namespace", "queue", tags)
 		runningResolvedWorkflow.Status = models.WorkflowStatusRunning
 		runningResolvedWorkflow.ResolvedByUser = true
-		require.NoError(t, s.SaveWorkflow(*runningResolvedWorkflow))
+		require.NoError(t, s.SaveWorkflow(ctx, *runningResolvedWorkflow))
 
 		failedWorkflow := resources.NewWorkflow(definition, `["input for failed workflow"]`, "namespace", "queue", tags)
 		failedWorkflow.Status = models.WorkflowStatusFailed
-		require.NoError(t, s.SaveWorkflow(*failedWorkflow))
+		require.NoError(t, s.SaveWorkflow(ctx, *failedWorkflow))
 
 		failedResolvedWorkflow := resources.NewWorkflow(definition, `["input for resolved failed workflow"]`, "namespace", "queue", tags)
 		failedResolvedWorkflow.Status = models.WorkflowStatusFailed
 		failedResolvedWorkflow.ResolvedByUser = true
-		require.NoError(t, s.SaveWorkflow(*failedResolvedWorkflow))
+		require.NoError(t, s.SaveWorkflow(ctx, *failedResolvedWorkflow))
 
 		// Set up workflows for a separate definition that will be ignored by the query:
 		otherWorkflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
-		require.NoError(t, s.SaveWorkflowDefinition(*otherWorkflowDefinition))
+		require.NoError(t, s.SaveWorkflowDefinition(ctx, *otherWorkflowDefinition))
 
 		otherDefinitionWorkflow := resources.NewWorkflow(
 			otherWorkflowDefinition, `["input"]`, "namespace", "queue", tags,
 		)
 		otherDefinitionWorkflow.Status = models.WorkflowStatusRunning
-		require.NoError(t, s.SaveWorkflow(*otherDefinitionWorkflow))
+		require.NoError(t, s.SaveWorkflow(ctx, *otherDefinitionWorkflow))
 
 		// Verify results for query with no status or resolvedByUser filtering:
-		workflows, _, err := s.GetWorkflows(&models.WorkflowQuery{
+		workflows, _, err := s.GetWorkflows(ctx, &models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			Limit: 10,
 		})
@@ -337,7 +364,7 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 
 		// Verify ResolvedByUser is ignored when not set,
 		//   with explicit inclusion of ResolvedByUserWrapper false
-		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+		workflows, _, err = s.GetWorkflows(ctx, &models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			ResolvedByUserWrapper: &models.ResolvedByUserWrapper{
 				IsSet: false,
@@ -354,7 +381,7 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Equal(t, runningWorkflow.ID, workflows[3].ID)
 
 		// Verify results for query with running status filtering:
-		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+		workflows, _, err = s.GetWorkflows(ctx, &models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			Status:                 models.WorkflowStatusRunning,
 			Limit:                  10,
@@ -366,7 +393,7 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Equal(t, runningWorkflow.ID, workflows[1].ID)
 
 		// Verify results for query with resolvedByUser filtering for resolved false:
-		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+		workflows, _, err = s.GetWorkflows(ctx, &models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			ResolvedByUserWrapper: &models.ResolvedByUserWrapper{
 				IsSet: true,
@@ -381,7 +408,7 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Equal(t, runningWorkflow.ID, workflows[1].ID)
 
 		// Verify results for query with resolvedByUser filtering for resolved true:
-		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+		workflows, _, err = s.GetWorkflows(ctx, &models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			ResolvedByUserWrapper: &models.ResolvedByUserWrapper{
 				IsSet: true,
@@ -396,7 +423,7 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Equal(t, runningResolvedWorkflow.ID, workflows[1].ID)
 
 		// Verify error for query that has both status and resolvedByUser filtering:
-		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+		workflows, _, err = s.GetWorkflows(ctx, &models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			Status:                 models.WorkflowStatusRunning,
 			ResolvedByUserWrapper: &models.ResolvedByUserWrapper{
@@ -411,8 +438,10 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 
 func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		definition := resources.KitchenSinkWorkflowDefinition(t)
-		require.NoError(t, s.SaveWorkflowDefinition(*definition))
+		require.NoError(t, s.SaveWorkflowDefinition(ctx, *definition))
 
 		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
 		workflow := resources.NewWorkflow(definition, `["input"]`, "ns", "queue", tags)
@@ -423,10 +452,10 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 		workflow.Retries = []string{"x"}
 		workflow.RetryFor = "y"
 		workflow.StatusReason = "test reason"
-		require.NoError(t, s.SaveWorkflow(*workflow))
+		require.NoError(t, s.SaveWorkflow(ctx, *workflow))
 
 		// Verify details are excluded if SummaryOnly == true:
-		workflows, _, err := s.GetWorkflows(&models.WorkflowQuery{
+		workflows, _, err := s.GetWorkflows(ctx, &models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			SummaryOnly:            aws.Bool(true),
 			Limit:                  10,
@@ -451,7 +480,7 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 		}
 
 		// Verify details are included if SummaryOnly == false:
-		workflows, _, err = s.GetWorkflows(&models.WorkflowQuery{
+		workflows, _, err = s.GetWorkflows(ctx, &models.WorkflowQuery{
 			WorkflowDefinitionName: aws.String(definition.Name),
 			SummaryOnly:            aws.Bool(false),
 			Limit:                  10,
@@ -471,20 +500,22 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 
 func GetWorkflowsPagination(s store.Store, t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		definition := resources.KitchenSinkWorkflowDefinition(t)
-		require.NoError(t, s.SaveWorkflowDefinition(*definition))
+		require.NoError(t, s.SaveWorkflowDefinition(ctx, *definition))
 
 		workflow1 := resources.NewWorkflow(definition, `["input"]`, "namespace", "queue", map[string]interface{}{})
 		workflow1.Status = models.WorkflowStatusRunning
-		require.NoError(t, s.SaveWorkflow(*workflow1))
+		require.NoError(t, s.SaveWorkflow(ctx, *workflow1))
 
 		workflow2 := resources.NewWorkflow(definition, `["input"]`, "namespace", "queue", map[string]interface{}{})
 		workflow2.Status = models.WorkflowStatusSucceeded
-		require.NoError(t, s.SaveWorkflow(*workflow2))
+		require.NoError(t, s.SaveWorkflow(ctx, *workflow2))
 
 		workflow3 := resources.NewWorkflow(definition, `["input"]`, "namespace", "queue", map[string]interface{}{})
 		workflow3.Status = models.WorkflowStatusRunning
-		require.NoError(t, s.SaveWorkflow(*workflow3))
+		require.NoError(t, s.SaveWorkflow(ctx, *workflow3))
 
 		limit := 1
 		getAllPages := func(query models.WorkflowQuery) []models.Workflow {
@@ -494,7 +525,7 @@ func GetWorkflowsPagination(s store.Store, t *testing.T) func(t *testing.T) {
 			workflowsPage := []models.Workflow{}
 			var err error
 			for {
-				workflowsPage, nextPageToken, err = s.GetWorkflows(&nextQuery)
+				workflowsPage, nextPageToken, err = s.GetWorkflows(ctx, &nextQuery)
 				require.NoError(t, err)
 
 				nextQuery.PageToken = nextPageToken
@@ -535,7 +566,7 @@ func GetWorkflowsPagination(s store.Store, t *testing.T) func(t *testing.T) {
 
 		// Verify handling for invalid page tokens.
 		query.PageToken = "invalid token"
-		workflows, nextPageToken, err := s.GetWorkflows(&query)
+		workflows, nextPageToken, err := s.GetWorkflows(ctx, &query)
 		assert.Error(t, err)
 		assert.IsType(t, store.InvalidPageTokenError{}, err)
 		assert.Equal(t, "", nextPageToken)

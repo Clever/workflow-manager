@@ -1,6 +1,7 @@
 package dynamodb
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -41,7 +42,7 @@ func TestDynamoDBStore(t *testing.T) {
 			PrefixWorkflows:           prefix,
 		})
 		// InitTables(false) since dynamodb local doesn't support TTLs
-		if err := s.InitTables(false); err != nil {
+		if err := s.InitTables(context.Background(), false); err != nil {
 			t.Fatal(err)
 		}
 		return s
