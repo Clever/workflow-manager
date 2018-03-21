@@ -1,7 +1,3 @@
-ignored = [
-  "github.com/Clever/workflow-manager/store/dynamodb/migrate",
-  "github.com/Clever/workflow-manager/workflow-ops"
-]
 required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
