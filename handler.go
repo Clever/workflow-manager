@@ -162,6 +162,13 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 		return &models.Workflow{}, err
 	}
 
+	// Workflows require an input that is marshallable to map[string]interface{}
+	// To simplify submitting workflows that require no specific configuration in their input,
+	// allow submitting empty string and convert it to an empty dict for convenience
+	if req.Input == "" {
+		req.Input = "{}"
+	}
+
 	return h.manager.CreateWorkflow(ctx, workflowDefinition, req.Input, req.Namespace, req.Queue, req.Tags)
 }
 

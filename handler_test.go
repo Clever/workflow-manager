@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/mocks"
+	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/store/memory"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestNewWorkflowDefinitionFromRequest tests the newWorkflowFromRequest helper
@@ -97,4 +103,36 @@ func TestParamsToWorkflowsQuery(t *testing.T) {
 	workflowQuery, err = paramsToWorkflowsQuery(inputWithNameOnly)
 	assert.NoError(t, err)
 	assert.Equal(t, false, workflowQuery.ResolvedByUserWrapper.IsSet)
+}
+
+func TestStartWorkflow(t *testing.T) {
+	mockController := gomock.NewController(t)
+	defer mockController.Finish()
+
+	store := memory.New()
+	mockWFM := mocks.NewMockWorkflowManager(mockController)
+
+	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
+	require.NoError(t, store.SaveWorkflowDefinition(context.Background(), *workflowDefinition))
+
+	h := Handler{
+		manager: mockWFM,
+		store:   store,
+	}
+
+	t.Log("Verify that StartWorkflow handler converts empty string to empty dictionary")
+	for _, input := range []string{"", "{}"} {
+		mockWFM.EXPECT().
+			CreateWorkflow(gomock.Any(), gomock.Any(), "{}", gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&models.Workflow{}, nil)
+
+		_, err := h.StartWorkflow(context.Background(), &models.StartWorkflowRequest{
+			Input: input,
+			WorkflowDefinition: &models.WorkflowDefinitionRef{
+				Name:    workflowDefinition.Name,
+				Version: -1,
+			},
+		})
+		assert.NoError(t, err)
+	}
 }
