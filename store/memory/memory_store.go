@@ -11,6 +11,7 @@ import (
 	"github.com/satori/go.uuid"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/gen-go/server/db"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 )
@@ -88,11 +89,11 @@ func (s MemoryStore) GetWorkflowDefinitionVersions(ctx context.Context, name str
 
 func (s MemoryStore) GetWorkflowDefinition(ctx context.Context, name string, version int) (models.WorkflowDefinition, error) {
 	if _, ok := s.workflowDefinitions[name]; !ok {
-		return models.WorkflowDefinition{}, store.NewNotFound(name)
+		return models.WorkflowDefinition{}, db.ErrWorkflowDefinitionNotFound{Name: name, Version: int64(version)}
 	}
 
 	if len(s.workflowDefinitions[name]) < version {
-		return models.WorkflowDefinition{}, store.NewNotFound(fmt.Sprintf("%s.%d", name, version))
+		return models.WorkflowDefinition{}, db.ErrWorkflowDefinitionNotFound{Name: name, Version: int64(version)}
 	}
 
 	return s.workflowDefinitions[name][version], nil
