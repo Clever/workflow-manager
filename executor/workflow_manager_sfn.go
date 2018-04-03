@@ -335,7 +335,7 @@ func sfnStatusToWorkflowStatus(sfnStatus string) models.WorkflowStatus {
 	case sfn.ExecutionStatusAborted:
 		return models.WorkflowStatusCancelled
 	default:
-		return models.WorkflowStatusQueued // this should never happen, since all cases are covered above
+		return models.WorkflowStatusRunning // this should never happen, since all cases are covered above
 	}
 }
 
