@@ -8,7 +8,7 @@ env:
   - AWS_SFN_ROLE_ARN
   - AWS_SFN_ACCOUNT_ID
   - AWS_SQS_REGION
-  - AWS_SQS_URL 
+  - AWS_SQS_URL
 resources:
   cpu: 0.4
   soft_mem_limit: 0.15
@@ -20,6 +20,8 @@ aws:
     write:
     - workflow-manager-update-loop
   custom: true
+databases:
+- dynamodb:us-west-1:workflow-manager-prod-v3
 expose:
 - name: default
   port: 80
