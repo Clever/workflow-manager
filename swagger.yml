@@ -468,7 +468,6 @@ definitions:
   WorkflowStatus:
     type: string
     enum:
-      - "queued"
       - "running"
       - "failed"
       - "succeeded"
