@@ -19,8 +19,6 @@ import (
 type WorkflowStatus string
 
 const (
-	// WorkflowStatusQueued captures enum value "queued"
-	WorkflowStatusQueued WorkflowStatus = "queued"
 	// WorkflowStatusRunning captures enum value "running"
 	WorkflowStatusRunning WorkflowStatus = "running"
 	// WorkflowStatusFailed captures enum value "failed"
@@ -36,7 +34,7 @@ var workflowStatusEnum []interface{}
 
 func init() {
 	var res []WorkflowStatus
-	if err := json.Unmarshal([]byte(`["queued","running","failed","succeeded","cancelled"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["running","failed","succeeded","cancelled"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

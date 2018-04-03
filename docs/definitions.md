@@ -312,7 +312,7 @@
 
 <a name="workflowstatus"></a>
 ### WorkflowStatus
-*Type* : enum (queued, running, failed, succeeded, cancelled)
+*Type* : enum (running, failed, succeeded, cancelled)
 
 
 <a name="workflowsummary"></a>

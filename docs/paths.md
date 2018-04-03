@@ -249,7 +249,7 @@ GET /workflows
 |**Query**|**oldestFirst**  <br>*optional*||boolean||
 |**Query**|**pageToken**  <br>*optional*||string||
 |**Query**|**resolvedByUser**  <br>*optional*|A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter.|boolean||
-|**Query**|**status**  <br>*optional*|The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter.|string||
+|**Query**|**status**  <br>*optional*|The status of the workflow (running, failed, etc.). Cannot be sent in the same request as the resolvedByUser parameter.|string||
 |**Query**|**summaryOnly**  <br>*optional*|Limits workflow data to the bare minimum - omits the full workflow definition and job data.|boolean|`"false"`|
 |**Query**|**workflowDefinitionName**  <br>*required*||string||
 
