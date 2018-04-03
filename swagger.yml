@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.9.0
+  version: 0.9.1
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -172,10 +172,12 @@ paths:
           type: string
         - name: status
           description:
-            The status of the workflow (queued, running, etc.). Cannot be sent in the
-             same request as the resolvedByUser parameter.
+            The status of the workflow. Cannot be sent in the same request as
+            the resolvedByUser parameter.
           in: query
           type: string
+          # Note: These are the same values as in "#/definitions/WorkflowStatus"
+          enum: [running, failed, cancelled, succeeded]
         - name: resolvedByUser
           in: query
           type: boolean
