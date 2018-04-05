@@ -66,13 +66,6 @@ required = ["github.com/golang/mock/mockgen"]
   version = "1.1.4"
 
 [[constraint]]
-  name = "github.com/zencoder/ddbsync"
-  source = "git@github.com:Clever/ddbsync.git"
-
-[[constraint]]
-  name = "golang.org/x/net"
-
-[[constraint]]
   name = "gopkg.in/Clever/kayvee-go.v6"
   version = "6.10.0"
 
