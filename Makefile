@@ -43,7 +43,6 @@ generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 install_deps: golang-dep-vendor-deps
 	$(call golang-dep-vendor)
 	make mocks
-	cd ./vendor/github.com/Clever/wag && make install_deps && make build && cp bin/wag $(PWD)/bin/wag-beta
 
 mocks:
 	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
