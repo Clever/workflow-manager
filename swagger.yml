@@ -389,6 +389,14 @@ definitions:
         $ref: '#/definitions/SLStateMachine'
 
   WorkflowDefinition:
+    x-db:
+      AllowOverwrites: false
+      DynamoDB:
+        KeySchema:
+          - AttributeName: name
+            KeyType: HASH
+          - AttributeName: version
+            KeyType: RANGE
     type: object
     properties:
       id:

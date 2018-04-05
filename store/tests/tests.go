@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/gen-go/server/db"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"github.com/stretchr/testify/require"
@@ -98,7 +99,7 @@ func GetWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
 
 		_, err = s.GetWorkflowDefinition(ctx, "doesntexist", 1)
 		require.NotNil(t, err)
-		require.IsType(t, err, models.NotFound{})
+		require.IsType(t, err, db.ErrWorkflowDefinitionNotFound{})
 	}
 }
 

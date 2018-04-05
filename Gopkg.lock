@@ -95,6 +95,12 @@
   revision = "b8f31a59085e69dd2678cf51840db2ac625cb741"
 
 [[projects]]
+  name = "github.com/ghodss/yaml"
+  packages = ["."]
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/go-errors/errors"
   packages = ["."]
   revision = "8fa88b06e5974e97fbf9899a7f86a344bfd1f105"
@@ -109,13 +115,13 @@
   branch = "master"
   name = "github.com/go-openapi/analysis"
   packages = ["."]
-  revision = "8ed83f2ea9f00f945516462951a288eaa68bf0d6"
+  revision = "f59a71f0ece6f9dfb438be7f45148f006cbad88e"
 
 [[projects]]
   branch = "master"
   name = "github.com/go-openapi/errors"
   packages = ["."]
-  revision = "03cfca65330da08a5a440053faf994a3c682b5bf"
+  revision = "7bcb96a367bac6b76e6e42fa84155bb5581dcff8"
 
 [[projects]]
   branch = "master"
@@ -136,14 +142,16 @@
   revision = "c3e1ca4c0b6160cac10aeef7e8b425cc95b9c820"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/runtime"
   packages = ["."]
-  revision = "e8231e16de5bcda9839e03ae07c5c96a1fd82041"
+  revision = "62281b694b396a17fe3e4313ee8b0ca2c3cca719"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/spec"
   packages = ["."]
-  revision = "84b5bee7bcb76f3d17bcbaf421bac44bd5709ca6"
+  revision = "9acd88844bc186c3ec7f318cd3d56f1114b4ab99"
 
 [[projects]]
   branch = "master"
@@ -158,9 +166,10 @@
   revision = "f3f9494671f93fcff853e3c6e9e948b3eb71e590"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/validate"
   packages = ["."]
-  revision = "b6cfc35bf312e6fb320d85ed9fc3ac408dcb8694"
+  revision = "180bba53b98899f743a112e568bed9e2ef31aa20"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -420,6 +429,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f1b79e260b282a33ade9dc3dbfea87e8071072dc17ad0cc5a4dd17857c9d8b4b"
+  inputs-digest = "5a9f6376bd1e478ded0bb56dd2cc7d6ef2d8a6b7d29e0f4256e95b8d9827f1b8"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -7,6 +7,7 @@ APP_NAME ?= workflow-manager
 EXECUTABLE = $(APP_NAME)
 PKG = github.com/Clever/$(APP_NAME)
 PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /workflow-ops | grep -v /dynamodb)
+PKGS := $(PKGS) $(PKG)/gen-go/server/db/dynamodb
 
 WAG_VERSION := latest
 
@@ -31,7 +32,6 @@ run: build
 run-docker:
 	@docker run \
 	--env-file=<(echo -e $(_ARKLOC_ENV_FILE)) clever/workflow-manager:569f2dc
-
 
 swagger2markup-cli-1.3.1.jar:
 	curl -L -O https://jcenter.bintray.com/io/github/swagger2markup/swagger2markup-cli/1.3.1/$@

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
 	"github.com/Clever/workflow-manager/store"
 	"github.com/Clever/workflow-manager/store/tests"
 	"github.com/aws/aws-sdk-go/aws"
@@ -41,6 +42,12 @@ func TestDynamoDBStore(t *testing.T) {
 			PrefixWorkflowDefinitions: prefix,
 			PrefixWorkflows:           prefix,
 		})
+		if s.Future, err = dynamodbgen.New(dynamodbgen.Config{
+			DynamoDBAPI:   svc,
+			DefaultPrefix: prefix,
+		}); err != nil {
+			t.Fatal(err)
+		}
 		// InitTables(false) since dynamodb local doesn't support TTLs
 		if err := s.InitTables(context.Background(), false); err != nil {
 			t.Fatal(err)
