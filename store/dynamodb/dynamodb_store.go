@@ -354,31 +354,6 @@ func (d DynamoDB) GetWorkflowDefinition(ctx context.Context, name string, versio
 	} else {
 		return models.WorkflowDefinition{}, nil
 	}
-	// key, err := dynamodbattribute.MarshalMap(ddbWorkflowDefinitionPrimaryKey{
-	// 	Name:    name,
-	// 	Version: int64(version),
-	// })
-	// if err != nil {
-	// 	return models.WorkflowDefinition{}, err
-	// }
-	// res, err := d.ddb.GetItemWithContext(ctx, &dynamodb.GetItemInput{
-	// 	Key:       key,
-	// 	TableName: aws.String(d.workflowDefinitionsTable()),
-	// })
-	// if err != nil {
-	// 	return models.WorkflowDefinition{}, err
-	// }
-
-	// if len(res.Item) == 0 {
-	// 	return models.WorkflowDefinition{}, store.NewNotFound(name)
-	// }
-
-	// var wd models.WorkflowDefinition
-	// if err := DecodeWorkflowDefinition(res.Item, &wd); err != nil {
-	// 	return models.WorkflowDefinition{}, err
-	// }
-
-	// return wd, nil
 }
 
 // LatestWorkflowDefinition gets the latest version of a workflow definition.
