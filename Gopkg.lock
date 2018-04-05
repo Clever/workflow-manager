@@ -319,16 +319,6 @@
   revision = "212d8a0df7acfab8bdd190a7a69f0ab7376edcc8"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/zencoder/ddbsync"
-  packages = [
-    ".",
-    "models"
-  ]
-  revision = "83dd4ef1834424d47a7cde4a7f4361cfabbd7564"
-  source = "git@github.com:Clever/ddbsync.git"
-
-[[projects]]
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -429,6 +419,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5a9f6376bd1e478ded0bb56dd2cc7d6ef2d8a6b7d29e0f4256e95b8d9827f1b8"
+  inputs-digest = "eddae18698c68de970b4eb57f3b1b05ee7c1eabc526143c52022f4b550e9c72a"
   solver-name = "gps-cdcl"
   solver-version = 1
