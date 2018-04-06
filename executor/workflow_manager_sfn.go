@@ -283,6 +283,12 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 		return nil, err
 	}
 
+	// start update loop for this workflow
+	err = createPendingWorkflow(context.TODO(), workflow.ID, wm.sqsapi, wm.sqsQueueURL)
+	if err != nil {
+		return nil, err
+	}
+
 	return workflow, nil
 }
 
