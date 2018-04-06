@@ -20,6 +20,7 @@ import (
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/sfncache"
 	"github.com/Clever/workflow-manager/gen-go/server"
+	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
 	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
@@ -63,6 +64,18 @@ func main() {
 		PrefixWorkflowDefinitions: c.DynamoPrefixWorkflowDefinitions,
 		PrefixWorkflows:           c.DynamoPrefixWorkflows,
 	})
+	var err error
+	db.Future, err = dynamodbgen.New(dynamodbgen.Config{
+		DynamoDBAPI:   svc,
+		DefaultPrefix: c.DynamoPrefixWorkflowDefinitions,
+		WorkflowDefinitionTable: dynamodbgen.WorkflowDefinitionTable{
+			Prefix: c.DynamoPrefixWorkflowDefinitions,
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	sfnapi := sfn.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion))
 	countedSFNAPI := sfncounter.New(sfnapi)
 	cachedSFNAPI, err := sfncache.New(countedSFNAPI)
