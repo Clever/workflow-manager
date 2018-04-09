@@ -298,7 +298,7 @@ Get the latest versions of all available WorkflowDefinitions
 | [params.limit] | <code>number</code> | <code>10</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
 | [params.oldestFirst] | <code>boolean</code> |  |  |
 | [params.pageToken] | <code>string</code> |  |  |
-| [params.status] | <code>string</code> |  | The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter. |
+| [params.status] | <code>string</code> |  | The status of the workflow. Cannot be sent in the same request as the resolvedByUser parameter. |
 | [params.resolvedByUser] | <code>boolean</code> |  | A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter. |
 | [params.summaryOnly] | <code>boolean</code> |  | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
 | params.workflowDefinitionName | <code>string</code> |  |  |
@@ -320,7 +320,7 @@ Get the latest versions of all available WorkflowDefinitions
 | [params.limit] | <code>number</code> | <code>10</code> | Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000. |
 | [params.oldestFirst] | <code>boolean</code> |  |  |
 | [params.pageToken] | <code>string</code> |  |  |
-| [params.status] | <code>string</code> |  | The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter. |
+| [params.status] | <code>string</code> |  | The status of the workflow. Cannot be sent in the same request as the resolvedByUser parameter. |
 | [params.resolvedByUser] | <code>boolean</code> |  | A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter. |
 | [params.summaryOnly] | <code>boolean</code> |  | Limits workflow data to the bare minimum - omits the full workflow definition and job data. |
 | params.workflowDefinitionName | <code>string</code> |  |  |

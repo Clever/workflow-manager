@@ -17,7 +17,7 @@ func NewWorkflow(wfd *models.WorkflowDefinition, input string, namespace string,
 			CreatedAt:          strfmt.DateTime(time.Now()),
 			LastUpdated:        strfmt.DateTime(time.Now()),
 			WorkflowDefinition: wfd,
-			Status:             models.WorkflowStatusQueued,
+			Status:             models.WorkflowStatusRunning,
 			Namespace:          namespace,
 			Queue:              queue,
 			Input:              input,
@@ -51,8 +51,6 @@ func WorkflowStatusToInt(status models.WorkflowStatus) int {
 	case models.WorkflowStatusFailed:
 		return 1
 	// states in path to completion return zero
-	case models.WorkflowStatusQueued:
-		return 0
 	case models.WorkflowStatusRunning:
 		return 0
 	case models.WorkflowStatusSucceeded:

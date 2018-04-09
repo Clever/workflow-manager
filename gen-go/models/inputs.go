@@ -305,6 +305,12 @@ func (i GetWorkflowsInput) Validate() error {
 		}
 	}
 
+	if i.Status != nil {
+		if err := validate.Enum("status", "query", *i.Status, []interface{}{"running", "failed", "cancelled", "succeeded"}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

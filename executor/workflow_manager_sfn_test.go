@@ -328,7 +328,7 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
-	workflow.Status = models.WorkflowStatusQueued
+	workflow.Status = models.WorkflowStatusRunning
 	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
@@ -377,7 +377,7 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
-	workflow.Status = models.WorkflowStatusQueued
+	workflow.Status = models.WorkflowStatusRunning
 	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
@@ -423,7 +423,7 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
-	workflow.Status = models.WorkflowStatusQueued
+	workflow.Status = models.WorkflowStatusRunning
 	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
@@ -501,7 +501,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
-	workflow.Status = models.WorkflowStatusQueued
+	workflow.Status = models.WorkflowStatusRunning
 	c.saveWorkflow(ctx, t, workflow)
 
 	executionOutput := `{"output": true}`
@@ -563,7 +563,7 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
-	workflow.Status = models.WorkflowStatusQueued
+	workflow.Status = models.WorkflowStatusRunning
 	workflow.StatusReason = "cancelled by user"
 	c.saveWorkflow(ctx, t, workflow)
 
@@ -607,7 +607,7 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
-	workflow.Status = models.WorkflowStatusQueued
+	workflow.Status = models.WorkflowStatusRunning
 	workflow.StatusReason = "cancelled by user"
 	c.saveWorkflow(ctx, t, workflow)
 
@@ -652,7 +652,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
-	workflow.Status = models.WorkflowStatusQueued
+	workflow.Status = models.WorkflowStatusRunning
 	c.saveWorkflow(ctx, t, workflow)
 
 	executionOutput := `{"output": true}`
@@ -690,7 +690,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
 		})
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
-	assert.Equal(t, models.WorkflowStatusQueued, workflow.Status)
+	assert.Equal(t, models.WorkflowStatusRunning, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
@@ -709,7 +709,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 	defer c.tearDown()
 
 	workflow := c.newWorkflow()
-	workflow.Status = models.WorkflowStatusQueued
+	workflow.Status = models.WorkflowStatusRunning
 	c.saveWorkflow(ctx, t, workflow)
 
 	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
@@ -724,7 +724,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 		Times(2)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
-	assert.Equal(t, models.WorkflowStatusQueued, workflow.Status)
+	assert.Equal(t, models.WorkflowStatusRunning, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
 	time.Sleep(durationToRetryDescribeExecutions)
 

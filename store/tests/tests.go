@@ -267,7 +267,7 @@ func DeleteWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 
 		savedWorkflow, err := s.GetWorkflowByID(ctx, workflow.ID)
 		require.Nil(t, err)
-		require.Equal(t, savedWorkflow.Status, models.WorkflowStatusQueued)
+		require.Equal(t, savedWorkflow.Status, models.WorkflowStatusRunning)
 
 		require.Nil(t, s.DeleteWorkflowByID(ctx, workflow.ID))
 
@@ -295,7 +295,7 @@ func GetWorkflowByID(s store.Store, t *testing.T) func(t *testing.T) {
 				ID:                 workflow.ID,
 				WorkflowDefinition: wf,
 				Input:              `["input"]`,
-				Status:             models.WorkflowStatusQueued,
+				Status:             models.WorkflowStatusRunning,
 				Namespace:          "namespace",
 				Queue:              "queue",
 				Tags:               tags,
