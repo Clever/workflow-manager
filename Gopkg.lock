@@ -95,12 +95,6 @@
   revision = "b8f31a59085e69dd2678cf51840db2ac625cb741"
 
 [[projects]]
-  name = "github.com/ghodss/yaml"
-  packages = ["."]
-  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
-  version = "v1.0.0"
-
-[[projects]]
   name = "github.com/go-errors/errors"
   packages = ["."]
   revision = "8fa88b06e5974e97fbf9899a7f86a344bfd1f105"
@@ -177,14 +171,14 @@
   revision = "117892bf1866fbaa2318c03e50e40564c8845457"
 
 [[projects]]
+  branch = "master"
   name = "github.com/golang/mock"
   packages = [
     "gomock",
     "mockgen",
     "mockgen/model"
   ]
-  revision = "13f360950a79f5864a972c786a10a50e44b69541"
-  version = "v1.0.0"
+  revision = "8b2eeeb0ca5f56c78bec5efde9c4a21d9201126c"
 
 [[projects]]
   branch = "master"
@@ -419,6 +413,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "eddae18698c68de970b4eb57f3b1b05ee7c1eabc526143c52022f4b550e9c72a"
+  inputs-digest = "2246511c3a288080d7aa8b28623fcc03115313420e50ea95f3cba5633b669ea7"
   solver-name = "gps-cdcl"
   solver-version = 1
