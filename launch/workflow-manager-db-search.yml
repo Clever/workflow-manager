@@ -1,0 +1,38 @@
+type: elasticsearch
+dev:
+  region: us-west-2
+  domain:
+    ElasticsearchVersion: '6.2'
+    ElasticsearchClusterConfig:
+      InstanceCount: 1
+      InstanceType: t2.small.elasticsearch
+    EBSOptions:
+      EBSEnabled: true
+      VolumeSize: 10
+      VolumeType: standard
+    SnapshotOptions:
+      AutomatedSnapshotStartHour: 1
+    AdvancedOptions:
+      rest.action.multi.allow_explicit_index: 'true'
+    Tags:
+    - Key: application
+      Value: workflow-manager
+prod:
+  region: us-west-2
+  domain:
+    ElasticsearchVersion: '6.2'
+    ElasticsearchClusterConfig:
+      InstanceCount: 1
+      InstanceType: t2.medium.elasticsearch
+    EBSOptions:
+      EBSEnabled: true
+      Iops: 0
+      VolumeSize: 10
+      VolumeType: standard
+    SnapshotOptions:
+      AutomatedSnapshotStartHour: 1
+    AdvancedOptions:
+      rest.action.multi.allow_explicit_index: 'true'
+    Tags:
+    - Key: application
+      Value: workflow-manager
