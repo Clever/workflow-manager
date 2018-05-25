@@ -11,7 +11,7 @@ PKGS := $(PKGS) $(PKG)/gen-go/server/db/dynamodb
 
 WAG_VERSION := latest
 
-$(eval $(call golang-version-check,1.9))
+$(eval $(call golang-version-check,1.10))
 
 all: test build
 
