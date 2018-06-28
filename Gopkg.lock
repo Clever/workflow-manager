@@ -10,12 +10,14 @@
 [[projects]]
   name = "github.com/Clever/discovery-go"
   packages = ["."]
-  revision = "2e485eaaf026d527548740ceff178c8859fcaa07"
+  revision = "b2114f3bdf1c55f030cf6d6d457478ccb18b9e9c"
+  version = "v1.7.1"
 
 [[projects]]
+  branch = "master"
   name = "github.com/Clever/go-process-metrics"
   packages = ["metrics"]
-  revision = "5944a49b5051ebcc10feb08724689740b4eefa28"
+  revision = "1c81815aeb8f2e1218dfaf7a99e1dea1a905f51a"
 
 [[projects]]
   branch = "master"
@@ -90,14 +92,16 @@
   revision = "6d212800a42e8ab5c146b8ace3490ee17e5225f9"
 
 [[projects]]
+  branch = "master"
   name = "github.com/donovanhide/eventsource"
   packages = ["."]
-  revision = "b8f31a59085e69dd2678cf51840db2ac625cb741"
+  revision = "3ed64d21fb0b6bd8b49bcfec08f3004daee8723d"
 
 [[projects]]
   name = "github.com/go-errors/errors"
   packages = ["."]
-  revision = "8fa88b06e5974e97fbf9899a7f86a344bfd1f105"
+  revision = "a6af135bd4e28680facf08a3d206b454abc877a4"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/go-ini/ini"
@@ -166,11 +170,6 @@
   revision = "180bba53b98899f743a112e568bed9e2ef31aa20"
 
 [[projects]]
-  name = "github.com/gogo/protobuf"
-  packages = ["proto"]
-  revision = "117892bf1866fbaa2318c03e50e40564c8845457"
-
-[[projects]]
   branch = "master"
   name = "github.com/golang/mock"
   packages = [
@@ -185,6 +184,7 @@
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
+    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
@@ -199,9 +199,10 @@
   revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
 
 [[projects]]
+  branch = "master"
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "757bef944d0f21880861c2dd9c871ca543023cba"
+  revision = "cb4698366aa625048f3b815af6a0dea8aef9280a"
 
 [[projects]]
   branch = "master"
@@ -224,15 +225,16 @@
   revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
 
 [[projects]]
+  branch = "master"
   name = "github.com/lightstep/lightstep-tracer-go"
   packages = [
     ".",
     "collectorpb",
     "lightstep_thrift",
-    "thrift_0_9_2/lib/go/thrift",
-    "thrift_rpc"
+    "lightsteppb",
+    "thrift_0_9_2/lib/go/thrift"
   ]
-  revision = "0d48cd619841b1e1a3cdd20cd6ac97774c0002ce"
+  revision = "644c3d5ecbd0499c50a1329f89ba287921fc1144"
 
 [[projects]]
   name = "github.com/mailru/easyjson"
@@ -254,15 +256,6 @@
   name = "github.com/mohae/deepcopy"
   packages = ["."]
   revision = "c48cc78d482608239f6c4c92a4abd87eb8761c90"
-
-[[projects]]
-  name = "github.com/opentracing/basictracer-go"
-  packages = [
-    ".",
-    "wire"
-  ]
-  revision = "1b32af207119a14b1b231d451df3ed04a72efebf"
-  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/opentracing/opentracing-go"
@@ -313,18 +306,19 @@
   revision = "212d8a0df7acfab8bdd190a7a69f0ab7376edcc8"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = [
     "context",
     "context/ctxhttp",
+    "http/httpguts",
     "http2",
     "http2/hpack",
     "idna",
     "internal/timeseries",
-    "lex/httplex",
     "trace"
   ]
-  revision = "c73622c77280266305273cb545f54516ced95b93"
+  revision = "e514e69ffb8bc3c76a71ae40de0118d794855992"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -349,7 +343,10 @@
 
 [[projects]]
   name = "google.golang.org/genproto"
-  packages = ["googleapis/rpc/status"]
+  packages = [
+    "googleapis/api/annotations",
+    "googleapis/rpc/status"
+  ]
   revision = "f676e0f3ac6395ff1a529ae59a6670878a8371a6"
 
 [[projects]]
@@ -357,13 +354,18 @@
   packages = [
     ".",
     "balancer",
+    "balancer/base",
     "balancer/roundrobin",
     "codes",
     "connectivity",
     "credentials",
-    "grpclb/grpc_lb_v1/messages",
+    "encoding",
+    "encoding/proto",
     "grpclog",
     "internal",
+    "internal/backoff",
+    "internal/channelz",
+    "internal/grpcrand",
     "keepalive",
     "metadata",
     "naming",
@@ -376,7 +378,8 @@
     "tap",
     "transport"
   ]
-  revision = "c91118c8fa0e1821c8fb860e15aaae5e6acb1add"
+  revision = "168a6198bcb0ef175f7dacec0b8691fc141dc9b8"
+  version = "v1.13.0"
 
 [[projects]]
   name = "gopkg.in/Clever/kayvee-go.v6"
@@ -386,8 +389,8 @@
     "middleware",
     "router"
   ]
-  revision = "e1e6fd8184162847c1123645e7058347a2fd3959"
-  version = "v6.10.0"
+  revision = "77f05943b48b0cb82c705ec9e40bed66e7cf79c1"
+  version = "v6.12.0"
 
 [[projects]]
   branch = "v2"
@@ -413,6 +416,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2246511c3a288080d7aa8b28623fcc03115313420e50ea95f3cba5633b669ea7"
+  inputs-digest = "1ff1f87d326d342b971ea4546487bfc02552d6c50983b6e2feae15fd6f5ef871"
   solver-name = "gps-cdcl"
   solver-version = 1
