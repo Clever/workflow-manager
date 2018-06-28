@@ -2,15 +2,19 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/Clever/aws-sdk-go-counter"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/Clever/discovery-go"
+  version = "v1.7.1"
 
 [[constraint]]
   name = "github.com/Clever/go-process-metrics"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/afex/hystrix-go"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/aws/aws-sdk-go"
@@ -18,21 +22,27 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/donovanhide/eventsource"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/go-errors/errors"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/go-openapi/errors"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/go-openapi/strfmt"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/go-openapi/swag"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/go-openapi/validate"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/golang/mock"
@@ -40,18 +50,23 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/gorilla/mux"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/hashicorp/golang-lru"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/kardianos/osext"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/lightstep/lightstep-tracer-go"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/mohae/deepcopy"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/opentracing/opentracing-go"
@@ -71,3 +86,4 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "gopkg.in/tylerb/graceful.v1"
+  version = "1.2.15"
