@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/Clever/workflow-manager
     docker:
-    - image: circleci/golang:1.10
+    - image: circleci/golang@sha256:dbcd25bb717ed97b229311388efd6a1a3e1841da08899f40b34632ebb58915ed # circleci/golang:1.10-node
     steps:
     - checkout
     - setup_remote_docker
@@ -19,20 +19,12 @@ jobs:
     - run: make install_deps
     - run: make build
     - run: make test
-    - run: |
-        $HOME/ci-scripts/circleci/docker-publish $DOCKER_USER $DOCKER_PASS "$DOCKER_EMAIL" $DOCKER_ORG
-    - run: |
-        $HOME/ci-scripts/circleci/catapult-publish $CATAPULT_URL $CATAPULT_USER $CATAPULT_PASS $APP_NAME
-    - run: |
-        if [ "${CIRCLE_BRANCH}" == "master" ]; then $HOME/ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS $APP_NAME clever-dev no-confirm-deploy;
+    - run: $HOME/ci-scripts/circleci/docker-publish $DOCKER_USER $DOCKER_PASS "$DOCKER_EMAIL" $DOCKER_ORG
+    - run: $HOME/ci-scripts/circleci/catapult-publish $CATAPULT_URL $CATAPULT_USER $CATAPULT_PASS $APP_NAME
+    - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then $HOME/ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS $APP_NAME clever-dev no-confirm-deploy;
         fi;
-    - run: |
-        if [ "${CIRCLE_BRANCH}" == "master" ]; then $HOME/ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS $APP_NAME production confirm-then-deploy;
+    - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then $HOME/ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS $APP_NAME production confirm-then-deploy;
         fi;
-    - run: |
-        if [ "${CIRCLE_BRANCH}" == "master" ]; then $HOME/ci-scripts/circleci/npm-publish $NPM_TOKEN gen-js/; fi;
-    - run:
-        name: Publish GitHub release
-        command: |
-          if [ "${CIRCLE_BRANCH}" == "master" ]; then cat ./swagger.yml | grep "^  version:" | cut -d":" -f2 | tr -d " " > ./VERSION; fi;
-          if [ "${CIRCLE_BRANCH}" == "master" ]; then $HOME/ci-scripts/circleci/github-release $GH_RELEASE_TOKEN; fi;
+    - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then $HOME/ci-scripts/circleci/npm-publish $NPM_TOKEN gen-js/; fi;
+    - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then cat ./swagger.yml | grep "^  version:" | cut -d":" -f2 | tr -d " " > ./VERSION; fi;
+    - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then $HOME/ci-scripts/circleci/github-release $GH_RELEASE_TOKEN; fi;
