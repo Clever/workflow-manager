@@ -387,8 +387,8 @@ definitions:
         $ref: '#/definitions/Manager'
       stateMachine:
         $ref: '#/definitions/SLStateMachine'
-      default_tags:
-        description: "default_tags: object with key-value pairs; keys and values should be strings"
+      defaultTags:
+        description: "defaultTags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
           type: object
 
@@ -416,8 +416,8 @@ definitions:
         $ref: '#/definitions/Manager'
       stateMachine:
         $ref: '#/definitions/SLStateMachine'
-      default_tags:
-        description: "default_tags: object with key-value pairs; keys and values should be strings"
+      defaultTags:
+        description: "defaultTags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
           type: object
 
