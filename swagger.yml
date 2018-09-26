@@ -387,6 +387,10 @@ definitions:
         $ref: '#/definitions/Manager'
       stateMachine:
         $ref: '#/definitions/SLStateMachine'
+      default_tags:
+        description: "default_tags: object with key-value pairs; keys and values should be strings"
+        additionalProperties:
+          type: object
 
   WorkflowDefinition:
     x-db:
@@ -412,6 +416,10 @@ definitions:
         $ref: '#/definitions/Manager'
       stateMachine:
         $ref: '#/definitions/SLStateMachine'
+      default_tags:
+        description: "default_tags: object with key-value pairs; keys and values should be strings"
+        additionalProperties:
+          type: object
 
   Manager:
     type: string

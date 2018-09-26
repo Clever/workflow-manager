@@ -328,7 +328,12 @@ func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (
 			numStates-len(req.StateMachine.States))
 	}
 
-	return resources.NewWorkflowDefinition(req.Name, req.Manager, req.StateMachine)
+	// verify request's default_tags (map[string]interface{}) are actually map[string]string
+	if err := validateTagsMap(req.DefaultTags); err != nil {
+		return nil, err
+	}
+
+	return resources.NewWorkflowDefinition(req.Name, req.Manager, req.StateMachine, req.DefaultTags)
 }
 
 // validateTagsMap ensures that all tags values are strings

@@ -64,6 +64,7 @@ func TestCopyWorflowDefinition(t *testing.T) {
 	assert.Equal(t, wf.Version, copy.Version)
 	assert.Equal(t, wf.Version, copy.Version)
 	assert.Equal(t, wf.Manager, copy.Manager)
+	assert.Equal(t, wf.DefaultTags, copy.DefaultTags)
 
 	t.Log("StateMachines are equal but pointers are different")
 	assert.Equal(t, wf.StateMachine, copy.StateMachine)

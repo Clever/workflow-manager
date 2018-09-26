@@ -19,6 +19,9 @@ type WorkflowDefinition struct {
 	// created at
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
+	// default_tags: object with key-value pairs; keys and values should be strings
+	DefaultTags map[string]interface{} `json:"default_tags,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
 
