@@ -165,7 +165,12 @@ func TestCreateWorkflow(t *testing.T) {
 			SendMessageWithContext(gomock.Any(), gomock.Any()).
 			Return(&sqs.SendMessageOutput{}, nil)
 
-		originalTags := c.workflowDefinition.DefaultTags
+		defaultTags := map[string]interface{}{
+			"tag1": "val1",
+			"tag2": "val2",
+			"tag3": "val3",
+		}
+		assert.Equal(t, c.workflowDefinition.DefaultTags, defaultTags)
 		workflow, err := c.manager.CreateWorkflow(ctx, *c.workflowDefinition,
 			input,
 			"namespace",
@@ -178,13 +183,9 @@ func TestCreateWorkflow(t *testing.T) {
 		assert.Equal(t, workflow.Input, input)
 
 		// Create called without tags, so tags should match c.workflowDefinition.DefaultTags
-		assert.Equal(t, workflow.Tags, map[string]interface{}{
-			"tag1": "val1",
-			"tag2": "val2",
-			"tag3": "val3",
-		})
+		assert.Equal(t, workflow.Tags, defaultTags)
 		// Ensure workflow definition tags not modified by CreateWorkflow()
-		assert.Equal(t, c.workflowDefinition.DefaultTags, originalTags)
+		assert.Equal(t, c.workflowDefinition.DefaultTags, defaultTags)
 
 		savedWorkflow, err := c.store.GetWorkflowByID(ctx, workflow.ID)
 		assert.Nil(t, err)
@@ -251,7 +252,11 @@ func TestCreateWorkflow(t *testing.T) {
 			SendMessageWithContext(gomock.Any(), gomock.Any()).
 			Return(&sqs.SendMessageOutput{}, nil)
 
-		originalTags := c.workflowDefinition.DefaultTags
+		defaultTags := map[string]interface{}{
+			"tag1": "val1",
+			"tag2": "val2",
+			"tag3": "val3",
+		}
 		workflow, err := c.manager.CreateWorkflow(ctx, *c.workflowDefinition,
 			input,
 			"namespace",
@@ -269,7 +274,7 @@ func TestCreateWorkflow(t *testing.T) {
 			"newTag2": "newVal2",
 		})
 		// Ensure workflow definition tags not modified by CreateWorkflow()
-		assert.Equal(t, c.workflowDefinition.DefaultTags, originalTags)
+		assert.Equal(t, c.workflowDefinition.DefaultTags, defaultTags)
 	})
 
 	t.Run("CreateWorkflow deletes workflow on StartExecution failure", func(t *testing.T) {
