@@ -213,7 +213,11 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 		return nil, err
 	}
 
-	mergedTags := wd.DefaultTags
+	mergedTags := map[string]interface{}{}
+	for k, v := range wd.DefaultTags {
+		mergedTags[k] = v
+	}
+	// tags passed to CreateWorkflow overwrite wd.DefaultTags upon key conflict
 	for k, v := range tags {
 		mergedTags[k] = v
 	}
