@@ -176,6 +176,13 @@ func TestCreateWorkflow(t *testing.T) {
 		assert.Equal(t, workflow.Namespace, "namespace")
 		assert.Equal(t, workflow.Input, input)
 
+		// Create called without tags, so tags should match c.workflowDefinition.DefaultTags
+		assert.Equal(t, workflow.Tags, map[string]interface{}{
+			"tag1": "val1",
+			"tag2": "val2",
+			"tag3": "val3",
+		})
+
 		savedWorkflow, err := c.store.GetWorkflowByID(ctx, workflow.ID)
 		assert.Nil(t, err)
 		assert.Equal(t, workflow.CreatedAt.String(), savedWorkflow.CreatedAt.String())

@@ -213,6 +213,10 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 		return nil, err
 	}
 
+	if tags == nil || len(tags) == 0 {
+		tags = wd.DefaultTags
+	}
+
 	// save the workflow before starting execution to ensure we don't have untracked executions
 	// i.e. execution was started but we failed to save workflow
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
