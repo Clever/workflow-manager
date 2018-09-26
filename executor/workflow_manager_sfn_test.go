@@ -165,6 +165,12 @@ func TestCreateWorkflow(t *testing.T) {
 			SendMessageWithContext(gomock.Any(), gomock.Any()).
 			Return(&sqs.SendMessageOutput{}, nil)
 
+		defaultTags := map[string]interface{}{
+			"tag1": "val1",
+			"tag2": "val2",
+			"tag3": "val3",
+		}
+		assert.Equal(t, c.workflowDefinition.DefaultTags, defaultTags)
 		workflow, err := c.manager.CreateWorkflow(ctx, *c.workflowDefinition,
 			input,
 			"namespace",
@@ -175,6 +181,11 @@ func TestCreateWorkflow(t *testing.T) {
 		assert.NotNil(t, workflow)
 		assert.Equal(t, workflow.Namespace, "namespace")
 		assert.Equal(t, workflow.Input, input)
+
+		// Create called without tags, so tags should match c.workflowDefinition.DefaultTags
+		assert.Equal(t, workflow.Tags, defaultTags)
+		// Ensure workflow definition tags not modified by CreateWorkflow()
+		assert.Equal(t, c.workflowDefinition.DefaultTags, defaultTags)
 
 		savedWorkflow, err := c.store.GetWorkflowByID(ctx, workflow.ID)
 		assert.Nil(t, err)
@@ -214,6 +225,56 @@ func TestCreateWorkflow(t *testing.T) {
 		wfID, err := updatePendingWorkflow(context.TODO(), msg, c.manager, c.store, c.mockSQSAPI, "")
 		assert.Nil(t, err)
 		assert.Equal(t, workflow.ID, wfID)
+	})
+
+	t.Run("CreateWorkflow with added tags", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		c := newSFNManagerTestController(t)
+		defer c.tearDown()
+		stateMachineArn := stateMachineARN(c.manager.region, c.manager.accountID,
+			c.workflowDefinition.Name,
+			c.workflowDefinition.Version,
+			"namespace",
+			c.workflowDefinition.StateMachine.StartAt,
+		)
+		c.mockSFNAPI.EXPECT().
+			DescribeStateMachine(&sfn.DescribeStateMachineInput{
+				StateMachineArn: aws.String(stateMachineArn),
+			}).
+			Return(&sfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(stateMachineArn),
+			}, nil)
+		c.mockSFNAPI.EXPECT().
+			StartExecution(gomock.Any()).
+			Return(&sfn.StartExecutionOutput{}, nil)
+		c.mockSQSAPI.EXPECT().
+			SendMessageWithContext(gomock.Any(), gomock.Any()).
+			Return(&sqs.SendMessageOutput{}, nil)
+
+		defaultTags := map[string]interface{}{
+			"tag1": "val1",
+			"tag2": "val2",
+			"tag3": "val3",
+		}
+		workflow, err := c.manager.CreateWorkflow(ctx, *c.workflowDefinition,
+			input,
+			"namespace",
+			"queue",
+			map[string]interface{}{"newTag1": "newVal1", "newTag2": "newVal2"},
+		)
+		assert.Nil(t, err)
+		// Create called with tags, so they should be added to c.workflowDefinition.DefaultTags
+		// in the new workflow
+		assert.Equal(t, workflow.Tags, map[string]interface{}{
+			"tag1":    "val1",
+			"tag2":    "val2",
+			"tag3":    "val3",
+			"newTag1": "newVal1",
+			"newTag2": "newVal2",
+		})
+		// Ensure workflow definition tags not modified by CreateWorkflow()
+		assert.Equal(t, c.workflowDefinition.DefaultTags, defaultTags)
 	})
 
 	t.Run("CreateWorkflow deletes workflow on StartExecution failure", func(t *testing.T) {

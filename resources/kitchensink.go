@@ -44,6 +44,11 @@ func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 				},
 			},
 		},
+		map[string]interface{}{
+			"tag1": "val1",
+			"tag2": "val2",
+			"tag3": "val3",
+		},
 	)
 	assert.Nil(t, err)
 

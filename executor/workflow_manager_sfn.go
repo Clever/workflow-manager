@@ -213,10 +213,19 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 		return nil, err
 	}
 
+	mergedTags := map[string]interface{}{}
+	for k, v := range wd.DefaultTags {
+		mergedTags[k] = v
+	}
+	// tags passed to CreateWorkflow overwrite wd.DefaultTags upon key conflict
+	for k, v := range tags {
+		mergedTags[k] = v
+	}
+
 	// save the workflow before starting execution to ensure we don't have untracked executions
 	// i.e. execution was started but we failed to save workflow
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
-	workflow := resources.NewWorkflow(&wd, input, namespace, queue, tags)
+	workflow := resources.NewWorkflow(&wd, input, namespace, queue, mergedTags)
 	if err := wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}

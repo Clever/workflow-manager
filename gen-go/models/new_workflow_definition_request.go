@@ -16,6 +16,9 @@ import (
 // swagger:model NewWorkflowDefinitionRequest
 type NewWorkflowDefinitionRequest struct {
 
+	// defaultTags: object with key-value pairs; keys and values should be strings
+	DefaultTags map[string]interface{} `json:"defaultTags,omitempty"`
+
 	// manager
 	Manager Manager `json:"manager,omitempty"`
 

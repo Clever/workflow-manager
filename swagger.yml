@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.9.1
+  version: 0.9.2
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -387,6 +387,10 @@ definitions:
         $ref: '#/definitions/Manager'
       stateMachine:
         $ref: '#/definitions/SLStateMachine'
+      defaultTags:
+        description: "defaultTags: object with key-value pairs; keys and values should be strings"
+        additionalProperties:
+          type: object
 
   WorkflowDefinition:
     x-db:
@@ -412,6 +416,10 @@ definitions:
         $ref: '#/definitions/Manager'
       stateMachine:
         $ref: '#/definitions/SLStateMachine'
+      defaultTags:
+        description: "defaultTags: object with key-value pairs; keys and values should be strings"
+        additionalProperties:
+          type: object
 
   Manager:
     type: string

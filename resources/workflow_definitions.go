@@ -11,7 +11,10 @@ import (
 )
 
 // NewWorkflowDefinition creates a new Workflow
-func NewWorkflowDefinition(name string, manager models.Manager, stateMachine *models.SLStateMachine) (*models.WorkflowDefinition, error) {
+func NewWorkflowDefinition(
+	name string, manager models.Manager,
+	stateMachine *models.SLStateMachine,
+	defaultTags map[string]interface{}) (*models.WorkflowDefinition, error) {
 	return &models.WorkflowDefinition{
 		ID:           uuid.NewV4().String(),
 		Name:         name,
@@ -19,6 +22,7 @@ func NewWorkflowDefinition(name string, manager models.Manager, stateMachine *mo
 		CreatedAt:    strfmt.DateTime(time.Now()),
 		Manager:      manager,
 		StateMachine: stateMachine,
+		DefaultTags:  defaultTags,
 	}, nil
 }
 
@@ -30,6 +34,7 @@ func NewWorkflowDefinitionVersion(def *models.WorkflowDefinition, version int) *
 		CreatedAt:    strfmt.DateTime(time.Now()),
 		Manager:      def.Manager,
 		StateMachine: def.StateMachine,
+		DefaultTags:  def.DefaultTags,
 	}
 }
 
