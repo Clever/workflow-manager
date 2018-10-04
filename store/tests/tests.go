@@ -432,7 +432,11 @@ func GetWorkflows(s store.Store, t *testing.T) func(t *testing.T) {
 			},
 			Limit: 10,
 		})
-		require.Error(t, err)
+		require.NoError(t, err)
+		require.Len(t, workflows, 1)
+		require.Equal(t, runningResolvedWorkflow.ID, workflows[0].ID)
+		require.True(t, workflows[0].ResolvedByUser)
+		require.Equal(t, models.WorkflowStatusRunning, workflows[0].Status)
 	}
 }
 

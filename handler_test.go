@@ -65,8 +65,10 @@ func TestParamsToWorkflowsQuery(t *testing.T) {
 	}
 
 	workflowQuery, err := paramsToWorkflowsQuery(inputWithStatusAndResolvedTrue)
-	assert.Error(t, err)
-	assert.IsType(t, models.BadRequest{}, err)
+	assert.NoError(t, err)
+	assert.Equal(t, true, workflowQuery.ResolvedByUserWrapper.IsSet)
+	assert.Equal(t, true, workflowQuery.ResolvedByUserWrapper.Value)
+	assert.Equal(t, models.WorkflowStatusFailed, workflowQuery.Status)
 
 	// if status and resolvedByUser are sent, verify error
 	inputWithStatusAndResolvedFalse := &models.GetWorkflowsInput{
@@ -75,7 +77,10 @@ func TestParamsToWorkflowsQuery(t *testing.T) {
 		WorkflowDefinitionName: definitionName,
 	}
 	workflowQuery, err = paramsToWorkflowsQuery(inputWithStatusAndResolvedFalse)
-	assert.Error(t, err)
+	assert.NoError(t, err)
+	assert.Equal(t, true, workflowQuery.ResolvedByUserWrapper.IsSet)
+	assert.Equal(t, false, workflowQuery.ResolvedByUserWrapper.Value)
+	assert.Equal(t, models.WorkflowStatusFailed, workflowQuery.Status)
 
 	// if resolvedByUser is sent, verify that the wrapper is created correctly
 	inputWithResolvedTrue := &models.GetWorkflowsInput{
