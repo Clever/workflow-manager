@@ -26,7 +26,7 @@ var _ = bytes.Compare
 type WagClient struct {
 	basePath    string
 	requestDoer doer
-	transport   *http.Transport
+	transport   http.RoundTripper
 	timeout     time.Duration
 	// Keep the retry doer around so that we can set the number of retries
 	retryDoer *retryDoer
@@ -142,6 +142,11 @@ func (c *WagClient) SetTimeout(timeout time.Duration) {
 	c.defaultTimeout = timeout
 }
 
+// SetTransport sets the http transport used by the client.
+func (c *WagClient) SetTransport(t http.RoundTripper) {
+	c.transport = t
+}
+
 // HealthCheck makes a GET request to /_health
 // Checks if the service is healthy
 // 200: nil
@@ -165,6 +170,8 @@ func (c *WagClient) HealthCheck(ctx context.Context) error {
 
 func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request, headers map[string]string) error {
 	client := &http.Client{Transport: c.transport}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -266,6 +273,8 @@ func (c *WagClient) PostStateResource(ctx context.Context, i *models.NewStateRes
 func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.StateResource, error) {
 	client := &http.Client{Transport: c.transport}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	for field, value := range headers {
 		req.Header.Set(field, value)
 	}
@@ -366,6 +375,8 @@ func (c *WagClient) DeleteStateResource(ctx context.Context, i *models.DeleteSta
 
 func (c *WagClient) doDeleteStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) error {
 	client := &http.Client{Transport: c.transport}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -470,6 +481,8 @@ func (c *WagClient) GetStateResource(ctx context.Context, i *models.GetStateReso
 
 func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.StateResource, error) {
 	client := &http.Client{Transport: c.transport}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -590,6 +603,8 @@ func (c *WagClient) PutStateResource(ctx context.Context, i *models.PutStateReso
 func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.StateResource, error) {
 	client := &http.Client{Transport: c.transport}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	for field, value := range headers {
 		req.Header.Set(field, value)
 	}
@@ -683,6 +698,8 @@ func (c *WagClient) GetWorkflowDefinitions(ctx context.Context) ([]models.Workfl
 
 func (c *WagClient) doGetWorkflowDefinitionsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -789,6 +806,8 @@ func (c *WagClient) NewWorkflowDefinition(ctx context.Context, i *models.NewWork
 func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	for field, value := range headers {
 		req.Header.Set(field, value)
 	}
@@ -889,6 +908,8 @@ func (c *WagClient) GetWorkflowDefinitionVersionsByName(ctx context.Context, i *
 
 func (c *WagClient) doGetWorkflowDefinitionVersionsByNameRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1010,6 +1031,8 @@ func (c *WagClient) UpdateWorkflowDefinition(ctx context.Context, i *models.Upda
 func (c *WagClient) doUpdateWorkflowDefinitionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	for field, value := range headers {
 		req.Header.Set(field, value)
 	}
@@ -1118,6 +1141,8 @@ func (c *WagClient) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i
 
 func (c *WagClient) doGetWorkflowDefinitionByNameAndVersionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.WorkflowDefinition, error) {
 	client := &http.Client{Transport: c.transport}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1314,6 +1339,8 @@ func (i *getWorkflowsIterImpl) Err() error {
 func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Workflow, string, error) {
 	client := &http.Client{Transport: c.transport}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	for field, value := range headers {
 		req.Header.Set(field, value)
 	}
@@ -1427,6 +1454,8 @@ func (c *WagClient) StartWorkflow(ctx context.Context, i *models.StartWorkflowRe
 
 func (c *WagClient) doStartWorkflowRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
 	client := &http.Client{Transport: c.transport}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1548,6 +1577,8 @@ func (c *WagClient) CancelWorkflow(ctx context.Context, i *models.CancelWorkflow
 func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Request, headers map[string]string) error {
 	client := &http.Client{Transport: c.transport}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	for field, value := range headers {
 		req.Header.Set(field, value)
 	}
@@ -1651,6 +1682,8 @@ func (c *WagClient) GetWorkflowByID(ctx context.Context, workflowID string) (*mo
 
 func (c *WagClient) doGetWorkflowByIDRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
 	client := &http.Client{Transport: c.transport}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1772,6 +1805,8 @@ func (c *WagClient) ResumeWorkflowByID(ctx context.Context, i *models.ResumeWork
 func (c *WagClient) doResumeWorkflowByIDRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
 	client := &http.Client{Transport: c.transport}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	for field, value := range headers {
 		req.Header.Set(field, value)
 	}
@@ -1881,6 +1916,8 @@ func (c *WagClient) ResolveWorkflowByID(ctx context.Context, workflowID string) 
 
 func (c *WagClient) doResolveWorkflowByIDRequest(ctx context.Context, req *http.Request, headers map[string]string) error {
 	client := &http.Client{Transport: c.transport}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	for field, value := range headers {
 		req.Header.Set(field, value)

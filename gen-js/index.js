@@ -128,6 +128,8 @@ class WorkflowManager {
    * this or the address argument
    * @param {number} [options.timeout] - The timeout to use for all client requests,
    * in milliseconds. This can be overridden on a per-request basis. Default is 5000ms.
+   * @param {bool} [options.keepalive] - Set keepalive to true for client requests. This sets the
+   * forever: true attribute in request. Defaults to false
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy=RetryPolicies.Single] - The logic to
    * determine which requests to retry, as well as how many times to retry.
    * @param {module:kayvee.Logger} [options.logger=logger.New("workflow-manager-wagclient")] - The Kayvee 
@@ -157,6 +159,11 @@ class WorkflowManager {
       this.address = options.address;
     } else {
       throw new Error("Cannot initialize workflow-manager without discovery or address");
+    }
+    if (options.keepalive) {
+      this.keepalive = options.keepalive;
+    } else {
+      this.keepalive = false;
     }
     if (options.timeout) {
       this.timeout = options.timeout;
@@ -277,7 +284,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "GET",
         uri: this.address + "/_health",
         json: true,
@@ -286,6 +293,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -393,7 +403,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "POST",
         uri: this.address + "/state-resources",
         json: true,
@@ -402,6 +412,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
       requestOptions.body = params.NewStateResource;
   
@@ -519,7 +532,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "DELETE",
         uri: this.address + "/state-resources/" + params.namespace + "/" + params.name + "",
         json: true,
@@ -528,6 +541,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -649,7 +665,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "GET",
         uri: this.address + "/state-resources/" + params.namespace + "/" + params.name + "",
         json: true,
@@ -658,6 +674,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -779,7 +798,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "PUT",
         uri: this.address + "/state-resources/" + params.namespace + "/" + params.name + "",
         json: true,
@@ -788,6 +807,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
       requestOptions.body = params.NewStateResource;
   
@@ -896,7 +918,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "GET",
         uri: this.address + "/workflow-definitions",
         json: true,
@@ -905,6 +927,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -1012,7 +1037,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "POST",
         uri: this.address + "/workflow-definitions",
         json: true,
@@ -1021,6 +1046,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
       requestOptions.body = params.NewWorkflowDefinitionRequest;
   
@@ -1138,7 +1166,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "GET",
         uri: this.address + "/workflow-definitions/" + params.name + "",
         json: true,
@@ -1147,6 +1175,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -1264,7 +1295,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "PUT",
         uri: this.address + "/workflow-definitions/" + params.name + "",
         json: true,
@@ -1273,6 +1304,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
       requestOptions.body = params.NewWorkflowDefinitionRequest;
   
@@ -1396,7 +1430,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "GET",
         uri: this.address + "/workflow-definitions/" + params.name + "/" + params.version + "",
         json: true,
@@ -1405,6 +1439,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -1549,7 +1586,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows",
         json: true,
@@ -1558,6 +1595,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -1691,7 +1731,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows",
         json: true,
@@ -1700,6 +1740,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -1853,7 +1896,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "POST",
         uri: this.address + "/workflows",
         json: true,
@@ -1862,6 +1905,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
       requestOptions.body = params.StartWorkflowRequest;
   
@@ -1981,7 +2027,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "DELETE",
         uri: this.address + "/workflows/" + params.workflowID + "",
         json: true,
@@ -1990,6 +2036,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
       requestOptions.body = params.reason;
   
@@ -2110,7 +2159,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows/" + params.workflowID + "",
         json: true,
@@ -2119,6 +2168,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
@@ -2236,7 +2288,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "POST",
         uri: this.address + "/workflows/" + params.workflowID + "",
         json: true,
@@ -2245,6 +2297,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
       requestOptions.body = params.overrides;
   
@@ -2366,7 +2421,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-      const requestOptions = {
+	  const requestOptions = {
         method: "POST",
         uri: this.address + "/workflows/" + params.workflowID + "/resolved",
         json: true,
@@ -2375,6 +2430,9 @@ class WorkflowManager {
         qs: query,
         useQuerystring: true,
       };
+      if (this.keepalive) {
+        requestOptions.forever = true;
+      }
   
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
