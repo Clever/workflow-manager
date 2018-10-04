@@ -10,7 +10,7 @@ PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /wor
 PKGS := $(PKGS) $(PKG)/gen-go/server/db/dynamodb
 
 # Currently using old version because ```WAG_VERSION := latest``` is broken on this repo
-WAG_VERSION := v1.7.2
+WAG_VERSION := latest
 
 $(eval $(call golang-version-check,1.10))
 
