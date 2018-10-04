@@ -585,7 +585,6 @@ func (d DynamoDB) GetWorkflows(ctx context.Context, query *models.WorkflowQuery)
 	// Use resolvedByUser index if querying by both Status and isReolvedByUser.  The resolvedByUser
 	// index is smaller and typically shrinks over time, so it should be faster to query
 	if resolvedByUserIsSet {
-		// otherwise, if query includes a ResolvedByUser value that is set, query with the ResolvedByUser value
 		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.ConstructQuery(query)
 
 		if statusIsSet { // Enables filter by isResolvedByUser and Status
