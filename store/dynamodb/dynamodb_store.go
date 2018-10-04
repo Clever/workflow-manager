@@ -316,14 +316,32 @@ func (d DynamoDB) GetWorkflowDefinitionVersions(ctx context.Context, name string
 
 // GetWorkflowDefinition gets the specific version of a workflow definition
 func (d DynamoDB) GetWorkflowDefinition(ctx context.Context, name string, version int) (models.WorkflowDefinition, error) {
-	m, err := d.Future.GetWorkflowDefinition(ctx, name, int64(version))
+	key, err := dynamodbattribute.MarshalMap(ddbWorkflowDefinitionPrimaryKey{
+		Name:    name,
+		Version: int64(version),
+	})
 	if err != nil {
 		return models.WorkflowDefinition{}, err
-	} else if m != nil {
-		return *m, nil
-	} else {
-		return models.WorkflowDefinition{}, nil
 	}
+	res, err := d.ddb.GetItemWithContext(ctx, &dynamodb.GetItemInput{
+		Key:            key,
+		TableName:      aws.String(d.workflowDefinitionsTable()),
+		ConsistentRead: aws.Bool(true),
+	})
+	if err != nil {
+		return models.WorkflowDefinition{}, err
+	}
+
+	if len(res.Item) == 0 {
+		return models.WorkflowDefinition{}, store.NewNotFound(fmt.Sprintf("%s@%d", name, version))
+	}
+
+	var wf models.WorkflowDefinition
+	if err := DecodeWorkflowDefinition(res.Item, &wf); err != nil {
+		return models.WorkflowDefinition{}, err
+	}
+
+	return wf, nil
 }
 
 // LatestWorkflowDefinition gets the latest version of a workflow definition.
