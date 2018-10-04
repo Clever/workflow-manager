@@ -56,7 +56,6 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/opentracing/opentracing-go"
-  version = "1.0.0"
 
 [[constraint]]
   name = "github.com/satori/go.uuid"

@@ -175,13 +175,6 @@ func (s MemoryStore) GetWorkflows(ctx context.Context,
 ) ([]models.Workflow, string, error) {
 	workflows := []models.Workflow{}
 
-	statusIsSet := query.Status != ""
-	resolvedByUserIsSet := query.ResolvedByUserWrapper != nil && query.ResolvedByUserWrapper.IsSet
-	// status should never be nonempty when ResolvedByUser.IsSet is true, based on handler.
-	if statusIsSet && resolvedByUserIsSet {
-		return workflows, "", store.NewInvalidQueryStructureError("query cannot contain Status when ResolvedByUser value is set.")
-	}
-
 	for _, workflow := range s.workflows {
 		if s.matchesQuery(workflow, query) {
 			if aws.BoolValue(query.SummaryOnly) {

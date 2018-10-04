@@ -581,17 +581,25 @@ func (d DynamoDB) GetWorkflows(ctx context.Context, query *models.WorkflowQuery)
 	var err error
 	statusIsSet := query.Status != ""
 	resolvedByUserIsSet := query.ResolvedByUserWrapper != nil && query.ResolvedByUserWrapper.IsSet
-	// status should never be nonempty when ResolvedByUser.IsSet is true, based on handler.
-	if statusIsSet && resolvedByUserIsSet {
-		return workflows, nextPageToken, store.NewInvalidQueryStructureError("query cannot contain Status when ResolvedByUser value is set.")
-	}
 
-	if statusIsSet {
+	// Use resolvedByUser index if querying by both Status and isReolvedByUser.  The resolvedByUser
+	// index is smaller and typically shrinks over time, so it should be faster to query
+	if resolvedByUserIsSet {
+		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.ConstructQuery(query)
+
+		if statusIsSet { // Enables filter by isResolvedByUser and Status
+			statusIdx := ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}
+			pair := statusIdx.getDefinitionStatusPair(*query.WorkflowDefinitionName, string(query.Status))
+
+			dbQuery.SetFilterExpression("#ST = :status")
+			dbQuery.ExpressionAttributeNames["#ST"] = statusIdx.AttributeDefinitions()[0].AttributeName
+			dbQuery.ExpressionAttributeValues[":status"] = &dynamodb.AttributeValue{
+				S: aws.String(pair),
+			}
+		}
+	} else if statusIsSet {
 		// if query includes status, query by status
 		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.ConstructQuery(query)
-	} else if resolvedByUserIsSet {
-		// otherwise, if query includes a ResolvedByUser value that is set, query with the ResolvedByUser value
-		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.ConstructQuery(query)
 	} else {
 		// otherwise, query on just the workflow definition name
 		dbQuery, err = ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{

@@ -197,11 +197,6 @@ func (h Handler) GetWorkflows(
 
 func paramsToWorkflowsQuery(input *models.GetWorkflowsInput) (*models.WorkflowQuery, error) {
 	// due to limitations of DynamoDB indices, only search by status or resolvedByUser, not both at once
-	if input.Status != nil && input.ResolvedByUser != nil {
-		return &models.WorkflowQuery{}, models.BadRequest{
-			Message: "Request cannot contain both status and resolvedByUser.",
-		}
-	}
 	resolvedByUserInformation := &models.ResolvedByUserWrapper{}
 	if input.ResolvedByUser != nil {
 		resolvedByUserInformation = &models.ResolvedByUserWrapper{
