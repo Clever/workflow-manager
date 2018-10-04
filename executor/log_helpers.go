@@ -41,7 +41,7 @@ func logWorkflowStatusChange(workflow *models.Workflow, previousStatus models.Wo
 }
 
 func logPendingWorkflowUpdateLag(wf models.Workflow) {
-	log.InfoD("pending-workflow-update-lag", logger.M{
+	log.TraceD("pending-workflow-update-lag", logger.M{
 		"id": wf.ID,
 		"update-loop-lag-seconds": int(time.Now().Sub(time.Time(wf.LastUpdated)) / time.Second),
 	})
@@ -49,6 +49,8 @@ func logPendingWorkflowUpdateLag(wf models.Workflow) {
 
 func LogSFNCounts(sfnCounters map[string]int64) {
 	for k, v := range sfnCounters {
-		log.InfoD("aws-sdk-go-counter", logger.M{"app": "workflow-manager", "value": v, "aws-operation": k, "aws-service": "sfn"})
+		log.TraceD("aws-sdk-go-counter", logger.M{
+			"app": "workflow-manager", "value": v, "aws-operation": k, "aws-service": "sfn",
+		})
 	}
 }

@@ -2,6 +2,7 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/Clever/aws-sdk-go-counter"
+  revision = "6cdff7b1a4b593eafacf9c31ece8a830136f4125"
 
 [[constraint]]
   name = "github.com/Clever/discovery-go"
@@ -12,7 +13,7 @@ required = ["github.com/golang/mock/mockgen"]
 [[constraint]]
   name = "github.com/afex/hystrix-go"
 
-[[constraint]]
+[[require]]
   name = "github.com/aws/aws-sdk-go"
   version = "1.13.0"
 
@@ -67,7 +68,7 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "gopkg.in/Clever/kayvee-go.v6"
-  version = "6.10.0"
+  version = "^6.10.0"
 
 [[constraint]]
   name = "gopkg.in/tylerb/graceful.v1"

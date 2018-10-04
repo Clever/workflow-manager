@@ -160,7 +160,9 @@ func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	err = input.Validate(nil)
+	if input != nil {
+		err = input.Validate(nil)
+	}
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -199,20 +201,22 @@ func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWr
 
 // newPostStateResourceInput takes in an http.Request an returns the input struct.
 func newPostStateResourceInput(r *http.Request) (*models.NewStateResource, error) {
-	var input models.NewStateResource
-
 	var err error
 	_ = err
 
 	data, err := ioutil.ReadAll(r.Body)
 
 	if len(data) > 0 {
+
+		var input models.NewStateResource
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(&input); err != nil {
 			return nil, err
 		}
+		return &input, nil
+
 	}
 
-	return &input, nil
+	return nil, nil
 }
 
 // statusCodeForDeleteStateResource returns the status code corresponding to the returned
@@ -564,10 +568,12 @@ func newPutStateResourceInput(r *http.Request) (*models.PutStateResourceInput, e
 	data, err := ioutil.ReadAll(r.Body)
 
 	if len(data) > 0 {
+
 		input.NewStateResource = &models.NewStateResource{}
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewStateResource); err != nil {
 			return nil, err
 		}
+
 	}
 
 	return &input, nil
@@ -687,7 +693,9 @@ func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.Respon
 		return
 	}
 
-	err = input.Validate(nil)
+	if input != nil {
+		err = input.Validate(nil)
+	}
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -726,20 +734,22 @@ func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.Respon
 
 // newNewWorkflowDefinitionInput takes in an http.Request an returns the input struct.
 func newNewWorkflowDefinitionInput(r *http.Request) (*models.NewWorkflowDefinitionRequest, error) {
-	var input models.NewWorkflowDefinitionRequest
-
 	var err error
 	_ = err
 
 	data, err := ioutil.ReadAll(r.Body)
 
 	if len(data) > 0 {
+
+		var input models.NewWorkflowDefinitionRequest
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(&input); err != nil {
 			return nil, err
 		}
+		return &input, nil
+
 	}
 
-	return &input, nil
+	return nil, nil
 }
 
 // statusCodeForGetWorkflowDefinitionVersionsByName returns the status code corresponding to the returned
@@ -961,10 +971,12 @@ func newUpdateWorkflowDefinitionInput(r *http.Request) (*models.UpdateWorkflowDe
 	data, err := ioutil.ReadAll(r.Body)
 
 	if len(data) > 0 {
+
 		input.NewWorkflowDefinitionRequest = &models.NewWorkflowDefinitionRequest{}
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewWorkflowDefinitionRequest); err != nil {
 			return nil, err
 		}
+
 	}
 
 	nameStr := mux.Vars(r)["name"]
@@ -1354,7 +1366,9 @@ func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter
 		return
 	}
 
-	err = input.Validate(nil)
+	if input != nil {
+		err = input.Validate(nil)
+	}
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1393,20 +1407,22 @@ func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter
 
 // newStartWorkflowInput takes in an http.Request an returns the input struct.
 func newStartWorkflowInput(r *http.Request) (*models.StartWorkflowRequest, error) {
-	var input models.StartWorkflowRequest
-
 	var err error
 	_ = err
 
 	data, err := ioutil.ReadAll(r.Body)
 
 	if len(data) > 0 {
+
+		var input models.StartWorkflowRequest
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(&input); err != nil {
 			return nil, err
 		}
+		return &input, nil
+
 	}
 
-	return &input, nil
+	return nil, nil
 }
 
 // statusCodeForCancelWorkflow returns the status code corresponding to the returned
@@ -1505,10 +1521,12 @@ func newCancelWorkflowInput(r *http.Request) (*models.CancelWorkflowInput, error
 	}
 
 	if len(data) > 0 {
+
 		input.Reason = &models.CancelReason{}
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Reason); err != nil {
 			return nil, err
 		}
+
 	}
 
 	return &input, nil
@@ -1715,10 +1733,12 @@ func newResumeWorkflowByIDInput(r *http.Request) (*models.ResumeWorkflowByIDInpu
 	}
 
 	if len(data) > 0 {
+
 		input.Overrides = &models.WorkflowDefinitionOverrides{}
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Overrides); err != nil {
 			return nil, err
 		}
+
 	}
 
 	return &input, nil

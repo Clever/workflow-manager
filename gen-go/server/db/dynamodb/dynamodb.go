@@ -90,6 +90,11 @@ func (d DB) GetWorkflowDefinition(ctx context.Context, name string, version int6
 	return d.workflowDefinitionTable.getWorkflowDefinition(ctx, name, version)
 }
 
+// GetWorkflowDefinitionsByNameAndVersion retrieves a list of WorkflowDefinitions from the database.
+func (d DB) GetWorkflowDefinitionsByNameAndVersion(ctx context.Context, input db.GetWorkflowDefinitionsByNameAndVersionInput) ([]models.WorkflowDefinition, error) {
+	return d.workflowDefinitionTable.getWorkflowDefinitionsByNameAndVersion(ctx, input)
+}
+
 // DeleteWorkflowDefinition deletes a WorkflowDefinition from the database.
 func (d DB) DeleteWorkflowDefinition(ctx context.Context, name string, version int64) error {
 	return d.workflowDefinitionTable.deleteWorkflowDefinition(ctx, name, version)

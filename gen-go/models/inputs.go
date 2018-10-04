@@ -127,8 +127,10 @@ type PutStateResourceInput struct {
 // requirements from the swagger yml file.
 func (i PutStateResourceInput) Validate() error {
 
-	if err := i.NewStateResource.Validate(nil); err != nil {
-		return err
+	if i.NewStateResource != nil {
+		if err := i.NewStateResource.Validate(nil); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -221,8 +223,10 @@ type UpdateWorkflowDefinitionInput struct {
 // requirements from the swagger yml file.
 func (i UpdateWorkflowDefinitionInput) Validate() error {
 
-	if err := i.NewWorkflowDefinitionRequest.Validate(nil); err != nil {
-		return err
+	if i.NewWorkflowDefinitionRequest != nil {
+		if err := i.NewWorkflowDefinitionRequest.Validate(nil); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -352,8 +356,10 @@ type CancelWorkflowInput struct {
 // requirements from the swagger yml file.
 func (i CancelWorkflowInput) Validate() error {
 
-	if err := i.Reason.Validate(nil); err != nil {
-		return err
+	if i.Reason != nil {
+		if err := i.Reason.Validate(nil); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -414,8 +420,10 @@ type ResumeWorkflowByIDInput struct {
 // requirements from the swagger yml file.
 func (i ResumeWorkflowByIDInput) Validate() error {
 
-	if err := i.Overrides.Validate(nil); err != nil {
-		return err
+	if i.Overrides != nil {
+		if err := i.Overrides.Validate(nil); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -17,6 +17,7 @@ import (
 type WorkflowDefinitionTable struct {
 	DynamoDBAPI        dynamodbiface.DynamoDBAPI
 	Prefix             string
+	TableName          string
 	ReadCapacityUnits  int64
 	WriteCapacityUnits int64
 }
@@ -29,11 +30,13 @@ type ddbWorkflowDefinitionPrimaryKey struct {
 
 // ddbWorkflowDefinition represents a WorkflowDefinition as stored in DynamoDB.
 type ddbWorkflowDefinition struct {
-	ddbWorkflowDefinitionPrimaryKey
-	WorkflowDefinition models.WorkflowDefinition `dynamodbav:"workflow-definition"`
+	models.WorkflowDefinition
 }
 
 func (t WorkflowDefinitionTable) name() string {
+	if t.TableName != "" {
+		return t.TableName
+	}
 	return fmt.Sprintf("%s-workflow-definitions", t.Prefix)
 }
 
@@ -129,6 +132,41 @@ func (t WorkflowDefinitionTable) getWorkflowDefinition(ctx context.Context, name
 	return &m, nil
 }
 
+func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx context.Context, input db.GetWorkflowDefinitionsByNameAndVersionInput) ([]models.WorkflowDefinition, error) {
+	queryInput := &dynamodb.QueryInput{
+		TableName: aws.String(t.name()),
+		ExpressionAttributeNames: map[string]*string{
+			"#NAME": aws.String("name"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":name": &dynamodb.AttributeValue{
+				S: aws.String(input.Name),
+			},
+		},
+		ScanIndexForward: aws.Bool(!input.Descending),
+		ConsistentRead:   aws.Bool(!input.DisableConsistentRead),
+	}
+	if input.VersionStartingAt == nil {
+		queryInput.KeyConditionExpression = aws.String("#NAME = :name")
+	} else {
+		queryInput.ExpressionAttributeNames["#VERSION"] = aws.String("version")
+		queryInput.ExpressionAttributeValues[":version"] = &dynamodb.AttributeValue{
+			N: aws.String(fmt.Sprintf("%d", *input.VersionStartingAt)),
+		}
+		queryInput.KeyConditionExpression = aws.String("#NAME = :name AND #VERSION >= :version")
+	}
+
+	queryOutput, err := t.DynamoDBAPI.QueryWithContext(ctx, queryInput)
+	if err != nil {
+		return nil, err
+	}
+	if len(queryOutput.Items) == 0 {
+		return []models.WorkflowDefinition{}, nil
+	}
+
+	return decodeWorkflowDefinitions(queryOutput.Items)
+}
+
 func (t WorkflowDefinitionTable) deleteWorkflowDefinition(ctx context.Context, name string, version int64) error {
 	key, err := dynamodbattribute.MarshalMap(ddbWorkflowDefinitionPrimaryKey{
 		Name:    name,
@@ -150,10 +188,6 @@ func (t WorkflowDefinitionTable) deleteWorkflowDefinition(ctx context.Context, n
 // encodeWorkflowDefinition encodes a WorkflowDefinition as a DynamoDB map of attribute values.
 func encodeWorkflowDefinition(m models.WorkflowDefinition) (map[string]*dynamodb.AttributeValue, error) {
 	return dynamodbattribute.MarshalMap(ddbWorkflowDefinition{
-		ddbWorkflowDefinitionPrimaryKey: ddbWorkflowDefinitionPrimaryKey{
-			Name:    m.Name,
-			Version: m.Version,
-		},
 		WorkflowDefinition: m,
 	})
 }
@@ -166,4 +200,17 @@ func decodeWorkflowDefinition(m map[string]*dynamodb.AttributeValue, out *models
 	}
 	*out = ddbWorkflowDefinition.WorkflowDefinition
 	return nil
+}
+
+// decodeWorkflowDefinitions translates a list of WorkflowDefinitions stored in DynamoDB to a slice of WorkflowDefinition structs.
+func decodeWorkflowDefinitions(ms []map[string]*dynamodb.AttributeValue) ([]models.WorkflowDefinition, error) {
+	workflowDefinitions := make([]models.WorkflowDefinition, len(ms))
+	for i, m := range ms {
+		var workflowDefinition models.WorkflowDefinition
+		if err := decodeWorkflowDefinition(m, &workflowDefinition); err != nil {
+			return nil, err
+		}
+		workflowDefinitions[i] = workflowDefinition
+	}
+	return workflowDefinitions, nil
 }
