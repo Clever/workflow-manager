@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -149,7 +150,15 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 	} else {
 		workflowDefinition, err = h.store.GetWorkflowDefinition(ctx, req.WorkflowDefinition.Name, int(req.WorkflowDefinition.Version))
 	}
-	if err != nil {
+	switch err.(type) {
+	case nil: // Do nothing
+	case models.NotFound:
+		logger.FromContext(ctx).WarnD("start-unknown-workflow", logger.M{
+			"name":    req.WorkflowDefinition.Name,
+			"version": req.WorkflowDefinition.Version,
+		})
+		return &models.Workflow{}, err
+	default:
 		return &models.Workflow{}, err
 	}
 
