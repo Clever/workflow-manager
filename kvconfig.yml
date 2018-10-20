@@ -39,3 +39,13 @@ routes:
       series: "aws-sdk-go.counter"
       stat_type: "counter"
       dimensions: ["aws-service", "aws-operation", "app"]
+
+  post-unknown-workflow:
+    matchers:
+      title: ["start-unknown-workflow"]
+    output:
+      type: "notifications"
+      channel: "#oncall-infra"
+      icon: ":pipeline:"
+      user: "workflow-manager"
+      message: Attempted to start unknown worker `%{name}` version `%{version}`
