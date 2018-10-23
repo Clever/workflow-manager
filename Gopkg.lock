@@ -309,10 +309,10 @@
   revision = "bd5ef7bd5415a7ac448318e64f11a24cd21e594b"
 
 [[projects]]
+  branch = "master"
   name = "github.com/xeipuuv/gojsonschema"
   packages = ["."]
-  revision = "da425ebb7609ba06a0f395fc8a254d1c303364a0"
-  version = "v1.0"
+  revision = "f3a9dae5b19473510a3062802a98815f609ed747"
 
 [[projects]]
   branch = "master"
@@ -407,8 +407,8 @@
     "middleware",
     "router"
   ]
-  revision = "e03ef3cfc5769be7e502dde84ef35d9d726aef6e"
-  version = "v6.13.0"
+  revision = "c8c3a96b8862f1b962ba9febf5afd2a1c3789fe0"
+  version = "v6.15.0"
 
 [[projects]]
   branch = "v2"
@@ -434,6 +434,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c35ad254cca1e7082af83c4c625683a1fb6f1fdbaa34932ec254cb6b59c722e4"
+  inputs-digest = "e8bb16ab10d63a57149e640def26b061b903492c30d1d32c132906b178189498"
   solver-name = "gps-cdcl"
   solver-version = 1
