@@ -383,7 +383,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 					"execution-id": execARN,
 					"error":        err.Error()})
 
-				// only fail after 10 minutes to see if this is an eventual-consistency thing
+				// only fail after 5 minutes to see if this is an eventual-consistency thing
 				if time.Time(workflow.LastUpdated).Before(time.Now().Add(-durationToRetryDescribeExecutions)) {
 					workflow.LastUpdated = strfmt.DateTime(time.Now())
 					workflow.Status = models.WorkflowStatusFailed
