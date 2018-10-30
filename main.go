@@ -25,6 +25,8 @@ import (
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
+var dynamoMaxRetries = 2
+
 // Config contains the configuration for the workflow-manager app
 type Config struct {
 	DynamoPrefixStateResources      string
@@ -57,7 +59,7 @@ func main() {
 	setupRouting()
 
 	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{Region: aws.String(c.DynamoRegion)},
+		Config: aws.Config{Region: aws.String(c.DynamoRegion), MaxRetries: &dynamoMaxRetries},
 	})))
 	db := dynamodbstore.New(svc, dynamodbstore.TableConfig{
 		PrefixStateResources:      c.DynamoPrefixStateResources,
