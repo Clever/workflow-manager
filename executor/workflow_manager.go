@@ -26,18 +26,11 @@ type WorkflowManager interface {
 }
 
 var backoffDuration = time.Second * 1
-var shouldBackoff = false
 
 // PollForPendingWorkflowsAndUpdateStore polls an SQS queue for workflows needing an update.
 // It will stop polling when the context is done.
 func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) {
 	for {
-		//if shouldBackoff {
-		//	log.WarnD("poll-for-pending-workflows-backoff", logger.M{"duration": backoffDuration.String()})
-		//	time.Sleep(backoffDuration)
-		//}
-		//shouldBackoff = false
-
 		select {
 		case <-ctx.Done():
 			log.Info("poll-for-pending-workflows-done")
