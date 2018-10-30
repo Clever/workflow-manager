@@ -59,6 +59,7 @@ func main() {
 	setupRouting()
 
 	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
+		// reducing MaxRetries to 2 (from 10) to avoid write throttling on a very active index
 		Config: aws.Config{Region: aws.String(c.DynamoRegion), MaxRetries: &dynamoMaxRetries},
 	})))
 	db := dynamodbstore.New(svc, dynamodbstore.TableConfig{
