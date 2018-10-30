@@ -89,7 +89,7 @@ func main() {
 		store:   db,
 		manager: wfmSFN,
 	}
-	timeout := 5 * time.Second
+	timeout := 10 * time.Second
 	s := server.NewWithMiddleware(h, *addr, []func(http.Handler) http.Handler{
 		func(handler http.Handler) http.Handler {
 			return http.TimeoutHandler(handler, timeout, "Request timed out")
