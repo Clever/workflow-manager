@@ -25,18 +25,18 @@ type WorkflowManager interface {
 	UpdateWorkflowHistory(ctx context.Context, workflow *models.Workflow) error
 }
 
-var backoffDuration = time.Second * 5
+var backoffDuration = time.Second * 1
 var shouldBackoff = false
 
 // PollForPendingWorkflowsAndUpdateStore polls an SQS queue for workflows needing an update.
 // It will stop polling when the context is done.
 func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) {
 	for {
-		if shouldBackoff {
-			log.WarnD("poll-for-pending-workflows-backoff", logger.M{"duration": backoffDuration.String()})
-			time.Sleep(backoffDuration)
-		}
-		shouldBackoff = false
+		//if shouldBackoff {
+		//	log.WarnD("poll-for-pending-workflows-backoff", logger.M{"duration": backoffDuration.String()})
+		//	time.Sleep(backoffDuration)
+		//}
+		//shouldBackoff = false
 
 		select {
 		case <-ctx.Done():
@@ -59,8 +59,8 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 					if aerr, ok := err.(awserr.Error); ok {
 						switch aerr.Code() {
 						case dynamodb.ErrCodeProvisionedThroughputExceededException:
-							shouldBackoff = true
-							break
+							log.WarnD("poll-for-pending-workflows-backoff", logger.M{"duration": backoffDuration.String()})
+							time.Sleep(backoffDuration)
 						}
 					}
 				} else {
@@ -105,6 +105,9 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 			QueueUrl:     aws.String(sqsQueueURL),
 			DelaySeconds: aws.Int64(updateLoopDelay),
 		})
+		if err != nil {
+			return "", err
+		}
 	}
 
 	// Delete processed message from queue
