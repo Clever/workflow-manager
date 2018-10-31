@@ -40,6 +40,7 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 			out, err := sqsapi.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
 				MaxNumberOfMessages: aws.Int64(10),
 				QueueUrl:            aws.String(sqsQueueURL),
+				WaitTimeSeconds:     aws.Int64(10),
 			})
 			if err != nil {
 				log.ErrorD("poll-for-pending-workflows", logger.M{"error": err.Error()})
