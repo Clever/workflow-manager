@@ -119,7 +119,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	// and re-queue a new message if the worfklow remains pending.
 	defer func() {
 		deleteMsg()
-		if !resources.WorkflowIsDone(&wf) {
+		if !resources.WorkflowStatusIsDone(&wf) {
 			requeueMsg()
 		}
 	}()

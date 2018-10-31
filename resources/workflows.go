@@ -73,6 +73,11 @@ func WorkflowIsDone(wf *models.Workflow) bool {
 			return false
 		}
 	}
+	return WorkflowStatusIsDone(wf)
+}
+
+// WorkflowStatusIsDone return true if a workflow's status is a final state (cancelled, failed, succeeded).
+func WorkflowStatusIsDone(wf *models.Workflow) bool {
 	return (wf.Status == models.WorkflowStatusCancelled ||
 		wf.Status == models.WorkflowStatusFailed ||
 		wf.Status == models.WorkflowStatusSucceeded)
