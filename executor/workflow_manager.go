@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -78,39 +79,52 @@ func createPendingWorkflow(ctx context.Context, workflowID string, sqsapi sqsifa
 }
 
 func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
+	deleteMsg := func() {
+		if _, err := sqsapi.DeleteMessageWithContext(ctx, &sqs.DeleteMessageInput{
+			QueueUrl:      aws.String(sqsQueueURL),
+			ReceiptHandle: m.ReceiptHandle,
+		}); err != nil {
+			log.ErrorD("delete-message", logger.M{"error": err.Error()})
+		}
+	}
+	requeueMsg := func() {
+		if _, err := sqsapi.SendMessageWithContext(ctx, &sqs.SendMessageInput{
+			MessageBody:  m.Body,
+			QueueUrl:     aws.String(sqsQueueURL),
+			DelaySeconds: aws.Int64(updateLoopDelay),
+		}); err != nil {
+			log.ErrorD("send-message", logger.M{"error": err.Error(), "workflow-id": aws.StringValue(m.Body)})
+		}
+	}
+
 	wfID := *m.Body
 	wf, err := thestore.GetWorkflowByID(ctx, wfID)
 	if err != nil {
+		if _, ok := err.(models.NotFound); ok {
+			// workflow has disappeared from our DB. No sense in
+			// trying to update it again, so delete the SQS message
+			deleteMsg()
+			return "", fmt.Errorf("worfklow id not found: %s", wfID)
+		}
+		// other error, e.g. throttling. Try again later
+		deleteMsg()
+		requeueMsg()
 		return "", err
 	}
 
 	logPendingWorkflowUpdateLag(wf)
 
-	err = wm.UpdateWorkflowSummary(ctx, &wf)
-	if err != nil {
-		return "", err
-	}
-
-	// If workflow is not yet complete, send message to SQS to request a future update.
-	if !resources.WorkflowIsDone(&wf) {
-		_, err = sqsapi.SendMessageWithContext(ctx, &sqs.SendMessageInput{
-			MessageBody:  aws.String(wfID),
-			QueueUrl:     aws.String(sqsQueueURL),
-			DelaySeconds: aws.Int64(updateLoopDelay),
-		})
-		if err != nil {
-			return "", err
+	// Attempt to update the workflow, i.e. sync data from SFN into our workflow object.
+	// Whether or not we are successful at this, we should delete the sqs message
+	// and re-queue a new message if the worfklow remains pending.
+	defer func() {
+		deleteMsg()
+		if !resources.WorkflowIsDone(&wf) {
+			requeueMsg()
 		}
-	}
-
-	// Delete processed message from queue
-	_, err = sqsapi.DeleteMessageWithContext(ctx, &sqs.DeleteMessageInput{
-		QueueUrl:      aws.String(sqsQueueURL),
-		ReceiptHandle: m.ReceiptHandle,
-	})
-	if err != nil {
+	}()
+	if err := wm.UpdateWorkflowSummary(ctx, &wf); err != nil {
 		return "", err
 	}
-
 	return wfID, nil
 }
