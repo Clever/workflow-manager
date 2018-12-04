@@ -15,8 +15,8 @@
 [[projects]]
   name = "github.com/Clever/go-process-metrics"
   packages = ["metrics"]
-  revision = "86b8beeca7d3dc0ce41b3d29debfc47819eeb4b1"
-  version = "0.1.0"
+  revision = "ca5b011e155bf113777359fef3118d3122fffb54"
+  version = "0.2.0"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -428,12 +428,12 @@
 [[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
-  version = "v2.2.1"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "498dc7120c4af2084aa0463cd640a3c9773db9d2742a0d41ed12467befad376f"
+  inputs-digest = "e8bb16ab10d63a57149e640def26b061b903492c30d1d32c132906b178189498"
   solver-name = "gps-cdcl"
   solver-version = 1
