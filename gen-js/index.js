@@ -132,7 +132,7 @@ class WorkflowManager {
    * forever: true attribute in request. Defaults to false
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy=RetryPolicies.Single] - The logic to
    * determine which requests to retry, as well as how many times to retry.
-   * @param {module:kayvee.Logger} [options.logger=logger.New("workflow-manager-wagclient")] - The Kayvee 
+   * @param {module:kayvee.Logger} [options.logger=logger.New("workflow-manager-wagclient")] - The Kayvee
    * logger to use in the client.
    * @param {Object} [options.circuit] - Options for constructing the client's circuit breaker.
    * @param {bool} [options.circuit.forceClosed] - When set to true the circuit will always be closed. Default: true.
@@ -177,6 +177,11 @@ class WorkflowManager {
       this.logger = options.logger;
     } else {
       this.logger =  new kayvee.logger("workflow-manager-wagclient");
+    }
+    if (options.tracer) {
+      this.tracer = options.tracer;
+    } else {
+      this.tracer = opentracing.globalTracer();
     }
 
     const circuitOptions = Object.assign({}, defaultCircuitOptions, options.circuit);
@@ -272,6 +277,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -279,7 +285,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("GET /_health");
         span.setTag("span.kind", "client");
       }
@@ -391,6 +398,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -398,7 +406,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("POST /state-resources");
         span.setTag("span.kind", "client");
       }
@@ -512,6 +521,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -527,7 +537,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("DELETE /state-resources/{namespace}/{name}");
         span.setTag("span.kind", "client");
       }
@@ -645,6 +656,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -660,7 +672,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("GET /state-resources/{namespace}/{name}");
         span.setTag("span.kind", "client");
       }
@@ -778,6 +791,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -793,7 +807,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("PUT /state-resources/{namespace}/{name}");
         span.setTag("span.kind", "client");
       }
@@ -906,6 +921,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -913,7 +929,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("GET /workflow-definitions");
         span.setTag("span.kind", "client");
       }
@@ -1025,6 +1042,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -1032,7 +1050,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("POST /workflow-definitions");
         span.setTag("span.kind", "client");
       }
@@ -1146,6 +1165,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -1161,7 +1181,8 @@ class WorkflowManager {
   
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("GET /workflow-definitions/{name}");
         span.setTag("span.kind", "client");
       }
@@ -1279,6 +1300,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -1290,7 +1312,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("PUT /workflow-definitions/{name}");
         span.setTag("span.kind", "client");
       }
@@ -1410,6 +1433,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -1425,7 +1449,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("GET /workflow-definitions/{name}/{version}");
         span.setTag("span.kind", "client");
       }
@@ -1548,6 +1573,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -1581,7 +1607,8 @@ class WorkflowManager {
   
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("GET /workflows");
         span.setTag("span.kind", "client");
       }
@@ -1694,6 +1721,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -1727,7 +1755,8 @@ class WorkflowManager {
   
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.setTag("span.kind", "client");
       }
 
@@ -1884,6 +1913,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -1891,7 +1921,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("POST /workflows");
         span.setTag("span.kind", "client");
       }
@@ -2011,6 +2042,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -2022,7 +2054,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("DELETE /workflows/{workflowID}");
         span.setTag("span.kind", "client");
       }
@@ -2143,6 +2176,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -2154,7 +2188,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("GET /workflows/{workflowID}");
         span.setTag("span.kind", "client");
       }
@@ -2272,6 +2307,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -2283,7 +2319,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("POST /workflows/{workflowID}");
         span.setTag("span.kind", "client");
       }
@@ -2405,6 +2442,7 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
+      const tracer = options.tracer || this.tracer;
       const span = options.span;
 
       const headers = {};
@@ -2416,7 +2454,8 @@ class WorkflowManager {
       const query = {};
 
       if (span) {
-        opentracing.inject(span, opentracing.FORMAT_TEXT_MAP, headers);
+        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
+        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.logEvent("POST /workflows/{workflowID}/resolved");
         span.setTag("span.kind", "client");
       }

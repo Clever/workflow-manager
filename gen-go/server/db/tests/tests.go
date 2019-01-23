@@ -166,10 +166,7 @@ func SaveWorkflowDefinition(s db.Interface, t *testing.T) func(t *testing.T) {
 			Version: 1,
 		}
 		require.Nil(t, s.SaveWorkflowDefinition(ctx, m))
-		require.Equal(t, db.ErrWorkflowDefinitionAlreadyExists{
-			Name:    "string1",
-			Version: 1,
-		}, s.SaveWorkflowDefinition(ctx, m))
+		require.IsType(t, db.ErrWorkflowDefinitionAlreadyExists{}, s.SaveWorkflowDefinition(ctx, m))
 	}
 }
 
