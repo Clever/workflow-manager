@@ -37,7 +37,7 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/golang/mock"
-  branch = "master"
+  version = "^1.2.0"
 
 [[constraint]]
   name = "github.com/gorilla/mux"
@@ -71,3 +71,7 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "gopkg.in/tylerb/graceful.v1"
+
+[[constraint]]
+  name = "github.com/uber/jaeger-client-go"
+  version = "2.15.0"
