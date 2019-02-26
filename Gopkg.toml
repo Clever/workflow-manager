@@ -75,3 +75,7 @@ required = ["github.com/golang/mock/mockgen"]
 [[constraint]]
   name = "github.com/uber/jaeger-client-go"
   version = "2.15.0"
+
+[[constraint]]
+  name = "github.com/hashicorp/go-multierror"
+  version = "1.0.0"

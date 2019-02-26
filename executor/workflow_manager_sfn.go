@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Clever/workflow-manager/executor/sfnconventions"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
@@ -59,14 +60,6 @@ func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, store
 	}
 }
 
-func wdResourceToSLResource(wdResource, region, accountID, namespace string) string {
-	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s--%s", region, accountID, namespace, wdResource)
-}
-
-func wdResourceToSLResourceLambda(wdResource, region, accountID, namespace string) string {
-	return fmt.Sprintf("arn:aws:lambda:%s:%s:function:%s--%s", region, accountID, namespace, strings.TrimPrefix(wdResource, "lambda:"))
-}
-
 // stateMachineWithFullActivityARNs converts resource names in states to full activity ARNs. It returns a new state machine.
 // Our workflow definitions contain state machine definitions with short-hand for resource names, e.g. "Resource": "name-of-worker"
 // Convert this shorthand into a new state machine with full activity ARNs, e.g. "Resource": "arn:aws:states:us-west-2:589690932525:activity:production--name-of-worker"
@@ -78,9 +71,9 @@ func stateMachineWithFullActivityARNs(oldSM models.SLStateMachine, region, accou
 			continue
 		}
 		if strings.HasPrefix(state.Resource, "lambda:") {
-			state.Resource = wdResourceToSLResourceLambda(state.Resource, region, accountID, namespace)
+			state.Resource = sfnconventions.LambdaResource(state.Resource, region, accountID, namespace)
 		} else {
-			state.Resource = wdResourceToSLResource(state.Resource, region, accountID, namespace)
+			state.Resource = sfnconventions.SFNCLIResource(state.Resource, region, accountID, namespace)
 		}
 		sm.States[stateName] = state
 	}
@@ -117,24 +110,9 @@ func stateMachineWithDefaultRetriers(oldSM models.SLStateMachine) *models.SLStat
 	return &sm
 }
 
-// https://docs.aws.amazon.com/step-functions/latest/apireference/API_CreateStateMachine.html#StepFunctions-CreateStateMachine-request-name
-var stateMachineNameBadChars = []byte{' ', '<', '>', '{', '}', '[', ']', '?', '*', '"', '#', '%', '\\', '^', '|', '~', '`', '$', '&', ',', ';', ':', '/'}
-
-func stateMachineName(wdName string, wdVersion int64, namespace string, startAt string) string {
-	name := fmt.Sprintf("%s--%s--%d--%s", namespace, wdName, wdVersion, startAt)
-	for _, badchar := range stateMachineNameBadChars {
-		name = strings.Replace(name, string(badchar), "-", -1)
-	}
-	return name
-}
-
-func stateMachineARN(region, accountID, wdName string, wdVersion int64, namespace string, startAt string) string {
-	return fmt.Sprintf("arn:aws:states:%s:%s:stateMachine:%s", region, accountID, stateMachineName(wdName, wdVersion, namespace, startAt))
-}
-
 func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
 	describeOutput, err := wm.sfnapi.DescribeStateMachine(&sfn.DescribeStateMachineInput{
-		StateMachineArn: aws.String(stateMachineARN(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
+		StateMachineArn: aws.String(sfnconventions.StateMachineARN(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
 	})
 	if err == nil {
 		return describeOutput, nil
@@ -157,7 +135,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDef
 	awsStateMachineDef := string(awsStateMachineDefBytes)
 	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
 	// this effectively creates a new workflow definition in each namespace we deploy into
-	awsStateMachineName := stateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
+	awsStateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
 	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
 	_, err = wm.sfnapi.CreateStateMachine(&sfn.CreateStateMachineInput{
 		Name:       aws.String(awsStateMachineName),
@@ -328,7 +306,7 @@ func (wm *SFNWorkflowManager) executionARN(
 	return executionARN(
 		wm.region,
 		wm.accountID,
-		stateMachineName(definition.Name, definition.Version, workflow.Namespace, definition.StateMachine.StartAt),
+		sfnconventions.StateMachineName(definition.Name, definition.Version, workflow.Namespace, definition.StateMachine.StartAt),
 		workflow.ID,
 	)
 }
@@ -367,7 +345,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 	execARN := executionARN(
 		wm.region,
 		wm.accountID,
-		stateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
+		sfnconventions.StateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
 		workflow.ID,
 	)
 	describeOutput, err := wm.sfnapi.DescribeExecutionWithContext(context.TODO(), &sfn.DescribeExecutionInput{
@@ -423,7 +401,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 	execARN := executionARN(
 		wm.region,
 		wm.accountID,
-		stateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
+		sfnconventions.StateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
 		workflow.ID,
 	)
 	jobs := []*models.Job{}
