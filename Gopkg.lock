@@ -3,7 +3,11 @@
 
 [[projects]]
   name = "github.com/Clever/aws-sdk-go-counter"
-  packages = ["counter/sfncounter"]
+  packages = [
+    "aws",
+    "aws/awserr",
+    "counter/sfncounter"
+  ]
   revision = "6cdff7b1a4b593eafacf9c31ece8a830136f4125"
 
 [[projects]]
@@ -360,6 +364,12 @@
   revision = "f5e5bdd778241bfefa8627f7124c39cd6ad8d74f"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  revision = "e225da77a7e68af35c70ccbf71af2b83e6acac3c"
+
+[[projects]]
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -416,6 +426,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0386a4d06fb55282c7abf3989c2d42b151a4ea9b2434765ca601ca539b3f1e92"
+  inputs-digest = "648c8858ee4c33372df8b368a060f5227e400965fd13ff089cbb73771fea439d"
   solver-name = "gps-cdcl"
   solver-version = 1

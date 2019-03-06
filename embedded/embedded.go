@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
+	"math/rand"
+	"os"
 
 	"github.com/Clever/aws-sdk-go-counter/aws"
 	"github.com/Clever/aws-sdk-go-counter/aws/awserr"
+	"github.com/Clever/workflow-manager/embedded/sfnfunction"
 	"github.com/Clever/workflow-manager/executor/sfnconventions"
 	"github.com/Clever/workflow-manager/gen-go/client"
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -20,29 +22,31 @@ import (
 	"github.com/mohae/deepcopy"
 )
 
-type embedded struct {
+type Embedded struct {
 	environment         string
 	app                 string
 	sfnAccountID        string
 	sfnRegion           string
-	sfnRoleARN          string
+	sfnRoleArn          string
 	sfnAPI              sfniface.SFNAPI
-	resources           map[string]interface{}
+	resources           map[string]*sfnfunction.Resource
 	workflowDefinitions []models.WorkflowDefinition
+	workerName          string
 }
 
-var _ client.Client = &embedded{}
+var _ client.Client = &Embedded{}
 
-// Config for embedded wfm.
+// Config for Embedded wfm.
 type Config struct {
 	Environment         string
 	App                 string
 	SFNAccountID        string
 	SFNRegion           string
-	SFNRoleARN          string
+	SFNRoleArn          string
 	SFNAPI              sfniface.SFNAPI
 	Resources           map[string]interface{}
 	WorkflowDefinitions []byte
+	WorkerName          string
 }
 
 func (c Config) validate() error {
@@ -71,7 +75,9 @@ func (c Config) validate() error {
 }
 
 // New returns a client to an embedded workflow manager.
-func New(config *Config) (client.Client, error) {
+// It also starts polling for work. This polling stops when the context passed
+// is canceled.
+func New(config *Config) (*Embedded, error) {
 	if err := config.validate(); err != nil {
 		return nil, err
 	}
@@ -82,16 +88,45 @@ func New(config *Config) (client.Client, error) {
 	if err := verifyWorkflowDefinitionResources(wfdefs, config.Resources); err != nil {
 		return nil, err
 	}
-	return &embedded{
+	r := map[string]*sfnfunction.Resource{}
+	for k := range config.Resources {
+		kcopy := k
+		var err error
+		if r[kcopy], err = sfnfunction.New(config.Resources[kcopy]); err != nil {
+			return nil, fmt.Errorf("function '%s': %s", kcopy, err.Error())
+		}
+	}
+	wn := config.WorkerName
+	if wn == "" {
+		// give it sane default
+		an := "wfm-embedded"
+		if a := os.Getenv("APP_NAME"); a != "" {
+			an = a
+		}
+		hn, _ := os.Hostname()
+		wn = fmt.Sprintf("%s-%s-%s", an, hn, randString(5))
+	}
+	return &Embedded{
 		environment:         config.Environment,
 		app:                 config.App,
 		sfnAccountID:        config.SFNAccountID,
 		sfnRegion:           config.SFNRegion,
-		sfnRoleARN:          config.SFNRoleARN,
+		sfnRoleArn:          config.SFNRoleArn,
 		sfnAPI:              config.SFNAPI,
-		resources:           config.Resources,
+		resources:           r,
 		workflowDefinitions: wfdefs,
+		workerName:          wn,
 	}, nil
+}
+
+const lettersAndNumbers = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+func randString(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = lettersAndNumbers[rand.Intn(len(lettersAndNumbers))]
+	}
+	return string(b)
 }
 
 func parseWorkflowDefinitions(wfdefbs []byte) ([]models.WorkflowDefinition, error) {
@@ -122,15 +157,15 @@ func verifyWorkflowDefinitionResources(wfdefs []models.WorkflowDefinition, resou
 	return nil
 }
 
-func (e embedded) HealthCheck(ctx context.Context) error {
+func (e Embedded) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-func (e embedded) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
+func (e Embedded) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
 	return e.workflowDefinitions, nil
 }
 
-func (e embedded) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
+func (e Embedded) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
 	for _, wd := range e.workflowDefinitions {
 		if wd.Name == i.Name {
 			return &wd, nil
@@ -139,7 +174,7 @@ func (e embedded) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *
 	return nil, models.NotFound{}
 }
 
-func (e embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error) {
+func (e Embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error) {
 	var validation error
 	if i.Limit != nil {
 		validation = multierror.Append(validation, errors.New("Limit not supported"))
@@ -168,19 +203,19 @@ func (e embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput)
 	panic("TODO")
 }
 
-func (e embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
+func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
 	// generate state machine
 	wd, err := e.GetWorkflowDefinitionByNameAndVersion(ctx, &models.GetWorkflowDefinitionByNameAndVersionInput{Name: i.WorkflowDefinition.Name})
 	if err != nil {
 		return nil, err
 	}
-	stateMachine := deepcopy.Copy(wd.StateMachine).(models.SLStateMachine)
+	stateMachine := deepcopy.Copy(wd.StateMachine).(*models.SLStateMachine)
 	for stateName, s := range stateMachine.States {
 		state := deepcopy.Copy(s).(models.SLState)
 		if state.Type != models.SLStateTypeTask {
 			continue
 		}
-		state.Resource = sfnconventions.EmbeddedResource(state.Resource, e.sfnRegion, e.sfnAccountID, i.Namespace)
+		state.Resource = sfnconventions.EmbeddedResourceArn(state.Resource, e.sfnRegion, e.sfnAccountID, i.Namespace)
 		stateMachine.States[stateName] = state
 	}
 	stateMachineDefBytes, err := json.MarshalIndent(stateMachine, "", "  ")
@@ -200,7 +235,7 @@ func (e embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 			if _, err := e.sfnAPI.CreateStateMachine(&sfn.CreateStateMachineInput{
 				Name:       aws.String(stateMachineName),
 				Definition: aws.String(string(stateMachineDefBytes)),
-				RoleArn:    aws.String(e.sfnRoleARN),
+				RoleArn:    aws.String(e.sfnRoleArn),
 			}); err != nil {
 				return nil, fmt.Errorf("CreateStateMachine error: %s", err.Error())
 			}
@@ -215,7 +250,7 @@ func (e embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 		if err := json.Unmarshal([]byte(aws.StringValue(out.Definition)), &existingStateMachine); err != nil {
 			return nil, err
 		}
-		if !reflect.DeepEqual(existingStateMachine, stateMachine) {
+		if *out.Definition != string(stateMachineDefBytes) {
 			return nil, fmt.Errorf(`existing state machine differs from new state machine.
 State machines are immutable. Please rename the state machine. Existing state machine:
 %s
@@ -242,10 +277,10 @@ New state machine:
 	return workflow, nil
 }
 
-func (e embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowInput) error {
+func (e Embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowInput) error {
 	panic("TODO")
 }
 
-func (e embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
+func (e Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
 	panic("TODO")
 }

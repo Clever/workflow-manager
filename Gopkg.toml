@@ -79,3 +79,7 @@ required = ["github.com/golang/mock/mockgen"]
 [[constraint]]
   name = "github.com/hashicorp/go-multierror"
   version = "1.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/sync"

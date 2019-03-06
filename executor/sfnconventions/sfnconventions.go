@@ -32,7 +32,7 @@ func LambdaResource(wdResource, region, accountID, namespace string) string {
 	return fmt.Sprintf("arn:aws:lambda:%s:%s:function:%s--%s", region, accountID, namespace, strings.TrimPrefix(wdResource, "lambda:"))
 }
 
-// EmbeddedResource is the activity ARN registered by embedded WFM.
-func EmbeddedResource(wdResource, region, accountID, namespace string) string {
-	return fmt.Sprintf("arn:aws:states:%s:%s:activity:embedded--%s--%s", region, accountID, namespace, wdResource)
+// EmbeddedResourceArn is the activity ARN registered by embedded WFM.
+func EmbeddedResourceArn(wdResource, region, accountID, namespace string) string {
+	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s--embedded-%s", region, accountID, namespace, wdResource)
 }
