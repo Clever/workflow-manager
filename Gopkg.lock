@@ -6,6 +6,7 @@
   packages = [
     "aws",
     "aws/awserr",
+    "aws/request",
     "counter/sfncounter"
   ]
   revision = "6cdff7b1a4b593eafacf9c31ece8a830136f4125"
@@ -392,6 +393,12 @@
   version = "v0.3.0"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/time"
+  packages = ["rate"]
+  revision = "85acf8d2951cb2a3bde7632f9ff273ef0379bcbd"
+
+[[projects]]
   name = "gopkg.in/Clever/kayvee-go.v6"
   packages = [
     ".",
@@ -426,6 +433,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "648c8858ee4c33372df8b368a060f5227e400965fd13ff089cbb73771fea439d"
+  inputs-digest = "5bb285fd835cffc36636ff3e0488f6b2156146c8eb68ce528b38ba1c849f64bb"
   solver-name = "gps-cdcl"
   solver-version = 1
