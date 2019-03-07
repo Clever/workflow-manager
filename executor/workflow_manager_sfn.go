@@ -112,7 +112,7 @@ func stateMachineWithDefaultRetriers(oldSM models.SLStateMachine) *models.SLStat
 
 func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
 	describeOutput, err := wm.sfnapi.DescribeStateMachine(&sfn.DescribeStateMachineInput{
-		StateMachineArn: aws.String(sfnconventions.StateMachineARN(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
+		StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
 	})
 	if err == nil {
 		return describeOutput, nil
@@ -285,7 +285,7 @@ func (wm *SFNWorkflowManager) CancelWorkflow(ctx context.Context, workflow *mode
 	}
 
 	wd := workflow.WorkflowDefinition
-	execARN := wm.executionARN(workflow, wd)
+	execARN := wm.sfnconventions.ExecutionArn(workflow, wd)
 	if _, err := wm.sfnapi.StopExecution(&sfn.StopExecutionInput{
 		ExecutionArn: aws.String(execARN),
 		Cause:        aws.String(reason),
@@ -303,33 +303,12 @@ func (wm *SFNWorkflowManager) executionARN(
 	workflow *models.Workflow,
 	definition *models.WorkflowDefinition,
 ) string {
-	return executionARN(
+	return sfnconventions.ExecutionArn(
 		wm.region,
 		wm.accountID,
 		sfnconventions.StateMachineName(definition.Name, definition.Version, workflow.Namespace, definition.StateMachine.StartAt),
 		workflow.ID,
 	)
-}
-
-func executionARN(region, accountID, stateMachineName, executionName string) string {
-	return fmt.Sprintf("arn:aws:states:%s:%s:execution:%s:%s", region, accountID, stateMachineName, executionName)
-}
-
-func sfnStatusToWorkflowStatus(sfnStatus string) models.WorkflowStatus {
-	switch sfnStatus {
-	case sfn.ExecutionStatusRunning:
-		return models.WorkflowStatusRunning
-	case sfn.ExecutionStatusSucceeded:
-		return models.WorkflowStatusSucceeded
-	case sfn.ExecutionStatusFailed:
-		return models.WorkflowStatusFailed
-	case sfn.ExecutionStatusTimedOut:
-		return models.WorkflowStatusFailed
-	case sfn.ExecutionStatusAborted:
-		return models.WorkflowStatusCancelled
-	default:
-		return models.WorkflowStatusQueued // this should never happen, since all cases are covered above
-	}
 }
 
 func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflow *models.Workflow) error {
@@ -342,7 +321,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 
 	// get execution from AWS, pull in all the data into the workflow object
 	wd := workflow.WorkflowDefinition
-	execARN := executionARN(
+	execARN := sfnconventions.ExecutionArn(
 		wm.region,
 		wm.accountID,
 		sfnconventions.StateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
@@ -375,7 +354,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 	}
 
 	workflow.LastUpdated = strfmt.DateTime(time.Now())
-	workflow.Status = sfnStatusToWorkflowStatus(*describeOutput.Status)
+	workflow.Status = resources.SFNStatusToWorkflowStatus(*describeOutput.Status)
 	if *describeOutput.Status == sfn.ExecutionStatusTimedOut {
 		workflow.StatusReason = resources.StatusReasonWorkflowTimedOut
 	}
@@ -398,7 +377,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 	// E.g., if a state machine has two parallel Task states, the events for these states will overlap in the history, but the event IDs + previous event IDs will link together the parallel execution paths.
 	// In order to correctly associate events with the job they correspond to, maintain a map from event ID to job.
 	wd := workflow.WorkflowSummary.WorkflowDefinition
-	execARN := executionARN(
+	execARN := sfnconventions.ExecutionArn(
 		wm.region,
 		wm.accountID,
 		sfnconventions.StateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),

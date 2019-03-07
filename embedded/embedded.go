@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/Clever/aws-sdk-go-counter/aws"
 	"github.com/Clever/aws-sdk-go-counter/aws/awserr"
@@ -18,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/ghodss/yaml"
+	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mohae/deepcopy"
 )
@@ -204,6 +207,9 @@ func (e Embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput)
 }
 
 func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
+	if i.Namespace == "" {
+		i.Namespace = e.environment
+	}
 	// generate state machine
 	wd, err := e.GetWorkflowDefinitionByNameAndVersion(ctx, &models.GetWorkflowDefinitionByNameAndVersionInput{Name: i.WorkflowDefinition.Name})
 	if err != nil {
@@ -225,9 +231,9 @@ func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 
 	// find or create the state machine in AWS
 	stateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, i.Namespace, wd.StateMachine.StartAt)
-	stateMachineARN := sfnconventions.StateMachineARN(e.sfnRegion, e.sfnAccountID, wd.Name, wd.Version, i.Namespace, wd.StateMachine.StartAt)
+	stateMachineArn := sfnconventions.StateMachineArn(e.sfnRegion, e.sfnAccountID, wd.Name, wd.Version, i.Namespace, wd.StateMachine.StartAt)
 	out, err := e.sfnAPI.DescribeStateMachineWithContext(ctx, &sfn.DescribeStateMachineInput{
-		StateMachineArn: aws.String(stateMachineARN),
+		StateMachineArn: aws.String(stateMachineArn),
 	})
 	if err != nil {
 		// if it doesn't exist, create it
@@ -267,8 +273,11 @@ New state machine:
 		}
 	}
 	workflow := resources.NewWorkflow(wd, i.Input, i.Namespace, i.Queue, i.Tags)
+	// need to encode the state machine name in the ID in order to recoever
+	// it when calling DescribeExecution on workflow ID
+	workflow.ID = fmt.Sprintf("%s--%s", stateMachineName, strings.Split(workflow.ID, "-")[0])
 	if _, err := e.sfnAPI.StartExecutionWithContext(ctx, &sfn.StartExecutionInput{
-		StateMachineArn: aws.String(stateMachineARN),
+		StateMachineArn: aws.String(stateMachineArn),
 		Input:           aws.String(i.Input),
 		Name:            aws.String(workflow.ID),
 	}); err != nil {
@@ -282,5 +291,31 @@ func (e Embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowIn
 }
 
 func (e Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
-	panic("TODO")
+	idParts := strings.Split(workflowID, "--")
+	smName := strings.Join(idParts[0:len(idParts)-1], "--")
+	smNameParts := sfnconventions.StateMachineNameParts(smName)
+	wd, err := e.GetWorkflowDefinitionByNameAndVersion(ctx, &models.GetWorkflowDefinitionByNameAndVersionInput{
+		Name: smNameParts.WDName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	out, err := e.sfnAPI.DescribeExecutionWithContext(ctx, &sfn.DescribeExecutionInput{
+		ExecutionArn: aws.String(sfnconventions.ExecutionArn(e.sfnRegion, e.sfnAccountID, smName, workflowID)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &models.Workflow{
+		Output: aws.StringValue(out.Output),
+		WorkflowSummary: models.WorkflowSummary{
+			ID:                 workflowID,
+			CreatedAt:          strfmt.DateTime(aws.TimeValue(out.StartDate)),
+			LastUpdated:        strfmt.DateTime(time.Now()),
+			WorkflowDefinition: wd,
+			Status:             resources.SFNStatusToWorkflowStatus(aws.StringValue(out.Status)),
+			Namespace:          smNameParts.Namespace,
+			Input:              aws.StringValue(out.Input),
+		},
+	}, nil
 }

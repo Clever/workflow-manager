@@ -2,6 +2,7 @@ package sfnconventions
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -17,8 +18,28 @@ func StateMachineName(wdName string, wdVersion int64, namespace string, startAt 
 	return name
 }
 
-// StateMachineARN constructs a state machine ARN.
-func StateMachineARN(region, accountID, wdName string, wdVersion int64, namespace string, startAt string) string {
+// SMParts are the parts of the state machine name.
+type SMParts struct {
+	WDName    string
+	WDVersion int64
+	Namespace string
+	StartAt   string
+}
+
+// StateMachineNameParts is the reverse of StateMachineName.
+func StateMachineNameParts(stateMachineName string) SMParts {
+	parts := strings.Split(stateMachineName, "--")
+	version, _ := strconv.Atoi(parts[2])
+	return SMParts{
+		WDName:    parts[1],
+		Namespace: parts[0],
+		WDVersion: int64(version),
+		StartAt:   parts[2],
+	}
+}
+
+// StateMachineArn constructs a state machine ARN.
+func StateMachineArn(region, accountID, wdName string, wdVersion int64, namespace string, startAt string) string {
 	return fmt.Sprintf("arn:aws:states:%s:%s:stateMachine:%s", region, accountID, StateMachineName(wdName, wdVersion, namespace, startAt))
 }
 
@@ -35,4 +56,9 @@ func LambdaResource(wdResource, region, accountID, namespace string) string {
 // EmbeddedResourceArn is the activity ARN registered by embedded WFM.
 func EmbeddedResourceArn(wdResource, region, accountID, namespace string) string {
 	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s--embedded-%s", region, accountID, namespace, wdResource)
+}
+
+// ExecutionArn generates the execution ARN format used by SFN.
+func ExecutionArn(region, accountID, stateMachineName, executionName string) string {
+	return fmt.Sprintf("arn:aws:states:%s:%s:execution:%s:%s", region, accountID, stateMachineName, executionName)
 }

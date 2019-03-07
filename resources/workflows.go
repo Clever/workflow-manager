@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/go-openapi/strfmt"
 	"github.com/mohae/deepcopy"
 	uuid "github.com/satori/go.uuid"
@@ -89,4 +90,21 @@ func WorkflowStatusIsDone(wf *models.Workflow) bool {
 func CopyWorkflow(workflow models.Workflow) models.Workflow {
 	newWorkflow := deepcopy.Copy(workflow).(models.Workflow)
 	return newWorkflow
+}
+
+func SFNStatusToWorkflowStatus(sfnStatus string) models.WorkflowStatus {
+	switch sfnStatus {
+	case sfn.ExecutionStatusRunning:
+		return models.WorkflowStatusRunning
+	case sfn.ExecutionStatusSucceeded:
+		return models.WorkflowStatusSucceeded
+	case sfn.ExecutionStatusFailed:
+		return models.WorkflowStatusFailed
+	case sfn.ExecutionStatusTimedOut:
+		return models.WorkflowStatusFailed
+	case sfn.ExecutionStatusAborted:
+		return models.WorkflowStatusCancelled
+	default:
+		return models.WorkflowStatusQueued // this should never happen, since all cases are covered above
+	}
 }
