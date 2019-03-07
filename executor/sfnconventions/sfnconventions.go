@@ -27,15 +27,21 @@ type SMParts struct {
 }
 
 // StateMachineNameParts is the reverse of StateMachineName.
-func StateMachineNameParts(stateMachineName string) SMParts {
+func StateMachineNameParts(stateMachineName string) (*SMParts, error) {
 	parts := strings.Split(stateMachineName, "--")
-	version, _ := strconv.Atoi(parts[2])
-	return SMParts{
+	if len(parts) != 4 {
+		return nil, fmt.Errorf("expected four parts in sm name: %s", stateMachineName)
+	}
+	version, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return nil, fmt.Errorf("sm version '%s' not an int: %s", parts[2], err.Error())
+	}
+	return &SMParts{
 		WDName:    parts[1],
 		Namespace: parts[0],
 		WDVersion: int64(version),
-		StartAt:   parts[2],
-	}
+		StartAt:   parts[3],
+	}, nil
 }
 
 // StateMachineArn constructs a state machine ARN.
