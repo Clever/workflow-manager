@@ -285,7 +285,7 @@ func (wm *SFNWorkflowManager) CancelWorkflow(ctx context.Context, workflow *mode
 	}
 
 	wd := workflow.WorkflowDefinition
-	execARN := wm.sfnconventions.ExecutionArn(workflow, wd)
+	execARN := wm.executionArn(workflow, wd)
 	if _, err := wm.sfnapi.StopExecution(&sfn.StopExecutionInput{
 		ExecutionArn: aws.String(execARN),
 		Cause:        aws.String(reason),
@@ -299,7 +299,7 @@ func (wm *SFNWorkflowManager) CancelWorkflow(ctx context.Context, workflow *mode
 	return wm.store.UpdateWorkflow(ctx, *workflow)
 }
 
-func (wm *SFNWorkflowManager) executionARN(
+func (wm *SFNWorkflowManager) executionArn(
 	workflow *models.Workflow,
 	definition *models.WorkflowDefinition,
 ) string {
