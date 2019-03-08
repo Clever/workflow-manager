@@ -284,7 +284,15 @@ func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 		} else {
 			return nil, err
 		}
-	} else /* state machine already exists */ {
+	} else if wd.Version == -1 /* state machine already exists and allows mutation (version == -1) */ {
+		if _, err := e.sfnAPI.UpdateStateMachine(&sfn.UpdateStateMachineInput{
+			Definition:      aws.String(string(stateMachineDefBytes)),
+			RoleArn:         aws.String(e.sfnRoleArn),
+			StateMachineArn: out.StateMachineArn,
+		}); err != nil {
+			return nil, err
+		}
+	} else {
 		// if it exists, verify they're the same--if not, it's user error:
 		// state machines are immutable, user should create a workflow def with
 		// a new name
@@ -294,7 +302,7 @@ func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 		}
 		if *out.Definition != string(stateMachineDefBytes) {
 			return nil, fmt.Errorf(`existing state machine differs from new state machine.
-State machines are immutable. Please rename the state machine. Existing state machine:
+State machines are immutable. Please rename the state machine or set version to -1 to allow mutation. Existing state machine:
 %s
 New state machine:
 %s`, *out.Definition, string(stateMachineDefBytes))
@@ -302,7 +310,7 @@ New state machine:
 	}
 
 	// start execution!
-	var inputJSON map[string]interface{}
+	var inputJSON interface{}
 	if err := json.Unmarshal([]byte(i.Input), &inputJSON); err != nil {
 		return nil, models.BadRequest{
 			Message: fmt.Sprintf("input is not a valid JSON object: %s ", err),
