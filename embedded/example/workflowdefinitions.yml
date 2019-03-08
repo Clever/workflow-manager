@@ -1,4 +1,4 @@
-- name: hello-world
+- name: hello-world-v2
   stateMachine:
     Version: '1.0'
     StartAt: hello

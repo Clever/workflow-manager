@@ -257,7 +257,7 @@ func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 		if state.Type != models.SLStateTypeTask {
 			continue
 		}
-		state.Resource = sfnconventions.EmbeddedResourceArn(state.Resource, e.sfnRegion, e.sfnAccountID, i.Namespace)
+		state.Resource = sfnconventions.EmbeddedResourceArn(state.Resource, e.sfnRegion, e.sfnAccountID, i.Namespace, e.app)
 		stateMachine.States[stateName] = state
 	}
 	stateMachineDefBytes, err := json.MarshalIndent(stateMachine, "", "  ")

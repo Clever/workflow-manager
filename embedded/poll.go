@@ -28,7 +28,7 @@ func (e Embedded) PollForWork(ctx context.Context) error {
 	// register activities with AWS and spawn GetActivityTask polling loops
 	g, ctx := errgroup.WithContext(ctx)
 	for resourceName, resource := range e.resources {
-		activityArn := sfnconventions.EmbeddedResourceArn(resourceName, e.sfnRegion, e.sfnAccountID, e.environment)
+		activityArn := sfnconventions.EmbeddedResourceArn(resourceName, e.sfnRegion, e.sfnAccountID, e.environment, e.app)
 		activityArnParts := strings.Split(activityArn, ":")
 		activityName := activityArnParts[len(activityArnParts)-1]
 		createOutput, err := e.sfnAPI.CreateActivityWithContext(ctx, &sfn.CreateActivityInput{

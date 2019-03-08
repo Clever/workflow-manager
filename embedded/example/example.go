@@ -27,7 +27,7 @@ func first(ctx context.Context) (string, error) {
 	return "world", nil
 }
 
-func second(ctx context.Context, input string) (string, error) {
+func second(input string) (string, error) {
 	return "Hello, " + input + "!", nil
 }
 
@@ -69,7 +69,7 @@ func main() {
 	wf, err := client.StartWorkflow(ctx, &models.StartWorkflowRequest{
 		Input: "{}",
 		WorkflowDefinition: &models.WorkflowDefinitionRef{
-			Name: "hello-world",
+			Name: "hello-world-v2",
 		},
 	})
 	if err != nil {

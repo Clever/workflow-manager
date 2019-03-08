@@ -60,8 +60,8 @@ func LambdaResource(wdResource, region, accountID, namespace string) string {
 }
 
 // EmbeddedResourceArn is the activity ARN registered by embedded WFM.
-func EmbeddedResourceArn(wdResource, region, accountID, namespace string) string {
-	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s--embedded-%s", region, accountID, namespace, wdResource)
+func EmbeddedResourceArn(wdResource, region, accountID, namespace string, app string) string {
+	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s--%s-%s", region, accountID, namespace, app, wdResource)
 }
 
 // ExecutionArn generates the execution ARN format used by SFN.
