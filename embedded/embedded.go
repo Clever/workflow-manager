@@ -96,7 +96,7 @@ func New(config *Config) (*Embedded, error) {
 	for k := range config.Resources {
 		kcopy := k
 		var err error
-		if r[kcopy], err = sfnfunction.New(config.Resources[kcopy]); err != nil {
+		if r[kcopy], err = sfnfunction.New(kcopy, config.Resources[kcopy]); err != nil {
 			return nil, fmt.Errorf("function '%s': %s", kcopy, err.Error())
 		}
 	}

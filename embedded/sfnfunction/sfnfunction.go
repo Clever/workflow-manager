@@ -9,11 +9,13 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sfn"
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // Resource is an SFN resource that calls out to a function.
 type Resource struct {
-	fn normalizedFn
+	name string
+	fn   normalizedFn
 }
 
 type normalizedFn func(ctx context.Context, input string) (interface{}, error)
@@ -122,12 +124,12 @@ func validateReturns(fnType reflect.Type) error {
 }
 
 // New returns a new function resource.
-func New(fn interface{}) (*Resource, error) {
+func New(name string, fn interface{}) (*Resource, error) {
 	newFn, err := normalizeFunction(fn)
 	if err != nil {
 		return nil, ErrBadFunctionSignature{err.Error()}
 	}
-	return &Resource{fn: normalizedFn(newFn)}, nil
+	return &Resource{name: name, fn: normalizedFn(newFn)}, nil
 }
 
 // Result encodes whether the function call should result in calling
@@ -148,6 +150,7 @@ func getType(myvar interface{}) string {
 
 // Call the function.
 func (r *Resource) Call(ctx context.Context, input string) Result {
+	logger.FromContext(ctx).AddContext("resource", r.name)
 	out, err := r.fn(ctx, input)
 	if err != nil {
 		return Result{

@@ -17,7 +17,7 @@ type newTest struct {
 }
 
 func (nt newTest) Run(t *testing.T) {
-	_, got := New(nt.fn)
+	_, got := New("test", nt.fn)
 	assert.Equal(t, nt.expected, got)
 }
 
@@ -59,7 +59,7 @@ func TestNew(t *testing.T) {
 }
 
 func mustNew(fn interface{}) *Resource {
-	r, err := New(fn)
+	r, err := New("test", fn)
 	if err != nil {
 		panic(err)
 	}
