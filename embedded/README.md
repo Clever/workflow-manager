@@ -1,7 +1,7 @@
 # Embedded workflow-manager
 
 Embedded workflow manager implements a self-contained version of workflow-manager.
-It allows applications to create a set of workflow definitions specific that are isolated to the application itself.
+It allows applications to create a set of workflow definitions that are isolated to the application itself.
 It also lets applications create workflow definitions where `Task`s are handled by functions within the application code.
 It is backed by AWS Step Functions (SFN).
 
