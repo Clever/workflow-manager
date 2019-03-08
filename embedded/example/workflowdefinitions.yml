@@ -1,0 +1,14 @@
+- name: hello-world-v2
+  stateMachine:
+    Version: '1.0'
+    StartAt: hello
+    TimeoutSeconds: 60
+    States:
+      hello:
+        Next: world
+        Resource: first
+        Type: Task
+      world:
+        Resource: second
+        Type: Task
+        End: true

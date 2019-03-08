@@ -3,7 +3,12 @@
 
 [[projects]]
   name = "github.com/Clever/aws-sdk-go-counter"
-  packages = ["counter/sfncounter"]
+  packages = [
+    "aws",
+    "aws/awserr",
+    "aws/request",
+    "counter/sfncounter"
+  ]
   revision = "6cdff7b1a4b593eafacf9c31ece8a830136f4125"
 
 [[projects]]
@@ -108,6 +113,12 @@
   revision = "3ed64d21fb0b6bd8b49bcfec08f3004daee8723d"
 
 [[projects]]
+  name = "github.com/ghodss/yaml"
+  packages = ["."]
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/go-errors/errors"
   packages = ["."]
   revision = "a6af135bd4e28680facf08a3d206b454abc877a4"
@@ -203,6 +214,18 @@
   packages = ["."]
   revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
   version = "v1.6.2"
+
+[[projects]]
+  name = "github.com/hashicorp/errwrap"
+  packages = ["."]
+  revision = "8a6fb523712970c966eefc6b39ed2c5e74880354"
+  version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/hashicorp/go-multierror"
+  packages = ["."]
+  revision = "886a7fbe3eb1c874d46f623bfa70af45f425b3d1"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/hashicorp/golang-lru"
@@ -342,6 +365,12 @@
   revision = "f5e5bdd778241bfefa8627f7124c39cd6ad8d74f"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  revision = "e225da77a7e68af35c70ccbf71af2b83e6acac3c"
+
+[[projects]]
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -362,6 +391,12 @@
   ]
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/time"
+  packages = ["rate"]
+  revision = "85acf8d2951cb2a3bde7632f9ff273ef0379bcbd"
 
 [[projects]]
   name = "gopkg.in/Clever/kayvee-go.v6"
@@ -398,6 +433,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f1828ab4ac6313e3fc6ec22bee6497c80f4cafc03752c2f455bac70857e58fef"
+  inputs-digest = "5bb285fd835cffc36636ff3e0488f6b2156146c8eb68ce528b38ba1c849f64bb"
   solver-name = "gps-cdcl"
   solver-version = 1

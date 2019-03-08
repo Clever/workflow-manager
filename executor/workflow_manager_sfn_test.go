@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Clever/workflow-manager/executor/sfnconventions"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/mocks"
 	"github.com/Clever/workflow-manager/resources"
@@ -57,7 +58,7 @@ func TestStateMachineName(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		output := stateMachineName(
+		output := sfnconventions.StateMachineName(
 			test.input.wdName,
 			test.input.wdVersion,
 			test.input.namespace,
@@ -145,7 +146,7 @@ func TestCreateWorkflow(t *testing.T) {
 		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
-		stateMachineArn := stateMachineARN(c.manager.region, c.manager.accountID,
+		stateMachineArn := sfnconventions.StateMachineArn(c.manager.region, c.manager.accountID,
 			c.workflowDefinition.Name,
 			c.workflowDefinition.Version,
 			"namespace",
@@ -193,7 +194,7 @@ func TestCreateWorkflow(t *testing.T) {
 		assert.Equal(t, workflow.ID, savedWorkflow.ID)
 
 		t.Log("Verify updatePendingWorkflow causes in-progress workflow to be put back into the update queue")
-		sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+		sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 		c.mockSFNAPI.EXPECT().
 			DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 				ExecutionArn: aws.String(sfnExecutionARN),
@@ -232,7 +233,7 @@ func TestCreateWorkflow(t *testing.T) {
 		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
-		stateMachineArn := stateMachineARN(c.manager.region, c.manager.accountID,
+		stateMachineArn := sfnconventions.StateMachineArn(c.manager.region, c.manager.accountID,
 			c.workflowDefinition.Name,
 			c.workflowDefinition.Version,
 			"namespace",
@@ -282,7 +283,7 @@ func TestCreateWorkflow(t *testing.T) {
 		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
-		stateMachineArn := stateMachineARN(c.manager.region, c.manager.accountID,
+		stateMachineArn := sfnconventions.StateMachineArn(c.manager.region, c.manager.accountID,
 			c.workflowDefinition.Name,
 			c.workflowDefinition.Version,
 			"namespace",
@@ -323,7 +324,7 @@ func TestRetryWorkflow(t *testing.T) {
 		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
-		stateMachineArn := stateMachineARN(c.manager.region, c.manager.accountID,
+		stateMachineArn := sfnconventions.StateMachineArn(c.manager.region, c.manager.accountID,
 			c.workflowDefinition.Name,
 			c.workflowDefinition.Version,
 			"namespace",
@@ -359,7 +360,7 @@ func TestRetryWorkflow(t *testing.T) {
 		assert.Equal(t, workflow.CreatedAt.String(), savedWorkflow.CreatedAt.String())
 		assert.Equal(t, workflow.ID, savedWorkflow.ID)
 
-		sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+		sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 
 		t.Log("RetryWorkflow should fail if workflow is not yet done")
 		_, err = c.manager.RetryWorkflow(ctx, *workflow, workflow.WorkflowDefinition.StateMachine.StartAt, input)
@@ -391,7 +392,7 @@ func TestRetryWorkflow(t *testing.T) {
 		assert.Equal(t, workflow2.CreatedAt.String(), savedWorkflow2.CreatedAt.String())
 		assert.Equal(t, workflow2.ID, savedWorkflow2.ID)
 
-		sfnExecutionARN2 := c.manager.executionARN(workflow2, c.workflowDefinition)
+		sfnExecutionARN2 := c.manager.executionArn(workflow2, c.workflowDefinition)
 		assert.NotEqual(t, sfnExecutionARN2, sfnExecutionARN)
 	})
 }
@@ -410,7 +411,7 @@ func TestCancelWorkflow(t *testing.T) {
 
 	t.Log("Verify execution is stopped and status reason is updated.")
 	reason := "i have my reasons"
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		StopExecution(&sfn.StopExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -475,7 +476,7 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 	workflow.Status = models.WorkflowStatusQueued
 	c.saveWorkflow(ctx, t, workflow)
 
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -524,7 +525,7 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 	workflow.Status = models.WorkflowStatusQueued
 	c.saveWorkflow(ctx, t, workflow)
 
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -570,7 +571,7 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 	workflow.Status = models.WorkflowStatusQueued
 	c.saveWorkflow(ctx, t, workflow)
 
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -649,7 +650,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 	c.saveWorkflow(ctx, t, workflow)
 
 	executionOutput := `{"output": true}`
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -711,7 +712,7 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 	workflow.StatusReason = "cancelled by user"
 	c.saveWorkflow(ctx, t, workflow)
 
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -755,7 +756,7 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 	workflow.StatusReason = "cancelled by user"
 	c.saveWorkflow(ctx, t, workflow)
 
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -800,7 +801,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
 	c.saveWorkflow(ctx, t, workflow)
 
 	executionOutput := `{"output": true}`
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	// fail the first time
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
@@ -856,7 +857,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 	workflow.Status = models.WorkflowStatusQueued
 	c.saveWorkflow(ctx, t, workflow)
 
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -932,7 +933,7 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 	workflow.Status = models.WorkflowStatusRunning
 	c.saveWorkflow(ctx, t, workflow)
 
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -991,7 +992,7 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 	workflow.Status = models.WorkflowStatusRunning
 	c.saveWorkflow(ctx, t, workflow)
 
-	sfnExecutionARN := c.manager.executionARN(workflow, c.workflowDefinition)
+	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
 		DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
