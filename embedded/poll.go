@@ -75,7 +75,7 @@ func (e Embedded) pollGetActivityTask(ctx context.Context, resource *sfnfunction
 			}
 			input := *out.Input
 			token := *out.TaskToken
-			log.InfoD("getactivitytask", logger.M{"input": input, "token": shortToken(token)})
+			log.TraceD("getactivitytask", logger.M{"input": input, "token": shortToken(token)})
 			e.handleTask(ctx, resource, token, input)
 		}
 	}
@@ -139,7 +139,7 @@ func (e Embedded) handleTask(ctx context.Context, resource *sfnfunction.Resource
 	})
 
 	if err := g.Wait(); err != nil {
-		logger.FromContext(ctx).TraceD("internal-error", logger.M{"error": err.Error()})
+		logger.FromContext(ctx).ErrorD("internal-error", logger.M{"error": err.Error()})
 		sendTaskFailure(ctx, e.sfnAPI, "InternalError", err.Error(), token)
 		return
 	}
