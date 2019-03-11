@@ -290,7 +290,7 @@ func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 			RoleArn:         aws.String(e.sfnRoleArn),
 			StateMachineArn: out.StateMachineArn,
 		}); err != nil {
-			return nil, fmt.Errorf("UpdateStateMachine: %s", err.Error)
+			return nil, fmt.Errorf("UpdateStateMachine: %s", err.Error())
 		}
 	} else {
 		// if it exists, verify they're the same--if not, it's user error:
