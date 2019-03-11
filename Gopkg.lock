@@ -3,12 +3,7 @@
 
 [[projects]]
   name = "github.com/Clever/aws-sdk-go-counter"
-  packages = [
-    "aws",
-    "aws/awserr",
-    "aws/request",
-    "counter/sfncounter"
-  ]
+  packages = ["counter/sfncounter"]
   revision = "6cdff7b1a4b593eafacf9c31ece8a830136f4125"
 
 [[projects]]
@@ -433,6 +428,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "775f6a171d209e249d215d42704cb0dbeb4e3ba70821b31fa3fc246c4fbd5880"
+  inputs-digest = "3733359ca4881d33aadc87f378ab07337bc9a2c2077552929b1fa40ceaccc7e9"
   solver-name = "gps-cdcl"
   solver-version = 1
