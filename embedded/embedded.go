@@ -292,6 +292,9 @@ func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 		}); err != nil {
 			return nil, fmt.Errorf("UpdateStateMachine: %s", err.Error())
 		}
+		// Control for "Executions started immediately after calling UpdateStateMachine might use the previous state machine definition and roleArn."
+		// https://docs.aws.amazon.com/step-functions/latest/dg/concepts-read-consistency.html
+		time.Sleep(5 * time.Second)
 	} else {
 		// if it exists, verify they're the same--if not, it's user error:
 		// state machines are immutable, user should create a workflow def with
