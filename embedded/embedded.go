@@ -249,7 +249,7 @@ func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 	// generate state machine
 	wd, err := e.GetWorkflowDefinitionByNameAndVersion(ctx, &models.GetWorkflowDefinitionByNameAndVersionInput{Name: i.WorkflowDefinition.Name})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetWorkflowDefinitionByNameAndVersion: %s", err.Error())
 	}
 	stateMachine := deepcopy.Copy(wd.StateMachine).(*models.SLStateMachine)
 	for stateName, s := range stateMachine.States {
@@ -262,7 +262,7 @@ func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 	}
 	stateMachineDefBytes, err := json.MarshalIndent(stateMachine, "", "  ")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("json marshal: %s", err.Error())
 	}
 
 	// find or create the state machine in AWS
@@ -290,7 +290,7 @@ func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequ
 			RoleArn:         aws.String(e.sfnRoleArn),
 			StateMachineArn: out.StateMachineArn,
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("UpdateStateMachine: %s", err.Error)
 		}
 	} else {
 		// if it exists, verify they're the same--if not, it's user error:
@@ -332,7 +332,7 @@ New state machine:
 		Input:           aws.String(i.Input),
 		Name:            aws.String(workflow.ID),
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("StartExecution: %s", err.Error())
 	}
 	return workflow, nil
 }
