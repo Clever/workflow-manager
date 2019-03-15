@@ -189,7 +189,7 @@ func sendTaskSuccess(ctx context.Context, sfnAPI sfniface.SFNAPI, output string,
 		logger.FromContext(ctx).ErrorD("send-task-success-error", logger.M{"error": err.Error()})
 		return err
 	}
-	logger.FromContext(ctx).InfoD("send-task-success", logger.M{"output": output})
+	logger.FromContext(ctx).DebugD("send-task-success", logger.M{"output": output})
 	return nil
 }
 
