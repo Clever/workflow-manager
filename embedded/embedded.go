@@ -161,15 +161,15 @@ func verifyWorkflowDefinitionResources(wfdefs []models.WorkflowDefinition, resou
 	return nil
 }
 
-func (e Embedded) HealthCheck(ctx context.Context) error {
+func (e *Embedded) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-func (e Embedded) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
+func (e *Embedded) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
 	return e.workflowDefinitions, nil
 }
 
-func (e Embedded) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
+func (e *Embedded) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
 	for _, wd := range e.workflowDefinitions {
 		if wd.Name == i.Name {
 			return &wd, nil
@@ -178,7 +178,7 @@ func (e Embedded) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *
 	return nil, models.NotFound{}
 }
 
-func (e Embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error) {
+func (e *Embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error) {
 	var validation error
 	if i.Limit != nil {
 		validation = multierror.Append(validation, errors.New("Limit not supported"))
@@ -228,7 +228,7 @@ func (e Embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput)
 	return wfs, nil
 }
 
-func (e Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
+func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
 	var validation error
 	if i.Namespace == "" {
 		i.Namespace = e.environment
@@ -340,7 +340,7 @@ New state machine:
 	return workflow, nil
 }
 
-func (e Embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowInput) error {
+func (e *Embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowInput) error {
 	widParts, err := parseWorkflowID(i.WorkflowID)
 	if err != nil {
 		return err
@@ -355,7 +355,7 @@ func (e Embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowIn
 	return nil
 }
 
-func (e Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
+func (e *Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
 	widParts, err := parseWorkflowID(workflowID)
 	if err != nil {
 		return nil, err
@@ -389,6 +389,26 @@ func (e Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*mode
 			Input:              aws.StringValue(out.Input),
 		},
 	}, nil
+}
+
+// NewWorkflowDefinition creates a new workflow definition.
+func (e *Embedded) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
+	if e.workflowDefinitions == nil {
+		e.workflowDefinitions = []models.WorkflowDefinition{}
+	}
+	for _, wfd := range e.workflowDefinitions {
+		if wfd.Name == i.Name {
+			return nil, fmt.Errorf("%s workflow definition already exists", i.Name)
+		}
+	}
+	wfd := models.WorkflowDefinition{
+		CreatedAt:    strfmt.DateTime(time.Now()),
+		DefaultTags:  i.DefaultTags,
+		Name:         i.Name,
+		StateMachine: i.StateMachine,
+	}
+	e.workflowDefinitions = append(e.workflowDefinitions, wfd)
+	return &wfd, nil
 }
 
 // workflowID generates a workflow ID.

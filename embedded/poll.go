@@ -19,12 +19,12 @@ import (
 	"golang.org/x/time/rate"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
-
+n
 var log = logger.New("wfm-embedded")
 
 // PollForWork begins polling for work. It stops when the context is canceled
 // or an un-recoverable error is encountered.
-func (e Embedded) PollForWork(ctx context.Context) error {
+func (e *Embedded) PollForWork(ctx context.Context) error {
 	// register activities with AWS and spawn GetActivityTask polling loops
 	g, ctx := errgroup.WithContext(ctx)
 	for resourceName, resource := range e.resources {
@@ -46,7 +46,7 @@ func (e Embedded) PollForWork(ctx context.Context) error {
 	return g.Wait()
 }
 
-func (e Embedded) pollGetActivityTask(ctx context.Context, resource *sfnfunction.Resource, activityArn string) error {
+func (e *Embedded) pollGetActivityTask(ctx context.Context, resource *sfnfunction.Resource, activityArn string) error {
 	// allow one GetActivityTask per second, max 1 at a time
 	limiter := rate.NewLimiter(rate.Every(1*time.Second), 1)
 	for ctx.Err() == nil {
@@ -92,7 +92,7 @@ func shortToken(token string) string {
 
 // handleTask sends heartbeats to SFN, invokes the resource function, and
 // reports to SFN the result.
-func (e Embedded) handleTask(ctx context.Context, resource *sfnfunction.Resource, token, input string) {
+func (e *Embedded) handleTask(ctx context.Context, resource *sfnfunction.Resource, token, input string) {
 	// Create a context to run the heartbeat and the function in parallel.
 	// Add the token as an identifier in the logger attached to the ctx.
 	c, cancel := context.WithCancel(ctx)
