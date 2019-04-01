@@ -19,7 +19,7 @@ import (
 	"golang.org/x/time/rate"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
-n
+
 var log = logger.New("wfm-embedded")
 
 // PollForWork begins polling for work. It stops when the context is canceled
