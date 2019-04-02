@@ -26,6 +26,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Embedded ...
 type Embedded struct {
 	environment         string
 	app                 string
@@ -79,8 +80,6 @@ func (c Config) validate() error {
 }
 
 // New returns a client to an embedded workflow manager.
-// It also starts polling for work. This polling stops when the context passed
-// is canceled.
 func New(config *Config) (*Embedded, error) {
 	if err := config.validate(); err != nil {
 		return nil, err
@@ -133,6 +132,16 @@ func randString(n int) string {
 	return string(b)
 }
 
+// ParseWorkflowDefinition converts a yaml workflow definition into our model
+func ParseWorkflowDefinition(wfdefbs []byte) (models.WorkflowDefinition, error) {
+	var wfd models.WorkflowDefinition
+	if err := yaml.Unmarshal(wfdefbs, &wfd); err != nil {
+		return models.WorkflowDefinition{}, err
+	}
+	wfd.CreatedAt = strfmt.DateTime(time.Now())
+	return wfd, nil
+}
+
 func parseWorkflowDefinitions(wfdefbs []byte) ([]models.WorkflowDefinition, error) {
 	var wfdefs []models.WorkflowDefinition
 	if err := yaml.Unmarshal(wfdefbs, &wfdefs); err != nil {
@@ -161,14 +170,17 @@ func verifyWorkflowDefinitionResources(wfdefs []models.WorkflowDefinition, resou
 	return nil
 }
 
+// HealthCheck ...
 func (e *Embedded) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
+// GetWorkflowDefinitions ...
 func (e *Embedded) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
 	return e.workflowDefinitions, nil
 }
 
+// GetWorkflowDefinitionByNameAndVersion ...
 func (e *Embedded) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
 	for _, wd := range e.workflowDefinitions {
 		if wd.Name == i.Name {
@@ -178,6 +190,7 @@ func (e *Embedded) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i 
 	return nil, models.NotFound{}
 }
 
+// GetWorkflows ...
 func (e *Embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, error) {
 	var validation error
 	if i.Limit != nil {
@@ -228,6 +241,7 @@ func (e *Embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput
 	return wfs, nil
 }
 
+// StartWorkflow ...
 func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
 	var validation error
 	if i.Namespace == "" {
@@ -340,6 +354,7 @@ New state machine:
 	return workflow, nil
 }
 
+// CancelWorkflow ...
 func (e *Embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowInput) error {
 	widParts, err := parseWorkflowID(i.WorkflowID)
 	if err != nil {
@@ -355,6 +370,7 @@ func (e *Embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowI
 	return nil
 }
 
+// GetWorkflowByID ...
 func (e *Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
 	widParts, err := parseWorkflowID(workflowID)
 	if err != nil {
