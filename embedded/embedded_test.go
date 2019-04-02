@@ -2,6 +2,8 @@ package embedded
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/Clever/workflow-manager/gen-go/client"
@@ -43,10 +45,94 @@ var newWorkflowDefinitionTests = []newWorkflowDefinitionTest{
 			require.Equal(t, "this is a test", wfd.StateMachine.Comment)
 		},
 	},
+	{
+		description: "error - workflow already exists",
+		wfm: &Embedded{
+			workflowDefinitions: []models.WorkflowDefinition{
+				models.WorkflowDefinition{
+					Name: "test-wfd",
+				},
+			},
+		},
+		input: &models.NewWorkflowDefinitionRequest{
+			Name: "test-wfd",
+			StateMachine: &models.SLStateMachine{
+				Comment: "this is a test",
+			},
+		},
+		expected: fmt.Errorf("test-wfd workflow definition already exists"),
+	},
 }
 
 func TestNewWorkflowDefinition(t *testing.T) {
 	for _, ntest := range newWorkflowDefinitionTests {
+		t.Run(ntest.description, ntest.Run)
+	}
+}
+
+type parseWorkflowDefinitionTest struct {
+	description string
+	input       string
+	assertions  func(*testing.T, models.WorkflowDefinition, error)
+}
+
+func (n parseWorkflowDefinitionTest) Run(t *testing.T) {
+	out, err := ParseWorkflowDefinition([]byte(n.input))
+	if n.assertions != nil {
+		n.assertions(t, out, err)
+	}
+}
+
+var testHelloWorldWorkflowDefintionYAML = `
+manager: step-functions
+name: hello-world
+stateMachine:
+  Version: '1.0'
+  StartAt: start
+  States:
+    start:
+      Type: Task
+      Resource: printer
+      HeartbeatSeconds: 30
+      End: true
+`
+
+var testMalformedWorkflowDefintionYAML = `
+manager: step-functions
+name: hello-world
+stateMachine:
+  Version: '1.0'
+  StartAt: start
+  States:
+    start:
+      Type: Task
+	Resource: printer
+      HeartbeatSeconds: 30
+      End: true
+`
+
+var parseWorkflowDefinitionTests = []parseWorkflowDefinitionTest{
+	{
+		description: "happy path",
+		input:       testHelloWorldWorkflowDefintionYAML,
+		assertions: func(t *testing.T, wfd models.WorkflowDefinition, err error) {
+			require.Nil(t, err)
+			require.Equal(t, "hello-world", wfd.Name)
+		},
+	},
+	{
+		description: "err - malformed yaml",
+		input:       testMalformedWorkflowDefintionYAML,
+		assertions: func(t *testing.T, wfd models.WorkflowDefinition, err error) {
+			require.Error(t, err)
+			// verify we're getting an error from the YAML lib
+			require.Contains(t, strings.ToLower(err.Error()), "yaml")
+		},
+	},
+}
+
+func TestParseWorkflowDefintion(t *testing.T) {
+	for _, ntest := range parseWorkflowDefinitionTests {
 		t.Run(ntest.description, ntest.Run)
 	}
 }
