@@ -117,7 +117,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 
 	// Attempt to update the workflow, i.e. sync data from SFN into our workflow object.
 	// Whether or not we are successful at this, we should delete the sqs message
-	// and re-queue a new message if the worfklow remains pending.
+	// and re-queue a new message if the workflow remains pending.
 	defer func() {
 		deleteMsg()
 		if !resources.WorkflowStatusIsDone(&wf) {
@@ -125,6 +125,11 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 		}
 	}()
 	if err := wm.UpdateWorkflowSummary(ctx, &wf); err != nil {
+		if resources.WorkflowStatusIsDone(&wf) {
+			// updating failed, but the status may have been mutated, so the defer func won't requeue
+			// requeue here instead
+			requeueMsg()
+		}
 		return "", err
 	}
 	return wfID, nil
