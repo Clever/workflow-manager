@@ -15,7 +15,7 @@ $(eval $(call golang-version-check,1.10))
 
 all: test build
 
-test: $(PKGS) dynamodb-test mocks
+test: $(PKGS) dynamodb-test
 $(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
 
@@ -51,6 +51,6 @@ mocks:
 	for svc in dynamodb sfn sqs; do \
 	  bin/mockgen -package mocks -source ./vendor/github.com/aws/aws-sdk-go/service/$${svc}/$${svc}iface/interface.go -destination mocks/$${svc}.go; \
 	done
-	bin/mockgen -package mocks -source ./executor/workflow_manager.go WorkflowManager -destination mocks/workflow_manager.go
-	bin/mockgen -package mocks -source ./store/store.go Store -destination mocks/store.go
+	bin/mockgen -package mocks -source ./executor/workflow_manager.go -destination mocks/workflow_manager.go WorkflowManager
+	bin/mockgen -package mocks -source ./store/store.go -destination mocks/store.go Store
 
