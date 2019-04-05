@@ -9,14 +9,13 @@ PKG = github.com/Clever/$(APP_NAME)
 PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /workflow-ops | grep -v /dynamodb)
 PKGS := $(PKGS) $(PKG)/gen-go/server/db/dynamodb
 
-# Currently using old version because ```WAG_VERSION := latest``` is broken on this repo
 WAG_VERSION := latest
 
 $(eval $(call golang-version-check,1.10))
 
 all: test build
 
-test: $(PKGS) dynamodb-test
+test: $(PKGS) dynamodb-test mocks
 $(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
 
