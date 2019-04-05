@@ -85,15 +85,17 @@ func New(config *Config) (*Embedded, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := verifyWorkflowDefinitionResources(wfdefs, config.Resources); err != nil {
-		return nil, err
-	}
 	r := map[string]*sfnfunction.Resource{}
 	for k := range config.Resources {
 		kcopy := k
 		var err error
 		if r[kcopy], err = sfnfunction.New(kcopy, config.Resources[kcopy]); err != nil {
 			return nil, fmt.Errorf("function '%s': %s", kcopy, err.Error())
+		}
+	}
+	for _, wfdef := range wfdefs {
+		if err := validateWorkflowDefinition(wfdef, r); err != nil {
+			return nil, err
 		}
 	}
 	wn := config.WorkerName
@@ -153,17 +155,56 @@ func parseWorkflowDefinitions(wfdefbs []byte) ([]models.WorkflowDefinition, erro
 	return wfdefs, nil
 }
 
-func verifyWorkflowDefinitionResources(wfdefs []models.WorkflowDefinition, resources map[string]interface{}) error {
-	for _, wfd := range wfdefs {
-		for stateName, state := range wfd.StateMachine.States {
+func validateWorkflowDefinition(wfdef models.WorkflowDefinition, resources map[string]*sfnfunction.Resource) error {
+	if wfdef.Name == "" {
+		return fmt.Errorf("workflow definition name is required")
+	}
+	if len(wfdef.StateMachine.States) == 0 {
+		return fmt.Errorf("must define at least one state in %s", wfdef.Name)
+	}
+
+	return validateWorkflowDefinitionStates(wfdef, resources)
+}
+
+func validateWorkflowDefinitionStates(wfd models.WorkflowDefinition, resources map[string]*sfnfunction.Resource) error {
+	endFound := false
+	for stateName, state := range wfd.StateMachine.States {
+		if state.End {
+			endFound = true
+		}
+		switch state.Type {
+		case models.SLStateTypeTask:
 			if state.Resource == "" {
-				continue
+				return fmt.Errorf("must specify resource for task in %s.%s", wfd.Name, stateName)
 			}
 			if _, ok := resources[state.Resource]; !ok {
 				return fmt.Errorf("unknown resource '%s' in %s.%s", state.Resource, wfd.Name, stateName)
 			}
+		case models.SLStateTypePass:
+			if state.Result == "" && state.ResultPath == "" {
+				return fmt.Errorf("must specify results in %s.%s", wfd.Name, stateName)
+			}
+		case models.SLStateTypeChoice:
+			if len(state.Choices) == 0 {
+				return fmt.Errorf("must specify at one choice in %s.%s", wfd.Name, stateName)
+			}
+		case models.SLStateTypeWait:
+			// technically we could use an absolute timestamp, but at the time of writing we don't
+			// want to support that type of workflow
+			if state.Seconds <= 0 {
+				return fmt.Errorf("invalid seconds parameter in wait %s.%s", wfd.Name, stateName)
+			}
+		case models.SLStateTypeSucceed, models.SLStateTypeFail, models.SLStateTypeParallel:
+			// no op
+		default:
+			return fmt.Errorf("invalid state type '%s' in %s.%s", state.Type, wfd.Name, stateName)
 		}
 	}
+
+	if !endFound {
+		return fmt.Errorf("must specify an end state in %s", wfd.Name)
+	}
+
 	return nil
 }
 
@@ -414,11 +455,15 @@ func (e *Embedded) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkf
 			return nil, fmt.Errorf("%s workflow definition already exists", i.Name)
 		}
 	}
+
 	wfd := models.WorkflowDefinition{
 		CreatedAt:    strfmt.DateTime(time.Now()),
 		DefaultTags:  i.DefaultTags,
 		Name:         i.Name,
 		StateMachine: i.StateMachine,
+	}
+	if err := validateWorkflowDefinition(wfd, e.resources); err != nil {
+		return nil, fmt.Errorf("could not validate state machine: %s", err)
 	}
 	e.workflowDefinitions = append(e.workflowDefinitions, wfd)
 	return &wfd, nil
