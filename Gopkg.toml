@@ -49,9 +49,6 @@ required = ["github.com/golang/mock/mockgen"]
   name = "github.com/kardianos/osext"
 
 [[constraint]]
-  name = "github.com/lightstep/lightstep-tracer-go"
-
-[[constraint]]
   name = "github.com/mohae/deepcopy"
 
 [[constraint]]

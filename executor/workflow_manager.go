@@ -115,17 +115,19 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 
 	logPendingWorkflowUpdateLag(wf)
 
+	var storeSaveFailed = true
 	// Attempt to update the workflow, i.e. sync data from SFN into our workflow object.
 	// Whether or not we are successful at this, we should delete the sqs message
-	// and re-queue a new message if the worfklow remains pending.
+	// and re-queue a new message if the workflow remains pending.
 	defer func() {
 		deleteMsg()
-		if !resources.WorkflowStatusIsDone(&wf) {
+		if storeSaveFailed || !resources.WorkflowStatusIsDone(&wf) {
 			requeueMsg()
 		}
 	}()
 	if err := wm.UpdateWorkflowSummary(ctx, &wf); err != nil {
 		return "", err
 	}
+	storeSaveFailed = false
 	return wfID, nil
 }
