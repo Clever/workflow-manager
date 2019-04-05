@@ -50,6 +50,8 @@ mocks:
 	mkdir -p mocks/
 	rm -rf mocks/*
 	for svc in dynamodb sfn sqs; do \
-	  bin/mockgen -package mocks -source ./vendor/github.com/aws/aws-sdk-go/service/$${svc}/$${svc}iface/interface.go > mocks/$${svc}.go; \
+	  bin/mockgen -package mocks -source ./vendor/github.com/aws/aws-sdk-go/service/$${svc}/$${svc}iface/interface.go -destination mocks/$${svc}.go; \
 	done
-	bin/mockgen -package mocks -source ./executor/workflow_manager.go WorkflowManager > mocks/workflow_manager.go
+	bin/mockgen -package mocks -source ./executor/workflow_manager.go WorkflowManager -destination mocks/workflow_manager.go
+	bin/mockgen -package mocks -source ./store/store.go Store -destination mocks/store.go
+
