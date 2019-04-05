@@ -73,9 +73,6 @@ func (c Config) validate() error {
 	if c.Resources == nil {
 		return errors.New("must configure resources")
 	}
-	if c.WorkflowDefinitions == nil {
-		return errors.New("must configure workflow definitions")
-	}
 	return nil
 }
 
