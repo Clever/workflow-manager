@@ -794,8 +794,6 @@ definitions:
     properties:
       IntervalSeconds:
         type: integer
-      MaxAttempts:
-        type: integer
       BackoffRate:
         type: number
       ErrorEquals:
