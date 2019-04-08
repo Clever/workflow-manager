@@ -11,7 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/go-openapi/strfmt"
 )
+
+var _ = strfmt.DateTime{}
 
 // WorkflowDefinitionTable represents the user-configurable properties of the WorkflowDefinition table.
 type WorkflowDefinitionTable struct {
@@ -153,7 +156,11 @@ func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx cont
 		queryInput.ExpressionAttributeValues[":version"] = &dynamodb.AttributeValue{
 			N: aws.String(fmt.Sprintf("%d", *input.VersionStartingAt)),
 		}
-		queryInput.KeyConditionExpression = aws.String("#NAME = :name AND #VERSION >= :version")
+		if input.Descending {
+			queryInput.KeyConditionExpression = aws.String("#NAME = :name AND #VERSION <= :version")
+		} else {
+			queryInput.KeyConditionExpression = aws.String("#NAME = :name AND #VERSION >= :version")
+		}
 	}
 
 	queryOutput, err := t.DynamoDBAPI.QueryWithContext(ctx, queryInput)

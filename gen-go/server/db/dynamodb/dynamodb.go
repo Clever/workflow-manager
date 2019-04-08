@@ -3,10 +3,12 @@ package dynamodb
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/gen-go/server/db"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/go-openapi/strfmt"
 )
 
 // Config is used to create a new DB struct.
@@ -98,4 +100,8 @@ func (d DB) GetWorkflowDefinitionsByNameAndVersion(ctx context.Context, input db
 // DeleteWorkflowDefinition deletes a WorkflowDefinition from the database.
 func (d DB) DeleteWorkflowDefinition(ctx context.Context, name string, version int64) error {
 	return d.workflowDefinitionTable.deleteWorkflowDefinition(ctx, name, version)
+}
+
+func toDynamoTimeString(d strfmt.DateTime) string {
+	return time.Time(d).Format(time.RFC3339) // dynamodb attributevalue only supports RFC3339 resolution
 }
