@@ -313,6 +313,23 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		},
 	},
 	{
+		description: "validate next state - no state",
+		input: models.WorkflowDefinition{
+			StateMachine: &models.SLStateMachine{
+				States: map[string]models.SLState{
+					"pass": models.SLState{
+						Type:   models.SLStateTypePass,
+						Result: "passing",
+					},
+				},
+			},
+		},
+		assertions: func(t *testing.T, err error) {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "must specify next state")
+		},
+	},
+	{
 		description: "validate end state exists",
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{

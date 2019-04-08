@@ -169,11 +169,10 @@ func validateWorkflowDefinition(wfdef models.WorkflowDefinition, resources map[s
 func validateWorkflowDefinitionStates(wfd models.WorkflowDefinition, resources map[string]*sfnfunction.Resource) error {
 	endFound := false
 	for stateName, state := range wfd.StateMachine.States {
-		if state.End {
-			endFound = true
-		}
+		checkNextState := false
 		switch state.Type {
 		case models.SLStateTypeTask:
+			checkNextState = true
 			if state.Resource == "" {
 				return fmt.Errorf("must specify resource for task in %s.%s", wfd.Name, stateName)
 			}
@@ -181,6 +180,7 @@ func validateWorkflowDefinitionStates(wfd models.WorkflowDefinition, resources m
 				return fmt.Errorf("unknown resource '%s' in %s.%s", state.Resource, wfd.Name, stateName)
 			}
 		case models.SLStateTypePass:
+			checkNextState = true
 			if state.Result == "" && state.ResultPath == "" {
 				return fmt.Errorf("must specify results in %s.%s", wfd.Name, stateName)
 			}
@@ -189,6 +189,7 @@ func validateWorkflowDefinitionStates(wfd models.WorkflowDefinition, resources m
 				return fmt.Errorf("must specify at one choice in %s.%s", wfd.Name, stateName)
 			}
 		case models.SLStateTypeWait:
+			checkNextState = true
 			// technically we could use an absolute timestamp, but at the time of writing we don't
 			// want to support that type of workflow
 			if state.Seconds <= 0 {
@@ -198,6 +199,14 @@ func validateWorkflowDefinitionStates(wfd models.WorkflowDefinition, resources m
 			// no op
 		default:
 			return fmt.Errorf("invalid state type '%s' in %s.%s", state.Type, wfd.Name, stateName)
+		}
+
+		if state.End {
+			endFound = true
+		} else if checkNextState {
+			if state.Next == "" {
+				return fmt.Errorf("must specify next state in %s.%s", wfd.Name, stateName)
+			}
 		}
 	}
 
