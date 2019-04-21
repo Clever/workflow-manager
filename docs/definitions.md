@@ -250,6 +250,7 @@
 |Name|Description|Schema|
 |---|---|---|
 |**createdAt**  <br>*optional*||string (date-time)|
+|**failedState**  <br>*optional*||string|
 |**id**  <br>*optional*||string|
 |**input**  <br>*optional*||string|
 |**jobs**  <br>*optional*||< [Job](#job) > array|
@@ -321,6 +322,7 @@
 |Name|Description|Schema|
 |---|---|---|
 |**createdAt**  <br>*optional*||string (date-time)|
+|**failedState**  <br>*optional*||string|
 |**id**  <br>*optional*||string|
 |**input**  <br>*optional*||string|
 |**lastUpdated**  <br>*optional*||string (date-time)|

@@ -19,6 +19,9 @@ type WorkflowSummary struct {
 	// created at
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
+	// failed state
+	FailedState string `json:"failedState,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
 

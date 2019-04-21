@@ -480,6 +480,8 @@ definitions:
         description: "tags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
           type: object
+      failedState:
+        type: string
 
   WorkflowStatus:
     type: string
