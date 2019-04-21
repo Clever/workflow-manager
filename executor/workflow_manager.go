@@ -125,8 +125,17 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 			requeueMsg()
 		}
 	}()
+	log.InfoD("wf-before", logger.M{"wf": fmt.Sprintf("%+v", wf)})
 	if err := wm.UpdateWorkflowSummary(ctx, &wf); err != nil {
 		return "", err
+	}
+	log.InfoD("wf-summary-update", logger.M{"wf": fmt.Sprintf("%+v", wf)})
+	if wf.Status == models.WorkflowStatusFailed {
+		log.Info("wf-failed")
+		if err := wm.UpdateWorkflowHistory(ctx, &wf); err != nil {
+			return "", err
+		}
+		log.InfoD("wf-history-update", logger.M{"wf": fmt.Sprintf("%+v", wf)})
 	}
 	storeSaveFailed = false
 	return wfID, nil
