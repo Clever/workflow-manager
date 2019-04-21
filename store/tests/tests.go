@@ -474,13 +474,15 @@ func GetWorkflowsSummaryOnly(s store.Store, t *testing.T) func(t *testing.T) {
 		}
 		require.Equal(t, definitionSummary, workflows[0].WorkflowDefinition)
 
-		// All fields of WorkflowSummary should be present
+		// All fields of WorkflowSummary should be present except FailedState
 		wsType := reflect.TypeOf(models.WorkflowSummary{})
 		workflowVal := reflect.ValueOf(workflows[0])
 		for i := 0; i < wsType.NumField(); i++ {
 			name := wsType.Field(i).Name
-			assert.NotNil(t, workflowVal.FieldByName(name).String(), "Field Name: %s", name)
-			assert.NotEmpty(t, workflowVal.FieldByName(name).String(), "Field Name: %s", name)
+			if name != "FailedState" {
+				assert.NotNil(t, workflowVal.FieldByName(name).String(), "Field Name: %s", name)
+				assert.NotEmpty(t, workflowVal.FieldByName(name).String(), "Field Name: %s", name)
+			}
 		}
 
 		// Verify details are included if SummaryOnly == false:
