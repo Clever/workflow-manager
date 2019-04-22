@@ -128,6 +128,11 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	if err := wm.UpdateWorkflowSummary(ctx, &wf); err != nil {
 		return "", err
 	}
+	if wf.Status == models.WorkflowStatusFailed {
+		if err := wm.UpdateWorkflowHistory(ctx, &wf); err != nil {
+			return "", err
+		}
+	}
 	storeSaveFailed = false
 	return wfID, nil
 }
