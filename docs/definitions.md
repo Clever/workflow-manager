@@ -26,6 +26,16 @@
 |**message**  <br>*optional*|string|
 
 
+<a name="failureinfo"></a>
+### FailureInfo
+
+|Name|Schema|
+|---|---|
+|**reason**  <br>*optional*|string|
+|**resource**  <br>*optional*|string|
+|**state**  <br>*optional*|string|
+
+
 <a name="internalerror"></a>
 ### InternalError
 
@@ -250,6 +260,7 @@
 |Name|Description|Schema|
 |---|---|---|
 |**createdAt**  <br>*optional*||string (date-time)|
+|**failureInfo**  <br>*optional*|information about the workflow failure|[FailureInfo](#failureinfo)|
 |**id**  <br>*optional*||string|
 |**input**  <br>*optional*||string|
 |**jobs**  <br>*optional*||< [Job](#job) > array|

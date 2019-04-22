@@ -19,6 +19,9 @@ import (
 type Workflow struct {
 	WorkflowSummary
 
+	// information about the workflow failure
+	FailureInfo *FailureInfo `json:"failureInfo,omitempty"`
+
 	// jobs
 	Jobs []*Job `json:"jobs"`
 
@@ -39,6 +42,8 @@ func (m *Workflow) UnmarshalJSON(raw []byte) error {
 	m.WorkflowSummary = aO0
 
 	var data struct {
+		FailureInfo *FailureInfo `json:"failureInfo,omitempty"`
+
 		Jobs []*Job `json:"jobs,omitempty"`
 
 		Output string `json:"output,omitempty"`
@@ -48,6 +53,8 @@ func (m *Workflow) UnmarshalJSON(raw []byte) error {
 	if err := swag.ReadJSON(raw, &data); err != nil {
 		return err
 	}
+
+	m.FailureInfo = data.FailureInfo
 
 	m.Jobs = data.Jobs
 
@@ -69,12 +76,16 @@ func (m Workflow) MarshalJSON() ([]byte, error) {
 	_parts = append(_parts, aO0)
 
 	var data struct {
+		FailureInfo *FailureInfo `json:"failureInfo,omitempty"`
+
 		Jobs []*Job `json:"jobs,omitempty"`
 
 		Output string `json:"output,omitempty"`
 
 		StatusReason string `json:"statusReason,omitempty"`
 	}
+
+	data.FailureInfo = m.FailureInfo
 
 	data.Jobs = m.Jobs
 
@@ -99,6 +110,10 @@ func (m *Workflow) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateFailureInfo(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateJobs(formats); err != nil {
 		res = append(res, err)
 	}
@@ -106,6 +121,25 @@ func (m *Workflow) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Workflow) validateFailureInfo(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.FailureInfo) { // not required
+		return nil
+	}
+
+	if m.FailureInfo != nil {
+
+		if err := m.FailureInfo.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("failureInfo")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
