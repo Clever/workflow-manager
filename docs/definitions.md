@@ -253,6 +253,7 @@
 |**id**  <br>*optional*||string|
 |**input**  <br>*optional*||string|
 |**jobs**  <br>*optional*||< [Job](#job) > array|
+|**lastJob**  <br>*optional*||[Job](#job)|
 |**lastUpdated**  <br>*optional*||string (date-time)|
 |**namespace**  <br>*optional*||string|
 |**output**  <br>*optional*||string|
@@ -323,6 +324,7 @@
 |**createdAt**  <br>*optional*||string (date-time)|
 |**id**  <br>*optional*||string|
 |**input**  <br>*optional*||string|
+|**lastJob**  <br>*optional*||[Job](#job)|
 |**lastUpdated**  <br>*optional*||string (date-time)|
 |**namespace**  <br>*optional*||string|
 |**queue**  <br>*optional*||string|
