@@ -22,6 +22,12 @@ type Workflow struct {
 	// jobs
 	Jobs []*Job `json:"jobs"`
 
+	// last attempted resource
+	LastAttemptedResource string `json:"lastAttemptedResource,omitempty"`
+
+	// last attempted state
+	LastAttemptedState string `json:"lastAttemptedState,omitempty"`
+
 	// output
 	Output string `json:"output,omitempty"`
 
@@ -41,6 +47,10 @@ func (m *Workflow) UnmarshalJSON(raw []byte) error {
 	var data struct {
 		Jobs []*Job `json:"jobs,omitempty"`
 
+		LastAttemptedResource string `json:"lastAttemptedResource,omitempty"`
+
+		LastAttemptedState string `json:"lastAttemptedState,omitempty"`
+
 		Output string `json:"output,omitempty"`
 
 		StatusReason string `json:"statusReason,omitempty"`
@@ -50,6 +60,10 @@ func (m *Workflow) UnmarshalJSON(raw []byte) error {
 	}
 
 	m.Jobs = data.Jobs
+
+	m.LastAttemptedResource = data.LastAttemptedResource
+
+	m.LastAttemptedState = data.LastAttemptedState
 
 	m.Output = data.Output
 
@@ -71,12 +85,20 @@ func (m Workflow) MarshalJSON() ([]byte, error) {
 	var data struct {
 		Jobs []*Job `json:"jobs,omitempty"`
 
+		LastAttemptedResource string `json:"lastAttemptedResource,omitempty"`
+
+		LastAttemptedState string `json:"lastAttemptedState,omitempty"`
+
 		Output string `json:"output,omitempty"`
 
 		StatusReason string `json:"statusReason,omitempty"`
 	}
 
 	data.Jobs = m.Jobs
+
+	data.LastAttemptedResource = m.LastAttemptedResource
+
+	data.LastAttemptedState = m.LastAttemptedState
 
 	data.Output = m.Output
 

@@ -253,6 +253,8 @@
 |**id**  <br>*optional*||string|
 |**input**  <br>*optional*||string|
 |**jobs**  <br>*optional*||< [Job](#job) > array|
+|**lastAttemptedResource**  <br>*optional*||string|
+|**lastAttemptedState**  <br>*optional*||string|
 |**lastUpdated**  <br>*optional*||string (date-time)|
 |**namespace**  <br>*optional*||string|
 |**output**  <br>*optional*||string|
