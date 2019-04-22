@@ -25,6 +25,9 @@ type WorkflowSummary struct {
 	// input
 	Input string `json:"input,omitempty"`
 
+	// last job
+	LastJob *Job `json:"lastJob,omitempty"`
+
 	// last updated
 	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
 
@@ -60,6 +63,11 @@ type WorkflowSummary struct {
 func (m *WorkflowSummary) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateLastJob(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if err := m.validateRetries(formats); err != nil {
 		// prop
 		res = append(res, err)
@@ -78,6 +86,25 @@ func (m *WorkflowSummary) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *WorkflowSummary) validateLastJob(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.LastJob) { // not required
+		return nil
+	}
+
+	if m.LastJob != nil {
+
+		if err := m.LastJob.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("lastJob")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
