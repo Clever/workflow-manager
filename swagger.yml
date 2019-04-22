@@ -433,6 +433,9 @@ definitions:
         properties:
           statusReason:
             type: string
+          failureInfo:
+            description: "information about the workflow failure"
+            $ref: '#/definitions/FailureInfo'
           output:
             # format: json
             type: string
@@ -480,6 +483,16 @@ definitions:
         description: "tags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
           type: object
+
+  FailureInfo:
+    type: object
+    properties:
+      state:
+        type: string
+      resource:
+        type: string
+      reason:
+        type: string
 
   WorkflowStatus:
     type: string
