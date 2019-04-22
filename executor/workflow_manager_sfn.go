@@ -589,6 +589,14 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 	}
 	workflow.Jobs = jobs
 
+	if len(jobs) > 0 {
+		lastJob := jobs[len(jobs)-1]
+		workflow.LastAttemptedState = lastJob.State
+		if lastJob.StateResource != nil {
+			workflow.LastAttemptedResource = lastJob.StateResource.Name
+		}
+	}
+
 	return wm.store.UpdateWorkflow(ctx, *workflow)
 }
 
