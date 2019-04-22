@@ -433,6 +433,10 @@ definitions:
         properties:
           statusReason:
             type: string
+          lastAttemptedState:
+            type: string
+          lastAttemptedResource:
+            type: string
           output:
             # format: json
             type: string
