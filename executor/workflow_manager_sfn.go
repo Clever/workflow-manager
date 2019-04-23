@@ -361,7 +361,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 	if describeOutput.StopDate != nil {
 		workflow.StoppedAt = strfmt.DateTime(aws.TimeValue(describeOutput.StopDate))
 	}
-	if workflow.Status == models.WorkflowStatusSucceeded {
+	if workflow.Status == models.WorkflowStatusSucceeded || workflow.Status == models.WorkflowStatusCancelled {
 		workflow.ResolvedByUser = true
 	}
 
