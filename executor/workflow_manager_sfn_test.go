@@ -442,6 +442,7 @@ func TestUpdateWorkflowStatusNoop(t *testing.T) {
 
 	workflow := c.newWorkflow()
 	workflow.Status = models.WorkflowStatusCancelled
+	workflow.ResolvedByUser = true
 	c.saveWorkflow(ctx, t, workflow)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
