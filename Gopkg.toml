@@ -37,7 +37,7 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/golang/mock"
-  branch = "master"
+  version = "^1.2.0"
 
 [[constraint]]
   name = "github.com/gorilla/mux"
