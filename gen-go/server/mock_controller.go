@@ -36,7 +36,6 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 
 // HealthCheck mocks base method
 func (m *MockController) HealthCheck(ctx context.Context) error {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HealthCheck", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -44,13 +43,11 @@ func (m *MockController) HealthCheck(ctx context.Context) error {
 
 // HealthCheck indicates an expected call of HealthCheck
 func (mr *MockControllerMockRecorder) HealthCheck(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HealthCheck", reflect.TypeOf((*MockController)(nil).HealthCheck), ctx)
 }
 
 // PostStateResource mocks base method
 func (m *MockController) PostStateResource(ctx context.Context, i *models.NewStateResource) (*models.StateResource, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PostStateResource", ctx, i)
 	ret0, _ := ret[0].(*models.StateResource)
 	ret1, _ := ret[1].(error)
@@ -59,13 +56,11 @@ func (m *MockController) PostStateResource(ctx context.Context, i *models.NewSta
 
 // PostStateResource indicates an expected call of PostStateResource
 func (mr *MockControllerMockRecorder) PostStateResource(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostStateResource", reflect.TypeOf((*MockController)(nil).PostStateResource), ctx, i)
 }
 
 // DeleteStateResource mocks base method
 func (m *MockController) DeleteStateResource(ctx context.Context, i *models.DeleteStateResourceInput) error {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteStateResource", ctx, i)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -73,13 +68,11 @@ func (m *MockController) DeleteStateResource(ctx context.Context, i *models.Dele
 
 // DeleteStateResource indicates an expected call of DeleteStateResource
 func (mr *MockControllerMockRecorder) DeleteStateResource(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStateResource", reflect.TypeOf((*MockController)(nil).DeleteStateResource), ctx, i)
 }
 
 // GetStateResource mocks base method
 func (m *MockController) GetStateResource(ctx context.Context, i *models.GetStateResourceInput) (*models.StateResource, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStateResource", ctx, i)
 	ret0, _ := ret[0].(*models.StateResource)
 	ret1, _ := ret[1].(error)
@@ -88,13 +81,11 @@ func (m *MockController) GetStateResource(ctx context.Context, i *models.GetStat
 
 // GetStateResource indicates an expected call of GetStateResource
 func (mr *MockControllerMockRecorder) GetStateResource(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateResource", reflect.TypeOf((*MockController)(nil).GetStateResource), ctx, i)
 }
 
 // PutStateResource mocks base method
 func (m *MockController) PutStateResource(ctx context.Context, i *models.PutStateResourceInput) (*models.StateResource, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PutStateResource", ctx, i)
 	ret0, _ := ret[0].(*models.StateResource)
 	ret1, _ := ret[1].(error)
@@ -103,13 +94,11 @@ func (m *MockController) PutStateResource(ctx context.Context, i *models.PutStat
 
 // PutStateResource indicates an expected call of PutStateResource
 func (mr *MockControllerMockRecorder) PutStateResource(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutStateResource", reflect.TypeOf((*MockController)(nil).PutStateResource), ctx, i)
 }
 
 // GetWorkflowDefinitions mocks base method
 func (m *MockController) GetWorkflowDefinitions(ctx context.Context) ([]models.WorkflowDefinition, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWorkflowDefinitions", ctx)
 	ret0, _ := ret[0].([]models.WorkflowDefinition)
 	ret1, _ := ret[1].(error)
@@ -118,13 +107,11 @@ func (m *MockController) GetWorkflowDefinitions(ctx context.Context) ([]models.W
 
 // GetWorkflowDefinitions indicates an expected call of GetWorkflowDefinitions
 func (mr *MockControllerMockRecorder) GetWorkflowDefinitions(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkflowDefinitions", reflect.TypeOf((*MockController)(nil).GetWorkflowDefinitions), ctx)
 }
 
 // NewWorkflowDefinition mocks base method
 func (m *MockController) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewWorkflowDefinition", ctx, i)
 	ret0, _ := ret[0].(*models.WorkflowDefinition)
 	ret1, _ := ret[1].(error)
@@ -133,13 +120,11 @@ func (m *MockController) NewWorkflowDefinition(ctx context.Context, i *models.Ne
 
 // NewWorkflowDefinition indicates an expected call of NewWorkflowDefinition
 func (mr *MockControllerMockRecorder) NewWorkflowDefinition(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewWorkflowDefinition", reflect.TypeOf((*MockController)(nil).NewWorkflowDefinition), ctx, i)
 }
 
 // GetWorkflowDefinitionVersionsByName mocks base method
 func (m *MockController) GetWorkflowDefinitionVersionsByName(ctx context.Context, i *models.GetWorkflowDefinitionVersionsByNameInput) ([]models.WorkflowDefinition, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWorkflowDefinitionVersionsByName", ctx, i)
 	ret0, _ := ret[0].([]models.WorkflowDefinition)
 	ret1, _ := ret[1].(error)
@@ -148,13 +133,11 @@ func (m *MockController) GetWorkflowDefinitionVersionsByName(ctx context.Context
 
 // GetWorkflowDefinitionVersionsByName indicates an expected call of GetWorkflowDefinitionVersionsByName
 func (mr *MockControllerMockRecorder) GetWorkflowDefinitionVersionsByName(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkflowDefinitionVersionsByName", reflect.TypeOf((*MockController)(nil).GetWorkflowDefinitionVersionsByName), ctx, i)
 }
 
 // UpdateWorkflowDefinition mocks base method
 func (m *MockController) UpdateWorkflowDefinition(ctx context.Context, i *models.UpdateWorkflowDefinitionInput) (*models.WorkflowDefinition, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateWorkflowDefinition", ctx, i)
 	ret0, _ := ret[0].(*models.WorkflowDefinition)
 	ret1, _ := ret[1].(error)
@@ -163,13 +146,11 @@ func (m *MockController) UpdateWorkflowDefinition(ctx context.Context, i *models
 
 // UpdateWorkflowDefinition indicates an expected call of UpdateWorkflowDefinition
 func (mr *MockControllerMockRecorder) UpdateWorkflowDefinition(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateWorkflowDefinition", reflect.TypeOf((*MockController)(nil).UpdateWorkflowDefinition), ctx, i)
 }
 
 // GetWorkflowDefinitionByNameAndVersion mocks base method
 func (m *MockController) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i *models.GetWorkflowDefinitionByNameAndVersionInput) (*models.WorkflowDefinition, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWorkflowDefinitionByNameAndVersion", ctx, i)
 	ret0, _ := ret[0].(*models.WorkflowDefinition)
 	ret1, _ := ret[1].(error)
@@ -178,13 +159,11 @@ func (m *MockController) GetWorkflowDefinitionByNameAndVersion(ctx context.Conte
 
 // GetWorkflowDefinitionByNameAndVersion indicates an expected call of GetWorkflowDefinitionByNameAndVersion
 func (mr *MockControllerMockRecorder) GetWorkflowDefinitionByNameAndVersion(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkflowDefinitionByNameAndVersion", reflect.TypeOf((*MockController)(nil).GetWorkflowDefinitionByNameAndVersion), ctx, i)
 }
 
 // GetWorkflows mocks base method
 func (m *MockController) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput) ([]models.Workflow, string, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWorkflows", ctx, i)
 	ret0, _ := ret[0].([]models.Workflow)
 	ret1, _ := ret[1].(string)
@@ -194,13 +173,11 @@ func (m *MockController) GetWorkflows(ctx context.Context, i *models.GetWorkflow
 
 // GetWorkflows indicates an expected call of GetWorkflows
 func (mr *MockControllerMockRecorder) GetWorkflows(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkflows", reflect.TypeOf((*MockController)(nil).GetWorkflows), ctx, i)
 }
 
 // StartWorkflow mocks base method
 func (m *MockController) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StartWorkflow", ctx, i)
 	ret0, _ := ret[0].(*models.Workflow)
 	ret1, _ := ret[1].(error)
@@ -209,13 +186,11 @@ func (m *MockController) StartWorkflow(ctx context.Context, i *models.StartWorkf
 
 // StartWorkflow indicates an expected call of StartWorkflow
 func (mr *MockControllerMockRecorder) StartWorkflow(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartWorkflow", reflect.TypeOf((*MockController)(nil).StartWorkflow), ctx, i)
 }
 
 // CancelWorkflow mocks base method
 func (m *MockController) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowInput) error {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelWorkflow", ctx, i)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -223,13 +198,11 @@ func (m *MockController) CancelWorkflow(ctx context.Context, i *models.CancelWor
 
 // CancelWorkflow indicates an expected call of CancelWorkflow
 func (mr *MockControllerMockRecorder) CancelWorkflow(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelWorkflow", reflect.TypeOf((*MockController)(nil).CancelWorkflow), ctx, i)
 }
 
 // GetWorkflowByID mocks base method
 func (m *MockController) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWorkflowByID", ctx, workflowID)
 	ret0, _ := ret[0].(*models.Workflow)
 	ret1, _ := ret[1].(error)
@@ -238,13 +211,11 @@ func (m *MockController) GetWorkflowByID(ctx context.Context, workflowID string)
 
 // GetWorkflowByID indicates an expected call of GetWorkflowByID
 func (mr *MockControllerMockRecorder) GetWorkflowByID(ctx, workflowID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkflowByID", reflect.TypeOf((*MockController)(nil).GetWorkflowByID), ctx, workflowID)
 }
 
 // ResumeWorkflowByID mocks base method
 func (m *MockController) ResumeWorkflowByID(ctx context.Context, i *models.ResumeWorkflowByIDInput) (*models.Workflow, error) {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResumeWorkflowByID", ctx, i)
 	ret0, _ := ret[0].(*models.Workflow)
 	ret1, _ := ret[1].(error)
@@ -253,13 +224,11 @@ func (m *MockController) ResumeWorkflowByID(ctx context.Context, i *models.Resum
 
 // ResumeWorkflowByID indicates an expected call of ResumeWorkflowByID
 func (mr *MockControllerMockRecorder) ResumeWorkflowByID(ctx, i interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeWorkflowByID", reflect.TypeOf((*MockController)(nil).ResumeWorkflowByID), ctx, i)
 }
 
 // ResolveWorkflowByID mocks base method
 func (m *MockController) ResolveWorkflowByID(ctx context.Context, workflowID string) error {
-	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveWorkflowByID", ctx, workflowID)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -267,6 +236,5 @@ func (m *MockController) ResolveWorkflowByID(ctx context.Context, workflowID str
 
 // ResolveWorkflowByID indicates an expected call of ResolveWorkflowByID
 func (mr *MockControllerMockRecorder) ResolveWorkflowByID(ctx, workflowID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveWorkflowByID", reflect.TypeOf((*MockController)(nil).ResolveWorkflowByID), ctx, workflowID)
 }

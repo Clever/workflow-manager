@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -51,7 +52,18 @@ type getWorkflowDefinitionsByNameAndVersionTest struct {
 }
 
 func (g getWorkflowDefinitionsByNameAndVersionTest) run(t *testing.T) {
-	workflowDefinitions, err := g.d.GetWorkflowDefinitionsByNameAndVersion(g.input.ctx, g.input.input)
+	workflowDefinitions := []models.WorkflowDefinition{}
+	fn := func(m *models.WorkflowDefinition, lastWorkflowDefinition bool) bool {
+		workflowDefinitions = append(workflowDefinitions, *m)
+		if lastWorkflowDefinition {
+			return false
+		}
+		return true
+	}
+	err := g.d.GetWorkflowDefinitionsByNameAndVersion(g.input.ctx, g.input.input, fn)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	require.Equal(t, g.output.err, err)
 	require.Equal(t, g.output.workflowDefinitions, workflowDefinitions)
 }
@@ -129,6 +141,61 @@ func GetWorkflowDefinitionsByNameAndVersion(d db.Interface, t *testing.T) func(t
 			},
 			{
 				testName: "starting after",
+				d:        d,
+				input: getWorkflowDefinitionsByNameAndVersionInput{
+					ctx: context.Background(),
+					input: db.GetWorkflowDefinitionsByNameAndVersionInput{
+						Name: "string1",
+						StartingAfter: &models.WorkflowDefinition{
+							Name:    "string1",
+							Version: 1,
+						},
+					},
+				},
+				output: getWorkflowDefinitionsByNameAndVersionOutput{
+					workflowDefinitions: []models.WorkflowDefinition{
+						models.WorkflowDefinition{
+							Name:    "string1",
+							Version: 2,
+						},
+						models.WorkflowDefinition{
+							Name:    "string1",
+							Version: 3,
+						},
+					},
+					err: nil,
+				},
+			},
+			{
+				testName: "starting after descending",
+				d:        d,
+				input: getWorkflowDefinitionsByNameAndVersionInput{
+					ctx: context.Background(),
+					input: db.GetWorkflowDefinitionsByNameAndVersionInput{
+						Name: "string1",
+						StartingAfter: &models.WorkflowDefinition{
+							Name:    "string1",
+							Version: 3,
+						},
+						Descending: true,
+					},
+				},
+				output: getWorkflowDefinitionsByNameAndVersionOutput{
+					workflowDefinitions: []models.WorkflowDefinition{
+						models.WorkflowDefinition{
+							Name:    "string1",
+							Version: 2,
+						},
+						models.WorkflowDefinition{
+							Name:    "string1",
+							Version: 1,
+						},
+					},
+					err: nil,
+				},
+			},
+			{
+				testName: "starting at",
 				d:        d,
 				input: getWorkflowDefinitionsByNameAndVersionInput{
 					ctx: context.Background(),

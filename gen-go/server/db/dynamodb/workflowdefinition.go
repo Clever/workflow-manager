@@ -91,12 +91,15 @@ func (t WorkflowDefinitionTable) saveWorkflowDefinition(ctx context.Context, m m
 		ConditionExpression: aws.String("attribute_not_exists(#NAME) AND attribute_not_exists(#VERSION)"),
 	})
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case dynamodb.ErrCodeConditionalCheckFailedException:
 				return db.ErrWorkflowDefinitionAlreadyExists{
 					Name:    m.Name,
 					Version: m.Version,
 				}
+			case dynamodb.ErrCodeResourceNotFoundException:
+				return fmt.Errorf("table or index not found: %s", t.name())
 			}
 		}
 		return err
@@ -117,6 +120,12 @@ func (t WorkflowDefinitionTable) getWorkflowDefinition(ctx context.Context, name
 		TableName: aws.String(t.name()),
 	})
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case dynamodb.ErrCodeResourceNotFoundException:
+				return nil, fmt.Errorf("table or index not found: %s", t.name())
+			}
+		}
 		return nil, err
 	}
 
@@ -135,7 +144,13 @@ func (t WorkflowDefinitionTable) getWorkflowDefinition(ctx context.Context, name
 	return &m, nil
 }
 
-func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx context.Context, input db.GetWorkflowDefinitionsByNameAndVersionInput) ([]models.WorkflowDefinition, error) {
+func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx context.Context, input db.GetWorkflowDefinitionsByNameAndVersionInput, fn func(m *models.WorkflowDefinition, lastWorkflowDefinition bool) bool) error {
+	if input.VersionStartingAt != nil && input.StartingAfter != nil {
+		return fmt.Errorf("Can specify only one of input.VersionStartingAt or input.StartingAfter")
+	}
+	if input.Name == "" {
+		return fmt.Errorf("Hash key input.Name cannot be empty")
+	}
 	queryInput := &dynamodb.QueryInput{
 		TableName: aws.String(t.name()),
 		ExpressionAttributeNames: map[string]*string{
@@ -148,6 +163,9 @@ func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx cont
 		},
 		ScanIndexForward: aws.Bool(!input.Descending),
 		ConsistentRead:   aws.Bool(!input.DisableConsistentRead),
+	}
+	if input.Limit != nil {
+		queryInput.Limit = input.Limit
 	}
 	if input.VersionStartingAt == nil {
 		queryInput.KeyConditionExpression = aws.String("#NAME = :name")
@@ -162,16 +180,54 @@ func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx cont
 			queryInput.KeyConditionExpression = aws.String("#NAME = :name AND #VERSION >= :version")
 		}
 	}
+	if input.StartingAfter != nil {
+		queryInput.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
+			"version": &dynamodb.AttributeValue{
+				N: aws.String(fmt.Sprintf("%d", input.StartingAfter.Version)),
+			},
+			"name": &dynamodb.AttributeValue{
+				S: aws.String(input.StartingAfter.Name),
+			},
+		}
+	}
 
-	queryOutput, err := t.DynamoDBAPI.QueryWithContext(ctx, queryInput)
+	var pageFnErr error
+	pageFn := func(queryOutput *dynamodb.QueryOutput, lastPage bool) bool {
+		if len(queryOutput.Items) == 0 {
+			return false
+		}
+		items, err := decodeWorkflowDefinitions(queryOutput.Items)
+		if err != nil {
+			pageFnErr = err
+			return false
+		}
+		hasMore := true
+		for i, item := range items {
+			if lastPage == true {
+				hasMore = i < len(items)-1
+			}
+			if !fn(&item, !hasMore) {
+				return false
+			}
+		}
+		return true
+	}
+
+	err := t.DynamoDBAPI.QueryPagesWithContext(ctx, queryInput, pageFn)
 	if err != nil {
-		return nil, err
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case dynamodb.ErrCodeResourceNotFoundException:
+				return fmt.Errorf("table or index not found: %s", t.name())
+			}
+		}
+		return err
 	}
-	if len(queryOutput.Items) == 0 {
-		return []models.WorkflowDefinition{}, nil
+	if pageFnErr != nil {
+		return pageFnErr
 	}
 
-	return decodeWorkflowDefinitions(queryOutput.Items)
+	return nil
 }
 
 func (t WorkflowDefinitionTable) deleteWorkflowDefinition(ctx context.Context, name string, version int64) error {
@@ -187,8 +243,15 @@ func (t WorkflowDefinitionTable) deleteWorkflowDefinition(ctx context.Context, n
 		TableName: aws.String(t.name()),
 	})
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case dynamodb.ErrCodeResourceNotFoundException:
+				return fmt.Errorf("table or index not found: %s", t.name())
+			}
+		}
 		return err
 	}
+
 	return nil
 }
 

@@ -14,8 +14,8 @@ type Interface interface {
 	SaveWorkflowDefinition(ctx context.Context, m models.WorkflowDefinition) error
 	// GetWorkflowDefinition retrieves a WorkflowDefinition from the database.
 	GetWorkflowDefinition(ctx context.Context, name string, version int64) (*models.WorkflowDefinition, error)
-	// GetWorkflowDefinitionsByNameAndVersion retrieves a list of WorkflowDefinitions from the database.
-	GetWorkflowDefinitionsByNameAndVersion(ctx context.Context, input GetWorkflowDefinitionsByNameAndVersionInput) ([]models.WorkflowDefinition, error)
+	// GetWorkflowDefinitionsByNameAndVersion retrieves a page of WorkflowDefinitions from the database.
+	GetWorkflowDefinitionsByNameAndVersion(ctx context.Context, input GetWorkflowDefinitionsByNameAndVersionInput, fn func(m *models.WorkflowDefinition, lastWorkflowDefinition bool) bool) error
 	// DeleteWorkflowDefinition deletes a WorkflowDefinition from the database.
 	DeleteWorkflowDefinition(ctx context.Context, name string, version int64) error
 }
@@ -28,10 +28,16 @@ func String(s string) *string { return &s }
 
 // GetWorkflowDefinitionsByNameAndVersionInput is the query input to GetWorkflowDefinitionsByNameAndVersion.
 type GetWorkflowDefinitionsByNameAndVersionInput struct {
-	Name                  string
-	VersionStartingAt     *int64
-	Descending            bool
+	// Name is required
+	Name              string
+	VersionStartingAt *int64
+	// StartingAfter is a required specification of an exclusive starting point.
+	StartingAfter *models.WorkflowDefinition
+	Descending    bool
+	// DisableConsistentRead turns off the default behavior of running a consistent read.
 	DisableConsistentRead bool
+	// Limit is an optional limit of how many items to evaluate.
+	Limit *int64
 }
 
 // ErrWorkflowDefinitionNotFound is returned when the database fails to find a WorkflowDefinition.

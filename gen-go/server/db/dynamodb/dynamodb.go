@@ -92,9 +92,9 @@ func (d DB) GetWorkflowDefinition(ctx context.Context, name string, version int6
 	return d.workflowDefinitionTable.getWorkflowDefinition(ctx, name, version)
 }
 
-// GetWorkflowDefinitionsByNameAndVersion retrieves a list of WorkflowDefinitions from the database.
-func (d DB) GetWorkflowDefinitionsByNameAndVersion(ctx context.Context, input db.GetWorkflowDefinitionsByNameAndVersionInput) ([]models.WorkflowDefinition, error) {
-	return d.workflowDefinitionTable.getWorkflowDefinitionsByNameAndVersion(ctx, input)
+// GetWorkflowDefinitionsByNameAndVersion retrieves a page of WorkflowDefinitions from the database.
+func (d DB) GetWorkflowDefinitionsByNameAndVersion(ctx context.Context, input db.GetWorkflowDefinitionsByNameAndVersionInput, fn func(m *models.WorkflowDefinition, lastWorkflowDefinition bool) bool) error {
+	return d.workflowDefinitionTable.getWorkflowDefinitionsByNameAndVersion(ctx, input, fn)
 }
 
 // DeleteWorkflowDefinition deletes a WorkflowDefinition from the database.
@@ -104,4 +104,8 @@ func (d DB) DeleteWorkflowDefinition(ctx context.Context, name string, version i
 
 func toDynamoTimeString(d strfmt.DateTime) string {
 	return time.Time(d).Format(time.RFC3339) // dynamodb attributevalue only supports RFC3339 resolution
+}
+
+func toDynamoTimeStringPtr(d *strfmt.DateTime) string {
+	return time.Time(*d).Format(time.RFC3339) // dynamodb attributevalue only supports RFC3339 resolution
 }
