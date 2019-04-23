@@ -24,6 +24,7 @@ type WorkflowManager interface {
 	CancelWorkflow(ctx context.Context, workflow *models.Workflow, reason string) error
 	UpdateWorkflowSummary(ctx context.Context, workflow *models.Workflow) error
 	UpdateWorkflowHistory(ctx context.Context, workflow *models.Workflow) error
+	UpdateWorkflowLastJob(ctx context.Context, workflow *models.Workflow) error
 }
 
 var backoffDuration = time.Second * 1
