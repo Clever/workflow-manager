@@ -145,7 +145,7 @@ func loadConfig() Config {
 		SFNAccountID: os.Getenv("AWS_SFN_ACCOUNT_ID"),
 		SFNRoleARN:   os.Getenv("AWS_SFN_ROLE_ARN"),
 		SQSRegion:    os.Getenv("AWS_SQS_REGION"),
-		SQSQueueURL:  os.Getenv("AWS_SQS_URL"),
+		SQSQueueURL:  "https://sqs.us-west-1.amazonaws.com/589690932525/workflows-hippo-dev",
 	}
 }
 
