@@ -142,8 +142,6 @@ func (d DynamoDB) InitTables(ctx context.Context, setupWorkflowsTTL bool) error 
 	for _, ads := range [][]*dynamodb.AttributeDefinition{
 		(ddbWorkflowPrimaryKey{}.AttributeDefinitions()),
 		(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.AttributeDefinitions()),
-		(ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.AttributeDefinitions()),
-		(ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.AttributeDefinitions()),
 	} {
 		workflowAttributeDefinitions = append(workflowAttributeDefinitions, ads...)
 	}
@@ -154,28 +152,6 @@ func (d DynamoDB) InitTables(ctx context.Context, setupWorkflowsTTL bool) error 
 			{
 				IndexName: aws.String(ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.Name()),
 				KeySchema: ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{}.KeySchema(),
-				Projection: &dynamodb.Projection{
-					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
-				},
-				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-					ReadCapacityUnits:  aws.Int64(1),
-					WriteCapacityUnits: aws.Int64(1),
-				},
-			},
-			{
-				IndexName: aws.String(ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.Name()),
-				KeySchema: ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.KeySchema(),
-				Projection: &dynamodb.Projection{
-					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
-				},
-				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-					ReadCapacityUnits:  aws.Int64(1),
-					WriteCapacityUnits: aws.Int64(1),
-				},
-			},
-			{
-				IndexName: aws.String(ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.Name()),
-				KeySchema: ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.KeySchema(),
 				Projection: &dynamodb.Projection{
 					ProjectionType: aws.String(dynamodb.ProjectionTypeAll),
 				},
@@ -569,82 +545,6 @@ func (d DynamoDB) GetWorkflowByID(ctx context.Context, id string) (models.Workfl
 	}
 
 	return workflow, nil
-}
-
-// GetWorkflows returns all workflows matching the given query.
-func (d DynamoDB) GetWorkflows(ctx context.Context, query *models.WorkflowQuery) ([]models.Workflow, string, error) {
-	var workflows []models.Workflow
-	nextPageToken := ""
-	summaryOnly := aws.BoolValue(query.SummaryOnly)
-
-	var dbQuery *dynamodb.QueryInput
-	var err error
-	statusIsSet := query.Status != ""
-	resolvedByUserIsSet := query.ResolvedByUserWrapper != nil && query.ResolvedByUserWrapper.IsSet
-
-	// Use resolvedByUser index if querying by both Status and isReolvedByUser.  The resolvedByUser
-	// index is smaller and typically shrinks over time, so it should be faster to query
-	if resolvedByUserIsSet {
-		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionResolvedByUserCreatedAt{}.ConstructQuery(query)
-
-		if statusIsSet { // Enables filter by isResolvedByUser and Status
-			statusIdx := ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}
-			pair := statusIdx.getDefinitionStatusPair(*query.WorkflowDefinitionName, string(query.Status))
-
-			dbQuery.SetFilterExpression("#ST = :status")
-			dbQuery.ExpressionAttributeNames["#ST"] = statusIdx.AttributeDefinitions()[0].AttributeName
-			dbQuery.ExpressionAttributeValues[":status"] = &dynamodb.AttributeValue{
-				S: aws.String(pair),
-			}
-		}
-	} else if statusIsSet {
-		// if query includes status, query by status
-		dbQuery, err = ddbWorkflowSecondaryKeyDefinitionStatusCreatedAt{}.ConstructQuery(query)
-	} else {
-		// otherwise, query on just the workflow definition name
-		dbQuery, err = ddbWorkflowSecondaryKeyWorkflowDefinitionCreatedAt{
-			WorkflowDefinitionName: aws.StringValue(query.WorkflowDefinitionName),
-		}.ConstructQuery(summaryOnly)
-	}
-	if err != nil {
-		return workflows, nextPageToken, err
-	}
-
-	dbQuery.TableName = aws.String(d.workflowsTable())
-	dbQuery.Limit = aws.Int64(query.Limit)
-	dbQuery.ScanIndexForward = aws.Bool(query.OldestFirst)
-
-	pageKey, err := ParsePageKey(query.PageToken)
-	if err != nil {
-		return workflows, nextPageToken, store.NewInvalidPageTokenError(err)
-	}
-	if pageKey != nil {
-		dbQuery.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue(*pageKey))
-	}
-
-	res, err := d.ddb.QueryWithContext(ctx, dbQuery)
-	if err != nil {
-		return workflows, nextPageToken, err
-	}
-
-	for _, item := range res.Items {
-		workflow, err := DecodeWorkflow(item)
-		if err != nil {
-			return workflows, nextPageToken, err
-		}
-
-		workflows = append(workflows, workflow)
-	}
-
-	nextPageKey := NewPageKey(res.LastEvaluatedKey)
-	if nextPageKey != nil {
-		nextPageToken, err = nextPageKey.ToJSON()
-		if err != nil {
-			return workflows, nextPageToken, err
-		}
-	}
-
-	return workflows, nextPageToken, nil
 }
 
 type byLastUpdatedTime []models.Workflow
