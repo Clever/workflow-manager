@@ -385,7 +385,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 	)
 	jobs := []*models.Job{}
 	eventIDToJob := map[int64]*models.Job{}
-	eventToJobFn := newEventToJobFn(execARN, eventIDToJob, jobs)
+	eventToJobFn := newEventToJobFn(execARN, eventIDToJob, &jobs)
 
 	// Setup a context with a timeout of one minute since
 	// we don't want to pull very large workflow histories
@@ -425,7 +425,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowLastJob(ctx context.Context, workflo
 
 	jobs := []*models.Job{}
 	eventIDToJob := map[int64]*models.Job{}
-	eventToJobFn := newEventToJobFn(execARN, eventIDToJob, jobs)
+	eventToJobFn := newEventToJobFn(execARN, eventIDToJob, &jobs)
 
 	historyOutput, err := wm.sfnapi.GetExecutionHistoryWithContext(ctx, &sfn.GetExecutionHistoryInput{
 		ExecutionArn: aws.String(execARN),
@@ -673,9 +673,10 @@ func processEvents(
 }
 
 func newEventToJobFn(
-	execARN string, eventIDToJob map[int64]*models.Job, jobs []*models.Job,
+	execARN string, eventIDToJob map[int64]*models.Job, jobsPtr *[]*models.Job,
 ) func(evt *sfn.HistoryEvent) *models.Job {
 	return func(evt *sfn.HistoryEvent) *models.Job {
+		jobs := *jobsPtr
 		eventID := aws.Int64Value(evt.Id)
 		parentEventID := aws.Int64Value(evt.PreviousEventId)
 		switch *evt.Type {
@@ -693,7 +694,7 @@ func newEventToJobFn(
 			sfn.HistoryEventTypeSucceedStateEntered:
 			// a job is created when a supported state is entered
 			job := &models.Job{}
-			jobs = append(jobs, job)
+			*jobsPtr = append(jobs, job)
 			eventIDToJob[eventID] = job
 			return job
 		case sfn.HistoryEventTypeExecutionAborted:
