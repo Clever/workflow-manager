@@ -385,46 +385,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 	)
 	jobs := []*models.Job{}
 	eventIDToJob := map[int64]*models.Job{}
-	eventToJob := func(evt *sfn.HistoryEvent) *models.Job {
-		eventID := aws.Int64Value(evt.Id)
-		parentEventID := aws.Int64Value(evt.PreviousEventId)
-		switch *evt.Type {
-		case sfn.HistoryEventTypeExecutionStarted:
-			// very first event for an execution, so there are no jobs yet
-			return nil
-		case sfn.HistoryEventTypePassStateEntered, sfn.HistoryEventTypePassStateExited,
-			sfn.HistoryEventTypeParallelStateEntered, sfn.HistoryEventTypeParallelStateExited,
-			sfn.HistoryEventTypeWaitStateEntered, sfn.HistoryEventTypeWaitStateExited,
-			sfn.HistoryEventTypeFailStateEntered:
-			// only create Jobs for Task, Choice and Succeed states
-			return nil
-		case sfn.HistoryEventTypeTaskStateEntered, sfn.HistoryEventTypeChoiceStateEntered, sfn.HistoryEventTypeSucceedStateEntered:
-			// a job is created when a supported state is entered
-			job := &models.Job{}
-			jobs = append(jobs, job)
-			eventIDToJob[eventID] = job
-			return job
-		case sfn.HistoryEventTypeExecutionAborted:
-			// Execution-level event - update last seen job.
-			return jobs[len(jobs)-1]
-		case sfn.HistoryEventTypeExecutionFailed:
-			// Execution-level event - update last seen job.
-			return jobs[len(jobs)-1]
-		case sfn.HistoryEventTypeExecutionTimedOut:
-			// Execution-level event - update last seen job.
-			return jobs[len(jobs)-1]
-		default:
-			// associate this event with the same job as its parent event
-			job, ok := eventIDToJob[parentEventID]
-			if !ok {
-				// we should investigate these cases, since it means we have a gap in our interpretation of the event history
-				log.ErrorD("event-with-unknown-job", logger.M{"event-id": eventID, "execution-arn": execARN})
-				return nil
-			}
-			eventIDToJob[eventID] = job
-			return job
-		}
-	}
+	eventToJobFn := newEventToJobFn(execARN, eventIDToJob, jobs)
 
 	// Setup a context with a timeout of one minute since
 	// we don't want to pull very large workflow histories
@@ -440,7 +401,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 		// 2) set `reverseOrder` to true to get most recent events first
 		// 3) stop paging once we get to to the smallest job ID (aka event ID) that is still pending
 		for _, evt := range historyOutput.Events {
-			job := eventToJob(evt)
+			job := eventToJobFn(evt)
 			if job == nil {
 				continue
 			}
@@ -607,44 +568,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowLastJob(ctx context.Context, workflo
 
 	jobs := []*models.Job{}
 	eventIDToJob := map[int64]*models.Job{}
-	eventToJob := func(evt *sfn.HistoryEvent) *models.Job {
-		eventID := aws.Int64Value(evt.Id)
-		parentEventID := aws.Int64Value(evt.PreviousEventId)
-		switch *evt.Type {
-		case sfn.HistoryEventTypeExecutionStarted:
-			// very first event for an execution, so there are no jobs yet
-			return nil
-		case sfn.HistoryEventTypePassStateEntered, sfn.HistoryEventTypePassStateExited,
-			sfn.HistoryEventTypeParallelStateEntered, sfn.HistoryEventTypeParallelStateExited,
-			sfn.HistoryEventTypeWaitStateEntered, sfn.HistoryEventTypeWaitStateExited,
-			sfn.HistoryEventTypeFailStateEntered:
-			// only create Jobs for Task, Choice and Succeed states
-			return nil
-		case sfn.HistoryEventTypeTaskStateEntered, sfn.HistoryEventTypeChoiceStateEntered, sfn.HistoryEventTypeSucceedStateEntered:
-			// a job is created when a supported state is entered
-			job := &models.Job{}
-			jobs = append(jobs, job)
-			eventIDToJob[eventID] = job
-			return job
-		case sfn.HistoryEventTypeExecutionAborted:
-			// Execution-level event - update last seen job.
-			return jobs[len(jobs)-1]
-		case sfn.HistoryEventTypeExecutionFailed:
-			// Execution-level event - update last seen job.
-			return jobs[len(jobs)-1]
-		case sfn.HistoryEventTypeExecutionTimedOut:
-			// Execution-level event - update last seen job.
-			return jobs[len(jobs)-1]
-		default:
-			// associate this event with the same job as its parent event
-			job, ok := eventIDToJob[parentEventID]
-			if !ok {
-				return nil
-			}
-			eventIDToJob[eventID] = job
-			return job
-		}
-	}
+	eventToJobFn := newEventToJobFn(execARN, eventIDToJob, jobs)
 
 	historyOutput, err := wm.sfnapi.GetExecutionHistoryWithContext(ctx, &sfn.GetExecutionHistoryInput{
 		ExecutionArn: aws.String(execARN),
@@ -674,7 +598,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowLastJob(ctx context.Context, workflo
 	}
 
 	for _, evt := range orderedLatestEvents {
-		job := eventToJob(evt)
+		job := eventToJobFn(evt)
 		if job == nil {
 			continue
 		}
@@ -879,5 +803,52 @@ func causeAndErrorNameFromFailureEvent(evt *sfn.HistoryEvent) (string, string) {
 		return aws.StringValue(evt.LambdaFunctionTimedOutEventDetails.Cause), aws.StringValue(evt.LambdaFunctionTimedOutEventDetails.Error)
 	default:
 		return "", ""
+	}
+}
+
+func newEventToJobFn(
+	execARN string, eventIDToJob map[int64]*models.Job, jobs []*models.Job,
+) func(evt *sfn.HistoryEvent) *models.Job {
+	return func(evt *sfn.HistoryEvent) *models.Job {
+		eventID := aws.Int64Value(evt.Id)
+		parentEventID := aws.Int64Value(evt.PreviousEventId)
+		switch *evt.Type {
+		case sfn.HistoryEventTypeExecutionStarted:
+			// very first event for an execution, so there are no jobs yet
+			return nil
+		case sfn.HistoryEventTypePassStateEntered, sfn.HistoryEventTypePassStateExited,
+			sfn.HistoryEventTypeParallelStateEntered, sfn.HistoryEventTypeParallelStateExited,
+			sfn.HistoryEventTypeWaitStateEntered, sfn.HistoryEventTypeWaitStateExited,
+			sfn.HistoryEventTypeFailStateEntered:
+			// only create Jobs for Task, Choice and Succeed states
+			return nil
+		case sfn.HistoryEventTypeTaskStateEntered,
+			sfn.HistoryEventTypeChoiceStateEntered,
+			sfn.HistoryEventTypeSucceedStateEntered:
+			// a job is created when a supported state is entered
+			job := &models.Job{}
+			jobs = append(jobs, job)
+			eventIDToJob[eventID] = job
+			return job
+		case sfn.HistoryEventTypeExecutionAborted:
+			// Execution-level event - update last seen job.
+			return jobs[len(jobs)-1]
+		case sfn.HistoryEventTypeExecutionFailed:
+			// Execution-level event - update last seen job.
+			return jobs[len(jobs)-1]
+		case sfn.HistoryEventTypeExecutionTimedOut:
+			// Execution-level event - update last seen job.
+			return jobs[len(jobs)-1]
+		default:
+			// associate this event with the same job as its parent event
+			job, ok := eventIDToJob[parentEventID]
+			if !ok {
+				// we should investigate these cases, since it means we have a gap in our interpretation of the event history
+				log.ErrorD("event-with-unknown-job", logger.M{"event-id": eventID, "execution-arn": execARN})
+				return nil
+			}
+			eventIDToJob[eventID] = job
+			return job
+		}
 	}
 }
