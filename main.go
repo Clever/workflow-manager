@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	elasticsearch "github.com/elastic/go-elasticsearch/v6"
 	"github.com/kardianos/osext"
 
 	"github.com/Clever/aws-sdk-go-counter/counter/sfncounter"
@@ -38,6 +39,7 @@ type Config struct {
 	SFNRoleARN                      string
 	SQSRegion                       string
 	SQSQueueURL                     string
+	ESURL                           string
 }
 
 func setupRouting() {
@@ -88,9 +90,17 @@ func main() {
 
 	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.SQSRegion))
 	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL)
+
+	es, err := elasticsearch.NewClient(elasticsearch.Config{Addresses: []string{c.ESURL}})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	h := Handler{
-		store:   db,
-		manager: wfmSFN,
+		store:     db,
+		manager:   wfmSFN,
+		es:        es,
+		deployEnv: mustGetenv("_DEPLOY_ENV"),
 	}
 	timeout := 5 * time.Second
 	s := server.NewWithMiddleware(h, *addr, []func(http.Handler) http.Handler{
@@ -140,13 +150,22 @@ func loadConfig() Config {
 			"AWS_DYNAMO_PREFIX_WORKFLOWS",
 			"workflow-manager-test",
 		),
-		DynamoRegion: os.Getenv("AWS_DYNAMO_REGION"),
-		SFNRegion:    os.Getenv("AWS_SFN_REGION"),
-		SFNAccountID: os.Getenv("AWS_SFN_ACCOUNT_ID"),
-		SFNRoleARN:   os.Getenv("AWS_SFN_ROLE_ARN"),
-		SQSRegion:    os.Getenv("AWS_SQS_REGION"),
-		SQSQueueURL:  os.Getenv("AWS_SQS_URL"),
+		DynamoRegion: mustGetenv("AWS_DYNAMO_REGION"),
+		SFNRegion:    mustGetenv("AWS_SFN_REGION"),
+		SFNAccountID: mustGetenv("AWS_SFN_ACCOUNT_ID"),
+		SFNRoleARN:   mustGetenv("AWS_SFN_ROLE_ARN"),
+		SQSRegion:    mustGetenv("AWS_SQS_REGION"),
+		SQSQueueURL:  mustGetenv("AWS_SQS_URL"),
+		ESURL:        mustGetenv("ES_URL"),
 	}
+}
+
+func mustGetenv(envVarName string) string {
+	v := os.Getenv(envVarName)
+	if v == "" {
+		log.Fatalf("%s required", envVarName)
+	}
+	return v
 }
 
 func getEnvVarOrDefault(envVarName, defaultIfEmpty string) string {

@@ -8,7 +8,8 @@ env:
   - AWS_SFN_ROLE_ARN
   - AWS_SFN_ACCOUNT_ID
   - AWS_SQS_REGION
-  - AWS_SQS_URL 
+  - AWS_SQS_URL
+  - ES_URL
 resources:
   cpu: 0.4
   soft_mem_limit: 0.15
@@ -33,4 +34,3 @@ shepherds:
 team: eng-infra
 databases:
 - dynamodb:us-west-1:workflow-manager-prod-v3
-

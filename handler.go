@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"strings"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	elasticsearch "github.com/elastic/go-elasticsearch/v6"
+	"github.com/elastic/go-elasticsearch/v6/esapi"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 
 	"github.com/Clever/workflow-manager/executor"
@@ -13,10 +18,14 @@ import (
 	"github.com/Clever/workflow-manager/store"
 )
 
+const defaultLimit = 10
+
 // Handler implements the wag Controller
 type Handler struct {
-	store   store.Store
-	manager executor.WorkflowManager
+	store     store.Store
+	manager   executor.WorkflowManager
+	es        *elasticsearch.Client
+	deployEnv string
 }
 
 // HealthCheck returns 200 if workflow-manager can respond to requests
@@ -181,52 +190,133 @@ func (h Handler) StartWorkflow(ctx context.Context, req *models.StartWorkflowReq
 	return h.manager.CreateWorkflow(ctx, workflowDefinition, req.Input, req.Namespace, req.Queue, req.Tags)
 }
 
+func decodeESResponseToWorkflows(body io.Reader) ([]models.Workflow, error) {
+	var r map[string]interface{}
+	if err := json.NewDecoder(body).Decode(&r); err != nil {
+		return nil, fmt.Errorf("Error parsing the response body: %s", err)
+	}
+	workflows := []models.Workflow{}
+	for _, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
+		workflowMap := hit.(map[string]interface{})["_source"].(map[string]interface{})["Workflow"]
+		workflowBs, err := json.Marshal(workflowMap)
+		if err != nil {
+			return nil, err
+		}
+		var workflow models.Workflow
+		if err := json.Unmarshal(workflowBs, &workflow); err != nil {
+			return nil, err
+		}
+		workflows = append(workflows, workflow)
+	}
+	return workflows, nil
+}
+
 // GetWorkflows returns a summary of all workflows matching the given query.
 func (h Handler) GetWorkflows(
 	ctx context.Context,
 	input *models.GetWorkflowsInput,
 ) ([]models.Workflow, string, error) {
-	workflowQuery, err := paramsToWorkflowsQuery(input)
-	if err != nil {
-		return []models.Workflow{}, "", err
+	indexName := "workflow-manager-prod-v3-workflows"
+	if h.deployEnv != "production" {
+		indexName = "clever-dev-workflow-manager-dev-v3-workflows"
 	}
-
-	workflows, nextPageToken, err := h.store.GetWorkflows(ctx, workflowQuery)
+	req := []func(*esapi.SearchRequest){
+		h.es.Search.WithContext(context.Background()),
+		h.es.Search.WithIndex(indexName),
+		h.es.Search.WithFrom(0),
+		h.es.Search.WithSourceIncludes(
+			"Workflow.id",
+			"Workflow.createdAt",
+			"Workflow.stoppedAt",
+			"Workflow.lastUpdated",
+			"Workflow.workflowDefinition.id",
+			"Workflow.workflowDefinition.name",
+			"Workflow.workflowDefinition.createdAt",
+			"Workflow.workflowDefinition.manager",
+			"Workflow.workflowDefinition.defaultTags",
+			"Workflow.status",
+			"Workflow.namespace",
+			"Workflow.queue",
+			"Workflow.input",
+			"Workflow.resolvedByUser",
+			"Workflow.retryFor",
+			"Workflow.retries",
+		),
+	}
+	req = append(req, h.es.Search.WithBody(strings.NewReader(h.getWorkflowsInputToESQuery(input))))
+	res, err := h.es.Search(req...)
 	if err != nil {
-		if _, ok := err.(store.InvalidPageTokenError); ok {
-			return workflows, "", models.BadRequest{
-				Message: err.Error(),
-			}
+		return nil, "", err
+	}
+	defer res.Body.Close()
+	if res.IsError() {
+		var e map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+			return nil, "", fmt.Errorf("error parsing the response body: %s", err)
 		}
-		return []models.Workflow{}, "", err
+		return nil, "", fmt.Errorf("[%s] %s: %s",
+			res.Status(),
+			e["error"].(map[string]interface{})["type"],
+			e["error"].(map[string]interface{})["reason"],
+		)
 	}
 
+	workflows, err := decodeESResponseToWorkflows(res.Body)
+	if err != nil {
+		return nil, "", err
+	}
+	var nextPageToken string
+	if len(workflows) > 0 {
+		last := workflows[len(workflows)-1]
+		nextPageToken = fmt.Sprintf("%d", epochMillis(time.Time(last.CreatedAt)))
+	}
 	return workflows, nextPageToken, nil
 }
 
-func paramsToWorkflowsQuery(input *models.GetWorkflowsInput) (*models.WorkflowQuery, error) {
-	// due to limitations of DynamoDB indices, only search by status or resolvedByUser, not both at once
-	resolvedByUserInformation := &models.ResolvedByUserWrapper{}
-	if input.ResolvedByUser != nil {
-		resolvedByUserInformation = &models.ResolvedByUserWrapper{
-			Value: aws.BoolValue(input.ResolvedByUser),
-			IsSet: true,
-		}
-	}
-	query := &models.WorkflowQuery{
-		WorkflowDefinitionName: aws.String(input.WorkflowDefinitionName),
-		Limit:                 aws.Int64Value(input.Limit),
-		OldestFirst:           aws.BoolValue(input.OldestFirst),
-		PageToken:             aws.StringValue(input.PageToken),
-		Status:                models.WorkflowStatus(aws.StringValue(input.Status)),
-		ResolvedByUserWrapper: resolvedByUserInformation,
-		SummaryOnly:           input.SummaryOnly,
+func (h Handler) getWorkflowsInputToESQuery(input *models.GetWorkflowsInput) string {
+	var b strings.Builder
+	b.WriteString("{")
+
+	if input.Limit == nil {
+		b.WriteString(fmt.Sprintf(`"size": %d,`, defaultLimit))
+	} else if *input.Limit != 0 {
+		b.WriteString(fmt.Sprintf(`"size": %d,`, *input.Limit))
 	}
 
-	if err := query.Validate(nil); err != nil {
-		return nil, err
+	if input.OldestFirst == nil || *input.OldestFirst == false {
+		b.WriteString(`"sort": [{"Workflow.createdAt": "desc"}],`)
+	} else {
+		b.WriteString(`"sort": [{"Workflow.createdAt": "asc"}],`)
 	}
-	return query, nil
+
+	if input.PageToken != nil && *input.PageToken != "" {
+		b.WriteString(fmt.Sprintf(`"search_after": [%s],`, *input.PageToken))
+	}
+
+	// status, resolved by user, workflow definition name must be filters / must nots
+	var filters []string
+	var mustNots []string
+	if input.Status != nil && *input.Status != "" {
+		filters = append(filters, fmt.Sprintf(`{"term":{"Workflow.status": "%s"}}`, *input.Status))
+	}
+	if input.ResolvedByUser != nil {
+		if *input.ResolvedByUser {
+			filters = append(filters, `{"term":{"Workflow.resolvedByUser": true}}`)
+		} else {
+			mustNots = append(mustNots, `{"term":{"Workflow.resolvedByUser": true}}`)
+		}
+	}
+	if input.WorkflowDefinitionName != "" {
+		filters = append(filters, fmt.Sprintf(`{"term":{"Workflow.workflowDefinition.name.keyword": "%s"}}`, input.WorkflowDefinitionName))
+	}
+
+	b.WriteString(fmt.Sprintf(`"query" : { "bool": {"filter": [%s], "must_not": [%s]}}`,
+		strings.Join(filters, ","),
+		strings.Join(mustNots, ","),
+	))
+
+	b.WriteString("}")
+	return b.String()
 }
 
 // GetWorkflowByID returns current details about a Workflow with the given workflowId
@@ -348,4 +438,8 @@ func validateTagsMap(apiTags map[string]interface{}) error {
 		}
 	}
 	return nil
+}
+
+func epochMillis(t time.Time) int {
+	return int(t.UnixNano() / int64(time.Millisecond))
 }
