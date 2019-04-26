@@ -17,9 +17,9 @@ resources:
 aws:
   sqs:
     read:
-    - workflow-manager-update-loop
+    - workflows-hippo
     write:
-    - workflow-manager-update-loop
+    - workflows-hippo
   custom: true
 expose:
 - name: default
