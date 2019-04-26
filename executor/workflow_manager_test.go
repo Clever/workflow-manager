@@ -237,14 +237,12 @@ func resolvedByUserMatcher() gomock.Matcher {
 }
 
 func (m *resolvedByUser) Matches(x interface{}) bool {
-	return x.(models.Workflow).ResolvedByUser;
+	return x.(models.Workflow).ResolvedByUser
 }
 
 func (m *resolvedByUser) String() string {
 	return " has ResolvedByUser set to false"
 }
-
-
 
 func newWfmTestController(t *testing.T) *wfmTestController {
 	mockController := gomock.NewController(t)
