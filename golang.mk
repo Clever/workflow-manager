@@ -151,9 +151,6 @@ golang-test-all-deps: golang-fmt-deps golang-lint-deps golang-test-deps golang-v
 # golang-test-all calls fmt, lint, vet and test on the specified pkg.
 # arg1: pkg path
 define golang-test-all
-$(call golang-fmt,$(1))
-$(call golang-lint,$(1))
-$(call golang-vet,$(1))
 $(call golang-test,$(1))
 endef
 
