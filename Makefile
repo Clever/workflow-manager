@@ -42,6 +42,13 @@ generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 
 install_deps: golang-dep-vendor-deps
 	$(call golang-dep-vendor)
+	# hack to workaround dep not working with go module suffixes https://github.com/golang/dep/issues/2139
+	if [ ! -f vendor/github.com/elastic/go-elasticsearch/v6 ]; then \
+          mkdir -p vendor/github.com/elastic/go-elasticsearch/ && \
+          git clone git@github.com:elastic/go-elasticsearch vendor/github.com/elastic/go-elasticsearch/v6 && \
+          cd vendor/github.com/elastic/go-elasticsearch/v6 && \
+          git checkout 6.x; \
+        fi
 	make mocks
 
 mocks:
@@ -53,4 +60,3 @@ mocks:
 	done
 	bin/mockgen -package mocks -source ./executor/workflow_manager.go -destination mocks/workflow_manager.go WorkflowManager
 	bin/mockgen -package mocks -source ./store/store.go -destination mocks/store.go Store
-

@@ -24,7 +24,6 @@ type Store interface {
 	DeleteWorkflowByID(ctx context.Context, workflowID string) error
 	UpdateWorkflow(ctx context.Context, workflow models.Workflow) error
 	GetWorkflowByID(ctx context.Context, id string) (models.Workflow, error)
-	GetWorkflows(ctx context.Context, query *models.WorkflowQuery) ([]models.Workflow, string, error)
 }
 
 type ConflictError struct {
