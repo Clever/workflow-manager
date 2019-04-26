@@ -191,6 +191,59 @@ func TestUpdatePendingWorkflowStoreWorkflowFails(t *testing.T) {
 	require.Equal(t, "", wfID)
 }
 
+func TestUpdateCancelledWorkflowWhereResolvedByUserNotSet(t *testing.T) {
+	// checks that cancelled workflow has ResolvedByUser set to true when Updated
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := newWfmTestController(t)
+	defer c.mockController.Finish()
+
+	id := uuid.NewV4().String()
+	wf := models.Workflow{
+		WorkflowSummary: models.WorkflowSummary{
+			ID:          id,
+			LastUpdated: strfmt.DateTime(time.Now()),
+			Status:      models.WorkflowStatusCancelled,
+			WorkflowDefinition: &models.WorkflowDefinition{
+				StateMachine: &models.SLStateMachine{
+					StartAt: "foo",
+				},
+			},
+		},
+		Jobs: []*models.Job{},
+	}
+
+	aborted := sfn.ExecutionStatusAborted
+	descExecOutput := sfn.DescribeExecutionOutput{
+		Status: &aborted,
+	}
+
+	c.mockSFNAPI.EXPECT().
+		DescribeExecutionWithContext(gomock.Any(), gomock.Any()).
+		Return(&descExecOutput, nil)
+
+	c.store.EXPECT().
+		UpdateWorkflow(gomock.Any(), resolvedByUserMatcher()).
+		Return(nil).
+		Times(1)
+
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, &wf))
+}
+
+type resolvedByUser struct{}
+
+func resolvedByUserMatcher() gomock.Matcher {
+	return &resolvedByUser{}
+}
+
+func (m *resolvedByUser) Matches(x interface{}) bool {
+	return x.(models.Workflow).ResolvedByUser
+}
+
+func (m *resolvedByUser) String() string {
+	return " has ResolvedByUser set to false"
+}
+
 func newWfmTestController(t *testing.T) *wfmTestController {
 	mockController := gomock.NewController(t)
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
