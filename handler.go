@@ -211,7 +211,7 @@ func decodeESResponseToWorkflows(body io.Reader) ([]models.Workflow, error) {
 	return workflows, nil
 }
 
-// GetWorkflows returns a summary of all workflows matching the given query.
+// GetWorkflows returns a summary of all workflows matching the given query. It supports pagination.
 func (h Handler) GetWorkflows(
 	ctx context.Context,
 	input *models.GetWorkflowsInput,
