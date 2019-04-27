@@ -1,7 +1,7 @@
 include golang.mk
 include wag.mk
 
-.PHONY: all test build run dynamodb-test mocks
+.PHONY: all test build run dynamodb-test
 SHELL := /bin/bash
 APP_NAME ?= workflow-manager
 EXECUTABLE = $(APP_NAME)
@@ -42,6 +42,8 @@ generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 
 install_deps: golang-dep-vendor-deps
 	$(call golang-dep-vendor)
+	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
+	cp bin/mockgen $(GOPATH)/bin/mockgen
 	# hack to workaround dep not working with go module suffixes https://github.com/golang/dep/issues/2139
 	if [ ! -f vendor/github.com/elastic/go-elasticsearch/v6 ]; then \
           mkdir -p vendor/github.com/elastic/go-elasticsearch/ && \
@@ -49,10 +51,6 @@ install_deps: golang-dep-vendor-deps
           cd vendor/github.com/elastic/go-elasticsearch/v6 && \
           git checkout 6.x; \
         fi
-	make mocks
-
-mocks:
-	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
 	mkdir -p mocks/
 	rm -rf mocks/*
 	for svc in dynamodb sfn sqs; do \
