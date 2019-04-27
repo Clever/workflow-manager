@@ -572,6 +572,13 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 	assert.WithinDuration(
 		t, jobFailedEventTimestamp, time.Time(workflow.Jobs[0].StoppedAt), 1*time.Second,
 	)
+	require.NotNil(t, workflow.LastJob)
+	assertBasicJobData(t, workflow.LastJob)
+	assert.Equal(t, models.JobStatusFailed, workflow.LastJob.Status)
+	assert.Equal(t, "line4\nline5\nline6", workflow.LastJob.StatusReason)
+	assert.WithinDuration(
+		t, jobFailedEventTimestamp, time.Time(workflow.LastJob.StoppedAt), 1*time.Second,
+	)
 }
 
 func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
@@ -636,6 +643,13 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 	assert.Equal(t, "State resource does not exist", workflow.Jobs[0].StatusReason)
 	assert.WithinDuration(
 		t, jobFailedEventTimestamp, time.Time(workflow.Jobs[0].StoppedAt), 1*time.Second,
+	)
+	require.NotNil(t, workflow.LastJob)
+	assertBasicJobData(t, workflow.LastJob)
+	assert.Equal(t, models.JobStatusFailed, workflow.LastJob.Status)
+	assert.Equal(t, "State resource does not exist", workflow.LastJob.StatusReason)
+	assert.WithinDuration(
+		t, jobFailedEventTimestamp, time.Time(workflow.LastJob.StoppedAt), 1*time.Second,
 	)
 }
 
@@ -708,6 +722,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertSucceededJobData(t, workflow.Jobs[0])
+	require.Nil(t, workflow.LastJob)
 }
 
 var jobAbortedEventTimestamp = jobSucceededEventTimestamp.Add(5 * time.Minute)
@@ -901,6 +916,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
+	require.Nil(t, workflow.LastJob)
 }
 
 var jobScheduledEventTimestamp = jobCreatedEventTimestamp.Add(1 * time.Minute)
@@ -1003,6 +1019,9 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertTimedOutJobData(t, workflow.Jobs[0])
+	require.NotNil(t, workflow.LastJob)
+	assertBasicJobData(t, workflow.LastJob)
+	assertTimedOutJobData(t, workflow.LastJob)
 }
 
 var workflowTimedOutEventTimestamp = jobCreatedEventTimestamp.Add(10 * time.Minute)
@@ -1074,6 +1093,9 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertWorkflowTimedOutJobData(t, workflow.Jobs[0])
+	require.NotNil(t, workflow.LastJob)
+	assertBasicJobData(t, workflow.LastJob)
+	assertWorkflowTimedOutJobData(t, workflow.LastJob)
 }
 
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
