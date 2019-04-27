@@ -15,3 +15,4 @@ workflow-manager
 
 swagger2markup-cli-1.3.1.jar
 mocks/
+gen-go/server/db/dynamodb/shared-local-instance.db
