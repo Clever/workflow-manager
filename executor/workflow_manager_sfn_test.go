@@ -1087,9 +1087,6 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
-	// TODO: this line below is not testing anything. Verify what needs to go in this assertion
-	assert.Equal(t, "Workflow timed out", resources.StatusReasonWorkflowTimedOut)
-	assert.Equal(t, resources.StatusReasonWorkflowTimedOut, workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertWorkflowTimedOutJobData(t, workflow.Jobs[0])
