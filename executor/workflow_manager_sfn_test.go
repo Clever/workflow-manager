@@ -535,6 +535,11 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 			Status: aws.String(sfn.ExecutionStatusFailed),
 		}, nil)
 
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		jobFailedEvent,
+	}
+
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -544,11 +549,18 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
-			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
-				jobCreatedEvent,
-				jobFailedEvent,
-			}}, true)
+			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			ReverseOrder: aws.Bool(true),
+		}).
+		Return(&sfn.GetExecutionHistoryOutput{
+			Events: reverseHistory(events),
+		}, nil).
+		Times(1)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
@@ -581,6 +593,19 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			Status: aws.String(sfn.ExecutionStatusFailed),
 		}, nil)
 
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		&sfn.HistoryEvent{
+			Id:        aws.Int64(2),
+			Timestamp: aws.Time(jobFailedEventTimestamp),
+			Type:      aws.String(sfn.HistoryEventTypeExecutionFailed),
+			ExecutionFailedEventDetails: &sfn.ExecutionFailedEventDetails{
+				Cause: aws.String("Internal Error (49b863bd-3367-4035-a76d-bfb2e777ece3)"),
+				Error: aws.String("States.Runtime"),
+			},
+		},
+	}
+
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -590,19 +615,18 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
-			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
-				jobCreatedEvent,
-				&sfn.HistoryEvent{
-					Id:        aws.Int64(2),
-					Timestamp: aws.Time(jobFailedEventTimestamp),
-					Type:      aws.String(sfn.HistoryEventTypeExecutionFailed),
-					ExecutionFailedEventDetails: &sfn.ExecutionFailedEventDetails{
-						Cause: aws.String("Internal Error (49b863bd-3367-4035-a76d-bfb2e777ece3)"),
-						Error: aws.String("States.Runtime"),
-					},
-				},
-			}}, true)
+			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			ReverseOrder: aws.Bool(true),
+		}).
+		Return(&sfn.GetExecutionHistoryOutput{
+			Events: reverseHistory(events),
+		}, nil).
+		Times(1)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
@@ -943,6 +967,14 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 			Status: aws.String(sfn.ExecutionStatusFailed), // when activity times out, execution immediately fails
 		}, nil)
 
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		jobScheduledEvent,
+		jobStartedEvent, // ActivityStarted - starts timer for timeouts & heartbeat checks
+		jobTimedOutEvent,
+		jobTimedOutWorkflowFailedEvent,
+	}
+
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -952,14 +984,18 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
-			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
-				jobCreatedEvent,
-				jobScheduledEvent,
-				jobStartedEvent, // ActivityStarted - starts timer for timeouts & heartbeat checks
-				jobTimedOutEvent,
-				jobTimedOutWorkflowFailedEvent,
-			}}, true)
+			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			ReverseOrder: aws.Bool(true),
+		}).
+		Return(&sfn.GetExecutionHistoryOutput{
+			Events: reverseHistory(events),
+		}, nil).
+		Times(1)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
@@ -1002,6 +1038,11 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 			Status: aws.String(sfn.ExecutionStatusTimedOut),
 		}, nil)
 
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		workflowTimedOutEvent,
+	}
+
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -1011,11 +1052,18 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
-			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
-				jobCreatedEvent,
-				workflowTimedOutEvent,
-			}}, true)
+			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			ReverseOrder: aws.Bool(true),
+		}).
+		Return(&sfn.GetExecutionHistoryOutput{
+			Events: reverseHistory(events),
+		}, nil).
+		Times(1)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
@@ -1064,4 +1112,13 @@ func (c *sfnManagerTestController) updateWorkflow(ctx context.Context, t *testin
 
 func (c *sfnManagerTestController) tearDown() {
 	c.mockController.Finish()
+}
+
+func reverseHistory(events []*sfn.HistoryEvent) []*sfn.HistoryEvent {
+	numEvents := len(events)
+	reversedEvents := make([]*sfn.HistoryEvent, numEvents)
+	for i := 0; i < numEvents; i++ {
+		reversedEvents[i] = events[numEvents-1-i]
+	}
+	return reversedEvents
 }
