@@ -214,7 +214,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 		// since we failed to start execution, remove Workflow from store
 		if delErr := wm.store.DeleteWorkflowByID(ctx, workflow.ID); delErr != nil {
 			log.ErrorD("create-workflow", logger.M{
-				"id": workflow.ID,
+				"id":                       workflow.ID,
 				"workflow-definition-name": workflow.WorkflowDefinition.Name,
 				"message":                  "failed to delete stray workflow",
 				"error":                    fmt.Sprintf("SFNError: %s;StoreError: %s", err, delErr),
@@ -363,6 +363,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 	}
 	if workflow.Status == models.WorkflowStatusSucceeded || workflow.Status == models.WorkflowStatusCancelled {
 		workflow.ResolvedByUser = true
+	} else if workflow.Status == models.WorkflowStatusFailed {
+		if err := wm.updateWorkflowLastJob(ctx, workflow); err != nil {
+			return err
+		}
 	}
 
 	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success  (TODO: actually this is only sent for success)
@@ -410,11 +414,13 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 	return wm.store.UpdateWorkflow(ctx, *workflow)
 }
 
-// UpdateWorkflowLastJob queries AWS step-functions for the latest in the event history for the given state machine,
-// and it uses the events to populate the LastJob struct. This method is mostly copied from UpdateWorkflowHistory,
-// but UpdateWorkflowLastJob only gets the last Job of the workflow instead of the entire execution history
-// which can be large.
-func (wm *SFNWorkflowManager) UpdateWorkflowLastJob(ctx context.Context, workflow *models.Workflow) error {
+// updateWorkflowLastJob queries AWS sfn for the latest events of the given state machine,
+// and it uses these events to populate LastJob within the WorkflowSummary.
+// This method is heavily inspired by UpdateWorkflowHistory, however updateWorkflowLastJob only
+// finds the last Job which is all that is needed to determine the state where a workflow has failed.
+// The sfn GetExecutionHistory API endpoint has a relatively low rate limit, and it could take
+// multiple calls per workflow to retrieve the full event history for some workflows.
+func (wm *SFNWorkflowManager) updateWorkflowLastJob(ctx context.Context, workflow *models.Workflow) error {
 	wd := workflow.WorkflowSummary.WorkflowDefinition
 	execARN := sfnconventions.ExecutionArn(
 		wm.region,
@@ -459,7 +465,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowLastJob(ctx context.Context, workflo
 	lastJobEventID := aws.Int64Value(historyOutput.Events[lastJobIndex].Id)
 	workflow.LastJob = eventIDToJob[lastJobEventID]
 
-	return wm.store.UpdateWorkflow(ctx, *workflow)
+	return nil
 }
 
 func isStateEnteredEvent(evt *sfn.HistoryEvent) bool {
