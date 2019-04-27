@@ -478,6 +478,8 @@ definitions:
         description: "tags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
           type: object
+      lastJob:
+        $ref: '#/definitions/Job'
 
   WorkflowStatus:
     type: string
