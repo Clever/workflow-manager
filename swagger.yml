@@ -172,16 +172,14 @@ paths:
           type: string
         - name: status
           description:
-            The status of the workflow (queued, running, etc.). Cannot be sent in the
-             same request as the resolvedByUser parameter.
+            The status of the workflow (queued, running, etc.).
           in: query
           type: string
         - name: resolvedByUser
           in: query
           type: boolean
           description:
-            A flag that indicates whether the workflow has been marked resolved by a user. Cannot
-             be sent in the same request as the status parameter.
+            A flag that indicates whether the workflow has been marked resolved by a user.
         - name: summaryOnly
           description:
             Limits workflow data to the bare minimum - omits the full workflow definition and job
