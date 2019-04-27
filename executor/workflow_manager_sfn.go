@@ -411,6 +411,76 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 	return wm.store.UpdateWorkflow(ctx, *workflow)
 }
 
+// updateWorkflowLastJob queries AWS sfn for the latest events of the given state machine,
+// and it uses these events to populate LastJob within the WorkflowSummary.
+// This method is heavily inspired by UpdateWorkflowHistory, however updateWorkflowLastJob only
+// finds the last Job which is all that is needed to determine the state where a workflow has failed.
+// We try to use the sfn GetExecutionHistory API endpoint somewhat sparingly because
+// it has a relatively low rate limit, and it can take multiple calls per workflow
+// to retrieve the full event history for some workflows.
+func (wm *SFNWorkflowManager) updateWorkflowLastJob(ctx context.Context, workflow *models.Workflow) error {
+	wd := workflow.WorkflowSummary.WorkflowDefinition
+	execARN := sfnconventions.ExecutionArn(
+		wm.region,
+		wm.accountID,
+		sfnconventions.StateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
+		workflow.ID,
+	)
+
+	jobs := []*models.Job{}
+	eventIDToJob := map[int64]*models.Job{}
+	eventToJobFn := newEventToJobFn(execARN, eventIDToJob, &jobs)
+
+	historyOutput, err := wm.sfnapi.GetExecutionHistoryWithContext(ctx, &sfn.GetExecutionHistoryInput{
+		ExecutionArn: aws.String(execARN),
+		ReverseOrder: aws.Bool(true),
+	})
+	if err != nil {
+		return err
+	}
+
+	// The events are in reverse order, so the first StateEntered event in the list is the latest one.
+	lastJobIndex := -1
+	for i, evt := range historyOutput.Events {
+		if isStateEnteredEvent(evt) {
+			lastJobIndex = i
+			break
+		}
+	}
+	if lastJobIndex < 0 {
+		log.ErrorD("last-job-not-found", logger.M{
+			"workflow":      *workflow,
+			"event_history": historyOutput.Events,
+		})
+		return nil
+	}
+
+	// Make a slice of the most recent events up to and including the start of the last Job.
+	// We order the events chronologically since they are returned in reverse order from the API.
+	orderedLatestEvents := []*sfn.HistoryEvent{}
+	for i := 0; i <= lastJobIndex; i++ {
+		orderedLatestEvents = append(orderedLatestEvents, historyOutput.Events[lastJobIndex-i])
+	}
+
+	processEvents(orderedLatestEvents, eventToJobFn, workflow)
+
+	lastJobEventID := aws.Int64Value(historyOutput.Events[lastJobIndex].Id)
+	workflow.LastJob = eventIDToJob[lastJobEventID]
+
+	return nil
+}
+
+func isStateEnteredEvent(evt *sfn.HistoryEvent) bool {
+	switch aws.StringValue(evt.Type) {
+	case sfn.HistoryEventTypeTaskStateEntered,
+		sfn.HistoryEventTypeChoiceStateEntered,
+		sfn.HistoryEventTypeSucceedStateEntered:
+		return true
+	default:
+		return false
+	}
+}
+
 // isActivityDoesntExistFailure checks if an execution failed because an activity doesn't exist.
 // This currently results in a cryptic AWS error, so the logic is probably over-broad: https://console.aws.amazon.com/support/home?region=us-west-2#/case/?displayId=4514731511&language=en
 // If SFN creates a more descriptive error event we should change this.
