@@ -365,6 +365,13 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 	if workflow.Status == models.WorkflowStatusSucceeded || workflow.Status == models.WorkflowStatusCancelled {
 		workflow.ResolvedByUser = true
 	}
+	// Populate the last job within WorkflowSummary on failures so that workflows can be
+	// more easily searched for and bucketed by failure state.
+	if workflow.Status == models.WorkflowStatusFailed {
+		if err := wm.updateWorkflowLastJob(ctx, workflow); err != nil {
+			return err
+		}
+	}
 
 	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success  (TODO: actually this is only sent for success)
 	return wm.store.UpdateWorkflow(ctx, *workflow)
