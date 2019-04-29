@@ -1528,8 +1528,8 @@ class WorkflowManager {
    * @param {number} [params.limit=10] - Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000.
    * @param {boolean} [params.oldestFirst]
    * @param {string} [params.pageToken]
-   * @param {string} [params.status] - The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter.
-   * @param {boolean} [params.resolvedByUser] - A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter.
+   * @param {string} [params.status] - The status of the workflow (queued, running, etc.).
+   * @param {boolean} [params.resolvedByUser] - A flag that indicates whether the workflow has been marked resolved by a user.
    * @param {boolean} [params.summaryOnly] - Limits workflow data to the bare minimum - omits the full workflow definition and job data.
    * @param {string} params.workflowDefinitionName
    * @param {object} [options]
@@ -1687,8 +1687,8 @@ class WorkflowManager {
    * @param {number} [params.limit=10] - Maximum number of workflows to return. Defaults to 10. Restricted to a max of 10,000.
    * @param {boolean} [params.oldestFirst]
    * @param {string} [params.pageToken]
-   * @param {string} [params.status] - The status of the workflow (queued, running, etc.). Cannot be sent in the same request as the resolvedByUser parameter.
-   * @param {boolean} [params.resolvedByUser] - A flag that indicates whether the workflow has been marked resolved by a user. Cannot be sent in the same request as the status parameter.
+   * @param {string} [params.status] - The status of the workflow (queued, running, etc.).
+   * @param {boolean} [params.resolvedByUser] - A flag that indicates whether the workflow has been marked resolved by a user.
    * @param {boolean} [params.summaryOnly] - Limits workflow data to the bare minimum - omits the full workflow definition and job data.
    * @param {string} params.workflowDefinitionName
    * @param {object} [options]

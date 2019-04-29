@@ -242,8 +242,8 @@ func (h Handler) GetWorkflows(
 			"Workflow.retryFor",
 			"Workflow.retries",
 		),
+		h.es.Search.WithBody(strings.NewReader(h.getWorkflowsInputToESQuery(input))),
 	}
-	req = append(req, h.es.Search.WithBody(strings.NewReader(h.getWorkflowsInputToESQuery(input))))
 	res, err := h.es.Search(req...)
 	if err != nil {
 		return nil, "", err
