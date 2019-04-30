@@ -223,7 +223,7 @@ func TestCreateWorkflow(t *testing.T) {
 			}).
 			Return(&sqs.DeleteMessageOutput{}, nil)
 
-		wfID, err := updatePendingWorkflow(context.TODO(), msg, c.manager, c.store, c.mockSQSAPI, "")
+		wfID, err := updatePendingWorkflow(ctx, msg, c.manager, c.store, c.mockSQSAPI, "")
 		assert.Nil(t, err)
 		assert.Equal(t, workflow.ID, wfID)
 	})
