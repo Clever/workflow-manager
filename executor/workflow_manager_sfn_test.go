@@ -1095,6 +1095,25 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 	assertWorkflowTimedOutJobData(t, workflow.LastJob)
 }
 
+func TestReverseHistory(t *testing.T) {
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		jobScheduledEvent,
+		jobStartedEvent,
+		jobTimedOutEvent,
+		jobTimedOutWorkflowFailedEvent,
+	}
+	reversedEvents := []*sfn.HistoryEvent{
+		jobTimedOutWorkflowFailedEvent,
+		jobTimedOutEvent,
+		jobStartedEvent,
+		jobScheduledEvent,
+		jobCreatedEvent,
+	}
+
+	assert.Equal(t, reversedEvents, reverseHistory(events))
+}
+
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockController := gomock.NewController(t)
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
@@ -1131,13 +1150,4 @@ func (c *sfnManagerTestController) updateWorkflow(ctx context.Context, t *testin
 
 func (c *sfnManagerTestController) tearDown() {
 	c.mockController.Finish()
-}
-
-func reverseHistory(events []*sfn.HistoryEvent) []*sfn.HistoryEvent {
-	numEvents := len(events)
-	reversedEvents := make([]*sfn.HistoryEvent, numEvents)
-	for i := 0; i < numEvents; i++ {
-		reversedEvents[i] = events[numEvents-1-i]
-	}
-	return reversedEvents
 }
