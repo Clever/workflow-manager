@@ -204,6 +204,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	// i.e. execution was started but we failed to save workflow
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
 	workflow := resources.NewWorkflow(&wd, input, namespace, queue, mergedTags)
+	logger.FromContext(ctx).AddContext("wf-id", workflow.ID)
 	if err := wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
@@ -225,7 +226,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	}
 
 	// start update loop for this workflow
-	err = createPendingWorkflow(context.TODO(), workflow.ID, wm.sqsapi, wm.sqsQueueURL)
+	err = createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +272,7 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 	}
 
 	// start update loop for this workflow
-	err = createPendingWorkflow(context.TODO(), workflow.ID, wm.sqsapi, wm.sqsQueueURL)
+	err = createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +328,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 		sfnconventions.StateMachineName(wd.Name, wd.Version, workflow.Namespace, wd.StateMachine.StartAt),
 		workflow.ID,
 	)
-	describeOutput, err := wm.sfnapi.DescribeExecutionWithContext(context.TODO(), &sfn.DescribeExecutionInput{
+	describeOutput, err := wm.sfnapi.DescribeExecutionWithContext(ctx, &sfn.DescribeExecutionInput{
 		ExecutionArn: aws.String(execARN),
 	})
 	if err != nil {
