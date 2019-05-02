@@ -535,6 +535,11 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 			Status: aws.String(sfn.ExecutionStatusFailed),
 		}, nil)
 
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		jobFailedEvent,
+	}
+
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -544,11 +549,18 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
-			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
-				jobCreatedEvent,
-				jobFailedEvent,
-			}}, true)
+			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			ReverseOrder: aws.Bool(true),
+		}).
+		Return(&sfn.GetExecutionHistoryOutput{
+			Events: reverseHistory(events),
+		}, nil).
+		Times(1)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
@@ -559,6 +571,13 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 	assert.Equal(t, "line4\nline5\nline6", workflow.Jobs[0].StatusReason)
 	assert.WithinDuration(
 		t, jobFailedEventTimestamp, time.Time(workflow.Jobs[0].StoppedAt), 1*time.Second,
+	)
+	require.NotNil(t, workflow.LastJob)
+	assertBasicJobData(t, workflow.LastJob)
+	assert.Equal(t, models.JobStatusFailed, workflow.LastJob.Status)
+	assert.Equal(t, "line4\nline5\nline6", workflow.LastJob.StatusReason)
+	assert.WithinDuration(
+		t, jobFailedEventTimestamp, time.Time(workflow.LastJob.StoppedAt), 1*time.Second,
 	)
 }
 
@@ -581,6 +600,19 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			Status: aws.String(sfn.ExecutionStatusFailed),
 		}, nil)
 
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		&sfn.HistoryEvent{
+			Id:        aws.Int64(2),
+			Timestamp: aws.Time(jobFailedEventTimestamp),
+			Type:      aws.String(sfn.HistoryEventTypeExecutionFailed),
+			ExecutionFailedEventDetails: &sfn.ExecutionFailedEventDetails{
+				Cause: aws.String("Internal Error (49b863bd-3367-4035-a76d-bfb2e777ece3)"),
+				Error: aws.String("States.Runtime"),
+			},
+		},
+	}
+
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -590,19 +622,18 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
-			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
-				jobCreatedEvent,
-				&sfn.HistoryEvent{
-					Id:        aws.Int64(2),
-					Timestamp: aws.Time(jobFailedEventTimestamp),
-					Type:      aws.String(sfn.HistoryEventTypeExecutionFailed),
-					ExecutionFailedEventDetails: &sfn.ExecutionFailedEventDetails{
-						Cause: aws.String("Internal Error (49b863bd-3367-4035-a76d-bfb2e777ece3)"),
-						Error: aws.String("States.Runtime"),
-					},
-				},
-			}}, true)
+			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			ReverseOrder: aws.Bool(true),
+		}).
+		Return(&sfn.GetExecutionHistoryOutput{
+			Events: reverseHistory(events),
+		}, nil).
+		Times(1)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
@@ -612,6 +643,13 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 	assert.Equal(t, "State resource does not exist", workflow.Jobs[0].StatusReason)
 	assert.WithinDuration(
 		t, jobFailedEventTimestamp, time.Time(workflow.Jobs[0].StoppedAt), 1*time.Second,
+	)
+	require.NotNil(t, workflow.LastJob)
+	assertBasicJobData(t, workflow.LastJob)
+	assert.Equal(t, models.JobStatusFailed, workflow.LastJob.Status)
+	assert.Equal(t, "State resource does not exist", workflow.LastJob.StatusReason)
+	assert.WithinDuration(
+		t, jobFailedEventTimestamp, time.Time(workflow.LastJob.StoppedAt), 1*time.Second,
 	)
 }
 
@@ -684,6 +722,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertSucceededJobData(t, workflow.Jobs[0])
+	require.Nil(t, workflow.LastJob)
 }
 
 var jobAbortedEventTimestamp = jobSucceededEventTimestamp.Add(5 * time.Minute)
@@ -877,6 +916,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundStopRetry(t *testing.T) {
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
+	require.Nil(t, workflow.LastJob)
 }
 
 var jobScheduledEventTimestamp = jobCreatedEventTimestamp.Add(1 * time.Minute)
@@ -943,6 +983,14 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 			Status: aws.String(sfn.ExecutionStatusFailed), // when activity times out, execution immediately fails
 		}, nil)
 
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		jobScheduledEvent,
+		jobStartedEvent, // ActivityStarted - starts timer for timeouts & heartbeat checks
+		jobTimedOutEvent,
+		jobTimedOutWorkflowFailedEvent,
+	}
+
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -952,14 +1000,18 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
-			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
-				jobCreatedEvent,
-				jobScheduledEvent,
-				jobStartedEvent, // ActivityStarted - starts timer for timeouts & heartbeat checks
-				jobTimedOutEvent,
-				jobTimedOutWorkflowFailedEvent,
-			}}, true)
+			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			ReverseOrder: aws.Bool(true),
+		}).
+		Return(&sfn.GetExecutionHistoryOutput{
+			Events: reverseHistory(events),
+		}, nil).
+		Times(1)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
@@ -967,6 +1019,9 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertTimedOutJobData(t, workflow.Jobs[0])
+	require.NotNil(t, workflow.LastJob)
+	assertBasicJobData(t, workflow.LastJob)
+	assertTimedOutJobData(t, workflow.LastJob)
 }
 
 var workflowTimedOutEventTimestamp = jobCreatedEventTimestamp.Add(10 * time.Minute)
@@ -1002,6 +1057,11 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 			Status: aws.String(sfn.ExecutionStatusTimedOut),
 		}, nil)
 
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		workflowTimedOutEvent,
+	}
+
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
@@ -1011,21 +1071,47 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
 		) {
-			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
-				jobCreatedEvent,
-				workflowTimedOutEvent,
-			}}, true)
+			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
+
+	c.mockSFNAPI.EXPECT().
+		GetExecutionHistoryWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(sfnExecutionARN),
+			ReverseOrder: aws.Bool(true),
+		}).
+		Return(&sfn.GetExecutionHistoryOutput{
+			Events: reverseHistory(events),
+		}, nil).
+		Times(1)
 
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
-	// TODO: this line below is not testing anything. Verify what needs to go in this assertion
-	assert.Equal(t, "Workflow timed out", resources.StatusReasonWorkflowTimedOut)
-	assert.Equal(t, resources.StatusReasonWorkflowTimedOut, workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertWorkflowTimedOutJobData(t, workflow.Jobs[0])
+	require.NotNil(t, workflow.LastJob)
+	assertBasicJobData(t, workflow.LastJob)
+	assertWorkflowTimedOutJobData(t, workflow.LastJob)
+}
+
+func TestReverseHistory(t *testing.T) {
+	events := []*sfn.HistoryEvent{
+		jobCreatedEvent,
+		jobScheduledEvent,
+		jobStartedEvent,
+		jobTimedOutEvent,
+		jobTimedOutWorkflowFailedEvent,
+	}
+	reversedEvents := []*sfn.HistoryEvent{
+		jobTimedOutWorkflowFailedEvent,
+		jobTimedOutEvent,
+		jobStartedEvent,
+		jobScheduledEvent,
+		jobCreatedEvent,
+	}
+
+	assert.Equal(t, reversedEvents, reverseHistory(events))
 }
 
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
