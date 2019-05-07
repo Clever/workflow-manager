@@ -71,11 +71,19 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 const updateLoopDelay = 60
 
 func createPendingWorkflow(ctx context.Context, workflowID string, sqsapi sqsiface.SQSAPI, sqsQueueURL string) error {
-	_, err := sqsapi.SendMessageWithContext(ctx, &sqs.SendMessageInput{
+	message, err := sqsapi.SendMessageWithContext(ctx, &sqs.SendMessageInput{
 		MessageBody:  aws.String(workflowID),
 		QueueUrl:     aws.String(sqsQueueURL),
 		DelaySeconds: aws.Int64(updateLoopDelay),
 	})
+	if err != nil {
+		log.ErrorD("sqs-send-message",
+			logger.M{
+				"error":       err.Error(),
+				"workflow-id": workflowID,
+				"message-id":  aws.StringValue(message.MessageId),
+			})
+	}
 	return err
 }
 
