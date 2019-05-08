@@ -9,6 +9,8 @@ env:
   - AWS_SQS_REGION
   - AWS_SQS_URL
   - ES_URL
+  - TRACING_ACCESS_TOKEN
+  - TRACING_INGEST_URL
 resources:
   cpu: 0.4
   soft_mem_limit: 0.15
