@@ -399,6 +399,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 	defer cancel()
 
 	var jobs []*models.Job
+	eventIDToJob := map[int64]*models.Job{}
 	if err := wm.sfnapi.GetExecutionHistoryPagesWithContext(ctx, &sfn.GetExecutionHistoryInput{
 		ExecutionArn: aws.String(execARN),
 	}, func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool {
@@ -406,7 +407,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 		// 1) limit the results with `maxResults`
 		// 2) set `reverseOrder` to true to get most recent events first
 		// 3) stop paging once we get to to the smallest job ID (aka event ID) that is still pending
-		jobs = append(jobs, processEvents(historyOutput.Events, execARN, workflow)...)
+		jobs = append(jobs, processEvents(historyOutput.Events, execARN, workflow, eventIDToJob)...)
 		return true
 	}); err != nil {
 		return err
@@ -440,9 +441,10 @@ func (wm *SFNWorkflowManager) updateWorkflowLastJob(ctx context.Context, workflo
 		return err
 	}
 
+	eventIDToJob := map[int64]*models.Job{}
 	// Events are processed chronologically, so the output of GetExecutionHistory is reversed when
 	// the events have been returned in reverse order.
-	jobs := processEvents(reverseHistory(historyOutput.Events), execARN, workflow)
+	jobs := processEvents(reverseHistory(historyOutput.Events), execARN, workflow, eventIDToJob)
 	if len(jobs) > 0 {
 		workflow.LastJob = jobs[len(jobs)-1]
 	} else {
@@ -548,10 +550,13 @@ func eventToJob(
 }
 
 // processEvents constructs the Jobs array from the AWS step-functions event history.
-func processEvents(events []*sfn.HistoryEvent, execARN string, workflow *models.Workflow,
+func processEvents(
+	events []*sfn.HistoryEvent,
+	execARN string,
+	workflow *models.Workflow,
+	eventIDToJob map[int64]*models.Job,
 ) []*models.Job {
 
-	eventIDToJob := map[int64]*models.Job{}
 	jobs := []*models.Job{}
 
 	for _, evt := range events {
