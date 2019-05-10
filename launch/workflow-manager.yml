@@ -11,6 +11,7 @@ env:
   - ES_URL
   - TRACING_ACCESS_TOKEN
   - TRACING_INGEST_URL
+  - TRACING_USER_NAME
 resources:
   cpu: 0.4
   soft_mem_limit: 0.15
