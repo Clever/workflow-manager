@@ -488,6 +488,7 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
+			MaxResults:   aws.Int64(executionEventsPerPage),
 		}, gomock.Any()).
 		Do(func(
 			ctx aws.Context,
@@ -543,6 +544,7 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
+			MaxResults:   aws.Int64(executionEventsPerPage),
 		}, gomock.Any()).
 		Do(func(
 			ctx aws.Context,
@@ -616,6 +618,7 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
+			MaxResults:   aws.Int64(executionEventsPerPage),
 		}, gomock.Any()).
 		Do(func(
 			ctx aws.Context,
@@ -702,6 +705,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
+			MaxResults:   aws.Int64(executionEventsPerPage),
 		}, gomock.Any()).
 		Do(func(
 			ctx aws.Context,
@@ -764,6 +768,7 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
+			MaxResults:   aws.Int64(executionEventsPerPage),
 		}, gomock.Any()).
 		Do(func(
 			ctx aws.Context,
@@ -808,6 +813,7 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
+			MaxResults:   aws.Int64(executionEventsPerPage),
 		}, gomock.Any()).
 		Do(func(
 			ctx aws.Context,
@@ -861,6 +867,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
+			MaxResults:   aws.Int64(executionEventsPerPage),
 		}, gomock.Any()).
 		Do(func(
 			ctx aws.Context,
@@ -994,6 +1001,7 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
+			MaxResults:   aws.Int64(executionEventsPerPage),
 		}, gomock.Any()).
 		Do(func(
 			ctx aws.Context,
@@ -1065,6 +1073,7 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 	c.mockSFNAPI.EXPECT().
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
+			MaxResults:   aws.Int64(executionEventsPerPage),
 		}, gomock.Any()).
 		Do(func(
 			ctx aws.Context,

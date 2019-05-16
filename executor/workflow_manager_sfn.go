@@ -24,6 +24,7 @@ import (
 
 const (
 	maxFailureReasonLines   = 3
+	executionEventsPerPage  = 200
 	sfncliCommandTerminated = "sfncli.CommandTerminated"
 )
 
@@ -402,6 +403,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 	eventIDToJob := map[int64]*models.Job{}
 	if err := wm.sfnapi.GetExecutionHistoryPagesWithContext(ctx, &sfn.GetExecutionHistoryInput{
 		ExecutionArn: aws.String(execARN),
+		MaxResults:   aws.Int64(executionEventsPerPage),
 	}, func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool {
 		// NOTE: if pulling the entire execution history becomes infeasible, we can:
 		// 1) limit the results with `maxResults`
