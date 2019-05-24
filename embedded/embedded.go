@@ -3,7 +3,6 @@ package embedded
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -24,6 +23,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mohae/deepcopy"
 	uuid "github.com/satori/go.uuid"
+	errors "golang.org/x/xerrors"
 )
 
 // Embedded ...
@@ -90,7 +90,7 @@ func New(config *Config) (*Embedded, error) {
 		kcopy := k
 		var err error
 		if r[kcopy], err = sfnfunction.New(kcopy, config.Resources[kcopy]); err != nil {
-			return nil, fmt.Errorf("function '%s': %s", kcopy, err.Error())
+			return nil, errors.Errorf("function '%s': %s", kcopy, err.Error())
 		}
 	}
 	for _, wfdef := range wfdefs {
@@ -149,7 +149,7 @@ func parseWorkflowDefinitions(wfdefbs []byte) ([]models.WorkflowDefinition, erro
 	uniqName := map[string]struct{}{}
 	for _, wfdef := range wfdefs {
 		if _, ok := uniqName[wfdef.Name]; ok {
-			return nil, fmt.Errorf("duplicate workflow definition found: %s", wfdef.Name)
+			return nil, errors.Errorf("duplicate workflow definition found: %s", wfdef.Name)
 		}
 	}
 	return wfdefs, nil
@@ -157,10 +157,10 @@ func parseWorkflowDefinitions(wfdefbs []byte) ([]models.WorkflowDefinition, erro
 
 func validateWorkflowDefinition(wfdef models.WorkflowDefinition, resources map[string]*sfnfunction.Resource) error {
 	if wfdef.Name == "" {
-		return fmt.Errorf("workflow definition name is required")
+		return errors.Errorf("workflow definition name is required")
 	}
 	if len(wfdef.StateMachine.States) == 0 {
-		return fmt.Errorf("must define at least one state in %s", wfdef.Name)
+		return errors.Errorf("must define at least one state in %s", wfdef.Name)
 	}
 
 	return validateWorkflowDefinitionStates(wfdef, resources)
@@ -174,44 +174,44 @@ func validateWorkflowDefinitionStates(wfd models.WorkflowDefinition, resources m
 		case models.SLStateTypeTask:
 			checkNextState = true
 			if state.Resource == "" {
-				return fmt.Errorf("must specify resource for task in %s.%s", wfd.Name, stateName)
+				return errors.Errorf("must specify resource for task in %s.%s", wfd.Name, stateName)
 			}
 			if _, ok := resources[state.Resource]; !ok {
-				return fmt.Errorf("unknown resource '%s' in %s.%s", state.Resource, wfd.Name, stateName)
+				return errors.Errorf("unknown resource '%s' in %s.%s", state.Resource, wfd.Name, stateName)
 			}
 		case models.SLStateTypePass:
 			checkNextState = true
 			if state.Result == "" && state.ResultPath == "" {
-				return fmt.Errorf("must specify results in %s.%s", wfd.Name, stateName)
+				return errors.Errorf("must specify results in %s.%s", wfd.Name, stateName)
 			}
 		case models.SLStateTypeChoice:
 			if len(state.Choices) == 0 {
-				return fmt.Errorf("must specify at one choice in %s.%s", wfd.Name, stateName)
+				return errors.Errorf("must specify at one choice in %s.%s", wfd.Name, stateName)
 			}
 		case models.SLStateTypeWait:
 			checkNextState = true
 			// technically we could use an absolute timestamp, but at the time of writing we don't
 			// want to support that type of workflow
 			if state.Seconds <= 0 {
-				return fmt.Errorf("invalid seconds parameter in wait %s.%s", wfd.Name, stateName)
+				return errors.Errorf("invalid seconds parameter in wait %s.%s", wfd.Name, stateName)
 			}
 		case models.SLStateTypeSucceed, models.SLStateTypeFail, models.SLStateTypeParallel:
 			// no op
 		default:
-			return fmt.Errorf("invalid state type '%s' in %s.%s", state.Type, wfd.Name, stateName)
+			return errors.Errorf("invalid state type '%s' in %s.%s", state.Type, wfd.Name, stateName)
 		}
 
 		if state.End {
 			endFound = true
 		} else if checkNextState {
 			if state.Next == "" {
-				return fmt.Errorf("must specify next state in %s.%s", wfd.Name, stateName)
+				return errors.Errorf("must specify next state in %s.%s", wfd.Name, stateName)
 			}
 		}
 	}
 
 	if !endFound {
-		return fmt.Errorf("must specify an end state in %s", wfd.Name)
+		return errors.Errorf("must specify an end state in %s", wfd.Name)
 	}
 
 	return nil
@@ -295,7 +295,7 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 		i.Namespace = e.environment
 	} else if i.Namespace != e.environment {
 		// can only submit workflows into the environment that this app exists in
-		validation = multierror.Append(validation, fmt.Errorf("namespace '%s' must match environment '%s'", i.Namespace, e.environment))
+		validation = multierror.Append(validation, errors.Errorf("namespace '%s' must match environment '%s'", i.Namespace, e.environment))
 	}
 	if i.Queue != "" {
 		validation = multierror.Append(validation, errors.New("queue not supported"))
@@ -310,7 +310,7 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 	// generate state machine
 	wd, err := e.GetWorkflowDefinitionByNameAndVersion(ctx, &models.GetWorkflowDefinitionByNameAndVersionInput{Name: i.WorkflowDefinition.Name})
 	if err != nil {
-		return nil, fmt.Errorf("GetWorkflowDefinitionByNameAndVersion: %s", err.Error())
+		return nil, errors.Errorf("GetWorkflowDefinitionByNameAndVersion: %s", err.Error())
 	}
 	stateMachine := deepcopy.Copy(wd.StateMachine).(*models.SLStateMachine)
 	for stateName, s := range stateMachine.States {
@@ -323,7 +323,7 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 	}
 	stateMachineDefBytes, err := json.MarshalIndent(stateMachine, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("json marshal: %s", err.Error())
+		return nil, errors.Errorf("json marshal: %s", err.Error())
 	}
 
 	// find or create the state machine in AWS
@@ -340,7 +340,7 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 				Definition: aws.String(string(stateMachineDefBytes)),
 				RoleArn:    aws.String(e.sfnRoleArn),
 			}); err != nil {
-				return nil, fmt.Errorf("CreateStateMachine error: %s", err.Error())
+				return nil, errors.Errorf("CreateStateMachine error: %s", err.Error())
 			}
 		} else {
 			return nil, err
@@ -351,7 +351,7 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 			RoleArn:         aws.String(e.sfnRoleArn),
 			StateMachineArn: out.StateMachineArn,
 		}); err != nil {
-			return nil, fmt.Errorf("UpdateStateMachine: %s", err.Error())
+			return nil, errors.Errorf("UpdateStateMachine: %s", err.Error())
 		}
 		// Control for "Executions started immediately after calling UpdateStateMachine might use the previous state machine definition and roleArn."
 		// https://docs.aws.amazon.com/step-functions/latest/dg/concepts-read-consistency.html
@@ -365,7 +365,7 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 			return nil, err
 		}
 		if *out.Definition != string(stateMachineDefBytes) {
-			return nil, fmt.Errorf(`existing state machine differs from new state machine.
+			return nil, errors.Errorf(`existing state machine differs from new state machine.
 State machines are immutable. Please rename the state machine or set version to -1 to allow mutation. Existing state machine:
 %s
 New state machine:
@@ -396,7 +396,7 @@ New state machine:
 		Input:           aws.String(i.Input),
 		Name:            aws.String(workflow.ID),
 	}); err != nil {
-		return nil, fmt.Errorf("StartExecution: %s", err.Error())
+		return nil, errors.Errorf("StartExecution: %s", err.Error())
 	}
 	return workflow, nil
 }
@@ -461,7 +461,7 @@ func (e *Embedded) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkf
 	}
 	for _, wfd := range e.workflowDefinitions {
 		if wfd.Name == i.Name {
-			return nil, fmt.Errorf("%s workflow definition already exists", i.Name)
+			return nil, errors.Errorf("%s workflow definition already exists", i.Name)
 		}
 	}
 
@@ -472,7 +472,7 @@ func (e *Embedded) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkf
 		StateMachine: i.StateMachine,
 	}
 	if err := validateWorkflowDefinition(wfd, e.resources); err != nil {
-		return nil, fmt.Errorf("could not validate state machine: %s", err)
+		return nil, errors.Errorf("could not validate state machine: %s", err)
 	}
 	e.workflowDefinitions = append(e.workflowDefinitions, wfd)
 	return &wfd, nil
@@ -494,7 +494,7 @@ type workflowIDParts struct {
 func parseWorkflowID(wid string) (*workflowIDParts, error) {
 	s := strings.Split(wid, "--")
 	if len(s) < 2 {
-		return nil, fmt.Errorf("expected workflowID two contain at least two parts: %s", wid)
+		return nil, errors.Errorf("expected workflowID two contain at least two parts: %s", wid)
 	}
 	return &workflowIDParts{
 		SMName:    strings.Join(s[0:len(s)-1], "--"),

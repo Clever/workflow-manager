@@ -3,7 +3,6 @@ package embedded
 import (
 	"context"
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
+	errors "golang.org/x/xerrors"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
@@ -35,7 +35,7 @@ func (e *Embedded) PollForWork(ctx context.Context) error {
 			Name: aws.String(activityName),
 		})
 		if err != nil {
-			return fmt.Errorf("creating activity: %s", err)
+			return errors.Errorf("creating activity: %s", err)
 		}
 		log.InfoD("startup", logger.M{"activity": *createOutput.ActivityArn})
 		r := resource
