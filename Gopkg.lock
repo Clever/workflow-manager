@@ -189,14 +189,14 @@
   version = "0.16.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/golang/mock"
   packages = [
     "gomock",
     "mockgen",
     "mockgen/model"
   ]
-  revision = "51421b967af1f557f93a59e0057aaf15ca02e29c"
-  version = "v1.2.0"
+  revision = "bfa1e97ed7a159b123865559eabdec69b78fe1d5"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -394,6 +394,31 @@
   revision = "85acf8d2951cb2a3bde7632f9ff273ef0379bcbd"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "go/gcexportdata",
+    "go/internal/gcimporter",
+    "go/internal/packagesdriver",
+    "go/packages",
+    "go/types/typeutil",
+    "internal/fastwalk",
+    "internal/gopathwalk",
+    "internal/semver"
+  ]
+  revision = "3d17549cdc6bfc8f924b817a94ec54bec5596488"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/xerrors"
+  packages = [
+    ".",
+    "internal"
+  ]
+  revision = "3ee3066db522c6628d440a3a91c4abdd7f5ef22f"
+
+[[projects]]
   name = "gopkg.in/Clever/kayvee-go.v6"
   packages = [
     ".",
@@ -428,6 +453,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d3cf246e7191a66816857b91ae302ddefa58fe1de07139426df648921ce283d8"
+  inputs-digest = "7ce94ed7297dbbf09140e185cce6b1f8b4eb67bc4d0288e609941383dffaae4e"
   solver-name = "gps-cdcl"
   solver-version = 1
