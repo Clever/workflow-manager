@@ -92,5 +92,4 @@ var TaskStateParameters = map[string]interface{}{
 	"_EXECUTION_ID.$":       "$$.Execution.Id",   // the full ARN of the execution
 	"_STATE_NAME.$":         "$$.State.Name",
 	"_STATE_MACHINE_NAME.$": "$$.StateMachine.Name",
-	"_TASK_TOKEN.$":         "$$.Task.Token",
 }
