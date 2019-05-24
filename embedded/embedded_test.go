@@ -23,7 +23,11 @@ type newWorkflowDefinitionTest struct {
 func (n newWorkflowDefinitionTest) Run(t *testing.T) {
 	ctx := context.Background()
 	_, err := n.wfm.NewWorkflowDefinition(ctx, n.input)
-	require.Equal(t, n.expected, err)
+	if n.expected == nil {
+		require.Equal(t, n.expected, err)
+	} else {
+		require.EqualError(t, err, n.expected.Error())
+	}
 	if n.assertions != nil {
 		n.assertions(ctx, t, n.wfm)
 	}
