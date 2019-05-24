@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -31,6 +32,8 @@ type sfnManagerTestController struct {
 	store              store.Store
 	t                  *testing.T
 	workflowDefinition *models.WorkflowDefinition
+	stateMachine       string
+	stateMachineArn    string
 }
 
 type stateMachineNameInput struct {
@@ -148,18 +151,13 @@ func TestCreateWorkflow(t *testing.T) {
 		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
-		stateMachineArn := sfnconventions.StateMachineArn(c.manager.region, c.manager.accountID,
-			c.workflowDefinition.Name,
-			c.workflowDefinition.Version,
-			"namespace",
-			c.workflowDefinition.StateMachine.StartAt,
-		)
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(&sfn.DescribeStateMachineInput{
-				StateMachineArn: aws.String(stateMachineArn),
+			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
+				StateMachineArn: aws.String(c.stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn: aws.String(c.stateMachineArn),
+				Definition:      aws.String(c.stateMachine),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecution(gomock.Any()).
@@ -235,18 +233,13 @@ func TestCreateWorkflow(t *testing.T) {
 		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
-		stateMachineArn := sfnconventions.StateMachineArn(c.manager.region, c.manager.accountID,
-			c.workflowDefinition.Name,
-			c.workflowDefinition.Version,
-			"namespace",
-			c.workflowDefinition.StateMachine.StartAt,
-		)
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(&sfn.DescribeStateMachineInput{
-				StateMachineArn: aws.String(stateMachineArn),
+			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
+				StateMachineArn: aws.String(c.stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn: aws.String(c.stateMachineArn),
+				Definition:      aws.String(c.stateMachine),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecution(gomock.Any()).
@@ -285,19 +278,14 @@ func TestCreateWorkflow(t *testing.T) {
 		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
-		stateMachineArn := sfnconventions.StateMachineArn(c.manager.region, c.manager.accountID,
-			c.workflowDefinition.Name,
-			c.workflowDefinition.Version,
-			"namespace",
-			c.workflowDefinition.StateMachine.StartAt,
-		)
 		awsError := awserr.New("test", "test", errors.New(""))
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(&sfn.DescribeStateMachineInput{
-				StateMachineArn: aws.String(stateMachineArn),
+			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
+				StateMachineArn: aws.String(c.stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn: aws.String(c.stateMachineArn),
+				Definition:      aws.String(c.stateMachine),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecution(gomock.Any()).
@@ -326,18 +314,13 @@ func TestRetryWorkflow(t *testing.T) {
 		defer cancel()
 		c := newSFNManagerTestController(t)
 		defer c.tearDown()
-		stateMachineArn := sfnconventions.StateMachineArn(c.manager.region, c.manager.accountID,
-			c.workflowDefinition.Name,
-			c.workflowDefinition.Version,
-			"namespace",
-			c.workflowDefinition.StateMachine.StartAt,
-		)
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(&sfn.DescribeStateMachineInput{
-				StateMachineArn: aws.String(stateMachineArn),
+			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
+				StateMachineArn: aws.String(c.stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn: aws.String(c.stateMachineArn),
+				Definition:      aws.String(c.stateMachine),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecution(gomock.Any()).
@@ -372,9 +355,10 @@ func TestRetryWorkflow(t *testing.T) {
 		workflow.Status = models.WorkflowStatusFailed
 
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(gomock.Any()).
+			DescribeStateMachineWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn: aws.String(c.stateMachineArn),
+				Definition:      aws.String(c.stateMachine),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecution(gomock.Any()).
@@ -1130,18 +1114,35 @@ func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
 	mockSQSAPI := mocks.NewMockSQSAPI(mockController)
 	store := memory.New()
+	region := "region"
+	accountID := "account"
+	namespace := "namespace"
+	manager := NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, store, "", region, accountID, "")
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
 	require.NoError(t, store.SaveWorkflowDefinition(context.Background(), *workflowDefinition))
 
+	stateMachineArn := sfnconventions.StateMachineArn(region, accountID,
+		workflowDefinition.Name,
+		workflowDefinition.Version,
+		namespace,
+		workflowDefinition.StateMachine.StartAt,
+	)
+	awsStateMachine := stateMachineWithFullActivityARNs(*workflowDefinition.StateMachine, manager.region, manager.accountID, namespace)
+	awsStateMachine = stateMachineWithTaskStateConventions(*awsStateMachine)
+	awsStateMachineDefBytes, err := json.MarshalIndent(awsStateMachine, "", "  ")
+	require.NoError(t, err)
+
 	return &sfnManagerTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, store, "", "", "", ""),
+		manager:            manager,
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
 		mockSQSAPI:         mockSQSAPI,
 		store:              &store,
 		t:                  t,
 		workflowDefinition: workflowDefinition,
+		stateMachine:       string(awsStateMachineDefBytes),
+		stateMachineArn:    stateMachineArn,
 	}
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-openapi/strfmt"
 	"github.com/mohae/deepcopy"
+	errors "golang.org/x/xerrors"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
@@ -118,22 +119,7 @@ func stateMachineWithTaskStateConventions(oldSM models.SLStateMachine) *models.S
 	return &sm
 }
 
-func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
-	describeOutput, err := wm.sfnapi.DescribeStateMachine(&sfn.DescribeStateMachineInput{
-		StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
-	})
-	if err == nil {
-		return describeOutput, nil
-	}
-	awserr, ok := err.(awserr.Error)
-	if !ok {
-		return nil, fmt.Errorf("non-AWS error in findOrCreateStateMachine: %s", err)
-	}
-	if awserr.Code() != sfn.ErrCodeStateMachineDoesNotExist {
-		return nil, fmt.Errorf("unexpected AWS error in findOrCreateStateMachine: %s", awserr)
-	}
-
-	// state machine doesn't exist, create it
+func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
 	awsStateMachine := stateMachineWithFullActivityARNs(*wd.StateMachine, wm.region, wm.accountID, namespace)
 	awsStateMachine = stateMachineWithTaskStateConventions(*awsStateMachine)
 	awsStateMachineDefBytes, err := json.MarshalIndent(awsStateMachine, "", "  ")
@@ -141,20 +127,46 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDef
 		return nil, err
 	}
 	awsStateMachineDef := string(awsStateMachineDefBytes)
-	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
-	// this effectively creates a new workflow definition in each namespace we deploy into
 	awsStateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
-	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
-	_, err = wm.sfnapi.CreateStateMachine(&sfn.CreateStateMachineInput{
-		Name:       aws.String(awsStateMachineName),
-		Definition: aws.String(awsStateMachineDef),
-		RoleArn:    aws.String(wm.roleARN),
+
+	describeOutput, err := wm.sfnapi.DescribeStateMachineWithContext(ctx, &sfn.DescribeStateMachineInput{
+		StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateStateMachine error: %s", err.Error())
+		var aerr awserr.Error
+		if !errors.As(err, &aerr) {
+			return nil, errors.Errorf("non-AWS error in describeOrCreateStateMachine: %s", err)
+		} else if aerr.Code() != sfn.ErrCodeStateMachineDoesNotExist {
+			return nil, errors.Errorf("unexpected AWS error in describeOrCreateStateMachine: %w", aerr)
+		}
+		// state machine does not exist, create it
+		logger.FromContext(ctx).InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
+		_, err = wm.sfnapi.CreateStateMachineWithContext(ctx, &sfn.CreateStateMachineInput{
+			Name:       aws.String(awsStateMachineName),
+			Definition: aws.String(awsStateMachineDef),
+			RoleArn:    aws.String(wm.roleARN),
+		})
+		if err != nil {
+			return nil, errors.Errorf("CreateStateMachine error: %w", err)
+		}
+		return wm.describeOrCreateStateMachine(ctx, wd, namespace, queue)
+	} else if aws.StringValue(describeOutput.Definition) != awsStateMachineDef {
+		// our conventions for defining the state machine from the
+		// workflow definition have changed, so update the state machine
+		logger.FromContext(ctx).InfoD("update-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
+		_, err = wm.sfnapi.UpdateStateMachineWithContext(ctx, &sfn.UpdateStateMachineInput{
+			StateMachineArn: describeOutput.StateMachineArn,
+			Definition:      aws.String(awsStateMachineDef),
+			RoleArn:         aws.String(wm.roleARN),
+		})
+		if err != nil {
+			return nil, errors.Errorf("UpdateStateMachine error: %w", err)
+		}
+		return wm.describeOrCreateStateMachine(ctx, wd, namespace, queue)
 	}
 
-	return wm.describeOrCreateStateMachine(wd, namespace, queue)
+	// state machine exists in its expected form, return it
+	return describeOutput, nil
 }
 
 func (wm *SFNWorkflowManager) startExecution(stateMachineArn *string, workflowID, input string) error {
@@ -193,7 +205,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	queue string,
 	tags map[string]interface{}) (*models.Workflow, error) {
 
-	describeOutput, err := wm.describeOrCreateStateMachine(wd, namespace, queue)
+	describeOutput, err := wm.describeOrCreateStateMachine(ctx, wd, namespace, queue)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +256,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
 	// don't allow resume if workflow is still active
 	if !resources.WorkflowIsDone(&ogWorkflow) {
-		return nil, fmt.Errorf("Workflow %s active: %s", ogWorkflow.ID, ogWorkflow.Status)
+		return nil, errors.Errorf("Workflow %s active: %s", ogWorkflow.ID, ogWorkflow.Status)
 	}
 
 	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
@@ -253,7 +265,7 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 	if err := resources.RemoveInactiveStates(newDef.StateMachine); err != nil {
 		return nil, err
 	}
-	describeOutput, err := wm.describeOrCreateStateMachine(newDef, ogWorkflow.Namespace, ogWorkflow.Queue)
+	describeOutput, err := wm.describeOrCreateStateMachine(ctx, newDef, ogWorkflow.Namespace, ogWorkflow.Queue)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +301,7 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 
 func (wm *SFNWorkflowManager) CancelWorkflow(ctx context.Context, workflow *models.Workflow, reason string) error {
 	if workflow.Status == models.WorkflowStatusSucceeded || workflow.Status == models.WorkflowStatusFailed {
-		return fmt.Errorf("Cancellation not allowed. Workflow %s is %s", workflow.ID, workflow.Status)
+		return errors.Errorf("Cancellation not allowed. Workflow %s is %s", workflow.ID, workflow.Status)
 	}
 
 	wd := workflow.WorkflowDefinition
