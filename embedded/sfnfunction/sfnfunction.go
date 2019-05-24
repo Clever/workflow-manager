@@ -3,12 +3,12 @@ package sfnfunction
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sfn"
+	errors "golang.org/x/xerrors"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
@@ -153,10 +153,16 @@ func (r *Resource) Call(ctx context.Context, input string) Result {
 	logger.FromContext(ctx).AddContext("resource", r.name)
 	out, err := r.fn(ctx, input)
 	if err != nil {
+		var cause string
+		if _, ok := err.(errors.Formatter); ok {
+			cause = fmt.Sprintf("%+v", err)
+		} else {
+			cause = err.Error()
+		}
 		return Result{
 			Failure: &sfn.SendTaskFailureInput{
 				Error: aws.String(getType(err)),
-				Cause: aws.String(err.Error()),
+				Cause: aws.String(cause),
 			},
 		}
 	}

@@ -2,15 +2,14 @@ package embedded
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 
 	"github.com/Clever/workflow-manager/embedded/sfnfunction"
 	"github.com/Clever/workflow-manager/gen-go/client"
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/stretchr/testify/require"
+	errors "golang.org/x/xerrors"
 )
 
 type newWorkflowDefinitionTest struct {
@@ -68,7 +67,7 @@ var newWorkflowDefinitionTests = []newWorkflowDefinitionTest{
 				Comment: "this is a test",
 			},
 		},
-		expected: fmt.Errorf("test-wfd workflow definition already exists"),
+		expected: errors.Errorf("test-wfd workflow definition already exists"),
 	},
 }
 

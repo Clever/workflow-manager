@@ -2,10 +2,10 @@ package embedded
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Clever/workflow-manager/gen-go/client"
 	"github.com/Clever/workflow-manager/gen-go/models"
+	errors "golang.org/x/xerrors"
 )
 
 // ErrNotSupported is returned when the method is not supported.
