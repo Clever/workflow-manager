@@ -140,7 +140,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 			return nil, errors.Errorf("unexpected AWS error in describeOrCreateStateMachine: %w", aerr)
 		}
 		// state machine does not exist, create it
-		logger.FromContext(ctx).InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
+		logger.FromContext(ctx).InfoD("create-state-machine", logger.M{"name": awsStateMachineName})
 		_, err = wm.sfnapi.CreateStateMachineWithContext(ctx, &sfn.CreateStateMachineInput{
 			Name:       aws.String(awsStateMachineName),
 			Definition: aws.String(awsStateMachineDef),
@@ -153,7 +153,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	} else if aws.StringValue(describeOutput.Definition) != awsStateMachineDef {
 		// our conventions for defining the state machine from the
 		// workflow definition have changed, so update the state machine
-		logger.FromContext(ctx).InfoD("update-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
+		logger.FromContext(ctx).InfoD("update-state-machine", logger.M{"name": awsStateMachineName})
 		_, err = wm.sfnapi.UpdateStateMachineWithContext(ctx, &sfn.UpdateStateMachineInput{
 			StateMachineArn: describeOutput.StateMachineArn,
 			Definition:      aws.String(awsStateMachineDef),
