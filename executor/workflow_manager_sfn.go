@@ -106,14 +106,13 @@ func stateMachineWithTaskStateConventions(oldSM models.SLStateMachine) *models.S
 		}
 
 		// set up parameters
-		if state.Type == models.SLStateTypeTask {
-			if state.Parameters == nil {
-				state.Parameters = map[string]interface{}{}
-			}
-			for k, v := range sfnconventions.TaskStateParameters {
-				state.Parameters[k] = v
-			}
+		if state.Parameters == nil {
+			state.Parameters = map[string]interface{}{}
 		}
+		for k, v := range sfnconventions.TaskStateParameters {
+			state.Parameters[k] = v
+		}
+
 		sm.States[stateName] = state
 	}
 	return &sm
