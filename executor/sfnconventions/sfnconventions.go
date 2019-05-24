@@ -88,8 +88,8 @@ var SFNCLICommandTerminatedRetrier = &models.SLRetrier{
 // TaskStateParameters pulls in Context values set by from AWS Step Functions into a Task state's Parameters object.
 // https://docs.aws.amazon.com/step-functions/latest/dg/input-output-contextobject.html
 var TaskStateParameters = map[string]interface{}{
-	"_EXECUTION_NAME":     "$$.Execution.Name",
-	"_EXECUTION_ID":       "$$.Execution.Id",
+	"_EXECUTION_NAME":     "$$.Execution.Name", // convention is to use UUIDs for names (see resources.NewWorkflow)
+	"_EXECUTION_ID":       "$$.Execution.Id",   // the full ARN of the execution
 	"_STATE_NAME":         "$$.State.Name",
 	"_STATE_MACHINE_NAME": "$$.StateMachine.Name",
 	"_TASK_TOKEN":         "$$.Task.Token",
