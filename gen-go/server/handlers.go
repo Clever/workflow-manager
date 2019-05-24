@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/gorilla/mux"
+	"golang.org/x/xerrors"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
@@ -97,6 +99,8 @@ func (h handler) HealthCheckHandler(ctx context.Context, w http.ResponseWriter, 
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForHealthCheck(err)
 		if statusCode == -1 {
@@ -176,6 +180,8 @@ func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWr
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForPostStateResource(err)
 		if statusCode == -1 {
@@ -271,6 +277,8 @@ func (h handler) DeleteStateResourceHandler(ctx context.Context, w http.Response
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForDeleteStateResource(err)
 		if statusCode == -1 {
@@ -386,6 +394,8 @@ func (h handler) GetStateResourceHandler(ctx context.Context, w http.ResponseWri
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForGetStateResource(err)
 		if statusCode == -1 {
@@ -503,6 +513,8 @@ func (h handler) PutStateResourceHandler(ctx context.Context, w http.ResponseWri
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForPutStateResource(err)
 		if statusCode == -1 {
@@ -622,6 +634,8 @@ func (h handler) GetWorkflowDefinitionsHandler(ctx context.Context, w http.Respo
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForGetWorkflowDefinitions(err)
 		if statusCode == -1 {
@@ -709,6 +723,8 @@ func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.Respon
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForNewWorkflowDefinition(err)
 		if statusCode == -1 {
@@ -816,6 +832,8 @@ func (h handler) GetWorkflowDefinitionVersionsByNameHandler(ctx context.Context,
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForGetWorkflowDefinitionVersionsByName(err)
 		if statusCode == -1 {
@@ -938,6 +956,8 @@ func (h handler) UpdateWorkflowDefinitionHandler(ctx context.Context, w http.Res
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForUpdateWorkflowDefinition(err)
 		if statusCode == -1 {
@@ -1056,6 +1076,8 @@ func (h handler) GetWorkflowDefinitionByNameAndVersionHandler(ctx context.Contex
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForGetWorkflowDefinitionByNameAndVersion(err)
 		if statusCode == -1 {
@@ -1185,6 +1207,8 @@ func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter,
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForGetWorkflows(err)
 		if statusCode == -1 {
@@ -1382,6 +1406,8 @@ func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForStartWorkflow(err)
 		if statusCode == -1 {
@@ -1477,6 +1503,8 @@ func (h handler) CancelWorkflowHandler(ctx context.Context, w http.ResponseWrite
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForCancelWorkflow(err)
 		if statusCode == -1 {
@@ -1590,6 +1618,8 @@ func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWrit
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForGetWorkflowByID(err)
 		if statusCode == -1 {
@@ -1681,6 +1711,8 @@ func (h handler) ResumeWorkflowByIDHandler(ctx context.Context, w http.ResponseW
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForResumeWorkflowByID(err)
 		if statusCode == -1 {
@@ -1802,6 +1834,8 @@ func (h handler) ResolveWorkflowByIDHandler(ctx context.Context, w http.Response
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		if btErr, ok := err.(*errors.Error); ok {
 			logger.FromContext(ctx).AddContext("stacktrace", string(btErr.Stack()))
+		} else if xerr, ok := err.(xerrors.Formatter); ok {
+			logger.FromContext(ctx).AddContext("frames", fmt.Sprintf("%+v", xerr))
 		}
 		statusCode := statusCodeForResolveWorkflowByID(err)
 		if statusCode == -1 {

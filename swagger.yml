@@ -671,6 +671,9 @@ definitions:
         type: string
       OutputPath:
         type: string
+      Parameters:
+        additionalProperties:
+          type: object
       ResultPath:
         type: string
       Result:

@@ -17,26 +17,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/mohae/deepcopy"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 const (
-	maxFailureReasonLines   = 3
-	executionEventsPerPage  = 200
-	sfncliCommandTerminated = "sfncli.CommandTerminated"
+	maxFailureReasonLines  = 3
+	executionEventsPerPage = 200
 )
 
 var durationToRetryDescribeExecutions = 5 * time.Minute
 var durationToFetchHistoryPages = time.Minute
-
-var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
-	BackoffRate:     1.0,
-	ErrorEquals:     []models.SLErrorEquals{sfncliCommandTerminated},
-	IntervalSeconds: 10,
-	MaxAttempts:     swag.Int64(10),
-}
 
 // SFNWorkflowManager manages workflows run through AWS Step Functions.
 type SFNWorkflowManager struct {
@@ -81,30 +72,47 @@ func stateMachineWithFullActivityARNs(oldSM models.SLStateMachine, region, accou
 	return &sm
 }
 
-// stateMachineWithDefaultRetriers creates a new state machine that has the following retry properties on every state's retry array:
-// - non-nil. The default serialization of a nil slice is "null", which the AWS API dislikes.
-// - sfncli.CommandTerminated for any Task state. See sfncli: https://github.com/clever/sfncli.
-//   This is to ensure that states are retried on signaled termination of activities (e.g. deploys).
-func stateMachineWithDefaultRetriers(oldSM models.SLStateMachine) *models.SLStateMachine {
+// stateMachineWithTaskStateConventions creates a new state machine that has the following conventions
+// enforced for task states:
+// - retry sfncli.CommandTerminated for any Task state. See sfncli: https://github.com/clever/sfncli.
+//   This is to ensure that states are retried on signaled termination of activities (e.g. deploys or host shutdown).
+// - Parameters to pull in Context from Step Functions: https://docs.aws.amazon.com/step-functions/latest/dg/input-output-contextobject.html
+func stateMachineWithTaskStateConventions(oldSM models.SLStateMachine) *models.SLStateMachine {
 	sm := deepcopy.Copy(oldSM).(models.SLStateMachine)
 	for stateName, s := range sm.States {
 		state := deepcopy.Copy(s).(models.SLState)
+		if state.Type != models.SLStateTypeTask {
+			sm.States[stateName] = state
+			continue
+		}
+
+		// set up retries
 		if state.Retry == nil {
 			state.Retry = []*models.SLRetrier{}
 		}
 		injectRetry := true
 		for _, retry := range state.Retry {
 			for _, errorEquals := range retry.ErrorEquals {
-				if errorEquals == sfncliCommandTerminated {
+				if errorEquals == sfnconventions.SFNCLICommandTerminated {
 					injectRetry = false
 					break
 				}
 			}
 		}
-		if injectRetry && state.Type == models.SLStateTypeTask {
+		if injectRetry {
 			// Add the default retry before user defined ones since Error=States.ALL must
 			// always be the last in the retry list and could be defined in the workflow definition
-			state.Retry = append([]*models.SLRetrier{defaultSFNCLICommandTerminatedRetrier}, state.Retry...)
+			state.Retry = append([]*models.SLRetrier{sfnconventions.SFNCLICommandTerminatedRetrier}, state.Retry...)
+		}
+
+		// set up parameters
+		if state.Type == models.SLStateTypeTask {
+			if state.Parameters == nil {
+				state.Parameters = map[string]interface{}{}
+			}
+			for k, v := range sfnconventions.TaskStateParameters {
+				state.Parameters[k] = v
+			}
 		}
 		sm.States[stateName] = state
 	}
@@ -128,7 +136,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDef
 
 	// state machine doesn't exist, create it
 	awsStateMachine := stateMachineWithFullActivityARNs(*wd.StateMachine, wm.region, wm.accountID, namespace)
-	awsStateMachine = stateMachineWithDefaultRetriers(*awsStateMachine)
+	awsStateMachine = stateMachineWithTaskStateConventions(*awsStateMachine)
 	awsStateMachineDefBytes, err := json.MarshalIndent(awsStateMachine, "", "  ")
 	if err != nil {
 		return nil, err
@@ -159,7 +167,6 @@ func (wm *SFNWorkflowManager) startExecution(stateMachineArn *string, workflowID
 			Message: fmt.Sprintf("input is not a valid JSON object: %s", err),
 		}
 	}
-	inputJSON["_EXECUTION_NAME"] = *executionName
 
 	marshaledInput, err := json.Marshal(inputJSON)
 	if err != nil {

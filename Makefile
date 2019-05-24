@@ -3,6 +3,7 @@ include wag.mk
 
 .PHONY: all test build run dynamodb-test
 SHELL := /bin/bash
+export PATH := $(PWD)/bin:$(PATH)
 APP_NAME ?= workflow-manager
 EXECUTABLE = $(APP_NAME)
 PKG = github.com/Clever/$(APP_NAME)

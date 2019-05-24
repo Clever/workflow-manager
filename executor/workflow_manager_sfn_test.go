@@ -94,7 +94,7 @@ func TestStateMachineWithFullActivityARNs(t *testing.T) {
 	}, smWithFullActivityARNs.States)
 }
 
-func TestStateMachineWithDefaultRetriers(t *testing.T) {
+func TestStateMachineWithTaskStateConventions(t *testing.T) {
 	t.Log("Default Retry is prepended to State.Retry")
 	userRetry := &models.SLRetrier{
 		MaxAttempts: swag.Int64(1),
@@ -108,18 +108,19 @@ func TestStateMachineWithDefaultRetriers(t *testing.T) {
 			},
 		},
 	}
-	smWithRetry := stateMachineWithDefaultRetriers(sm)
+	smWithConventions := stateMachineWithTaskStateConventions(sm)
 	require.Equal(t, map[string]models.SLState{
 		"foostate": models.SLState{
-			Type:  models.SLStateTypeTask,
-			Retry: []*models.SLRetrier{defaultSFNCLICommandTerminatedRetrier, userRetry},
+			Type:       models.SLStateTypeTask,
+			Retry:      []*models.SLRetrier{sfnconventions.SFNCLICommandTerminatedRetrier, userRetry},
+			Parameters: sfnconventions.TaskStateParameters,
 		},
-	}, smWithRetry.States)
+	}, smWithConventions.States)
 
 	t.Log("Ignore Default retry if custom sfncli.CommandTerminated is set")
 	customRetry := &models.SLRetrier{
 		MaxAttempts: swag.Int64(2),
-		ErrorEquals: []models.SLErrorEquals{sfncliCommandTerminated},
+		ErrorEquals: []models.SLErrorEquals{sfnconventions.SFNCLICommandTerminated},
 	}
 	sm = models.SLStateMachine{
 		States: map[string]models.SLState{
@@ -129,13 +130,14 @@ func TestStateMachineWithDefaultRetriers(t *testing.T) {
 			},
 		},
 	}
-	smWithRetry = stateMachineWithDefaultRetriers(sm)
+	smWithConventions = stateMachineWithTaskStateConventions(sm)
 	require.Equal(t, map[string]models.SLState{
 		"foostate": models.SLState{
-			Type:  models.SLStateTypeTask,
-			Retry: []*models.SLRetrier{customRetry},
+			Type:       models.SLStateTypeTask,
+			Retry:      []*models.SLRetrier{customRetry},
+			Parameters: sfnconventions.TaskStateParameters,
 		},
-	}, smWithRetry.States)
+	}, smWithConventions.States)
 }
 
 func TestCreateWorkflow(t *testing.T) {

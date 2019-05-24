@@ -74,6 +74,7 @@ const noRetryPolicy = {
  * Request status log is used to
  * to output the status of a request returned
  * by the client.
+ * @private
  */
 function responseLog(logger, req, res, err) {
   var res = res || { };
@@ -91,6 +92,22 @@ function responseLog(logger, req, res, err) {
   } else {
     logger.infoD("client-request-finished", logData);
   }
+}
+
+/**
+ * Takes a promise and uses the provided callback (if any) to handle promise
+ * resolutions and rejections
+ * @private
+ */
+function applyCallback(promise, cb) {
+  if (!cb) {
+    return promise;
+  }
+  return promise.then((result) => {
+    cb(null, result);
+  }).catch((err) => {
+    cb(err);
+  });
 }
 
 /**
@@ -247,31 +264,21 @@ class WorkflowManager {
    * @reject {Error}
    */
   healthCheck(options, cb) {
-    return this._hystrixCommand.execute(this._healthCheck, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._healthCheck, arguments), callback);
   }
+
   _healthCheck(options, cb) {
     const params = {};
 
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -291,7 +298,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "GET",
         uri: this.address + "/_health",
         json: true,
@@ -321,31 +328,31 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver();
+              resolve();
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -367,32 +374,22 @@ class WorkflowManager {
    * @reject {Error}
    */
   postStateResource(NewStateResource, options, cb) {
-    return this._hystrixCommand.execute(this._postStateResource, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._postStateResource, arguments), callback);
   }
+
   _postStateResource(NewStateResource, options, cb) {
     const params = {};
     params["NewStateResource"] = NewStateResource;
 
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -412,7 +409,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "POST",
         uri: this.address + "/state-resources",
         json: true,
@@ -444,31 +441,31 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 201:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -493,29 +490,19 @@ class WorkflowManager {
    * @reject {Error}
    */
   deleteStateResource(params, options, cb) {
-    return this._hystrixCommand.execute(this._deleteStateResource, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._deleteStateResource, arguments), callback);
   }
+
   _deleteStateResource(params, options, cb) {
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -526,11 +513,11 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.namespace) {
-        rejecter(new Error("namespace must be non-empty because it's a path parameter"));
+        reject(new Error("namespace must be non-empty because it's a path parameter"));
         return;
       }
       if (!params.name) {
-        rejecter(new Error("name must be non-empty because it's a path parameter"));
+        reject(new Error("name must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -543,7 +530,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "DELETE",
         uri: this.address + "/state-resources/" + params.namespace + "/" + params.name + "",
         json: true,
@@ -573,37 +560,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver();
+              resolve();
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -628,29 +615,19 @@ class WorkflowManager {
    * @reject {Error}
    */
   getStateResource(params, options, cb) {
-    return this._hystrixCommand.execute(this._getStateResource, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._getStateResource, arguments), callback);
   }
+
   _getStateResource(params, options, cb) {
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -661,11 +638,11 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.namespace) {
-        rejecter(new Error("namespace must be non-empty because it's a path parameter"));
+        reject(new Error("namespace must be non-empty because it's a path parameter"));
         return;
       }
       if (!params.name) {
-        rejecter(new Error("name must be non-empty because it's a path parameter"));
+        reject(new Error("name must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -678,7 +655,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "GET",
         uri: this.address + "/state-resources/" + params.namespace + "/" + params.name + "",
         json: true,
@@ -708,37 +685,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -763,29 +740,19 @@ class WorkflowManager {
    * @reject {Error}
    */
   putStateResource(params, options, cb) {
-    return this._hystrixCommand.execute(this._putStateResource, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._putStateResource, arguments), callback);
   }
+
   _putStateResource(params, options, cb) {
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -796,11 +763,11 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.namespace) {
-        rejecter(new Error("namespace must be non-empty because it's a path parameter"));
+        reject(new Error("namespace must be non-empty because it's a path parameter"));
         return;
       }
       if (!params.name) {
-        rejecter(new Error("name must be non-empty because it's a path parameter"));
+        reject(new Error("name must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -813,7 +780,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "PUT",
         uri: this.address + "/state-resources/" + params.namespace + "/" + params.name + "",
         json: true,
@@ -845,31 +812,31 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 201:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -891,31 +858,21 @@ class WorkflowManager {
    * @reject {Error}
    */
   getWorkflowDefinitions(options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflowDefinitions, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._getWorkflowDefinitions, arguments), callback);
   }
+
   _getWorkflowDefinitions(options, cb) {
     const params = {};
 
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -935,7 +892,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "GET",
         uri: this.address + "/workflow-definitions",
         json: true,
@@ -965,31 +922,31 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -1011,32 +968,22 @@ class WorkflowManager {
    * @reject {Error}
    */
   newWorkflowDefinition(NewWorkflowDefinitionRequest, options, cb) {
-    return this._hystrixCommand.execute(this._newWorkflowDefinition, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._newWorkflowDefinition, arguments), callback);
   }
+
   _newWorkflowDefinition(NewWorkflowDefinitionRequest, options, cb) {
     const params = {};
     params["NewWorkflowDefinitionRequest"] = NewWorkflowDefinitionRequest;
 
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -1056,7 +1003,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "POST",
         uri: this.address + "/workflow-definitions",
         json: true,
@@ -1088,31 +1035,31 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 201:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -1137,29 +1084,19 @@ class WorkflowManager {
    * @reject {Error}
    */
   getWorkflowDefinitionVersionsByName(params, options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflowDefinitionVersionsByName, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._getWorkflowDefinitionVersionsByName, arguments), callback);
   }
+
   _getWorkflowDefinitionVersionsByName(params, options, cb) {
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -1170,7 +1107,7 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.name) {
-        rejecter(new Error("name must be non-empty because it's a path parameter"));
+        reject(new Error("name must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -1187,7 +1124,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "GET",
         uri: this.address + "/workflow-definitions/" + params.name + "",
         json: true,
@@ -1217,37 +1154,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -1272,29 +1209,19 @@ class WorkflowManager {
    * @reject {Error}
    */
   updateWorkflowDefinition(params, options, cb) {
-    return this._hystrixCommand.execute(this._updateWorkflowDefinition, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._updateWorkflowDefinition, arguments), callback);
   }
+
   _updateWorkflowDefinition(params, options, cb) {
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -1305,7 +1232,7 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.name) {
-        rejecter(new Error("name must be non-empty because it's a path parameter"));
+        reject(new Error("name must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -1318,7 +1245,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "PUT",
         uri: this.address + "/workflow-definitions/" + params.name + "",
         json: true,
@@ -1350,37 +1277,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 201:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -1405,29 +1332,19 @@ class WorkflowManager {
    * @reject {Error}
    */
   getWorkflowDefinitionByNameAndVersion(params, options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflowDefinitionByNameAndVersion, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._getWorkflowDefinitionByNameAndVersion, arguments), callback);
   }
+
   _getWorkflowDefinitionByNameAndVersion(params, options, cb) {
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -1438,11 +1355,11 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.name) {
-        rejecter(new Error("name must be non-empty because it's a path parameter"));
+        reject(new Error("name must be non-empty because it's a path parameter"));
         return;
       }
       if (!params.version) {
-        rejecter(new Error("version must be non-empty because it's a path parameter"));
+        reject(new Error("version must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -1455,7 +1372,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "GET",
         uri: this.address + "/workflow-definitions/" + params.name + "/" + params.version + "",
         json: true,
@@ -1485,37 +1402,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -1545,29 +1462,19 @@ class WorkflowManager {
    * @reject {Error}
    */
   getWorkflows(params, options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflows, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._getWorkflows, arguments), callback);
   }
+
   _getWorkflows(params, options, cb) {
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -1613,7 +1520,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows",
         json: true,
@@ -1643,37 +1550,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -1701,21 +1608,7 @@ class WorkflowManager {
    * @returns {function} iter.forEach - takes in a function, applies it to each resource
    */
   getWorkflowsIter(params, options) {
-    const it = (f, saveResults, cb) => new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
+    const it = (f, saveResults) => new Promise((resolve, reject) => {
       if (!options) {
         options = {};
       }
@@ -1760,7 +1653,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows",
         json: true,
@@ -1848,22 +1741,22 @@ class WorkflowManager {
         },
         err => {
           if (err) {
-            rejecter(err);
+            reject(err);
             return;
           }
           if (saveResults) {
-            resolver(results);
+            resolve(results);
           } else {
-            resolver();
+            resolve();
           }
         }
       );
     });
 
     return {
-      map: (f, cb) => this._hystrixCommand.execute(it, [f, true, cb]),
-      toArray: cb => this._hystrixCommand.execute(it, [x => x, true, cb]),
-      forEach: (f, cb) => this._hystrixCommand.execute(it, [f, false, cb]),
+      map: (f, cb) => applyCallback(this._hystrixCommand.execute(it, [f, true]), cb),
+      toArray: cb => applyCallback(this._hystrixCommand.execute(it, [x => x, true]), cb),
+      forEach: (f, cb) => applyCallback(this._hystrixCommand.execute(it, [f, false]), cb),
     };
   }
 
@@ -1882,32 +1775,22 @@ class WorkflowManager {
    * @reject {Error}
    */
   startWorkflow(StartWorkflowRequest, options, cb) {
-    return this._hystrixCommand.execute(this._startWorkflow, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._startWorkflow, arguments), callback);
   }
+
   _startWorkflow(StartWorkflowRequest, options, cb) {
     const params = {};
     params["StartWorkflowRequest"] = StartWorkflowRequest;
 
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -1927,7 +1810,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "POST",
         uri: this.address + "/workflows",
         json: true,
@@ -1959,37 +1842,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -2014,29 +1897,19 @@ class WorkflowManager {
    * @reject {Error}
    */
   CancelWorkflow(params, options, cb) {
-    return this._hystrixCommand.execute(this._CancelWorkflow, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._CancelWorkflow, arguments), callback);
   }
+
   _CancelWorkflow(params, options, cb) {
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -2047,7 +1920,7 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.workflowID) {
-        rejecter(new Error("workflowID must be non-empty because it's a path parameter"));
+        reject(new Error("workflowID must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -2060,7 +1933,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "DELETE",
         uri: this.address + "/workflows/" + params.workflowID + "",
         json: true,
@@ -2092,37 +1965,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver();
+              resolve();
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -2145,32 +2018,22 @@ class WorkflowManager {
    * @reject {Error}
    */
   getWorkflowByID(workflowID, options, cb) {
-    return this._hystrixCommand.execute(this._getWorkflowByID, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._getWorkflowByID, arguments), callback);
   }
+
   _getWorkflowByID(workflowID, options, cb) {
     const params = {};
     params["workflowID"] = workflowID;
 
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -2181,7 +2044,7 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.workflowID) {
-        rejecter(new Error("workflowID must be non-empty because it's a path parameter"));
+        reject(new Error("workflowID must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -2194,7 +2057,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows/" + params.workflowID + "",
         json: true,
@@ -2224,37 +2087,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -2279,29 +2142,19 @@ class WorkflowManager {
    * @reject {Error}
    */
   resumeWorkflowByID(params, options, cb) {
-    return this._hystrixCommand.execute(this._resumeWorkflowByID, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._resumeWorkflowByID, arguments), callback);
   }
+
   _resumeWorkflowByID(params, options, cb) {
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -2312,7 +2165,7 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.workflowID) {
-        rejecter(new Error("workflowID must be non-empty because it's a path parameter"));
+        reject(new Error("workflowID must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -2325,7 +2178,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "POST",
         uri: this.address + "/workflows/" + params.workflowID + "",
         json: true,
@@ -2357,37 +2210,37 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 200:
-              resolver(body);
+              resolve(body);
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });
@@ -2411,32 +2264,22 @@ class WorkflowManager {
    * @reject {Error}
    */
   resolveWorkflowByID(workflowID, options, cb) {
-    return this._hystrixCommand.execute(this._resolveWorkflowByID, arguments);
+    let callback = cb;
+    if (!cb && typeof options === "function") {
+      callback = options;
+    }
+    return applyCallback(this._hystrixCommand.execute(this._resolveWorkflowByID, arguments), callback);
   }
+
   _resolveWorkflowByID(workflowID, options, cb) {
     const params = {};
     params["workflowID"] = workflowID;
 
     if (!cb && typeof options === "function") {
-      cb = options;
       options = undefined;
     }
 
     return new Promise((resolve, reject) => {
-      const rejecter = (err) => {
-        reject(err);
-        if (cb) {
-          cb(err);
-        }
-      };
-      const resolver = (data) => {
-        resolve(data);
-        if (cb) {
-          cb(null, data);
-        }
-      };
-
-
       if (!options) {
         options = {};
       }
@@ -2447,7 +2290,7 @@ class WorkflowManager {
 
       const headers = {};
       if (!params.workflowID) {
-        rejecter(new Error("workflowID must be non-empty because it's a path parameter"));
+        reject(new Error("workflowID must be non-empty because it's a path parameter"));
         return;
       }
 
@@ -2460,7 +2303,7 @@ class WorkflowManager {
         span.setTag("span.kind", "client");
       }
 
-	  const requestOptions = {
+      const requestOptions = {
         method: "POST",
         uri: this.address + "/workflows/" + params.workflowID + "/resolved",
         json: true,
@@ -2490,43 +2333,43 @@ class WorkflowManager {
           if (err) {
             err._fromRequest = true;
             responseLog(logger, requestOptions, response, err)
-            rejecter(err);
+            reject(err);
             return;
           }
 
           switch (response.statusCode) {
             case 201:
-              resolver();
+              resolve();
               break;
             
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 409:
               var err = new Errors.Conflict(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
             
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
-              rejecter(err);
+              reject(err);
               return;
           }
         });

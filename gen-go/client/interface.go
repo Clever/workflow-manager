@@ -6,7 +6,7 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 )
 
-//go:generate $GOPATH/bin/mockgen -source=$GOFILE -destination=mock_client.go -package=client
+//go:generate mockgen -source=$GOFILE -destination=mock_client.go -package=client
 
 // Client defines the methods available to clients of the workflow-manager service.
 type Client interface {
