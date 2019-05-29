@@ -216,9 +216,9 @@ func (h Handler) GetWorkflows(
 	ctx context.Context,
 	input *models.GetWorkflowsInput,
 ) ([]models.Workflow, string, error) {
-	indexName := "workflow-manager-prod-v3-workflows"
+	indexName := "workflows"
 	if h.deployEnv != "production" {
-		indexName = "clever-dev-workflow-manager-dev-v3-workflows"
+		indexName = "clever-dev-workflows"
 	}
 	req := []func(*esapi.SearchRequest){
 		h.es.Search.WithContext(context.Background()),
