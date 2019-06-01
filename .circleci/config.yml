@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/Clever/workflow-manager
     docker:
-    - image: circleci/golang:1.12-stretch # circleci/golang:1.10-node
+    - image: circleci/golang:1.12-stretch-node
     steps:
     - checkout
     - setup_remote_docker
