@@ -18,7 +18,7 @@ func New(sfnapi sfniface.SFNAPI) (sfniface.SFNAPI, error) {
 		return nil, err
 	}
 	return &SFNCache{
-		SFNAPI: sfnapi,
+		SFNAPI:                    sfnapi,
 		describeStateMachineCache: describeStateMachineCache,
 	}, nil
 }

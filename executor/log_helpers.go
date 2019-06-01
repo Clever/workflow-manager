@@ -42,7 +42,7 @@ func logWorkflowStatusChange(workflow *models.Workflow, previousStatus models.Wo
 
 func logPendingWorkflowUpdateLag(wf models.Workflow) {
 	log.TraceD("pending-workflow-update-lag", logger.M{
-		"id": wf.ID,
+		"id":                      wf.ID,
 		"update-loop-lag-seconds": int(time.Now().Sub(time.Time(wf.LastUpdated)) / time.Second),
 	})
 }
