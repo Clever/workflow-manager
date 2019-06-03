@@ -485,11 +485,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:14cb1d4240bcbbf1386ae763957e04e2765ec4e4ce7bb2769d05fa6faccd774e"
+  digest = "1:9522af4be529c108010f95b05f1022cb872f2b9ff8b101080f554245673466e1"
   name = "golang.org/x/time"
   packages = ["rate"]
   pruneopts = ""
-  revision = "85acf8d2951cb2a3bde7632f9ff273ef0379bcbd"
+  revision = "9d24e82272b4f38b78bc8cff74fa936d31ccd8ef"
 
 [[projects]]
   branch = "master"
