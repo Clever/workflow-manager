@@ -67,7 +67,7 @@ ignored = ["github.com/elastic/go-elasticsearch", "github.com/elastic/go-elastic
 
 [[constraint]]
   name = "gopkg.in/Clever/kayvee-go.v6"
-  version = "^6.15.0"
+  version = "^6.17.0"
 
 [[constraint]]
   name = "gopkg.in/tylerb/graceful.v1"
