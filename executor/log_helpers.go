@@ -3,6 +3,7 @@ package executor
 import (
 	"time"
 
+	counter "github.com/Clever/aws-sdk-go-counter"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
@@ -47,10 +48,10 @@ func logPendingWorkflowUpdateLag(wf models.Workflow) {
 	})
 }
 
-func LogSFNCounts(sfnCounters map[string]int64) {
-	for k, v := range sfnCounters {
+func LogSFNCounts(sfnCounters []counter.ServiceCount) {
+	for _, v := range sfnCounters {
 		log.TraceD("aws-sdk-go-counter", logger.M{
-			"app": "workflow-manager", "value": v, "aws-operation": k, "aws-service": "sfn",
+			"app": "workflow-manager", "value": v.Count, "aws-operation": v.Operation, "aws-service": v.Service,
 		})
 	}
 }

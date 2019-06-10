@@ -17,7 +17,7 @@ import (
 	elasticsearch "github.com/elastic/go-elasticsearch/v6"
 	"github.com/kardianos/osext"
 
-	"github.com/Clever/aws-sdk-go-counter/counter/sfncounter"
+	counter "github.com/Clever/aws-sdk-go-counter"
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/sfncache"
 	"github.com/Clever/workflow-manager/gen-go/server"
@@ -81,8 +81,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	sfnapi := sfn.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion))
-	countedSFNAPI := sfncounter.New(sfnapi)
+	sfnsess := session.New()
+	counter := counter.New()
+	sfnsess.Handlers.Send.PushFront(counter.SessionHandler)
+	countedSFNAPI := sfn.New(sfnsess, aws.NewConfig().WithRegion(c.SFNRegion))
 	cachedSFNAPI, err := sfncache.New(countedSFNAPI)
 	if err != nil {
 		log.Fatal(err)
@@ -118,7 +120,7 @@ func main() {
 	})
 
 	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db, sqsapi, c.SQSQueueURL)
-	go logSFNCounts(countedSFNAPI)
+	go logSFNCounts(counter)
 
 	if err := s.Serve(); err != nil {
 		log.Fatal(err)
@@ -177,7 +179,7 @@ func getEnvVarOrDefault(envVarName, defaultIfEmpty string) string {
 	return value
 }
 
-func logSFNCounts(sfnCounter *sfncounter.SFN) {
+func logSFNCounts(sfnCounter *counter.Counter) {
 	ticker := time.NewTicker(30 * time.Second)
 	for range ticker.C {
 		executor.LogSFNCounts(sfnCounter.Counters())
