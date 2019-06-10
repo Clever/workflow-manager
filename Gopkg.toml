@@ -5,7 +5,7 @@ ignored = ["github.com/elastic/go-elasticsearch", "github.com/elastic/go-elastic
 
 [[constraint]]
   name = "github.com/Clever/aws-sdk-go-counter"
-  revision = "6cdff7b1a4b593eafacf9c31ece8a830136f4125"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/Clever/discovery-go"

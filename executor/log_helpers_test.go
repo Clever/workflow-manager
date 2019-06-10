@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	counter "github.com/Clever/aws-sdk-go-counter"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
@@ -37,9 +38,17 @@ func TestRoutingRules(t *testing.T) {
 	t.Run("aws-sdk-go-counter", func(t *testing.T) {
 		mocklog := logger.NewMockCountLogger("workflow-manager")
 		log = mocklog
-		LogSFNCounts(map[string]int64{
-			"GetExecutionHistory": 100,
-			"DescribeExecution":   200,
+		LogSFNCounts([]counter.ServiceCount{
+			{
+				Service:   "sfn",
+				Operation: "GetExecutionHistory",
+				Count:     100,
+			},
+			{
+				Service:   "sfn",
+				Operation: "DescribeExecution",
+				Count:     200,
+			},
 		})
 		counts := mocklog.RuleCounts()
 		assert.Equal(t, 1, len(counts))
