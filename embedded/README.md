@@ -19,6 +19,35 @@ When defining `Task` states, the only allowed `Resource` is a reference to a Go 
 
 Workflow definitions are loaded from a YAML file at runtime.
 
+### Callback states
+
+Embedded workflow manager supports [callbacks](https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html#connect-wait-token). It works by
+- automatically creating a queue + dynamodb table for receving and storing task tokens.
+- when defining a state machine, create an SQS callback state that contains the
+  task token and a unique, application-specific key:
+
+    ```
+    Resource: arn:aws:states:::sqs:sendMessage.waitForTaskToken
+    HeartbeatSeconds: 600
+    Parameters:
+      MessageBody:
+        TaskToken.$: "$$.Task.Token"
+        TaskKey: "$.TaskKey"
+    ```
+- use the `NewWithCallbacks` constructor to construct an embedded workflow
+  manager object, which will return a `CallbackTaskFinalizer` interface for finishing
+  asynchronous tasks:
+
+    ```go
+type CallbackTaskFinalizer interface {
+	Failure(taskKey string, err error) error
+	Success(taskKey string, result interface{}) error
+}
+    ```
+    This interface can be passed to and used by any code that needs to finalize
+    a callback task.
+
+
 ## Limitations
 
 ### Sync and search

@@ -148,24 +148,25 @@ func getType(myvar interface{}) string {
 	return t.Name()
 }
 
-// Call the function.
-func (r *Resource) Call(ctx context.Context, input string) Result {
-	logger.FromContext(ctx).AddContext("resource", r.name)
-	out, err := r.fn(ctx, input)
-	if err != nil {
-		var cause string
-		if _, ok := err.(errors.Formatter); ok {
-			cause = fmt.Sprintf("%+v", err)
-		} else {
-			cause = err.Error()
-		}
-		return Result{
-			Failure: &sfn.SendTaskFailureInput{
-				Error: aws.String(getType(err)),
-				Cause: aws.String(cause),
-			},
-		}
+// EncodeTaskFailure turns error return values into SendTaskFailureInput objects.
+func EncodeTaskFailure(err error) Result {
+	var cause string
+	if _, ok := err.(errors.Formatter); ok {
+		cause = fmt.Sprintf("%+v", err)
+	} else {
+		cause = err.Error()
 	}
+	return Result{
+		Failure: &sfn.SendTaskFailureInput{
+			Error: aws.String(getType(err)),
+			Cause: aws.String(cause),
+		},
+	}
+}
+
+// EncodeTaskSuccess turns successful output into SendTaskSuccessInput objects.
+// It will fail on json errors.
+func EncodeTaskSuccess(out interface{}) Result {
 	output := "{}"
 	if out != nil {
 		bs, err := json.Marshal(out)
@@ -184,4 +185,14 @@ func (r *Resource) Call(ctx context.Context, input string) Result {
 			Output: aws.String(output),
 		},
 	}
+}
+
+// Call the function.
+func (r *Resource) Call(ctx context.Context, input string) Result {
+	logger.FromContext(ctx).AddContext("resource", r.name)
+	out, err := r.fn(ctx, input)
+	if err != nil {
+		return EncodeTaskFailure(err)
+	}
+	return EncodeTaskSuccess(out)
 }
