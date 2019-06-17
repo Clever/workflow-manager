@@ -123,6 +123,8 @@ func New(config *Config) (*Embedded, error) {
 
 const lettersAndNumbers = "abcdefghijklmnopqrstuvwxyz0123456789"
 
+const sqsServiceCallbackResource = "arn:aws:states:::sqs:sendMessage.waitForTaskToken"
+
 func randString(n int) string {
 	b := make([]byte, n)
 	for i := range b {
@@ -176,7 +178,8 @@ func validateWorkflowDefinitionStates(wfd models.WorkflowDefinition, resources m
 			if state.Resource == "" {
 				return errors.Errorf("must specify resource for task in %s.%s", wfd.Name, stateName)
 			}
-			if _, ok := resources[state.Resource]; !ok {
+			callbackState := sqsServiceCallbackResource == state.Resource
+			if _, ok := resources[state.Resource]; !ok && !callbackState {
 				return errors.Errorf("unknown resource '%s' in %s.%s", state.Resource, wfd.Name, stateName)
 			}
 		case models.SLStateTypePass:
@@ -318,8 +321,19 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 		if state.Type != models.SLStateTypeTask {
 			continue
 		}
-		state.Resource = sfnconventions.EmbeddedResourceArn(state.Resource, e.sfnRegion, e.sfnAccountID, i.Namespace, e.app)
+		if sqsServiceCallbackResource == state.Resource {
+			state.Parameters = map[string]interface{}{
+				"QueueUrl": sqsQueueURL(e.sfnRegion, e.sfnAccountID, sqsQueueName(e.environment, e.app)),
+				"MessageBody": map[string]interface{}{
+					"TaskToken.$": "$$.Task.Token",
+					"TaskKey":     "$.TaskKey",
+				},
+			}
+		} else {
+			state.Resource = sfnconventions.EmbeddedResourceArn(state.Resource, e.sfnRegion, e.sfnAccountID, i.Namespace, e.app)
+		}
 		stateMachine.States[stateName] = state
+
 	}
 	stateMachineDefBytes, err := json.MarshalIndent(stateMachine, "", "  ")
 	if err != nil {

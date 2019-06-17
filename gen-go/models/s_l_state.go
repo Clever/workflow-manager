@@ -51,6 +51,9 @@ type SLState struct {
 	// output path
 	OutputPath string `json:"OutputPath,omitempty"`
 
+	// parameters
+	Parameters map[string]interface{} `json:"Parameters,omitempty"`
+
 	// resource
 	Resource string `json:"Resource,omitempty"`
 

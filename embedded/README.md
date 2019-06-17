@@ -27,6 +27,7 @@ Embedded workflow manager supports [callbacks](https://docs.aws.amazon.com/step-
   task token and a unique, application-specific key:
 
     ```
+    Type: Task
     Resource: arn:aws:states:::sqs:sendMessage.waitForTaskToken
     HeartbeatSeconds: 600
     Parameters:

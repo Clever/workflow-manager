@@ -700,6 +700,9 @@ definitions:
         type: string
       Cause:
         type: string
+      Parameters:
+        additionalProperties:
+          type: object
       # The below properties apply to `Wait` states
       # http://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-wait-state.html
       Seconds:

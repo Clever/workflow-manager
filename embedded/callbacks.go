@@ -8,7 +8,9 @@ package embedded
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -18,7 +20,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"golang.org/x/time/rate"
 	errors "golang.org/x/xerrors"
+	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // CallbackTaskFinalizer finishes tasks asynchronously.
@@ -26,6 +30,95 @@ type CallbackTaskFinalizer interface {
 	Failure(taskKey string, err error) error
 	Success(taskKey string, result interface{}) error
 	QueueURL() string
+}
+
+type finalizer struct {
+	sqsAPI      sqsiface.SQSAPI
+	sqsQueueURL string
+	ddbAPI      dynamodbiface.DynamoDBAPI
+	ddbTable    string
+	sfnAPI      sfniface.SFNAPI
+}
+
+var _ CallbackTaskFinalizer = &finalizer{}
+
+func (f *finalizer) Failure(taskKey string, err error) error {
+	return nil
+}
+func (f *finalizer) Success(taskKey string, result interface{}) error {
+	return nil
+}
+func (f *finalizer) QueueURL() string {
+	return f.sqsQueueURL
+}
+
+type sqsMessageBody struct {
+	TaskToken string `json:"TaskToken"`
+	TaskKey   string `json:"TaskKey"`
+}
+
+func (f *finalizer) poll(ctx context.Context) error {
+	consecutiveReceiveErrors := 0
+	receiveLimiter := rate.NewLimiter(rate.Every(50*time.Millisecond), 1)
+	logger.FromContext(ctx).InfoD("ewfm-sqs-poll-start", logger.M{"queue": f.sqsQueueURL})
+	for {
+		select {
+		case <-ctx.Done():
+			logger.FromContext(ctx).Info("ewfm-sqs-poll-done")
+			return nil
+		default:
+			receiveLimiter.Wait(ctx)
+			out, err := f.sqsAPI.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
+				MaxNumberOfMessages: aws.Int64(1),
+				QueueUrl:            aws.String(f.sqsQueueURL),
+				WaitTimeSeconds:     aws.Int64(10),
+			})
+			if err != nil {
+				err = errors.Errorf("ReceiveMessage: %v", err)
+				logger.FromContext(ctx).ErrorD("ewfm-sqs-error", logger.M{
+					"error": err,
+				})
+				consecutiveReceiveErrors++
+				// if erroring consistently, a receivemessage error is considered terminal
+				if consecutiveReceiveErrors == 10 {
+					return err
+				}
+				continue
+			}
+			consecutiveReceiveErrors = 0
+			if len(out.Messages) > 1 {
+				return errors.Errorf("received %d messages, expected at most 1", len(out.Messages))
+			} else if len(out.Messages) == 0 {
+				continue
+			}
+			msg := out.Messages[0]
+			var msgBody sqsMessageBody
+			if err := json.Unmarshal([]byte(aws.StringValue(msg.Body)), &msgBody); err != nil {
+				logger.FromContext(ctx).ErrorD("ewfm-sqs-error", logger.M{
+					"error": errors.Errorf("Unmarshal: %v", err),
+				})
+				continue
+			}
+
+			// save the message in ddb
+			logger.FromContext(ctx).ErrorD("ewfm-TODO-SAVE", logger.M{
+				"msg": aws.StringValue(msg.Body),
+			})
+			//if, err := f.ddbAPI.PutItemWithContext(ctx, dynamodb.PutItemInput{
+			//}); err != nil {
+
+			if _, err := f.sqsAPI.DeleteMessageWithContext(ctx, &sqs.DeleteMessageInput{
+				QueueUrl:      aws.String(f.sqsQueueURL),
+				ReceiptHandle: msg.ReceiptHandle,
+			}); err != nil {
+				logger.FromContext(ctx).ErrorD("ewfm-sqs-error", logger.M{
+					"body":  msgBody,
+					"error": errors.Errorf("DeleteMessage: %v", err),
+				})
+				continue
+			}
+		}
+	}
 }
 
 // NewWithCallbacks returns a client to an embedded workflow manager.
@@ -66,7 +159,7 @@ func newFinalizer(
 		sfnAPI: sfnAPI,
 	}
 
-	//go f.poll(ctx)
+	go f.poll(ctx)
 	return f, nil
 }
 
@@ -75,12 +168,12 @@ func sqsQueueName(env, app string) string {
 }
 
 func sqsQueueURL(region, account, queueName string) string {
-	return fmt.Sprintf("https://%s.queue.amazonaws.com/%s/%s", region, account, queueName)
+	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", region, account, queueName)
 }
 
 //	ddbTableName := fmt.Sprintf("%s--%s-callbacks", config.Environment, config.App)
 func ensureSQSQueueForCallbacks(ctx context.Context, sqsAPI sqsiface.SQSAPI, config *Config) error {
-	// 	sourceArnLike := []string{}
+	//sourceArnLike := []string{fmt.Sprintf("arn:aws:sns:*:%s:*", account))}
 	// 	for _, account := range accounts {
 	// 		sourceArnLike = append(sourceArnLike, fmt.Sprintf("arn:aws:sns:*:%s:*", account))
 	// 	}
@@ -118,6 +211,14 @@ func ensureSQSQueueForCallbacks(ctx context.Context, sqsAPI sqsiface.SQSAPI, con
 	}); err != nil && !awsErr(err, sqs.ErrCodeQueueNameExists) {
 		return errors.Errorf("CreateQueue(%s): %v", dlQueueName, err)
 	}
+	// if _, err := sqsAPI.SetQueueAttributesWithContext(ctx, &sqs.SetQueueAttributesInput{
+	// 	Attributes: map[string]*string{
+	// 		"Policy": "",
+	// 	},
+	// 	QueueUrl *string `type:"string" required:"true"`
+	// }); err != nil {
+
+	// }
 	// queue exists, get its ARN
 	out, err := sqsAPI.GetQueueAttributesWithContext(ctx, &sqs.GetQueueAttributesInput{
 		AttributeNames: []*string{aws.String("QueueArn")},
@@ -137,24 +238,4 @@ func ensureSQSQueueForCallbacks(ctx context.Context, sqsAPI sqsiface.SQSAPI, con
 	}
 
 	return nil
-}
-
-type finalizer struct {
-	sqsAPI      sqsiface.SQSAPI
-	sqsQueueURL string
-	ddbAPI      dynamodbiface.DynamoDBAPI
-	ddbTable    string
-	sfnAPI      sfniface.SFNAPI
-}
-
-var _ CallbackTaskFinalizer = &finalizer{}
-
-func (f *finalizer) Failure(taskKey string, err error) error {
-	return nil
-}
-func (f *finalizer) Success(taskKey string, result interface{}) error {
-	return nil
-}
-func (f *finalizer) QueueURL() string {
-	return f.sqsQueueURL
 }

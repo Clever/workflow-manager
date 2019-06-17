@@ -1,0 +1,20 @@
+- name: hello-world-callback
+  version: -1
+  stateMachine:
+    Version: '1.0'
+    StartAt: hello
+    TimeoutSeconds: 60
+    States:
+      hello:
+        Next: world
+        Resource: first
+        Type: Task
+      world:
+        Type: Task
+        Resource: arn:aws:states:::sqs:sendMessage.waitForTaskToken
+        HeartbeatSeconds: 600
+        Parameters:
+          MessageBody:
+            TaskToken.$: "$$.Task.Token"
+            TaskKey: "$.TaskKey"
+        End: true
