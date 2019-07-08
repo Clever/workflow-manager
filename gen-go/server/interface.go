@@ -6,7 +6,7 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 )
 
-//go:generate $GOPATH/bin/mockgen -source=$GOFILE -destination=mock_controller.go -package=server
+//go:generate mockgen -source=$GOFILE -destination=mock_controller.go -package=server
 
 // Controller defines the interface for the workflow-manager service.
 type Controller interface {

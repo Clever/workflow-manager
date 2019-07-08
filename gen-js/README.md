@@ -1,21 +1,3 @@
-## Modules
-
-<dl>
-<dt><a href="#module_workflow-manager">workflow-manager</a></dt>
-<dd><p>workflow-manager client library.</p>
-</dd>
-</dl>
-
-## Functions
-
-<dl>
-<dt><a href="#responseLog">responseLog()</a></dt>
-<dd><p>Request status log is used to
-to output the status of a request returned
-by the client.</p>
-</dd>
-</dl>
-
 <a name="module_workflow-manager"></a>
 
 ## workflow-manager
@@ -531,11 +513,3 @@ Conflict
 Default circuit breaker options.
 
 **Kind**: static constant of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
-<a name="responseLog"></a>
-
-## responseLog()
-Request status log is used to
-to output the status of a request returned
-by the client.
-
-**Kind**: global function  
