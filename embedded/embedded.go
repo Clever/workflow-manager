@@ -288,6 +288,25 @@ func (e *Embedded) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInput
 	return wfs, nil
 }
 
+func (e *Embedded) setStateMachineResources(i *models.StartWorkflowRequest, stateMachine *models.SLStateMachine) {
+	for stateName, s := range stateMachine.States {
+		state := deepcopy.Copy(s).(models.SLState)
+		switch state.Type {
+		case models.SLStateTypeTask:
+			state.Resource = sfnconventions.EmbeddedResourceArn(state.Resource, e.sfnRegion, e.sfnAccountID, i.Namespace, e.app)
+			stateMachine.States[stateName] = state
+		case models.SLStateTypeParallel:
+			// recurse into sub-state machines to generate resource arns
+			for idx := range state.Branches {
+				branch := deepcopy.Copy(state.Branches[idx]).(*models.SLStateMachine)
+				e.setStateMachineResources(i, branch)
+				state.Branches[idx] = branch
+			}
+			stateMachine.States[stateName] = state
+		}
+	}
+}
+
 // StartWorkflow ...
 func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowRequest) (*models.Workflow, error) {
 	var validation error
@@ -313,14 +332,7 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 		return nil, errors.Errorf("GetWorkflowDefinitionByNameAndVersion: %s", err.Error())
 	}
 	stateMachine := deepcopy.Copy(wd.StateMachine).(*models.SLStateMachine)
-	for stateName, s := range stateMachine.States {
-		state := deepcopy.Copy(s).(models.SLState)
-		if state.Type != models.SLStateTypeTask {
-			continue
-		}
-		state.Resource = sfnconventions.EmbeddedResourceArn(state.Resource, e.sfnRegion, e.sfnAccountID, i.Namespace, e.app)
-		stateMachine.States[stateName] = state
-	}
+	e.setStateMachineResources(i, stateMachine)
 	stateMachineDefBytes, err := json.MarshalIndent(stateMachine, "", "  ")
 	if err != nil {
 		return nil, errors.Errorf("json marshal: %s", err.Error())
