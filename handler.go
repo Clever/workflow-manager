@@ -303,7 +303,7 @@ func (h Handler) getWorkflowsInputToESQuery(input *models.GetWorkflowsInput) str
 		}
 	}
 	if input.WorkflowDefinitionName != "" {
-		filters = append(filters, fmt.Sprintf(`{"term":{"Workflow.workflowDefinition.name.keyword": "%s"}}`, input.WorkflowDefinitionName))
+		filters = append(filters, fmt.Sprintf(`{"term":{"Workflow.workflowDefinition.name": "%s"}}`, input.WorkflowDefinitionName))
 	}
 
 	b.WriteString(fmt.Sprintf(`"query" : { "bool": {"filter": [%s], "must_not": [%s]}}`,
