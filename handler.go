@@ -22,10 +22,10 @@ const defaultLimit = 10
 
 // Handler implements the wag Controller
 type Handler struct {
-	store     store.Store
-	manager   executor.WorkflowManager
-	es        *elasticsearch.Client
-	deployEnv string
+	store      store.Store
+	manager    executor.WorkflowManager
+	es         *elasticsearch.Client
+	indexAlias string
 }
 
 // HealthCheck returns 200 if workflow-manager can respond to requests
@@ -216,13 +216,9 @@ func (h Handler) GetWorkflows(
 	ctx context.Context,
 	input *models.GetWorkflowsInput,
 ) ([]models.Workflow, string, error) {
-	indexName := "workflow-manager-prod-v3-workflows"
-	if h.deployEnv != "production" {
-		indexName = "clever-dev-workflow-manager-dev-v3-workflows"
-	}
 	req := []func(*esapi.SearchRequest){
 		h.es.Search.WithContext(context.Background()),
-		h.es.Search.WithIndex(indexName),
+		h.es.Search.WithIndex(h.indexAlias),
 		h.es.Search.WithFrom(0),
 		h.es.Search.WithSourceIncludes(
 			"Workflow.id",

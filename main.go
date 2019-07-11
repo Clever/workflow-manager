@@ -99,10 +99,10 @@ func main() {
 	}
 
 	h := Handler{
-		store:     db,
-		manager:   wfmSFN,
-		es:        es,
-		deployEnv: mustGetenv("_DEPLOY_ENV"),
+		store:      db,
+		manager:    wfmSFN,
+		es:         es,
+		indexAlias: mustGetenv("ELASTICSEARCH_INDEX_ALIAS"),
 	}
 	timeout := 5 * time.Second
 	s := server.NewWithMiddleware(h, *addr, []func(http.Handler) http.Handler{
