@@ -18,6 +18,9 @@ import (
 // swagger:model SLState
 type SLState struct {
 
+	// branches
+	Branches []*SLStateMachine `json:"Branches,omitempty"`
+
 	// catch
 	Catch []*SLCatcher `json:"Catch,omitempty"`
 
@@ -86,6 +89,11 @@ type SLState struct {
 func (m *SLState) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateBranches(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if err := m.validateCatch(formats); err != nil {
 		// prop
 		res = append(res, err)
@@ -109,6 +117,33 @@ func (m *SLState) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *SLState) validateBranches(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Branches) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Branches); i++ {
+
+		if swag.IsZero(m.Branches[i]) { // not required
+			continue
+		}
+
+		if m.Branches[i] != nil {
+
+			if err := m.Branches[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("Branches" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

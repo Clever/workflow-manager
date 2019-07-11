@@ -175,6 +175,7 @@
 
 |Name|Schema|
 |---|---|
+|**Branches**  <br>*optional*|< [SLStateMachine](#slstatemachine) > array|
 |**Catch**  <br>*optional*|< [SLCatcher](#slcatcher) > array|
 |**Cause**  <br>*optional*|string|
 |**Choices**  <br>*optional*|< [SLChoice](#slchoice) > array|
