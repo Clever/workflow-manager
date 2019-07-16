@@ -7,7 +7,7 @@ Orchestrator for AWS Step Functions
 
 
 ### Version information
-*Version* : 0.9.8
+*Version* : 0.9.9
 
 
 ### URI scheme

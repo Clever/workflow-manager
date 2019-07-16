@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.9.8
+  version: 0.9.9
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -694,6 +694,11 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/SLChoice'
+      Branches:
+        x-omitempty: true
+        type: array
+        items:
+          $ref: '#/definitions/SLStateMachine'
       Default:
         type: string
       Error:
