@@ -471,8 +471,15 @@ func (e *Embedded) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkf
 	if e.workflowDefinitions == nil {
 		e.workflowDefinitions = []models.WorkflowDefinition{}
 	}
-	for _, wfd := range e.workflowDefinitions {
+	replace := false
+	var replaceIdx int
+	for idx, wfd := range e.workflowDefinitions {
 		if wfd.Name == i.Name {
+			if wfd.Version == -1 {
+				replace = true
+				replaceIdx = idx
+				break
+			}
 			return nil, errors.Errorf("%s workflow definition already exists", i.Name)
 		}
 	}
@@ -480,13 +487,19 @@ func (e *Embedded) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkf
 	wfd := models.WorkflowDefinition{
 		CreatedAt:    strfmt.DateTime(time.Now()),
 		DefaultTags:  i.DefaultTags,
+		Manager:      i.Manager,
 		Name:         i.Name,
 		StateMachine: i.StateMachine,
+		Version:      i.Version,
 	}
 	if err := validateWorkflowDefinition(wfd, e.resources); err != nil {
 		return nil, errors.Errorf("could not validate state machine: %s", err)
 	}
-	e.workflowDefinitions = append(e.workflowDefinitions, wfd)
+	if replace {
+		e.workflowDefinitions[replaceIdx] = wfd
+	} else {
+		e.workflowDefinitions = append(e.workflowDefinitions, wfd)
+	}
 	return &wfd, nil
 }
 
