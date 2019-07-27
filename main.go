@@ -123,7 +123,7 @@ func main() {
 		},
 	})
 
-	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db, sqsapi, c.SQSQueueURL)
+	// go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db, sqsapi, c.SQSQueueURL)
 	go logSFNCounts(counter)
 
 	if err := s.Serve(); err != nil {
