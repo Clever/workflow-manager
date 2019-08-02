@@ -14,8 +14,8 @@ env:
   - TRACING_USER_NAME
 resources:
   cpu: 0.4
-  soft_mem_limit: 0.15
-  max_mem: 0.3
+  soft_mem_limit: 0.3
+  max_mem: 0.6
 aws:
   sqs:
     read:
