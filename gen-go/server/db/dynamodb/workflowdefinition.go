@@ -116,8 +116,9 @@ func (t WorkflowDefinitionTable) getWorkflowDefinition(ctx context.Context, name
 		return nil, err
 	}
 	res, err := t.DynamoDBAPI.GetItemWithContext(ctx, &dynamodb.GetItemInput{
-		Key:       key,
-		TableName: aws.String(t.name()),
+		Key:            key,
+		TableName:      aws.String(t.name()),
+		ConsistentRead: aws.Bool(true),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -202,11 +203,11 @@ func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx cont
 			return false
 		}
 		hasMore := true
-		for i, item := range items {
+		for i := range items {
 			if lastPage == true {
 				hasMore = i < len(items)-1
 			}
-			if !fn(&item, !hasMore) {
+			if !fn(&items[i], !hasMore) {
 				return false
 			}
 		}

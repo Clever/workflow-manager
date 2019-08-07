@@ -26,7 +26,7 @@ import (
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
-var dynamoMaxRetries = 2
+var dynamoMaxRetries = 4
 
 // Config contains the configuration for the workflow-manager app
 type Config struct {

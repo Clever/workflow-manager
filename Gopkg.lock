@@ -266,6 +266,12 @@
   revision = "c48cc78d482608239f6c4c92a4abd87eb8761c90"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/opentracing-contrib/go-aws-sdk"
+  packages = ["."]
+  revision = "9c29407076c0bd904a31258c4e881282aeb95cff"
+
+[[projects]]
   name = "github.com/opentracing/opentracing-go"
   packages = [
     ".",
@@ -429,6 +435,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ac1ece99f203875c7836f3f2f0dcb89e9d22c4463d3f6d61116073c7b92ea4ab"
+  inputs-digest = "494a56670086e72a9fdec87c1aaaf5eefcf80d76006238b03b2307b0016c9fdc"
   solver-name = "gps-cdcl"
   solver-version = 1
