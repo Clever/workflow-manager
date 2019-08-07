@@ -204,6 +204,234 @@ func TestGetWorkflowByID(t *testing.T) {
 	}
 }
 
+func TestResumeWorkflowByID(t *testing.T) {
+	workflowDefinition := &models.WorkflowDefinition{
+		StateMachine: &models.SLStateMachine{
+			StartAt: "monkey-state",
+			States: map[string]models.SLState{
+				"monkey-state": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Next:     "gorilla-state",
+					Resource: "resource-name",
+				},
+				"gorilla-state": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Resource: "lambda:resource-name",
+					End:      true,
+				},
+			},
+		},
+	}
+
+	specs := []struct {
+		desc    string
+		isError bool
+		startAt string
+		wf      *models.Workflow
+		newWF   *models.Workflow
+	}{
+		{
+			desc:    "starts a new workflow from the given state",
+			isError: false,
+			startAt: "monkey-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					LastJob: &models.Job{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+			},
+			newWF: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "new-workflow-id",
+					Status:             models.WorkflowStatusQueued,
+					WorkflowDefinition: workflowDefinition,
+					Input:              `{"snack":"banana"}`,
+				},
+			},
+		},
+		{
+			desc:    "finds the input from jobs array when StartAt != lastJob.State",
+			isError: false,
+			startAt: "monkey-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					LastJob: &models.Job{
+						State:  "gorilla-state",
+						Input:  `{"snack":"plum"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusSucceeded,
+					},
+					{
+						State:  "gorilla-state",
+						Input:  `{"snack":"plum"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+			},
+			newWF: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "new-workflow-id",
+					Status:             models.WorkflowStatusQueued,
+					WorkflowDefinition: workflowDefinition,
+					Input:              `{"snack":"banana"}`,
+				},
+			},
+		},
+		{
+			desc:    "uses the input from lastJob when there's no jobs array",
+			isError: false,
+			startAt: "gorilla-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					LastJob: &models.Job{
+						State:  "gorilla-state",
+						Input:  `{"snack":"plum"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+				Jobs: nil,
+			},
+			newWF: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "new-workflow-id",
+					Status:             models.WorkflowStatusQueued,
+					WorkflowDefinition: workflowDefinition,
+					Input:              `{"snack":"plum"}`,
+				},
+			},
+		},
+		{
+			desc:    "fails if there is no previous attempted job at StartAt state",
+			isError: true,
+			startAt: "gorilla-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					LastJob: &models.Job{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+			},
+			newWF: &models.Workflow{},
+		},
+		{
+			desc:    "fails if StartAt state doesn't exist in the workflow definition",
+			isError: true,
+			startAt: "invalid-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					LastJob: &models.Job{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+			},
+			newWF: &models.Workflow{},
+		},
+		{
+			desc:    "fails if ResumeWorkflowByID is called on a running workflow",
+			isError: true,
+			startAt: "monkey-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusRunning,
+					WorkflowDefinition: workflowDefinition,
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusRunning,
+					},
+				},
+			},
+			newWF: &models.Workflow{},
+		},
+	}
+
+	for _, spec := range specs {
+		t.Run(spec.desc, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			c := newSFNManagerTestController(t)
+
+			c.mockStore.EXPECT().
+				GetWorkflowByID(ctx, gomock.Eq(spec.wf.ID)).
+				Return(*spec.wf, nil).
+				Times(1)
+			if !spec.isError {
+				c.mockWFM.EXPECT().
+					RetryWorkflow(ctx, *spec.wf, spec.startAt, spec.newWF.Input).
+					Return(spec.newWF, nil).
+					Times(1)
+			}
+
+			resumedWorkflow, err := c.handler.ResumeWorkflowByID(
+				ctx,
+				&models.ResumeWorkflowByIDInput{
+					WorkflowID: spec.wf.ID,
+					Overrides:  &models.WorkflowDefinitionOverrides{StartAt: spec.startAt},
+				},
+			)
+
+			if spec.isError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, spec.newWF, resumedWorkflow)
+		})
+	}
+}
+
 func boolPtr(b bool) *bool {
 	return &b
 }
