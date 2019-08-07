@@ -320,18 +320,27 @@ func (h Handler) getWorkflowsInputToESQuery(input *models.GetWorkflowsInput) str
 }
 
 // GetWorkflowByID returns current details about a Workflow with the given workflowId
-func (h Handler) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
-	workflow, err := h.store.GetWorkflowByID(ctx, workflowID)
+func (h Handler) GetWorkflowByID(ctx context.Context, input *models.GetWorkflowByIDInput) (*models.Workflow, error) {
+	omitExecutionHistory := input.OmitExecutionHistory != nil && *input.OmitExecutionHistory
+
+	workflow, err := h.store.GetWorkflowByID(ctx, input.WorkflowID)
 	if err != nil {
 		return &models.Workflow{}, err
+	}
+
+	// Avoid storing an out of date jobs history in the db when only the workflow summary is updated.
+	if omitExecutionHistory {
+		workflow.Jobs = nil
 	}
 
 	if err := h.manager.UpdateWorkflowSummary(ctx, &workflow); err != nil {
 		return &models.Workflow{}, err
 	}
 
-	if err := h.manager.UpdateWorkflowHistory(ctx, &workflow); err != nil {
-		return &models.Workflow{}, err
+	if !omitExecutionHistory {
+		if err := h.manager.UpdateWorkflowHistory(ctx, &workflow); err != nil {
+			return &models.Workflow{}, err
+		}
 	}
 
 	return &workflow, nil
