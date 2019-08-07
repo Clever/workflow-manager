@@ -14,6 +14,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/gorilla/mux"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
 	"golang.org/x/xerrors"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
@@ -25,6 +27,7 @@ var _ = errors.New
 var _ = mux.Vars
 var _ = bytes.Compare
 var _ = ioutil.ReadAll
+var _ = log.String
 
 var formats = strfmt.Default
 var _ = formats
@@ -92,6 +95,8 @@ func statusCodeForHealthCheck(obj interface{}) int {
 }
 
 func (h handler) HealthCheckHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	err := h.HealthCheck(ctx)
 
@@ -119,6 +124,9 @@ func (h handler) HealthCheckHandler(ctx context.Context, w http.ResponseWriter, 
 // newHealthCheckInput takes in an http.Request an returns the input struct.
 func newHealthCheckInput(r *http.Request) (*models.HealthCheckInput, error) {
 	var input models.HealthCheckInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
 
 	var err error
 	_ = err
@@ -156,6 +164,8 @@ func statusCodeForPostStateResource(obj interface{}) int {
 }
 
 func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newPostStateResourceInput(r)
 	if err != nil {
@@ -192,6 +202,9 @@ func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -199,6 +212,7 @@ func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForPostStateResource(resp))
 	w.Write(respBytes)
@@ -207,12 +221,19 @@ func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWr
 
 // newPostStateResourceInput takes in an http.Request an returns the input struct.
 func newPostStateResourceInput(r *http.Request) (*models.NewStateResource, error) {
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
+
 	var err error
 	_ = err
 
 	data, err := ioutil.ReadAll(r.Body)
 
+	sp.LogFields(log.Int("request-size-bytes", len(data)))
+
 	if len(data) > 0 {
+		jsonSpan, _ := opentracing.StartSpanFromContext(r.Context(), "json-request-marshaling")
+		defer jsonSpan.Finish()
 
 		var input models.NewStateResource
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(&input); err != nil {
@@ -255,6 +276,8 @@ func statusCodeForDeleteStateResource(obj interface{}) int {
 }
 
 func (h handler) DeleteStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newDeleteStateResourceInput(r)
 	if err != nil {
@@ -297,6 +320,9 @@ func (h handler) DeleteStateResourceHandler(ctx context.Context, w http.Response
 // newDeleteStateResourceInput takes in an http.Request an returns the input struct.
 func newDeleteStateResourceInput(r *http.Request) (*models.DeleteStateResourceInput, error) {
 	var input models.DeleteStateResourceInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
 
 	var err error
 	_ = err
@@ -372,6 +398,8 @@ func statusCodeForGetStateResource(obj interface{}) int {
 }
 
 func (h handler) GetStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newGetStateResourceInput(r)
 	if err != nil {
@@ -406,6 +434,9 @@ func (h handler) GetStateResourceHandler(ctx context.Context, w http.ResponseWri
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -413,6 +444,7 @@ func (h handler) GetStateResourceHandler(ctx context.Context, w http.ResponseWri
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForGetStateResource(resp))
 	w.Write(respBytes)
@@ -422,6 +454,9 @@ func (h handler) GetStateResourceHandler(ctx context.Context, w http.ResponseWri
 // newGetStateResourceInput takes in an http.Request an returns the input struct.
 func newGetStateResourceInput(r *http.Request) (*models.GetStateResourceInput, error) {
 	var input models.GetStateResourceInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
 
 	var err error
 	_ = err
@@ -491,6 +526,8 @@ func statusCodeForPutStateResource(obj interface{}) int {
 }
 
 func (h handler) PutStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newPutStateResourceInput(r)
 	if err != nil {
@@ -525,6 +562,9 @@ func (h handler) PutStateResourceHandler(ctx context.Context, w http.ResponseWri
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -532,6 +572,7 @@ func (h handler) PutStateResourceHandler(ctx context.Context, w http.ResponseWri
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForPutStateResource(resp))
 	w.Write(respBytes)
@@ -541,6 +582,9 @@ func (h handler) PutStateResourceHandler(ctx context.Context, w http.ResponseWri
 // newPutStateResourceInput takes in an http.Request an returns the input struct.
 func newPutStateResourceInput(r *http.Request) (*models.PutStateResourceInput, error) {
 	var input models.PutStateResourceInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
 
 	var err error
 	_ = err
@@ -579,7 +623,11 @@ func newPutStateResourceInput(r *http.Request) (*models.PutStateResourceInput, e
 
 	data, err := ioutil.ReadAll(r.Body)
 
+	sp.LogFields(log.Int("request-size-bytes", len(data)))
+
 	if len(data) > 0 {
+		jsonSpan, _ := opentracing.StartSpanFromContext(r.Context(), "json-request-marshaling")
+		defer jsonSpan.Finish()
 
 		input.NewStateResource = &models.NewStateResource{}
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewStateResource); err != nil {
@@ -621,6 +669,8 @@ func statusCodeForGetWorkflowDefinitions(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowDefinitionsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	resp, err := h.GetWorkflowDefinitions(ctx)
 
@@ -646,6 +696,9 @@ func (h handler) GetWorkflowDefinitionsHandler(ctx context.Context, w http.Respo
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -653,6 +706,7 @@ func (h handler) GetWorkflowDefinitionsHandler(ctx context.Context, w http.Respo
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForGetWorkflowDefinitions(resp))
 	w.Write(respBytes)
@@ -662,6 +716,9 @@ func (h handler) GetWorkflowDefinitionsHandler(ctx context.Context, w http.Respo
 // newGetWorkflowDefinitionsInput takes in an http.Request an returns the input struct.
 func newGetWorkflowDefinitionsInput(r *http.Request) (*models.GetWorkflowDefinitionsInput, error) {
 	var input models.GetWorkflowDefinitionsInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
 
 	var err error
 	_ = err
@@ -699,6 +756,8 @@ func statusCodeForNewWorkflowDefinition(obj interface{}) int {
 }
 
 func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newNewWorkflowDefinitionInput(r)
 	if err != nil {
@@ -735,6 +794,9 @@ func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.Respon
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -742,6 +804,7 @@ func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.Respon
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForNewWorkflowDefinition(resp))
 	w.Write(respBytes)
@@ -750,12 +813,19 @@ func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.Respon
 
 // newNewWorkflowDefinitionInput takes in an http.Request an returns the input struct.
 func newNewWorkflowDefinitionInput(r *http.Request) (*models.NewWorkflowDefinitionRequest, error) {
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
+
 	var err error
 	_ = err
 
 	data, err := ioutil.ReadAll(r.Body)
 
+	sp.LogFields(log.Int("request-size-bytes", len(data)))
+
 	if len(data) > 0 {
+		jsonSpan, _ := opentracing.StartSpanFromContext(r.Context(), "json-request-marshaling")
+		defer jsonSpan.Finish()
 
 		var input models.NewWorkflowDefinitionRequest
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(&input); err != nil {
@@ -804,6 +874,8 @@ func statusCodeForGetWorkflowDefinitionVersionsByName(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowDefinitionVersionsByNameHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newGetWorkflowDefinitionVersionsByNameInput(r)
 	if err != nil {
@@ -844,6 +916,9 @@ func (h handler) GetWorkflowDefinitionVersionsByNameHandler(ctx context.Context,
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -851,6 +926,7 @@ func (h handler) GetWorkflowDefinitionVersionsByNameHandler(ctx context.Context,
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForGetWorkflowDefinitionVersionsByName(resp))
 	w.Write(respBytes)
@@ -860,6 +936,9 @@ func (h handler) GetWorkflowDefinitionVersionsByNameHandler(ctx context.Context,
 // newGetWorkflowDefinitionVersionsByNameInput takes in an http.Request an returns the input struct.
 func newGetWorkflowDefinitionVersionsByNameInput(r *http.Request) (*models.GetWorkflowDefinitionVersionsByNameInput, error) {
 	var input models.GetWorkflowDefinitionVersionsByNameInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
 
 	var err error
 	_ = err
@@ -934,6 +1013,8 @@ func statusCodeForUpdateWorkflowDefinition(obj interface{}) int {
 }
 
 func (h handler) UpdateWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newUpdateWorkflowDefinitionInput(r)
 	if err != nil {
@@ -968,6 +1049,9 @@ func (h handler) UpdateWorkflowDefinitionHandler(ctx context.Context, w http.Res
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -975,6 +1059,7 @@ func (h handler) UpdateWorkflowDefinitionHandler(ctx context.Context, w http.Res
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForUpdateWorkflowDefinition(resp))
 	w.Write(respBytes)
@@ -985,12 +1070,19 @@ func (h handler) UpdateWorkflowDefinitionHandler(ctx context.Context, w http.Res
 func newUpdateWorkflowDefinitionInput(r *http.Request) (*models.UpdateWorkflowDefinitionInput, error) {
 	var input models.UpdateWorkflowDefinitionInput
 
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
+
 	var err error
 	_ = err
 
 	data, err := ioutil.ReadAll(r.Body)
 
+	sp.LogFields(log.Int("request-size-bytes", len(data)))
+
 	if len(data) > 0 {
+		jsonSpan, _ := opentracing.StartSpanFromContext(r.Context(), "json-request-marshaling")
+		defer jsonSpan.Finish()
 
 		input.NewWorkflowDefinitionRequest = &models.NewWorkflowDefinitionRequest{}
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewWorkflowDefinitionRequest); err != nil {
@@ -1054,6 +1146,8 @@ func statusCodeForGetWorkflowDefinitionByNameAndVersion(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowDefinitionByNameAndVersionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newGetWorkflowDefinitionByNameAndVersionInput(r)
 	if err != nil {
@@ -1088,6 +1182,9 @@ func (h handler) GetWorkflowDefinitionByNameAndVersionHandler(ctx context.Contex
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1095,6 +1192,7 @@ func (h handler) GetWorkflowDefinitionByNameAndVersionHandler(ctx context.Contex
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForGetWorkflowDefinitionByNameAndVersion(resp))
 	w.Write(respBytes)
@@ -1104,6 +1202,9 @@ func (h handler) GetWorkflowDefinitionByNameAndVersionHandler(ctx context.Contex
 // newGetWorkflowDefinitionByNameAndVersionInput takes in an http.Request an returns the input struct.
 func newGetWorkflowDefinitionByNameAndVersionInput(r *http.Request) (*models.GetWorkflowDefinitionByNameAndVersionInput, error) {
 	var input models.GetWorkflowDefinitionByNameAndVersionInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
 
 	var err error
 	_ = err
@@ -1179,6 +1280,8 @@ func statusCodeForGetWorkflows(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newGetWorkflowsInput(r)
 	if err != nil {
@@ -1219,6 +1322,9 @@ func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1237,6 +1343,7 @@ func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter,
 		w.Header().Set("X-Next-Page-Path", path)
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForGetWorkflows(resp))
 	w.Write(respBytes)
@@ -1246,6 +1353,9 @@ func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter,
 // newGetWorkflowsInput takes in an http.Request an returns the input struct.
 func newGetWorkflowsInput(r *http.Request) (*models.GetWorkflowsInput, error) {
 	var input models.GetWorkflowsInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
 
 	var err error
 	_ = err
@@ -1382,6 +1492,8 @@ func statusCodeForStartWorkflow(obj interface{}) int {
 }
 
 func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newStartWorkflowInput(r)
 	if err != nil {
@@ -1418,6 +1530,9 @@ func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1425,6 +1540,7 @@ func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForStartWorkflow(resp))
 	w.Write(respBytes)
@@ -1433,12 +1549,19 @@ func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter
 
 // newStartWorkflowInput takes in an http.Request an returns the input struct.
 func newStartWorkflowInput(r *http.Request) (*models.StartWorkflowRequest, error) {
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
+
 	var err error
 	_ = err
 
 	data, err := ioutil.ReadAll(r.Body)
 
+	sp.LogFields(log.Int("request-size-bytes", len(data)))
+
 	if len(data) > 0 {
+		jsonSpan, _ := opentracing.StartSpanFromContext(r.Context(), "json-request-marshaling")
+		defer jsonSpan.Finish()
 
 		var input models.StartWorkflowRequest
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(&input); err != nil {
@@ -1481,6 +1604,8 @@ func statusCodeForCancelWorkflow(obj interface{}) int {
 }
 
 func (h handler) CancelWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newCancelWorkflowInput(r)
 	if err != nil {
@@ -1524,6 +1649,9 @@ func (h handler) CancelWorkflowHandler(ctx context.Context, w http.ResponseWrite
 func newCancelWorkflowInput(r *http.Request) (*models.CancelWorkflowInput, error) {
 	var input models.CancelWorkflowInput
 
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
+
 	var err error
 	_ = err
 
@@ -1547,8 +1675,11 @@ func newCancelWorkflowInput(r *http.Request) (*models.CancelWorkflowInput, error
 	if len(data) == 0 {
 		return nil, errors.New("request body is required, but was empty")
 	}
+	sp.LogFields(log.Int("request-size-bytes", len(data)))
 
 	if len(data) > 0 {
+		jsonSpan, _ := opentracing.StartSpanFromContext(r.Context(), "json-request-marshaling")
+		defer jsonSpan.Finish()
 
 		input.Reason = &models.CancelReason{}
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Reason); err != nil {
@@ -1596,6 +1727,8 @@ func statusCodeForGetWorkflowByID(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	workflowID, err := newGetWorkflowByIDInput(r)
 	if err != nil {
@@ -1630,6 +1763,9 @@ func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWrit
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1637,6 +1773,7 @@ func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWrit
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForGetWorkflowByID(resp))
 	w.Write(respBytes)
@@ -1689,6 +1826,8 @@ func statusCodeForResumeWorkflowByID(obj interface{}) int {
 }
 
 func (h handler) ResumeWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	input, err := newResumeWorkflowByIDInput(r)
 	if err != nil {
@@ -1723,6 +1862,9 @@ func (h handler) ResumeWorkflowByIDHandler(ctx context.Context, w http.ResponseW
 		return
 	}
 
+	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
+	defer jsonSpan.Finish()
+
 	respBytes, err := json.MarshalIndent(resp, "", "\t")
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1730,6 +1872,7 @@ func (h handler) ResumeWorkflowByIDHandler(ctx context.Context, w http.ResponseW
 		return
 	}
 
+	sp.LogFields(log.Int("response-size-bytes", len(respBytes)))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCodeForResumeWorkflowByID(resp))
 	w.Write(respBytes)
@@ -1739,6 +1882,9 @@ func (h handler) ResumeWorkflowByIDHandler(ctx context.Context, w http.ResponseW
 // newResumeWorkflowByIDInput takes in an http.Request an returns the input struct.
 func newResumeWorkflowByIDInput(r *http.Request) (*models.ResumeWorkflowByIDInput, error) {
 	var input models.ResumeWorkflowByIDInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
 
 	var err error
 	_ = err
@@ -1763,8 +1909,11 @@ func newResumeWorkflowByIDInput(r *http.Request) (*models.ResumeWorkflowByIDInpu
 	if len(data) == 0 {
 		return nil, errors.New("request body is required, but was empty")
 	}
+	sp.LogFields(log.Int("request-size-bytes", len(data)))
 
 	if len(data) > 0 {
+		jsonSpan, _ := opentracing.StartSpanFromContext(r.Context(), "json-request-marshaling")
+		defer jsonSpan.Finish()
 
 		input.Overrides = &models.WorkflowDefinitionOverrides{}
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Overrides); err != nil {
@@ -1812,6 +1961,8 @@ func statusCodeForResolveWorkflowByID(obj interface{}) int {
 }
 
 func (h handler) ResolveWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	sp := opentracing.SpanFromContext(ctx)
+	_ = sp
 
 	workflowID, err := newResolveWorkflowByIDInput(r)
 	if err != nil {
