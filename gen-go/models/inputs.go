@@ -383,22 +383,23 @@ func (i CancelWorkflowInput) Path() (string, error) {
 
 // GetWorkflowByIDInput holds the input parameters for a getWorkflowByID operation.
 type GetWorkflowByIDInput struct {
-	WorkflowID string
+	WorkflowID           string
+	OmitExecutionHistory *bool
 }
 
-// ValidateGetWorkflowByIDInput returns an error if the input parameter doesn't
-// satisfy the requirements in the swagger yml file.
-func ValidateGetWorkflowByIDInput(workflowID string) error {
+// Validate returns an error if any of the GetWorkflowByIDInput parameters don't satisfy the
+// requirements from the swagger yml file.
+func (i GetWorkflowByIDInput) Validate() error {
 
 	return nil
 }
 
-// GetWorkflowByIDInputPath returns the URI path for the input.
-func GetWorkflowByIDInputPath(workflowID string) (string, error) {
+// Path returns the URI path for the input.
+func (i GetWorkflowByIDInput) Path() (string, error) {
 	path := "/workflows/{workflowID}"
 	urlVals := url.Values{}
 
-	pathworkflowID := workflowID
+	pathworkflowID := i.WorkflowID
 	if pathworkflowID == "" {
 		err := fmt.Errorf("workflowID cannot be empty because it's a path parameter")
 		if err != nil {
@@ -406,6 +407,10 @@ func GetWorkflowByIDInputPath(workflowID string) (string, error) {
 		}
 	}
 	path = strings.Replace(path, "{workflowID}", pathworkflowID, -1)
+
+	if i.OmitExecutionHistory != nil {
+		urlVals.Add("omitExecutionHistory", strconv.FormatBool(*i.OmitExecutionHistory))
+	}
 
 	return path + "?" + urlVals.Encode(), nil
 }

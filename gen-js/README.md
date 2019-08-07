@@ -22,7 +22,7 @@ workflow-manager client library.
             * [.getWorkflowsIter(params, [options])](#module_workflow-manager--WorkflowManager+getWorkflowsIter) ⇒ <code>Object</code> &#124; <code>function</code> &#124; <code>function</code> &#124; <code>function</code>
             * [.startWorkflow(StartWorkflowRequest, [options], [cb])](#module_workflow-manager--WorkflowManager+startWorkflow) ⇒ <code>Promise</code>
             * [.CancelWorkflow(params, [options], [cb])](#module_workflow-manager--WorkflowManager+CancelWorkflow) ⇒ <code>Promise</code>
-            * [.getWorkflowByID(workflowID, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowByID) ⇒ <code>Promise</code>
+            * [.getWorkflowByID(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowByID) ⇒ <code>Promise</code>
             * [.resumeWorkflowByID(params, [options], [cb])](#module_workflow-manager--WorkflowManager+resumeWorkflowByID) ⇒ <code>Promise</code>
             * [.resolveWorkflowByID(workflowID, [options], [cb])](#module_workflow-manager--WorkflowManager+resolveWorkflowByID) ⇒ <code>Promise</code>
         * _static_
@@ -354,7 +354,7 @@ Get the latest versions of all available WorkflowDefinitions
 
 <a name="module_workflow-manager--WorkflowManager+getWorkflowByID"></a>
 
-#### workflowManager.getWorkflowByID(workflowID, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.getWorkflowByID(params, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of <code>[WorkflowManager](#exp_module_workflow-manager--WorkflowManager)</code>  
 **Fulfill**: <code>Object</code>  
 **Reject**: <code>[BadRequest](#module_workflow-manager--WorkflowManager.Errors.BadRequest)</code>  
@@ -364,7 +364,9 @@ Get the latest versions of all available WorkflowDefinitions
 
 | Param | Type | Description |
 | --- | --- | --- |
-| workflowID | <code>string</code> |  |
+| params | <code>Object</code> |  |
+| params.workflowID | <code>string</code> |  |
+| [params.omitExecutionHistory] | <code>boolean</code> | Skips fetching the full execution history, and omits the jobs array. |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.span] | <code>[Span](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html)</code> | An OpenTracing span - For example from the parent request |

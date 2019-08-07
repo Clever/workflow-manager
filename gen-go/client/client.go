@@ -1659,11 +1659,11 @@ func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Reque
 // 404: *models.NotFound
 // 500: *models.InternalError
 // default: client side HTTP errors, for example: context.DeadlineExceeded.
-func (c *WagClient) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
+func (c *WagClient) GetWorkflowByID(ctx context.Context, i *models.GetWorkflowByIDInput) (*models.Workflow, error) {
 	headers := make(map[string]string)
 
 	var body []byte
-	path, err := models.GetWorkflowByIDInputPath(workflowID)
+	path, err := i.Path()
 
 	if err != nil {
 		return nil, err

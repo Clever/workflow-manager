@@ -295,9 +295,10 @@ GET /workflows/{workflowID}
 
 #### Parameters
 
-|Type|Name|Schema|
-|---|---|---|
-|**Path**|**workflowID**  <br>*required*|string|
+|Type|Name|Description|Schema|Default|
+|---|---|---|---|---|
+|**Path**|**workflowID**  <br>*required*||string||
+|**Query**|**omitExecutionHistory**  <br>*optional*|Skips fetching the full execution history, and omits the jobs array.|boolean|`"false"`|
 
 
 #### Responses

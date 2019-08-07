@@ -1730,14 +1730,14 @@ func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWrit
 	sp := opentracing.SpanFromContext(ctx)
 	_ = sp
 
-	workflowID, err := newGetWorkflowByIDInput(r)
+	input, err := newGetWorkflowByIDInput(r)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.BadRequest{Message: err.Error()}), http.StatusBadRequest)
 		return
 	}
 
-	err = models.ValidateGetWorkflowByIDInput(workflowID)
+	err = input.Validate()
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1745,7 +1745,7 @@ func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWrit
 		return
 	}
 
-	resp, err := h.GetWorkflowByID(ctx, workflowID)
+	resp, err := h.GetWorkflowByID(ctx, input)
 
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
@@ -1780,14 +1780,48 @@ func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWrit
 
 }
 
-// newGetWorkflowByIDInput takes in an http.Request an returns the workflowID parameter
-// that it contains. It returns an error if the request doesn't contain the parameter.
-func newGetWorkflowByIDInput(r *http.Request) (string, error) {
-	workflowID := mux.Vars(r)["workflowID"]
-	if len(workflowID) == 0 {
-		return "", errors.New("Parameter workflowID must be specified")
+// newGetWorkflowByIDInput takes in an http.Request an returns the input struct.
+func newGetWorkflowByIDInput(r *http.Request) (*models.GetWorkflowByIDInput, error) {
+	var input models.GetWorkflowByIDInput
+
+	sp := opentracing.SpanFromContext(r.Context())
+	_ = sp
+
+	var err error
+	_ = err
+
+	workflowIDStr := mux.Vars(r)["workflowID"]
+	if len(workflowIDStr) == 0 {
+		return nil, errors.New("path parameter 'workflowID' must be specified")
 	}
-	return workflowID, nil
+	workflowIDStrs := []string{workflowIDStr}
+
+	if len(workflowIDStrs) > 0 {
+		var workflowIDTmp string
+		workflowIDStr := workflowIDStrs[0]
+		workflowIDTmp, err = workflowIDStr, error(nil)
+		if err != nil {
+			return nil, err
+		}
+		input.WorkflowID = workflowIDTmp
+	}
+
+	omitExecutionHistoryStrs := r.URL.Query()["omitExecutionHistory"]
+
+	if len(omitExecutionHistoryStrs) == 0 {
+		omitExecutionHistoryStrs = []string{"false"}
+	}
+	if len(omitExecutionHistoryStrs) > 0 {
+		var omitExecutionHistoryTmp bool
+		omitExecutionHistoryStr := omitExecutionHistoryStrs[0]
+		omitExecutionHistoryTmp, err = strconv.ParseBool(omitExecutionHistoryStr)
+		if err != nil {
+			return nil, err
+		}
+		input.OmitExecutionHistory = &omitExecutionHistoryTmp
+	}
+
+	return &input, nil
 }
 
 // statusCodeForResumeWorkflowByID returns the status code corresponding to the returned

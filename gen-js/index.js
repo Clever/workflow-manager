@@ -2004,7 +2004,9 @@ class WorkflowManager {
   }
 
   /**
-   * @param {string} workflowID
+   * @param {Object} params
+   * @param {string} params.workflowID
+   * @param {boolean} [params.omitExecutionHistory] - Skips fetching the full execution history, and omits the jobs array.
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
@@ -2017,7 +2019,7 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflowByID(workflowID, options, cb) {
+  getWorkflowByID(params, options, cb) {
     let callback = cb;
     if (!cb && typeof options === "function") {
       callback = options;
@@ -2025,10 +2027,7 @@ class WorkflowManager {
     return applyCallback(this._hystrixCommand.execute(this._getWorkflowByID, arguments), callback);
   }
 
-  _getWorkflowByID(workflowID, options, cb) {
-    const params = {};
-    params["workflowID"] = workflowID;
-
+  _getWorkflowByID(params, options, cb) {
     if (!cb && typeof options === "function") {
       options = undefined;
     }
@@ -2049,6 +2048,10 @@ class WorkflowManager {
       }
 
       const query = {};
+      if (typeof params.omitExecutionHistory !== "undefined") {
+        query["omitExecutionHistory"] = params.omitExecutionHistory;
+      }
+  
 
       if (span) {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
