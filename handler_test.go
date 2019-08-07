@@ -13,6 +13,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type handlerTestController struct {
+	mockController *gomock.Controller
+	mockWFM        *mocks.MockWorkflowManager
+	mockStore      *mocks.MockStore
+	handler        Handler
+	t              *testing.T
+}
+
+func newSFNManagerTestController(t *testing.T) *handlerTestController {
+	mockController := gomock.NewController(t)
+	mockWFM := mocks.NewMockWorkflowManager(mockController)
+	mockStore := mocks.NewMockStore(mockController)
+	handler := Handler{
+		manager: mockWFM,
+		store:   mockStore,
+	}
+
+	return &handlerTestController{
+		mockController: mockController,
+		mockWFM:        mockWFM,
+		mockStore:      mockStore,
+		handler:        handler,
+		t:              t,
+	}
+}
+
+func (c *handlerTestController) tearDown() {
+	c.mockController.Finish()
+}
+
 // TestNewWorkflowDefinitionFromRequest tests the newWorkflowFromRequest helper
 func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 	workflowReq := models.NewWorkflowDefinitionRequest{
@@ -82,4 +112,98 @@ func TestStartWorkflow(t *testing.T) {
 		})
 		assert.NoError(t, err)
 	}
+}
+
+func TestGetWorkflowByID(t *testing.T) {
+	falsePtr := boolPtr(false)
+	truePtr := boolPtr(true)
+	specs := []struct {
+		desc                 string
+		omitExecutionHistory *bool
+	}{
+		{
+			desc:                 "updates execution history when omitExecutionHistory is nil",
+			omitExecutionHistory: nil,
+		},
+		{
+			desc:                 "updates execution history when omitExecutionHistory is false",
+			omitExecutionHistory: falsePtr,
+		},
+		{
+			desc:                 "skips updating execution history when omitExecutionHistory is true",
+			omitExecutionHistory: truePtr,
+		},
+	}
+
+	for _, spec := range specs {
+		t.Run(spec.desc, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			c := newSFNManagerTestController(t)
+
+			wf := &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:     "workflow-id",
+					Status: models.WorkflowStatusRunning,
+					WorkflowDefinition: &models.WorkflowDefinition{
+						StateMachine: &models.SLStateMachine{
+							StartAt: "start",
+							States: map[string]models.SLState{
+								"start": models.SLState{
+									Type:     models.SLStateTypeTask,
+									End:      true,
+									Resource: "resource-name",
+								},
+							},
+						},
+					},
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "start",
+						Input:  `{"snack":"grapes"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+			}
+
+			c.mockStore.EXPECT().
+				GetWorkflowByID(ctx, gomock.Eq(wf.ID)).
+				Return(*wf, nil).
+				Times(1)
+			c.mockWFM.EXPECT().
+				UpdateWorkflowSummary(ctx, gomock.Any()).
+				Return(nil).
+				Times(1)
+
+			if spec.omitExecutionHistory != truePtr {
+				c.mockWFM.EXPECT().
+					UpdateWorkflowHistory(ctx, gomock.Any()).
+					Return(nil).
+					Times(1)
+			}
+
+			updatedWorkflow, err := c.handler.GetWorkflowByID(
+				ctx,
+				&models.GetWorkflowByIDInput{
+					WorkflowID:           wf.ID,
+					OmitExecutionHistory: spec.omitExecutionHistory,
+				},
+			)
+
+			require.NoError(t, err, err)
+			assert.Equal(t, wf.ID, updatedWorkflow.ID)
+			assert.Equal(t, wf.WorkflowDefinition, updatedWorkflow.WorkflowDefinition)
+
+			if spec.omitExecutionHistory == truePtr {
+				assert.Nil(t, updatedWorkflow.Jobs)
+			} else {
+				assert.NotNil(t, updatedWorkflow.Jobs)
+			}
+		})
+	}
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }
