@@ -81,7 +81,7 @@ func main() {
 
 	for {
 		time.Sleep(2 * time.Second)
-		wf, err := client.GetWorkflowByID(ctx, wf.ID)
+		wf, err := client.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: wf.ID})
 		if err != nil {
 			fmt.Println("Oops, err", err)
 			break

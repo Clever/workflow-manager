@@ -430,7 +430,8 @@ func (e *Embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowI
 }
 
 // GetWorkflowByID ...
-func (e *Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
+func (e *Embedded) GetWorkflowByID(ctx context.Context, i *models.GetWorkflowByIDInput) (*models.Workflow, error) {
+	workflowID := i.WorkflowID
 	widParts, err := parseWorkflowID(workflowID)
 	if err != nil {
 		return nil, err
