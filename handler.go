@@ -373,27 +373,31 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 		return &models.Workflow{}, fmt.Errorf("Invalid StartAt state %s", input.Overrides.StartAt)
 	}
 
-	// find the input to the StartAt state
-	effectiveInput := ""
-	for _, job := range workflow.Jobs {
-		if job.State == input.Overrides.StartAt {
-			// if job was never started then we should probably not trust the input
-			if job.Status == models.JobStatusAbortedDepsFailed ||
-				job.Status == models.JobStatusQueued ||
-				job.Status == models.JobStatusWaitingForDeps ||
-				job.Status == models.JobStatusCreated {
-
-				return &models.Workflow{},
-					fmt.Errorf("Job %s for StartAt %s was not started for Workflow: %s. Could not infer input",
-						job.ID, job.State, workflow.ID)
+	// Find the job that ran for the StartAt state so that its input can be used for the new workflow.
+	var oldJob *models.Job
+	if workflow.LastJob != nil && input.Overrides.StartAt == workflow.LastJob.State {
+		oldJob = workflow.LastJob
+	} else {
+		for _, job := range workflow.Jobs {
+			if job.State == input.Overrides.StartAt {
+				oldJob = job
+				break
 			}
-
-			effectiveInput = job.Input
-			break
 		}
 	}
 
-	return h.manager.RetryWorkflow(ctx, workflow, input.Overrides.StartAt, effectiveInput)
+	if oldJob == nil {
+		return &models.Workflow{}, fmt.Errorf("No job found for StartAt %s", input.Overrides.StartAt)
+	}
+
+	// if job was never started then we should probably not trust the input
+	if !hasJobStarted(oldJob.Status) {
+		return &models.Workflow{},
+			fmt.Errorf("Job %s for StartAt %s was not started for Workflow: %s. Could not infer input",
+				oldJob.ID, oldJob.State, workflow.ID)
+	}
+
+	return h.manager.RetryWorkflow(ctx, workflow, input.Overrides.StartAt, oldJob.Input)
 }
 
 // ResolveWorkflowByID sets a workflow's ResolvedByUser to true if it is currently false.
@@ -437,6 +441,13 @@ func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (
 	}
 
 	return resources.NewWorkflowDefinition(req.Name, req.Manager, req.StateMachine, req.DefaultTags)
+}
+
+func hasJobStarted(status models.JobStatus) bool {
+	return !(status == models.JobStatusAbortedDepsFailed ||
+		status == models.JobStatusQueued ||
+		status == models.JobStatusWaitingForDeps ||
+		status == models.JobStatusCreated)
 }
 
 // validateTagsMap ensures that all tags values are strings
