@@ -1,6 +1,6 @@
 ---
 routes:
-  # workflow-manager related matchers; prefix with workflow-manager
+  # workflow-manager related matchers; prefix with workflow-mananger
 
   workflow-polling-alerts:
     matchers:
