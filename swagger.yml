@@ -212,6 +212,12 @@ paths:
           in: path
           type: string
           required: true
+        - name: omitExecutionHistory
+          description: Skips fetching the full execution history, and omits the jobs array.
+          in: query
+          type: boolean
+          required: false
+          default: false
       responses:
         200:
           description: Workflow
