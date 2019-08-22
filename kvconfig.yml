@@ -48,4 +48,4 @@ routes:
       channel: "#oncall-infra"
       icon: ":pipeline:"
       user: "workflow-manager"
-      message: Attempted to start unknown worker `%{name}` version `%{version}`
+      message: Attempted to start unknown workflow definition `%{name}` version `%{version}`
