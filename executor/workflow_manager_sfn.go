@@ -111,6 +111,20 @@ func stateMachineWithDefaultRetriers(oldSM models.SLStateMachine) *models.SLStat
 	return &sm
 }
 
+func toSFNTags(wmTags map[string]interface{}) []*sfn.Tag {
+	sfnTags := []*sfn.Tag{}
+	for k, v := range wmTags {
+		vs, ok := v.(string)
+		if ok {
+			sfnTags = append(sfnTags, &sfn.Tag{
+				Key:   aws.String(k),
+				Value: aws.String(vs),
+			})
+		}
+	}
+	return sfnTags
+}
+
 func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
 	describeOutput, err := wm.sfnapi.DescribeStateMachine(&sfn.DescribeStateMachineInput{
 		StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
@@ -142,6 +156,12 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDef
 		Name:       aws.String(awsStateMachineName),
 		Definition: aws.String(awsStateMachineDef),
 		RoleArn:    aws.String(wm.roleARN),
+		Tags: append([]*sfn.Tag{
+			{Key: aws.String("environment"), Value: aws.String(namespace)},
+			{Key: aws.String("workflow-definition-name"), Value: aws.String(wd.Name)},
+			{Key: aws.String("workflow-definition-version"), Value: aws.String(fmt.Sprintf("%d", wd.Version))},
+			{Key: aws.String("workflow-definition-start-at"), Value: aws.String(wd.StateMachine.StartAt)},
+		}, toSFNTags(wd.DefaultTags)...),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("CreateStateMachine error: %s", err.Error())
