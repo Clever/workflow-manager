@@ -97,6 +97,7 @@
 |**manager**  <br>*optional*|[Manager](#manager)|
 |**name**  <br>*optional*|string|
 |**stateMachine**  <br>*optional*|[SLStateMachine](#slstatemachine)|
+|**version**  <br>*optional*|integer|
 
 
 <a name="notfound"></a>
