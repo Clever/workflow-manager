@@ -83,6 +83,7 @@ func GetWorkflowDefinitionsByNameAndVersion(d db.Interface, t *testing.T) func(t
 			Name:    "string1",
 			Version: 3,
 		}))
+		limit := int64(3)
 		tests := []getWorkflowDefinitionsByNameAndVersionTest{
 			{
 				testName: "basic",
@@ -90,7 +91,8 @@ func GetWorkflowDefinitionsByNameAndVersion(d db.Interface, t *testing.T) func(t
 				input: getWorkflowDefinitionsByNameAndVersionInput{
 					ctx: context.Background(),
 					input: db.GetWorkflowDefinitionsByNameAndVersionInput{
-						Name: "string1",
+						Name:  "string1",
+						Limit: &limit,
 					},
 				},
 				output: getWorkflowDefinitionsByNameAndVersionOutput{

@@ -27,6 +27,9 @@ type NewWorkflowDefinitionRequest struct {
 
 	// state machine
 	StateMachine *SLStateMachine `json:"stateMachine,omitempty"`
+
+	// version
+	Version int64 `json:"version,omitempty"`
 }
 
 // Validate validates this new workflow definition request

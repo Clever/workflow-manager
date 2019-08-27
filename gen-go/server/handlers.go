@@ -95,8 +95,6 @@ func statusCodeForHealthCheck(obj interface{}) int {
 }
 
 func (h handler) HealthCheckHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	err := h.HealthCheck(ctx)
 
@@ -164,8 +162,8 @@ func statusCodeForPostStateResource(obj interface{}) int {
 }
 
 func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newPostStateResourceInput(r)
 	if err != nil {
@@ -276,8 +274,6 @@ func statusCodeForDeleteStateResource(obj interface{}) int {
 }
 
 func (h handler) DeleteStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newDeleteStateResourceInput(r)
 	if err != nil {
@@ -398,8 +394,8 @@ func statusCodeForGetStateResource(obj interface{}) int {
 }
 
 func (h handler) GetStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newGetStateResourceInput(r)
 	if err != nil {
@@ -526,8 +522,8 @@ func statusCodeForPutStateResource(obj interface{}) int {
 }
 
 func (h handler) PutStateResourceHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newPutStateResourceInput(r)
 	if err != nil {
@@ -669,8 +665,8 @@ func statusCodeForGetWorkflowDefinitions(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowDefinitionsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	resp, err := h.GetWorkflowDefinitions(ctx)
 
@@ -756,8 +752,8 @@ func statusCodeForNewWorkflowDefinition(obj interface{}) int {
 }
 
 func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newNewWorkflowDefinitionInput(r)
 	if err != nil {
@@ -874,8 +870,8 @@ func statusCodeForGetWorkflowDefinitionVersionsByName(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowDefinitionVersionsByNameHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newGetWorkflowDefinitionVersionsByNameInput(r)
 	if err != nil {
@@ -1013,8 +1009,8 @@ func statusCodeForUpdateWorkflowDefinition(obj interface{}) int {
 }
 
 func (h handler) UpdateWorkflowDefinitionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newUpdateWorkflowDefinitionInput(r)
 	if err != nil {
@@ -1146,8 +1142,8 @@ func statusCodeForGetWorkflowDefinitionByNameAndVersion(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowDefinitionByNameAndVersionHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newGetWorkflowDefinitionByNameAndVersionInput(r)
 	if err != nil {
@@ -1280,8 +1276,8 @@ func statusCodeForGetWorkflows(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newGetWorkflowsInput(r)
 	if err != nil {
@@ -1492,8 +1488,8 @@ func statusCodeForStartWorkflow(obj interface{}) int {
 }
 
 func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newStartWorkflowInput(r)
 	if err != nil {
@@ -1604,8 +1600,6 @@ func statusCodeForCancelWorkflow(obj interface{}) int {
 }
 
 func (h handler) CancelWorkflowHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newCancelWorkflowInput(r)
 	if err != nil {
@@ -1727,8 +1721,8 @@ func statusCodeForGetWorkflowByID(obj interface{}) int {
 }
 
 func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	workflowID, err := newGetWorkflowByIDInput(r)
 	if err != nil {
@@ -1826,8 +1820,8 @@ func statusCodeForResumeWorkflowByID(obj interface{}) int {
 }
 
 func (h handler) ResumeWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+
 	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	input, err := newResumeWorkflowByIDInput(r)
 	if err != nil {
@@ -1961,8 +1955,6 @@ func statusCodeForResolveWorkflowByID(obj interface{}) int {
 }
 
 func (h handler) ResolveWorkflowByIDHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	sp := opentracing.SpanFromContext(ctx)
-	_ = sp
 
 	workflowID, err := newResolveWorkflowByIDInput(r)
 	if err != nil {

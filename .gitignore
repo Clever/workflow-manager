@@ -8,6 +8,7 @@
 .\#*
 
 vendor
+node_modules
 build
 bin
 dynamo-local
