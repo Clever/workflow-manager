@@ -12,6 +12,15 @@ routes:
       dimensions: ["id"]
       stat_type: "counter"
 
+  workflow-job-failed-metric:
+    matchers:
+      title: ["workflow-failed"]
+    output:
+      type: "alerts"
+      series: "workflow-manager.job-failed"
+      dimensions: ["workflow-name", "failed-job-name", "workflow-version"]
+      stat_type: "counter"
+
   execution-not-found-alert:
     matchers:
       title: ["execution-not-found"]
