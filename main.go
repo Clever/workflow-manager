@@ -15,7 +15,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	elasticsearch "github.com/elastic/go-elasticsearch/v6"
+	"github.com/elastic/go-elasticsearch/v6/esapi"
+	"github.com/elastic/go-elasticsearch/v6/estransport"
 	"github.com/kardianos/osext"
+	otaws "github.com/opentracing-contrib/go-aws-sdk"
+	"github.com/opentracing/opentracing-go"
 
 	counter "github.com/Clever/aws-sdk-go-counter"
 	"github.com/Clever/workflow-manager/executor"
@@ -91,12 +95,19 @@ func main() {
 	}
 
 	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.SQSRegion))
+
+	// Add OpenTracing Handlers
+	// Note that Dynamo has automatically OpenTracing through wag's dynamo code
+	otaws.AddOTHandlers(countedSFNAPI.Client)
+	otaws.AddOTHandlers(sqsapi.Client)
+
 	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL)
 
 	es, err := elasticsearch.NewClient(elasticsearch.Config{Addresses: []string{c.ESURL}})
 	if err != nil {
 		log.Fatal(err)
 	}
+	es = tracedClient(es)
 
 	h := Handler{
 		store:     db,
@@ -183,5 +194,34 @@ func logSFNCounts(sfnCounter *counter.Counter) {
 	ticker := time.NewTicker(30 * time.Second)
 	for range ticker.C {
 		executor.LogSFNCounts(sfnCounter.Counters())
+	}
+}
+
+// Below provides a thin wrapper around the elasticsearch Client with opentracing added in
+// The Client consists of a Transport object which handles the http requests, and an API object
+//   which makes calls to the Transport. We take the old transport, wrap it with the tracing,
+//   then build a new API object from it.
+
+type tracedESTransport struct {
+	child estransport.Interface
+}
+
+func (t tracedESTransport) Perform(req *http.Request) (*http.Response, error) {
+	span, ctx := opentracing.StartSpanFromContext(req.Context(), "elasticsearch request")
+	// TODO: add some fields from the req
+	req = req.WithContext(ctx)
+	resp, err := t.child.Perform(req)
+	span.Finish()
+	return resp, err
+}
+
+func tracedClient(client *elasticsearch.Client) *elasticsearch.Client {
+
+	tracedTransport := tracedESTransport{
+		child: client.Transport,
+	}
+	return &elasticsearch.Client{
+		API:       esapi.New(tracedTransport),
+		Transport: tracedTransport,
 	}
 }

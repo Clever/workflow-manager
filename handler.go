@@ -221,7 +221,7 @@ func (h Handler) GetWorkflows(
 		indexName = "clever-dev-workflow-manager-dev-v3-workflows"
 	}
 	req := []func(*esapi.SearchRequest){
-		h.es.Search.WithContext(context.Background()),
+		h.es.Search.WithContext(ctx),
 		h.es.Search.WithIndex(indexName),
 		h.es.Search.WithFrom(0),
 		h.es.Search.WithSourceIncludes(
