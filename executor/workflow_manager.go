@@ -15,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 )
 
 // WorkflowManager is the interface for creating, stopping and checking status for Workflows
@@ -37,17 +39,21 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 			log.Info("poll-for-pending-workflows-done")
 			return
 		default:
-			out, err := sqsapi.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
+			span, innerCtx := opentracing.StartSpanFromContext(ctx, "updating-pending-workflows")
+
+			out, err := sqsapi.ReceiveMessageWithContext(innerCtx, &sqs.ReceiveMessageInput{
 				MaxNumberOfMessages: aws.Int64(10),
 				QueueUrl:            aws.String(sqsQueueURL),
 				WaitTimeSeconds:     aws.Int64(10),
 			})
 			if err != nil {
 				log.ErrorD("poll-for-pending-workflows", logger.M{"error": err.Error()})
+				ext.Error.Set(span, true)
+				span.SetTag("errorMessage", err.Error())
 			}
 
 			for _, message := range out.Messages {
-				if id, err := updatePendingWorkflow(ctx, message, wm, thestore, sqsapi, sqsQueueURL); err != nil {
+				if id, err := updatePendingWorkflow(innerCtx, message, wm, thestore, sqsapi, sqsQueueURL); err != nil {
 					log.ErrorD("update-pending-workflow", logger.M{"id": id, "error": err.Error()})
 
 					// If we're seeing DynamoDB throttling, let's wait before running our next poll loop
@@ -62,6 +68,7 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 					log.InfoD("update-pending-workflow", logger.M{"id": id})
 				}
 			}
+			span.Finish()
 		}
 	}
 }
@@ -88,6 +95,8 @@ func createPendingWorkflow(ctx context.Context, workflowID string, sqsapi sqsifa
 }
 
 func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "workflow-update")
+	defer span.Finish()
 	deleteMsg := func() {
 		if _, err := sqsapi.DeleteMessageWithContext(ctx, &sqs.DeleteMessageInput{
 			QueueUrl:      aws.String(sqsQueueURL),
@@ -107,6 +116,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	}
 
 	wfID := *m.Body
+	span.SetTag("wf-id", wfID)
 	wf, err := thestore.GetWorkflowByID(ctx, wfID)
 	if err != nil {
 		if _, ok := err.(models.NotFound); ok {

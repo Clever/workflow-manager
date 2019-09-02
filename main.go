@@ -20,6 +20,7 @@ import (
 	"github.com/kardianos/osext"
 	otaws "github.com/opentracing-contrib/go-aws-sdk"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 
 	counter "github.com/Clever/aws-sdk-go-counter"
 	"github.com/Clever/workflow-manager/executor"
@@ -207,11 +208,25 @@ type tracedESTransport struct {
 }
 
 func (t tracedESTransport) Perform(req *http.Request) (*http.Response, error) {
-	span, ctx := opentracing.StartSpanFromContext(req.Context(), "elasticsearch request")
-	// TODO: add some fields from the req
+	span, ctx := opentracing.StartSpanFromContext(req.Context(), "elasticsearch-request")
+	defer span.Finish()
+
+	// These fields mirror the ones in the aws-sdk-go opentracing package
+	ext.SpanKindRPCClient.Set(span)
+	ext.Component.Set(span, "go-elasticsearch")
+	ext.HTTPMethod.Set(span, req.Method)
+	ext.HTTPUrl.Set(span, req.URL.String())
+	ext.PeerService.Set(span, "elasticsearch")
+
 	req = req.WithContext(ctx)
 	resp, err := t.child.Perform(req)
-	span.Finish()
+
+	if err != nil {
+		ext.Error.Set(span, true)
+	} else {
+		ext.HTTPStatusCode.Set(span, uint16(resp.StatusCode))
+	}
+
 	return resp, err
 }
 

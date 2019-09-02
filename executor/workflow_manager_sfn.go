@@ -125,10 +125,11 @@ func toSFNTags(wmTags map[string]interface{}) []*sfn.Tag {
 	return sfnTags
 }
 
-func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
-	describeOutput, err := wm.sfnapi.DescribeStateMachine(&sfn.DescribeStateMachineInput{
-		StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
-	})
+func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
+	describeOutput, err := wm.sfnapi.DescribeStateMachineWithContext(ctx,
+		&sfn.DescribeStateMachineInput{
+			StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
+		})
 	if err == nil {
 		return describeOutput, nil
 	}
@@ -152,25 +153,26 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(wd models.WorkflowDef
 	// this effectively creates a new workflow definition in each namespace we deploy into
 	awsStateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
 	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
-	_, err = wm.sfnapi.CreateStateMachine(&sfn.CreateStateMachineInput{
-		Name:       aws.String(awsStateMachineName),
-		Definition: aws.String(awsStateMachineDef),
-		RoleArn:    aws.String(wm.roleARN),
-		Tags: append([]*sfn.Tag{
-			{Key: aws.String("environment"), Value: aws.String(namespace)},
-			{Key: aws.String("workflow-definition-name"), Value: aws.String(wd.Name)},
-			{Key: aws.String("workflow-definition-version"), Value: aws.String(fmt.Sprintf("%d", wd.Version))},
-			{Key: aws.String("workflow-definition-start-at"), Value: aws.String(wd.StateMachine.StartAt)},
-		}, toSFNTags(wd.DefaultTags)...),
-	})
+	_, err = wm.sfnapi.CreateStateMachineWithContext(ctx,
+		&sfn.CreateStateMachineInput{
+			Name:       aws.String(awsStateMachineName),
+			Definition: aws.String(awsStateMachineDef),
+			RoleArn:    aws.String(wm.roleARN),
+			Tags: append([]*sfn.Tag{
+				{Key: aws.String("environment"), Value: aws.String(namespace)},
+				{Key: aws.String("workflow-definition-name"), Value: aws.String(wd.Name)},
+				{Key: aws.String("workflow-definition-version"), Value: aws.String(fmt.Sprintf("%d", wd.Version))},
+				{Key: aws.String("workflow-definition-start-at"), Value: aws.String(wd.StateMachine.StartAt)},
+			}, toSFNTags(wd.DefaultTags)...),
+		})
 	if err != nil {
 		return nil, fmt.Errorf("CreateStateMachine error: %s", err.Error())
 	}
 
-	return wm.describeOrCreateStateMachine(wd, namespace, queue)
+	return wm.describeOrCreateStateMachine(ctx, wd, namespace, queue)
 }
 
-func (wm *SFNWorkflowManager) startExecution(stateMachineArn *string, workflowID, input string) error {
+func (wm *SFNWorkflowManager) startExecution(ctx context.Context, stateMachineArn *string, workflowID, input string) error {
 	executionName := aws.String(workflowID)
 
 	var inputJSON map[string]interface{}
@@ -192,7 +194,7 @@ func (wm *SFNWorkflowManager) startExecution(stateMachineArn *string, workflowID
 	// - aws.String(""): leads to InvalidExecutionInput AWS error
 	// - aws.String("[]"): leads to an input of an empty array "[]"
 	startExecutionInput := aws.String(string(marshaledInput))
-	_, err = wm.sfnapi.StartExecution(&sfn.StartExecutionInput{
+	_, err = wm.sfnapi.StartExecutionWithContext(ctx, &sfn.StartExecutionInput{
 		StateMachineArn: stateMachineArn,
 		Input:           startExecutionInput,
 		Name:            executionName,
@@ -207,7 +209,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	queue string,
 	tags map[string]interface{}) (*models.Workflow, error) {
 
-	describeOutput, err := wm.describeOrCreateStateMachine(wd, namespace, queue)
+	describeOutput, err := wm.describeOrCreateStateMachine(ctx, wd, namespace, queue)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +233,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	}
 
 	// submit an execution using input, set execution name == our workflow GUID
-	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
+	err = wm.startExecution(ctx, describeOutput.StateMachineArn, workflow.ID, input)
 	if err != nil {
 		// since we failed to start execution, remove Workflow from store
 		if delErr := wm.store.DeleteWorkflowByID(ctx, workflow.ID); delErr != nil {
@@ -267,7 +269,7 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 	if err := resources.RemoveInactiveStates(newDef.StateMachine); err != nil {
 		return nil, err
 	}
-	describeOutput, err := wm.describeOrCreateStateMachine(newDef, ogWorkflow.Namespace, ogWorkflow.Queue)
+	describeOutput, err := wm.describeOrCreateStateMachine(ctx, newDef, ogWorkflow.Namespace, ogWorkflow.Queue)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +289,7 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 	}
 
 	// submit an execution using input, set execution name == our workflow GUID
-	err = wm.startExecution(describeOutput.StateMachineArn, workflow.ID, input)
+	err = wm.startExecution(ctx, describeOutput.StateMachineArn, workflow.ID, input)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +310,7 @@ func (wm *SFNWorkflowManager) CancelWorkflow(ctx context.Context, workflow *mode
 
 	wd := workflow.WorkflowDefinition
 	execARN := wm.executionArn(workflow, wd)
-	if _, err := wm.sfnapi.StopExecution(&sfn.StopExecutionInput{
+	if _, err := wm.sfnapi.StopExecutionWithContext(ctx, &sfn.StopExecutionInput{
 		ExecutionArn: aws.String(execARN),
 		Cause:        aws.String(reason),
 		// Error: aws.String(""), // TODO: Can we use this? "An arbitrary error code that identifies the cause of the termination."
@@ -415,8 +417,7 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 
 	// Setup a context with a timeout of one minute since
 	// we don't want to pull very large workflow histories
-	// TODO: this should be a context passed by the handler
-	ctx, cancel := context.WithTimeout(context.Background(), durationToFetchHistoryPages)
+	ctx, cancel := context.WithTimeout(ctx, durationToFetchHistoryPages)
 	defer cancel()
 
 	var jobs []*models.Job
