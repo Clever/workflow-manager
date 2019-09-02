@@ -153,14 +153,14 @@ func TestCreateWorkflow(t *testing.T) {
 			c.workflowDefinition.StateMachine.StartAt,
 		)
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(&sfn.DescribeStateMachineInput{
+			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
-			StartExecution(gomock.Any()).
+			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
 		c.mockSQSAPI.EXPECT().
 			SendMessageWithContext(gomock.Any(), gomock.Any()).
@@ -240,14 +240,14 @@ func TestCreateWorkflow(t *testing.T) {
 			c.workflowDefinition.StateMachine.StartAt,
 		)
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(&sfn.DescribeStateMachineInput{
+			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
-			StartExecution(gomock.Any()).
+			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
 		c.mockSQSAPI.EXPECT().
 			SendMessageWithContext(gomock.Any(), gomock.Any()).
@@ -291,14 +291,14 @@ func TestCreateWorkflow(t *testing.T) {
 		)
 		awsError := awserr.New("test", "test", errors.New(""))
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(&sfn.DescribeStateMachineInput{
+			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
-			StartExecution(gomock.Any()).
+			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(nil, awsError)
 
 		workflow, err := c.manager.CreateWorkflow(ctx, *c.workflowDefinition,
@@ -331,14 +331,14 @@ func TestRetryWorkflow(t *testing.T) {
 			c.workflowDefinition.StateMachine.StartAt,
 		)
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(&sfn.DescribeStateMachineInput{
+			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
-			StartExecution(gomock.Any()).
+			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
 		c.mockSQSAPI.EXPECT().
 			SendMessageWithContext(gomock.Any(), gomock.Any()).
@@ -370,12 +370,12 @@ func TestRetryWorkflow(t *testing.T) {
 		workflow.Status = models.WorkflowStatusFailed
 
 		c.mockSFNAPI.EXPECT().
-			DescribeStateMachine(gomock.Any()).
+			DescribeStateMachineWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
 		c.mockSFNAPI.EXPECT().
-			StartExecution(gomock.Any()).
+			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
 		c.mockSQSAPI.EXPECT().
 			SendMessageWithContext(gomock.Any(), gomock.Any()).
@@ -413,7 +413,7 @@ func TestCancelWorkflow(t *testing.T) {
 	reason := "i have my reasons"
 	sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
 	c.mockSFNAPI.EXPECT().
-		StopExecution(&sfn.StopExecutionInput{
+		StopExecutionWithContext(gomock.Any(), &sfn.StopExecutionInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 			Cause:        aws.String(reason),
 		}).
