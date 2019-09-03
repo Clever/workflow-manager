@@ -13,6 +13,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type handlerTestController struct {
+	mockController *gomock.Controller
+	mockWFM        *mocks.MockWorkflowManager
+	mockStore      *mocks.MockStore
+	handler        Handler
+	t              *testing.T
+}
+
+func newSFNManagerTestController(t *testing.T) *handlerTestController {
+	mockController := gomock.NewController(t)
+	mockWFM := mocks.NewMockWorkflowManager(mockController)
+	mockStore := mocks.NewMockStore(mockController)
+	handler := Handler{
+		manager: mockWFM,
+		store:   mockStore,
+	}
+
+	return &handlerTestController{
+		mockController: mockController,
+		mockWFM:        mockWFM,
+		mockStore:      mockStore,
+		handler:        handler,
+		t:              t,
+	}
+}
+
+func (c *handlerTestController) tearDown() {
+	c.mockController.Finish()
+}
+
 // TestNewWorkflowDefinitionFromRequest tests the newWorkflowFromRequest helper
 func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 	workflowReq := models.NewWorkflowDefinitionRequest{
@@ -82,4 +112,352 @@ func TestStartWorkflow(t *testing.T) {
 		})
 		assert.NoError(t, err)
 	}
+}
+
+func TestResumeWorkflowByID(t *testing.T) {
+	workflowDefinition := &models.WorkflowDefinition{
+		StateMachine: &models.SLStateMachine{
+			StartAt: "monkey-state",
+			States: map[string]models.SLState{
+				"monkey-state": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Next:     "gorilla-state",
+					Resource: "resource-name",
+				},
+				"gorilla-state": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Resource: "lambda:resource-name",
+					End:      true,
+				},
+			},
+		},
+	}
+
+	specs := []struct {
+		desc    string
+		isError bool
+		startAt string
+		wf      *models.Workflow
+		newWF   *models.Workflow
+	}{
+		{
+			desc: "uses the input from lastJob if StartAt == lastJob.State" +
+				" regardless of the existance of the jobs array",
+			isError: false,
+			startAt: "gorilla-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					LastJob: &models.Job{
+						State:  "gorilla-state",
+						Input:  `{"snack":"plum"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+				Jobs: nil,
+			},
+			newWF: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "new-workflow-id",
+					Status:             models.WorkflowStatusQueued,
+					WorkflowDefinition: workflowDefinition,
+					Input:              `{"snack":"plum"}`,
+				},
+			},
+		},
+		{
+			desc:    "finds the input from jobs array when StartAt != lastJob.State",
+			isError: false,
+			startAt: "monkey-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					LastJob: &models.Job{
+						State:  "gorilla-state",
+						Input:  `{"snack":"plum"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusSucceeded,
+					},
+					{
+						State:  "gorilla-state",
+						Input:  `{"snack":"plum"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+			},
+			newWF: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "new-workflow-id",
+					Status:             models.WorkflowStatusQueued,
+					WorkflowDefinition: workflowDefinition,
+					Input:              `{"snack":"banana"}`,
+				},
+			},
+		},
+		{
+			desc:    "fails if there are no previous attempted jobs at StartAt state",
+			isError: true,
+			startAt: "gorilla-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					LastJob: &models.Job{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+			},
+			newWF: &models.Workflow{},
+		},
+		{
+			desc:    "fails if StartAt state doesn't exist in the workflow definition",
+			isError: true,
+			startAt: "invalid-state",
+			wf: &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					LastJob: &models.Job{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+			},
+			newWF: &models.Workflow{},
+		},
+	}
+
+	for _, spec := range specs {
+		t.Run(spec.desc, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			c := newSFNManagerTestController(t)
+
+			c.mockStore.EXPECT().
+				GetWorkflowByID(ctx, gomock.Eq(spec.wf.ID)).
+				Return(*spec.wf, nil).
+				Times(1)
+
+			if !spec.isError {
+				c.mockWFM.EXPECT().
+					RetryWorkflow(ctx, *spec.wf, spec.startAt, spec.newWF.Input).
+					Return(spec.newWF, nil).
+					Times(1)
+			}
+
+			resumedWorkflow, err := c.handler.ResumeWorkflowByID(
+				ctx,
+				&models.ResumeWorkflowByIDInput{
+					WorkflowID: spec.wf.ID,
+					Overrides:  &models.WorkflowDefinitionOverrides{StartAt: spec.startAt},
+				},
+			)
+
+			if spec.isError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, spec.newWF, resumedWorkflow)
+		})
+	}
+
+	t.Run("loads the jobs array when it's missing and StartAt != lastJob.State", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		c := newSFNManagerTestController(t)
+
+		startAt := "monkey-state"
+
+		wf := &models.Workflow{
+			WorkflowSummary: models.WorkflowSummary{
+				ID:                 "workflow-id",
+				Status:             models.WorkflowStatusFailed,
+				WorkflowDefinition: workflowDefinition,
+				LastJob: &models.Job{
+					State:  "gorilla-state",
+					Input:  `{"snack":"plum"}`,
+					Status: models.JobStatusFailed,
+				},
+			},
+			Jobs: nil,
+		}
+
+		jobsToLoad := []*models.Job{
+			{
+				State:  "monkey-state",
+				Input:  `{"snack":"banana"}`,
+				Status: models.JobStatusSucceeded,
+			},
+			{
+				State:  "gorilla-state",
+				Input:  `{"snack":"plum"}`,
+				Status: models.JobStatusFailed,
+			},
+		}
+
+		newWF := &models.Workflow{
+			WorkflowSummary: models.WorkflowSummary{
+				ID:                 "new-workflow-id",
+				Status:             models.WorkflowStatusQueued,
+				WorkflowDefinition: workflowDefinition,
+				Input:              `{"snack":"banana"}`,
+			},
+		}
+
+		c.mockStore.EXPECT().
+			GetWorkflowByID(ctx, gomock.Eq(wf.ID)).
+			Return(*wf, nil).
+			Times(1)
+
+		wfWithoutJobs := *wf
+		c.mockWFM.EXPECT().
+			UpdateWorkflowHistory(ctx, &wfWithoutJobs).
+			Return(nil).
+			Times(1)
+
+		wf.Jobs = jobsToLoad
+		c.mockStore.EXPECT().
+			GetWorkflowByID(ctx, gomock.Eq(wf.ID)).
+			Return(*wf, nil).
+			Times(1)
+
+		c.mockWFM.EXPECT().
+			RetryWorkflow(ctx, *wf, startAt, newWF.Input).
+			Return(newWF, nil).
+			Times(1)
+
+		resumedWorkflow, err := c.handler.ResumeWorkflowByID(
+			ctx,
+			&models.ResumeWorkflowByIDInput{
+				WorkflowID: wf.ID,
+				Overrides:  &models.WorkflowDefinitionOverrides{StartAt: startAt},
+			},
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, newWF, resumedWorkflow)
+	})
+
+	t.Run("fails if ResumeWorkflowByID is called on a running workflow", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		c := newSFNManagerTestController(t)
+
+		wf := &models.Workflow{
+			WorkflowSummary: models.WorkflowSummary{
+				ID:                 "workflow-id",
+				Status:             models.WorkflowStatusRunning,
+				WorkflowDefinition: workflowDefinition,
+			},
+			Jobs: []*models.Job{
+				{
+					State:  "monkey-state",
+					Input:  `{"snack":"banana"}`,
+					Status: models.JobStatusRunning,
+				},
+			},
+		}
+
+		c.mockStore.EXPECT().
+			GetWorkflowByID(ctx, gomock.Eq(wf.ID)).
+			Return(*wf, nil).
+			Times(1)
+
+		_, err := c.handler.ResumeWorkflowByID(
+			ctx,
+			&models.ResumeWorkflowByIDInput{
+				WorkflowID: wf.ID,
+				Overrides:  &models.WorkflowDefinitionOverrides{StartAt: "monkey-state"},
+			},
+		)
+		require.Error(t, err)
+	})
+
+	t.Run(
+		"fails if ResumeWorkflowByID is called on a workflow with active retries",
+		func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			c := newSFNManagerTestController(t)
+
+			wfRetry := &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "retry-workflow-id",
+					Status:             models.WorkflowStatusRunning,
+					WorkflowDefinition: workflowDefinition,
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusRunning,
+					},
+				},
+			}
+
+			wf := &models.Workflow{
+				WorkflowSummary: models.WorkflowSummary{
+					ID:                 "workflow-id",
+					Status:             models.WorkflowStatusFailed,
+					WorkflowDefinition: workflowDefinition,
+					Retries:            []string{wfRetry.ID},
+				},
+				Jobs: []*models.Job{
+					{
+						State:  "monkey-state",
+						Input:  `{"snack":"banana"}`,
+						Status: models.JobStatusFailed,
+					},
+				},
+			}
+
+			c.mockStore.EXPECT().
+				GetWorkflowByID(ctx, gomock.Eq(wf.ID)).
+				Return(*wf, nil).
+				Times(1)
+
+			c.mockStore.EXPECT().
+				GetWorkflowByID(ctx, gomock.Eq(wfRetry.ID)).
+				Return(*wfRetry, nil).
+				Times(1)
+
+			_, err := c.handler.ResumeWorkflowByID(
+				ctx,
+				&models.ResumeWorkflowByIDInput{
+					WorkflowID: wf.ID,
+					Overrides:  &models.WorkflowDefinitionOverrides{StartAt: "monkey-state"},
+				},
+			)
+			require.Error(t, err)
+		})
 }
