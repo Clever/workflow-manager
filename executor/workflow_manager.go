@@ -134,7 +134,6 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	}
 
 	logPendingWorkflowUpdateLag(wf)
-	span.SetTag("result", "databaseError")
 
 	var storeSaveFailed = true
 	// Attempt to update the workflow, i.e. sync data from SFN into our workflow object.
