@@ -392,6 +392,21 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 		if err := wm.updateWorkflowLastJob(ctx, workflow); err != nil {
 			return err
 		}
+		failedJob := ""
+		failedJobResource := ""
+		if workflow.LastJob != nil {
+			failedJob = workflow.LastJob.State
+			if workflow.LastJob.StateResource != nil {
+				failedJobResource = workflow.LastJob.StateResource.Name
+			}
+		}
+		log.CounterD("workflow-failed", 1, logger.M{
+			"workflow-name":       workflow.WorkflowDefinition.Name,
+			"workflow-version":    workflow.WorkflowDefinition.Version,
+			"workflow-id":         workflow.ID,
+			"failed-job-name":     failedJob,
+			"failed-job-resource": failedJobResource,
+		})
 	}
 
 	workflow.Output = aws.StringValue(describeOutput.Output) // use for error or success  (TODO: actually this is only sent for success)
