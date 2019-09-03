@@ -116,7 +116,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	}
 
 	wfID := *m.Body
-	span.SetTag("wf-id", wfID)
+	span.SetTag("workflow-id", wfID)
 	wf, err := thestore.GetWorkflowByID(ctx, wfID)
 	if err != nil {
 		if _, ok := err.(models.NotFound); ok {

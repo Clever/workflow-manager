@@ -227,7 +227,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	// i.e. execution was started but we failed to save workflow
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
 	workflow := resources.NewWorkflow(&wd, input, namespace, queue, mergedTags)
-	logger.FromContext(ctx).AddContext("wf-id", workflow.ID)
+	logger.FromContext(ctx).AddContext("workflow-id", workflow.ID)
 	if err := wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
