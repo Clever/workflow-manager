@@ -144,8 +144,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 		if storeSaveFailed {
 			span.SetTag("result", "requeue-store-save-failed")
 			requeueMsg()
-		}
-		if !resources.WorkflowStatusIsDone(&wf) {
+		} else if !resources.WorkflowStatusIsDone(&wf) {
 			span.SetTag("result", "requeue-workflow-not-done")
 			requeueMsg()
 
