@@ -122,6 +122,9 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 		if _, ok := err.(models.NotFound); ok {
 			// workflow has disappeared from our DB. No sense in
 			// trying to update it again, so delete the SQS message
+			// since the update loop starts before starting execution,
+			// this could indicate an error in starting the workflow.
+			// if that happened, it is logged separately.
 			deleteMsg()
 			return "", fmt.Errorf("worfklow id not found: %s", wfID)
 		}

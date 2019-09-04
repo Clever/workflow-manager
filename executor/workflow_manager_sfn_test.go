@@ -290,6 +290,10 @@ func TestCreateWorkflow(t *testing.T) {
 			c.workflowDefinition.StateMachine.StartAt,
 		)
 		awsError := awserr.New("test", "test", errors.New(""))
+
+		c.mockSQSAPI.EXPECT().
+			SendMessageWithContext(gomock.Any(), gomock.Any()).
+			Return(&sqs.SendMessageOutput{}, nil)
 		c.mockSFNAPI.EXPECT().
 			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
 				StateMachineArn: aws.String(stateMachineArn),
