@@ -129,8 +129,8 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 			return "", fmt.Errorf("worfklow id not found: %s", wfID)
 		}
 		// other error, e.g. throttling. Try again later
-		deleteMsg()
 		requeueMsg()
+		deleteMsg()
 		return "", err
 	}
 
@@ -141,10 +141,10 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	// Whether or not we are successful at this, we should delete the sqs message
 	// and re-queue a new message if the workflow remains pending.
 	defer func() {
-		deleteMsg()
 		if storeSaveFailed || !resources.WorkflowStatusIsDone(&wf) {
 			requeueMsg()
 		}
+		deleteMsg()
 	}()
 	if err := wm.UpdateWorkflowSummary(ctx, &wf); err != nil {
 		return "", err
