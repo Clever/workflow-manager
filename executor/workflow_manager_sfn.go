@@ -280,8 +280,16 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 	workflow.RetryFor = ogWorkflow.ID
 	ogWorkflow.Retries = append(ogWorkflow.Retries, workflow.ID)
 
-	// save the workflow before starting execution to ensure we don't have untracked executions
+	// start the update loop and save the workflow before starting execution to ensure we don't have
+	// untracked executions i.e. execution was started but we failed to save workflow
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
+
+	err = createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL)
+	if err != nil {
+		// this error is logged in createPendingWorkflow with title "sqs-send-message"
+		return nil, err
+	}
+
 	if err = wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
@@ -292,12 +300,6 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 
 	// submit an execution using input, set execution name == our workflow GUID
 	err = wm.startExecution(ctx, describeOutput.StateMachineArn, workflow.ID, input)
-	if err != nil {
-		return nil, err
-	}
-
-	// start update loop for this workflow
-	err = createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL)
 	if err != nil {
 		return nil, err
 	}
