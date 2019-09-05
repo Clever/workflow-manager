@@ -122,13 +122,16 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 		if _, ok := err.(models.NotFound); ok {
 			// workflow has disappeared from our DB. No sense in
 			// trying to update it again, so delete the SQS message
+			// since the update loop starts before starting execution,
+			// this could indicate an error in starting the workflow.
+			// if that happened, it is logged separately.
 			deleteMsg()
 			span.SetTag("result", "workflow-not-found")
 			return "", fmt.Errorf("workflow id not found: %s", wfID)
 		}
 		// other error, e.g. throttling. Try again later
-		deleteMsg()
 		requeueMsg()
+		deleteMsg()
 		span.SetTag("result", "database-error")
 		return "", err
 	}
@@ -140,7 +143,6 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	// Whether or not we are successful at this, we should delete the sqs message
 	// and re-queue a new message if the workflow remains pending.
 	defer func() {
-		deleteMsg()
 		if storeSaveFailed {
 			span.SetTag("result", "requeue-store-save-failed")
 			requeueMsg()
@@ -149,6 +151,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 			requeueMsg()
 
 		}
+		deleteMsg()
 	}()
 	if err := wm.UpdateWorkflowSummary(ctx, &wf); err != nil {
 		return "", err

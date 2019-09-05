@@ -223,11 +223,19 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 		mergedTags[k] = v
 	}
 
-	// save the workflow before starting execution to ensure we don't have untracked executions
-	// i.e. execution was started but we failed to save workflow
+	// start the update loop and save the workflow before starting execution to ensure we don't have
+	// untracked executions i.e. execution was started but we failed to save workflow
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
+
 	workflow := resources.NewWorkflow(&wd, input, namespace, queue, mergedTags)
 	logger.FromContext(ctx).AddContext("workflow-id", workflow.ID)
+
+	err = createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL)
+	if err != nil {
+		// this error is logged in createPendingWorkflow with title "sqs-send-message"
+		return nil, err
+	}
+
 	if err := wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
@@ -238,19 +246,13 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 		// since we failed to start execution, remove Workflow from store
 		if delErr := wm.store.DeleteWorkflowByID(ctx, workflow.ID); delErr != nil {
 			log.ErrorD("create-workflow", logger.M{
-				"id":                       workflow.ID,
+				"workflow-id":              workflow.ID,
 				"workflow-definition-name": workflow.WorkflowDefinition.Name,
 				"message":                  "failed to delete stray workflow",
 				"error":                    fmt.Sprintf("SFNError: %s;StoreError: %s", err, delErr),
 			})
 		}
 
-		return nil, err
-	}
-
-	// start update loop for this workflow
-	err = createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL)
-	if err != nil {
 		return nil, err
 	}
 
@@ -278,8 +280,16 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 	workflow.RetryFor = ogWorkflow.ID
 	ogWorkflow.Retries = append(ogWorkflow.Retries, workflow.ID)
 
-	// save the workflow before starting execution to ensure we don't have untracked executions
+	// start the update loop and save the workflow before starting execution to ensure we don't have
+	// untracked executions i.e. execution was started but we failed to save workflow
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
+
+	err = createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL)
+	if err != nil {
+		// this error is logged in createPendingWorkflow with title "sqs-send-message"
+		return nil, err
+	}
+
 	if err = wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
@@ -290,12 +300,6 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 
 	// submit an execution using input, set execution name == our workflow GUID
 	err = wm.startExecution(ctx, describeOutput.StateMachineArn, workflow.ID, input)
-	if err != nil {
-		return nil, err
-	}
-
-	// start update loop for this workflow
-	err = createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL)
 	if err != nil {
 		return nil, err
 	}
@@ -359,6 +363,9 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case sfn.ErrCodeExecutionDoesNotExist:
+				// since the update loop starts before starting execution,
+				// this could mean that the workflow didn't start properly
+				// which would be logged separately
 				log.ErrorD("execution-not-found", logger.M{
 					"workflow-id":  workflow.ID,
 					"execution-id": execARN,
