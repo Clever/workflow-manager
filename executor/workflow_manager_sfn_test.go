@@ -159,6 +159,7 @@ func TestCreateWorkflow(t *testing.T) {
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
+		c.mockSFNAPI.EXPECT().TagResourceWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
@@ -246,6 +247,7 @@ func TestCreateWorkflow(t *testing.T) {
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
+		c.mockSFNAPI.EXPECT().TagResourceWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
@@ -301,6 +303,7 @@ func TestCreateWorkflow(t *testing.T) {
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
+		c.mockSFNAPI.EXPECT().TagResourceWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(nil, awsError)
@@ -341,6 +344,7 @@ func TestRetryWorkflow(t *testing.T) {
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
+		c.mockSFNAPI.EXPECT().TagResourceWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
@@ -378,6 +382,7 @@ func TestRetryWorkflow(t *testing.T) {
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn: aws.String(stateMachineArn),
 			}, nil)
+		c.mockSFNAPI.EXPECT().TagResourceWithContext(gomock.Any(), gomock.Any()).Return(nil, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
