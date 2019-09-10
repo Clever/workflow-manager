@@ -131,6 +131,17 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 			StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
 		})
 	if err == nil {
+		if _, err := wm.sfnapi.TagResourceWithContext(ctx, &sfn.TagResourceInput{
+			ResourceArn: describeOutput.StateMachineArn,
+			Tags: append([]*sfn.Tag{
+				{Key: aws.String("environment"), Value: aws.String(namespace)},
+				{Key: aws.String("workflow-definition-name"), Value: aws.String(wd.Name)},
+				{Key: aws.String("workflow-definition-version"), Value: aws.String(fmt.Sprintf("%d", wd.Version))},
+				{Key: aws.String("workflow-definition-start-at"), Value: aws.String(wd.StateMachine.StartAt)},
+			}, toSFNTags(wd.DefaultTags)...),
+		}); err != nil {
+			return nil, err
+		}
 		return describeOutput, nil
 	}
 	awserr, ok := err.(awserr.Error)
@@ -158,12 +169,6 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 			Name:       aws.String(awsStateMachineName),
 			Definition: aws.String(awsStateMachineDef),
 			RoleArn:    aws.String(wm.roleARN),
-			Tags: append([]*sfn.Tag{
-				{Key: aws.String("environment"), Value: aws.String(namespace)},
-				{Key: aws.String("workflow-definition-name"), Value: aws.String(wd.Name)},
-				{Key: aws.String("workflow-definition-version"), Value: aws.String(fmt.Sprintf("%d", wd.Version))},
-				{Key: aws.String("workflow-definition-start-at"), Value: aws.String(wd.StateMachine.StartAt)},
-			}, toSFNTags(wd.DefaultTags)...),
 		})
 	if err != nil {
 		return nil, fmt.Errorf("CreateStateMachine error: %s", err.Error())
