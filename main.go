@@ -152,14 +152,17 @@ func loadConfig() Config {
 			"AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS",
 			"workflow-manager-test",
 		),
-		DynamoPrefixWorkflows: "workflow-manager-prod-v3",
-		DynamoRegion:          mustGetenv("AWS_DYNAMO_REGION"),
-		SFNRegion:             mustGetenv("AWS_SFN_REGION"),
-		SFNAccountID:          mustGetenv("AWS_SFN_ACCOUNT_ID"),
-		SFNRoleARN:            mustGetenv("AWS_SFN_ROLE_ARN"),
-		SQSRegion:             mustGetenv("AWS_SQS_REGION"),
-		SQSQueueURL:           mustGetenv("AWS_SQS_URL"),
-		ESURL:                 mustGetenv("ES_URL"),
+		DynamoPrefixWorkflows: getEnvVarOrDefault(
+			"AWS_DYNAMO_PREFIX_WORKFLOWS",
+			"workflow-manager-test",
+		),
+		DynamoRegion: mustGetenv("AWS_DYNAMO_REGION"),
+		SFNRegion:    mustGetenv("AWS_SFN_REGION"),
+		SFNAccountID: mustGetenv("AWS_SFN_ACCOUNT_ID"),
+		SFNRoleARN:   mustGetenv("AWS_SFN_ROLE_ARN"),
+		SQSRegion:    mustGetenv("AWS_SQS_REGION"),
+		SQSQueueURL:  mustGetenv("AWS_SQS_URL"),
+		ESURL:        mustGetenv("ES_URL"),
 	}
 }
 

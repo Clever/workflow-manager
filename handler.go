@@ -366,21 +366,21 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 
 	// find the input to the StartAt state
 	effectiveInput := workflow.LastJob.Input
-	job := workflow.LastJob
-	if job.State == input.Overrides.StartAt {
-		// if job was never started then we should probably not trust the input
-		if job.Status == models.JobStatusAbortedDepsFailed ||
-			job.Status == models.JobStatusQueued ||
-			job.Status == models.JobStatusWaitingForDeps ||
-			job.Status == models.JobStatusCreated {
+	// job := workflow.LastJob
+	// if job.State == input.Overrides.StartAt {
+	// 	// if job was never started then we should probably not trust the input
+	// 	if job.Status == models.JobStatusAbortedDepsFailed ||
+	// 		job.Status == models.JobStatusQueued ||
+	// 		job.Status == models.JobStatusWaitingForDeps ||
+	// 		job.Status == models.JobStatusCreated {
 
-			return &models.Workflow{},
-				fmt.Errorf("Job %s for StartAt %s was not started for Workflow: %s. Could not infer input",
-					job.ID, job.State, workflow.ID)
-		}
+	// 		return &models.Workflow{},
+	// 			fmt.Errorf("Job %s for StartAt %s was not started for Workflow: %s. Could not infer input",
+	// 				job.ID, job.State, workflow.ID)
+	// 	}
 
-		effectiveInput = job.Input
-	}
+	// 	effectiveInput = job.Input
+	// }
 
 	return h.manager.RetryWorkflow(ctx, workflow, input.Overrides.StartAt, effectiveInput)
 }
