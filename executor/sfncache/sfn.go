@@ -27,7 +27,7 @@ func New(sfnapi sfniface.SFNAPI) (sfniface.SFNAPI, error) {
 	}, nil
 }
 
-// examplee: arn:aws:states:us-west-1:123:stateMachine:env--org--appdeploy---1--Start
+// example: arn:aws:states:us-west-1:123:stateMachine:env--org--appdeploy---1--Start
 var arnVersionRegex = regexp.MustCompile(`.*:stateMachine:.+--.+---1--.+`)
 
 // DescribeStateMachineWithContext is cached aggressively since state machines are immutable.
