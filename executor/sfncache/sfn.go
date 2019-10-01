@@ -2,6 +2,7 @@ package sfncache
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sfn"
@@ -26,6 +27,9 @@ func New(sfnapi sfniface.SFNAPI) (sfniface.SFNAPI, error) {
 	}, nil
 }
 
+// examplee: arn:aws:states:us-west-1:589690932525:stateMachine:production--clever-dev--launchpad.d259---1--Start
+var arnVersionRegex = regexp.MustCompile(`.*:stateMachine:.+--.+---1--.+`)
+
 // DescribeStateMachineWithContext is cached aggressively since state machines are immutable.
 func (s *SFNCache) DescribeStateMachineWithContext(ctx context.Context, i *sfn.DescribeStateMachineInput, options ...request.Option) (*sfn.DescribeStateMachineOutput, error) {
 	cacheKey := i.String()
@@ -37,6 +41,10 @@ func (s *SFNCache) DescribeStateMachineWithContext(ctx context.Context, i *sfn.D
 	if err != nil {
 		return out, err
 	}
-	s.describeStateMachineWithContextCache.Add(cacheKey, out)
+
+	if !arnVersionRegex.MatchString(*out.StateMachineArn) {
+		s.describeStateMachineWithContextCache.Add(cacheKey, out)
+	}
+
 	return out, nil
 }
