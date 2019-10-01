@@ -42,7 +42,7 @@ func (s *SFNCache) DescribeStateMachineWithContext(ctx context.Context, i *sfn.D
 		return out, err
 	}
 
-	if !arnVersionRegex.MatchString(*out.StateMachineArn) {
+	if out.StateMachineArn != nil && !arnVersionRegex.MatchString(*out.StateMachineArn) {
 		s.describeStateMachineWithContextCache.Add(cacheKey, out)
 	}
 
