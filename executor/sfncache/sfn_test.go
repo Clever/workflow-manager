@@ -13,7 +13,8 @@ import (
 func TestDescribeStateMachineCache(t *testing.T) {
 	mockController := gomock.NewController(t)
 	defer mockController.Finish()
-	expectedOutput := &sfn.DescribeStateMachineOutput{}
+	arn := "arn"
+	expectedOutput := &sfn.DescribeStateMachineOutput{StateMachineArn: &arn}
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
 	mockSFNAPI.EXPECT().
 		DescribeStateMachineWithContext(gomock.Any(), gomock.Any()).
