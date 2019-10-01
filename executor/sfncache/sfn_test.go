@@ -1,6 +1,7 @@
 package sfncache
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Clever/workflow-manager/mocks"
@@ -15,13 +16,13 @@ func TestDescribeStateMachineCache(t *testing.T) {
 	expectedOutput := &sfn.DescribeStateMachineOutput{}
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
 	mockSFNAPI.EXPECT().
-		DescribeStateMachine(gomock.Any()).
+		DescribeStateMachineWithContext(gomock.Any(), gomock.Any()).
 		Return(expectedOutput, nil).
 		Times(1)
 	cachedSFN, err := New(mockSFNAPI)
 	require.Nil(t, err)
 	for i := 0; i < 1000; i++ {
-		output, err := cachedSFN.DescribeStateMachine(&sfn.DescribeStateMachineInput{})
+		output, err := cachedSFN.DescribeStateMachineWithContext(context.Background(), &sfn.DescribeStateMachineInput{})
 		require.Nil(t, err)
 		require.Equal(t, expectedOutput, output)
 	}
