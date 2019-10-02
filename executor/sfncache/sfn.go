@@ -16,7 +16,7 @@ type SFNCache struct {
 }
 
 // New creates a new cached version of SFNAPI.
-func New(sfnapi sfniface.SFNAPI) (sfniface.SFNAPI, error) {
+func New(sfnapi sfniface.SFNAPI) (*SFNCache, error) {
 	describeStateMachineCacheWithContext, err := lru.New(1000)
 	if err != nil {
 		return nil, err
