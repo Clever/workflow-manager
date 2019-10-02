@@ -30,7 +30,7 @@ func New(sfnapi sfniface.SFNAPI) (*SFNCache, error) {
 // example: arn:aws:states:us-west-1:123:stateMachine:env--org--appdeploy---1--Start
 var arnVersionRegex = regexp.MustCompile(`.*:stateMachine:.+--.+---1--.+`)
 
-// DescribeStateMachineWithContext is cached aggressively since state machines are immutable.
+// DescribeStateMachineWithContext is cached aggressively since most state machines are immutable
 func (s *SFNCache) DescribeStateMachineWithContext(ctx context.Context, i *sfn.DescribeStateMachineInput, options ...request.Option) (*sfn.DescribeStateMachineOutput, error) {
 	cacheKey := i.String()
 	cacheVal, ok := s.describeStateMachineWithContextCache.Get(cacheKey)
