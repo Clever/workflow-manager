@@ -2,7 +2,6 @@ package sfncache
 
 import (
 	"context"
-	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sfn"
@@ -10,6 +9,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
+// SFNCache caches SFN API calls.
 type SFNCache struct {
 	sfniface.SFNAPI
 	describeStateMachineWithContextCache *lru.Cache
@@ -27,9 +27,6 @@ func New(sfnapi sfniface.SFNAPI) (*SFNCache, error) {
 	}, nil
 }
 
-// example: arn:aws:states:us-west-1:123:stateMachine:env--org--appdeploy---1--Start
-var arnVersionRegex = regexp.MustCompile(`.*:stateMachine:.+--.+---1--.+`)
-
 // DescribeStateMachineWithContext is cached aggressively since most state machines are immutable
 func (s *SFNCache) DescribeStateMachineWithContext(ctx context.Context, i *sfn.DescribeStateMachineInput, options ...request.Option) (*sfn.DescribeStateMachineOutput, error) {
 	cacheKey := i.String()
@@ -41,10 +38,6 @@ func (s *SFNCache) DescribeStateMachineWithContext(ctx context.Context, i *sfn.D
 	if err != nil {
 		return out, err
 	}
-
-	if out.StateMachineArn != nil && !arnVersionRegex.MatchString(*out.StateMachineArn) {
-		s.describeStateMachineWithContextCache.Add(cacheKey, out)
-	}
-
+	s.describeStateMachineWithContextCache.Add(cacheKey, out)
 	return out, nil
 }

@@ -9,15 +9,12 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Clever/workflow-manager/executor/sfnconventions"
 	"github.com/Clever/workflow-manager/mocks"
 )
 
 func TestSFNCache_DescribeStateMachineWithContext(t *testing.T) {
 	testARN := aws.String("arn:aws:states:us-east-1:111122223333:stateMachine:HelloWorld-StateMachine")
 	testOutput := &sfn.DescribeStateMachineOutput{StateMachineArn: testARN}
-	testNegativeVersionARN := aws.String(sfnconventions.StateMachineArn("bananas", "pajamas", "rolling", -1, "down", "stairs"))
-	testNegativeVersionOutput := &sfn.DescribeStateMachineOutput{StateMachineArn: testNegativeVersionARN}
 
 	tests := []struct {
 		name         string
@@ -45,24 +42,6 @@ func TestSFNCache_DescribeStateMachineWithContext(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, testOutput, output)
 				}
-			},
-		},
-		{
-			name:  "doesn't cache for -1 versioned state machines",
-			input: &sfn.DescribeStateMachineInput{StateMachineArn: testNegativeVersionARN},
-			expectations: func(m *mocks.MockSFNAPI) {
-				m.EXPECT().
-					DescribeStateMachineWithContext(gomock.Any(), gomock.Any()).
-					Return(testNegativeVersionOutput, nil).
-					Times(2)
-			},
-			assertions: func(t *testing.T, s *SFNCache, got *sfn.DescribeStateMachineOutput, err error) {
-				require.NoError(t, err)
-				require.Equal(t, testNegativeVersionOutput, got)
-				// ensure the object isn't cached
-				require.Zero(t, s.describeStateMachineWithContextCache.Len())
-				// fire and forget - to check the API is called again, as defined in expectations
-				s.DescribeStateMachineWithContext(context.Background(), &sfn.DescribeStateMachineInput{StateMachineArn: testARN})
 			},
 		},
 	}
