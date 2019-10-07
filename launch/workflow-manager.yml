@@ -29,8 +29,6 @@ expose:
   health_check:
     type: http
     path: /_health
-- name: pprof
-  port: 6060
 shepherds:
 - "mohit.gupta@clever.com"
 team: eng-infra
