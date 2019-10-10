@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.11.0
+  version: 0.11.1
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -592,6 +592,9 @@ definitions:
         description: "tags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
           type: object
+      idSuffix:
+        description: "idSuffix is exclusively used for embedded workflow-manager to append human readable information to the newly created workflow's ID. Workflow IDs are truncated to 80 characters, so some or all of the suffix may be lost"
+        type: string
 
   WorkflowDefinitionRef:
     type: object
