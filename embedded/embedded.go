@@ -394,7 +394,7 @@ New state machine:
 	}
 	workflow := &models.Workflow{
 		WorkflowSummary: models.WorkflowSummary{
-			ID:                 workflowID(stateMachineName),
+			ID:                 workflowID(stateMachineName, i.IDSuffix),
 			CreatedAt:          strfmt.DateTime(time.Now()),
 			LastUpdated:        strfmt.DateTime(time.Now()),
 			WorkflowDefinition: wd,
@@ -507,13 +507,25 @@ func (e *Embedded) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkf
 // The workflow ID will contain the state machine name.
 // This is to support the implementation of `GetWorkflowByID`, which requires
 // the state machine name in order to call `DescribeExecution` in the SFN API.
-func workflowID(smName string) string {
-	return fmt.Sprintf("%s--%s", smName, shortUUID())
+// It will append a suffix, trimming the length to abide the 80 character step functions limit
+// https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html
+// If a suffix isn't provided the generated ID will include the first 8 characters of a UUID
+func workflowID(smName, suffix string) string {
+	if suffix == "" {
+		suffix = shortUUID()
+	}
+	id := fmt.Sprintf("%s--%s", smName, suffix)
+
+	// ensure the generated ID is within the 80 character limit
+	if len(id) > 80 {
+		return id[:80]
+	}
+	return id
 }
 
 type workflowIDParts struct {
-	SMName    string
-	ShortUUID string
+	SMName string
+	Suffix string
 }
 
 func parseWorkflowID(wid string) (*workflowIDParts, error) {
@@ -522,8 +534,8 @@ func parseWorkflowID(wid string) (*workflowIDParts, error) {
 		return nil, errors.Errorf("expected workflowID two contain at least two parts: %s", wid)
 	}
 	return &workflowIDParts{
-		SMName:    strings.Join(s[0:len(s)-1], "--"),
-		ShortUUID: s[len(s)-1],
+		SMName: strings.Join(s[0:len(s)-1], "--"),
+		Suffix: s[len(s)-1],
 	}, nil
 }
 

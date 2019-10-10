@@ -36,6 +36,7 @@ interface GenericOptions {
   logger?: Logger;
   tracer?: Tracer;
   circuit?: CircuitOptions;
+  serviceName?: string;
 }
 
 interface DiscoveryOptions {
@@ -232,6 +233,7 @@ type SLStateMachine = {
 type SLStateType = ("Pass" | "Task" | "Choice" | "Wait" | "Succeed" | "Fail" | "Parallel");
 
 type StartWorkflowRequest = {
+  idSuffix?: string;
   input?: string;
   namespace?: string;
   queue?: string;

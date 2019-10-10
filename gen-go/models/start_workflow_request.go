@@ -16,6 +16,9 @@ import (
 // swagger:model StartWorkflowRequest
 type StartWorkflowRequest struct {
 
+	// idSuffix is exclusively used for embedded workflow-manager to append human readable information to the newly created workflow's ID. Workflow IDs are truncated to 80 characters, so some or all of the suffix may be lost
+	IDSuffix string `json:"idSuffix,omitempty"`
+
 	// input
 	Input string `json:"input,omitempty"`
 

@@ -219,12 +219,13 @@
 <a name="startworkflowrequest"></a>
 ### StartWorkflowRequest
 
-|Name|Schema|
-|---|---|
-|**input**  <br>*optional*|string|
-|**namespace**  <br>*optional*|string|
-|**queue**  <br>*optional*|string|
-|**workflowDefinition**  <br>*optional*|[WorkflowDefinitionRef](#workflowdefinitionref)|
+|Name|Description|Schema|
+|---|---|---|
+|**idSuffix**  <br>*optional*|idSuffix is exclusively used for embedded workflow-manager to append human readable information to the newly created workflow's ID. Workflow IDs are truncated to 80 characters, so some or all of the suffix may be lost|string|
+|**input**  <br>*optional*||string|
+|**namespace**  <br>*optional*||string|
+|**queue**  <br>*optional*||string|
+|**workflowDefinition**  <br>*optional*||[WorkflowDefinitionRef](#workflowdefinitionref)|
 
 
 <a name="stateresource"></a>

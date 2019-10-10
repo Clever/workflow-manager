@@ -168,9 +168,9 @@ class WorkflowManager {
 
     if (options.discovery) {
       try {
-        this.address = discovery("workflow-manager", "http").url();
+        this.address = discovery(options.serviceName || "workflow-manager", "http").url();
       } catch (e) {
-        this.address = discovery("workflow-manager", "default").url();
+        this.address = discovery(options.serviceName || "workflow-manager", "default").url();
       }
     } else if (options.address) {
       this.address = options.address;
@@ -193,7 +193,7 @@ class WorkflowManager {
     if (options.logger) {
       this.logger = options.logger;
     } else {
-      this.logger =  new kayvee.logger("workflow-manager-wagclient");
+      this.logger = new kayvee.logger((options.serviceName || "workflow-manager") + "-wagclient");
     }
     if (options.tracer) {
       this.tracer = options.tracer;
@@ -202,7 +202,7 @@ class WorkflowManager {
     }
 
     const circuitOptions = Object.assign({}, defaultCircuitOptions, options.circuit);
-    this._hystrixCommand = commandFactory.getOrCreate("workflow-manager").
+    this._hystrixCommand = commandFactory.getOrCreate(options.serviceName || "workflow-manager").
       errorHandler(this._hystrixCommandErrorHandler).
       circuitBreakerForceClosed(circuitOptions.forceClosed).
       requestVolumeRejectionThreshold(circuitOptions.maxConcurrentRequests).
