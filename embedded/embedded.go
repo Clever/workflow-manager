@@ -507,15 +507,17 @@ func (e *Embedded) NewWorkflowDefinition(ctx context.Context, i *models.NewWorkf
 // The workflow ID will contain the state machine name.
 // This is to support the implementation of `GetWorkflowByID`, which requires
 // the state machine name in order to call `DescribeExecution` in the SFN API.
-// It will append a suffix, trimming the length to abide the 80 character step functions limit
-// https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html
+// If a suffix is provided the generated ID will include the first 4 characters of a UUID to guarantee uniqueness
 // If a suffix isn't provided the generated ID will include the first 8 characters of a UUID
+// Either way length of the ID is trimmed to abide the 80 character step functions limit
+// https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html
 func workflowID(smName, suffix string) string {
-	if suffix == "" {
-		suffix = shortUUID()
+	uniqueSuffix := shortUUID()
+	if suffix != "" {
+		uniqueSuffix = fmt.Sprintf("%s--%s", uniqueSuffix[0:4], suffix)
 	}
-	id := fmt.Sprintf("%s--%s", smName, suffix)
 
+	id := fmt.Sprintf("%s--%s", smName, uniqueSuffix)
 	// ensure the generated ID is within the 80 character limit
 	if len(id) > 80 {
 		return id[:80]
