@@ -262,7 +262,23 @@ func (d DynamoDB) GetWorkflowDefinitions(ctx context.Context) ([]models.Workflow
 	if err != nil {
 		return []models.WorkflowDefinition{}, err
 	}
-	return d.dynamoItemsToWorkflowDefinitions(results.Items)
+	items := results.Items
+	lastEvaluatedKey := results.LastEvaluatedKey
+	for len(lastEvaluatedKey) > 0 {
+		results, err := d.ddb.ScanWithContext(ctx, &dynamodb.ScanInput{
+			ExclusiveStartKey: results.LastEvaluatedKey,
+			ConsistentRead:    aws.Bool(true),
+			TableName:         aws.String(d.latestWorkflowDefinitionsTable()),
+		})
+		if err != nil {
+			return []models.WorkflowDefinition{}, err
+		}
+		for k, v := range results.Items {
+			items[k] = v
+		}
+		lastEvaluatedKey = results.LastEvaluatedKey
+	}
+	return d.dynamoItemsToWorkflowDefinitions(items)
 }
 
 // GetWorkflowDefinitionVersions gets all versions of a workflow definition
