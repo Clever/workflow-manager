@@ -273,9 +273,7 @@ func (d DynamoDB) GetWorkflowDefinitions(ctx context.Context) ([]models.Workflow
 		if err != nil {
 			return []models.WorkflowDefinition{}, err
 		}
-		for k, v := range results.Items {
-			items[k] = v
-		}
+		items = append(items, results.Items...)
 		lastEvaluatedKey = results.LastEvaluatedKey
 	}
 	return d.dynamoItemsToWorkflowDefinitions(items)
