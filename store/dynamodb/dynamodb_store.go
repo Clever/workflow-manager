@@ -265,8 +265,8 @@ func (d DynamoDB) GetWorkflowDefinitions(ctx context.Context) ([]models.Workflow
 	items := results.Items
 	lastEvaluatedKey := results.LastEvaluatedKey
 	for len(lastEvaluatedKey) > 0 {
-		results, err := d.ddb.ScanWithContext(ctx, &dynamodb.ScanInput{
-			ExclusiveStartKey: results.LastEvaluatedKey,
+		results, err = d.ddb.ScanWithContext(ctx, &dynamodb.ScanInput{
+			ExclusiveStartKey: lastEvaluatedKey,
 			ConsistentRead:    aws.Bool(true),
 			TableName:         aws.String(d.latestWorkflowDefinitionsTable()),
 		})
