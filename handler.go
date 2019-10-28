@@ -360,9 +360,9 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 	if !resources.WorkflowIsDone(&workflow) {
 		return &models.Workflow{}, fmt.Errorf("Workflow %s active: %s", workflow.ID, workflow.Status)
 	}
-	if _, ok := workflow.WorkflowDefinition.StateMachine.States[input.Overrides.StartAt]; !ok {
-		return &models.Workflow{}, fmt.Errorf("Invalid StartAt state %s", input.Overrides.StartAt)
-	}
+	// if _, ok := workflow.WorkflowDefinition.StateMachine.States[input.Overrides.StartAt]; !ok {
+	// 	return &models.Workflow{}, fmt.Errorf("Invalid StartAt state %s", input.Overrides.StartAt)
+	// }
 
 	// find the input to the StartAt state
 	effectiveInput := workflow.LastJob.Input
