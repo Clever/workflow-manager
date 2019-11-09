@@ -360,12 +360,12 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 	if !resources.WorkflowIsDone(&workflow) {
 		return &models.Workflow{}, fmt.Errorf("Workflow %s active: %s", workflow.ID, workflow.Status)
 	}
-	isDone, err := descendantsAreDone(ctx, h.store, workflow)
+	areDescendantsDone, err := areDescendantWorkflowsDone(ctx, h.store, workflow)
 	if err != nil {
 		return &models.Workflow{}, fmt.Errorf("Failed to check descendant workflows: %s", err)
 	}
-	if !isDone {
-		return &models.Workflow{}, fmt.Errorf("Workflow %s has active descendants: %s", workflow.ID, workflow.Status)
+	if !areDescendantsDone {
+		return &models.Workflow{}, fmt.Errorf("Cannot resume workflow %s because it has active descendants", workflow.ID)
 	}
 	if _, ok := workflow.WorkflowDefinition.StateMachine.States[input.Overrides.StartAt]; !ok {
 		return &models.Workflow{}, fmt.Errorf("Invalid StartAt state %s", input.Overrides.StartAt)
@@ -475,8 +475,9 @@ func epochMillis(t time.Time) int {
 	return int(t.UnixNano() / int64(time.Millisecond))
 }
 
-// descendantsAreDone checks a workflow's descendants for any active workflows.
-func descendantsAreDone(ctx context.Context, s store.Store, workflow models.Workflow) (bool, error) {
+// areDescendantWorkflowsDone does a depth first search on the workflow's retries and returns true
+// if none of the descendant workflows are active.
+func areDescendantWorkflowsDone(ctx context.Context, s store.Store, workflow models.Workflow) (bool, error) {
 	for _, childID := range workflow.Retries {
 		childWorkflow, err := s.GetWorkflowByID(ctx, childID)
 		if err != nil {
@@ -485,7 +486,7 @@ func descendantsAreDone(ctx context.Context, s store.Store, workflow models.Work
 		if !resources.WorkflowIsDone(&childWorkflow) {
 			return false, nil
 		}
-		areDescendantsDone, err := descendantsAreDone(ctx, s, childWorkflow)
+		areDescendantsDone, err := areDescendantWorkflowsDone(ctx, s, childWorkflow)
 		if err != nil {
 			return false, err
 		}
