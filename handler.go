@@ -374,6 +374,11 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 	// Find the job that ran for the StartAt state so that its input can be used for the new workflow.
 	// Try to use lastJob if it's available and if we want to start the new workflow from that state,
 	// otherwise load the full execution history and search through it to find the desired input.
+	// Note: getting the workflow's execution history involves making expensive API calls to the
+	// stepfunctions GetExecutionHistory endpoint. GetWorkflowByID can be called beforehand to avoid
+	// the workflow.Jobs == nil path.
+	// Clients may wish to increase the timeout from the global default to handle workflows with long
+	// execution histories.
 	var originalJob *models.Job
 	if workflow.LastJob != nil && input.Overrides.StartAt == workflow.LastJob.State {
 		originalJob = workflow.LastJob
