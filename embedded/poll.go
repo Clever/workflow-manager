@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Clever/workflow-manager/embedded/sfnfunction"
@@ -14,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
+	"github.com/go-openapi/swag"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	errors "golang.org/x/xerrors"
@@ -47,10 +49,15 @@ func (e *Embedded) PollForWork(ctx context.Context) error {
 }
 
 func (e *Embedded) pollGetActivityTask(ctx context.Context, resource *sfnfunction.Resource, activityArn string) error {
+	concurrentExecutions := swag.Int64(0)
 	// allow one GetActivityTask per second, max 1 at a time
 	limiter := rate.NewLimiter(rate.Every(1*time.Second), 1)
 	for ctx.Err() == nil {
 		if err := limiter.Wait(ctx); err != nil {
+			continue
+		}
+		// short circuit if we're already at our configured parallelism limit
+		if atomic.LoadInt64(concurrentExecutions) == e.resourceParallelism {
 			continue
 		}
 		select {
@@ -76,7 +83,11 @@ func (e *Embedded) pollGetActivityTask(ctx context.Context, resource *sfnfunctio
 			input := *out.Input
 			token := *out.TaskToken
 			log.TraceD("getactivitytask", logger.M{"input": input, "token": shortToken(token)})
-			e.handleTask(ctx, resource, token, input)
+			go func() {
+				atomic.AddInt64(concurrentExecutions, 1)
+				e.handleTask(ctx, resource, token, input)
+				atomic.AddInt64(concurrentExecutions, -1)
+			}()
 		}
 	}
 	return nil
