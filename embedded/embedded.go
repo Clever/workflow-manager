@@ -35,6 +35,7 @@ type Embedded struct {
 	sfnRoleArn          string
 	sfnAPI              sfniface.SFNAPI
 	resources           map[string]*sfnfunction.Resource
+	resourceParallelism int64
 	workflowDefinitions []models.WorkflowDefinition
 	workerName          string
 }
@@ -42,6 +43,10 @@ type Embedded struct {
 var _ client.Client = &Embedded{}
 
 // Config for Embedded wfm.
+// Resources is a map of name to function. All functions must conform to be one of signatures defined in the following in
+//  https://github.com/Clever/workflow-manager/blob/3bd2e478da6287a2983d575f965ff010905b86ce/embedded/sfnfunction/sfnfunction.go#L24-L33
+// ResourceParallelism is how many parallel executions should be executed for each resource.
+//  It is a global setting for all resources that defaults to 1
 type Config struct {
 	Environment         string
 	App                 string
@@ -50,9 +55,13 @@ type Config struct {
 	SFNRoleArn          string
 	SFNAPI              sfniface.SFNAPI
 	Resources           map[string]interface{}
+	ResourceParallelism int64
 	WorkflowDefinitions []byte
 	WorkerName          string
 }
+
+// DefaultResourceParallelism ...
+var DefaultResourceParallelism int64 = 1
 
 func (c Config) validate() error {
 	if c.Environment == "" {
@@ -74,6 +83,14 @@ func (c Config) validate() error {
 		return errors.New("must configure resources")
 	}
 	return nil
+}
+
+// max because math.Max is the worst
+func max(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // New returns a client to an embedded workflow manager.
@@ -116,6 +133,7 @@ func New(config *Config) (*Embedded, error) {
 		sfnRoleArn:          config.SFNRoleArn,
 		sfnAPI:              config.SFNAPI,
 		resources:           r,
+		resourceParallelism: max(config.ResourceParallelism, DefaultResourceParallelism),
 		workflowDefinitions: wfdefs,
 		workerName:          wn,
 	}, nil
