@@ -56,8 +56,8 @@ func (e *Embedded) pollGetActivityTask(ctx context.Context, resource *sfnfunctio
 		if err := limiter.Wait(ctx); err != nil {
 			continue
 		}
-		// short circuit if we're already at our configured parallelism limit
-		if atomic.LoadInt64(concurrentExecutions) == e.resourceParallelism {
+		// short circuit at the configured limit
+		if atomic.LoadInt64(concurrentExecutions) == e.resourceConcurrency {
 			continue
 		}
 		select {
