@@ -1,17 +1,17 @@
 env:
-  - AWS_DYNAMO_REGION
-  - AWS_DYNAMO_PREFIX_STATE_RESOURCES
-  - AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS
-  - AWS_DYNAMO_PREFIX_WORKFLOWS
-  - AWS_SFN_REGION
-  - AWS_SFN_ROLE_ARN
-  - AWS_SFN_ACCOUNT_ID
-  - AWS_SQS_REGION
-  - AWS_SQS_URL
-  - ES_URL
-  - TRACING_ACCESS_TOKEN
-  - TRACING_INGEST_URL
-  - TRACING_USER_NAME
+- AWS_DYNAMO_REGION
+- AWS_DYNAMO_PREFIX_STATE_RESOURCES
+- AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS
+- AWS_DYNAMO_PREFIX_WORKFLOWS
+- AWS_SFN_REGION
+- AWS_SFN_ROLE_ARN
+- AWS_SFN_ACCOUNT_ID
+- AWS_SQS_REGION
+- AWS_SQS_URL
+- ES_URL
+- TRACING_ACCESS_TOKEN
+- TRACING_INGEST_URL
+- TRACING_USER_NAME
 resources:
   cpu: 0.4
   soft_mem_limit: 0.3
@@ -30,7 +30,27 @@ expose:
     type: http
     path: /_health
 shepherds:
-- "mohit.gupta@clever.com"
+- mohit.gupta@clever.com
 team: eng-infra
 databases:
 - dynamodb:us-west-1:workflow-manager-prod-v3
+alarms:
+- type: InternalErrorAlarm
+  severity: minor
+  # channel: this will go to the channel that this team has configured in catapult for minor alarms
+  parameters:
+    threshold: 0.01
+  extraParameters:
+    source: Target
+- type: InternalErrorAlarm
+  severity: major
+  # channel: this will go to the channel that this team has configured in catapult for major alarms
+  parameters:
+    threshold: 0.05
+  extraParameters:
+    source: Target
+- type: InternalErrorAlarm
+  severity: major
+  # channel: this will go to the channel that this team has configured in catapult for major alarms
+  parameters:
+    threshold: 0.01
