@@ -51,6 +51,7 @@ alarms:
     source: Target
 - type: InternalErrorAlarm
   severity: major
-  # channel: this will go to the channel that this team has configured in catapult for major alarms
   parameters:
     threshold: 0.01
+  extraParameters:
+    source: ELB
