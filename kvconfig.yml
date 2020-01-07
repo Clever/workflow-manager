@@ -54,7 +54,7 @@ routes:
       title: ["start-unknown-workflow"]
     output:
       type: "notifications"
-      channel: "#oncall-infra"
+      channel: "#eng-infra-alerts-major"
       icon: ":pipeline:"
       user: "workflow-manager"
       message: Attempted to start unknown workflow definition `%{name}` version `%{version}`
