@@ -356,6 +356,8 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 		return &models.Workflow{}, err
 	}
 
+	input.Overrides.StartAt = "dpt-differ"
+
 	// don't allow resume if workflow is still active
 	if !resources.WorkflowIsDone(&workflow) {
 		return &models.Workflow{}, fmt.Errorf("Workflow %s active: %s", workflow.ID, workflow.Status)
@@ -365,22 +367,25 @@ func (h Handler) ResumeWorkflowByID(ctx context.Context, input *models.ResumeWor
 	// }
 
 	// find the input to the StartAt state
-	effectiveInput := workflow.LastJob.Input
-	// job := workflow.LastJob
-	// if job.State == input.Overrides.StartAt {
-	// 	// if job was never started then we should probably not trust the input
-	// 	if job.Status == models.JobStatusAbortedDepsFailed ||
-	// 		job.Status == models.JobStatusQueued ||
-	// 		job.Status == models.JobStatusWaitingForDeps ||
-	// 		job.Status == models.JobStatusCreated {
 
-	// 		return &models.Workflow{},
-	// 			fmt.Errorf("Job %s for StartAt %s was not started for Workflow: %s. Could not infer input",
-	// 				job.ID, job.State, workflow.ID)
-	// 	}
+	effectiveInput := ""
+	for _, job := range workflow.Jobs {
+		if job.State == input.Overrides.StartAt {
+			// if job was never started then we should probably not trust the input
+			if job.Status == models.JobStatusAbortedDepsFailed ||
+				job.Status == models.JobStatusQueued ||
+				job.Status == models.JobStatusWaitingForDeps ||
+				job.Status == models.JobStatusCreated {
 
-	// 	effectiveInput = job.Input
-	// }
+				return &models.Workflow{},
+					fmt.Errorf("Job %s for StartAt %s was not started for Workflow: %s. Could not infer input",
+						job.ID, job.State, workflow.ID)
+			}
+
+			effectiveInput = job.Input
+			break
+		}
+	}
 
 	return h.manager.RetryWorkflow(ctx, workflow, input.Overrides.StartAt, effectiveInput)
 }
