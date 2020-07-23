@@ -35,6 +35,7 @@ type Embedded struct {
 	sfnRoleArn          string
 	sfnAPI              sfniface.SFNAPI
 	resources           map[string]*sfnfunction.Resource
+	concurrencyLimits   map[string]int64
 	workflowDefinitions []models.WorkflowDefinition
 	workerName          string
 }
@@ -43,16 +44,28 @@ var _ client.Client = &Embedded{}
 
 // Config for Embedded wfm.
 type Config struct {
-	Environment         string
-	App                 string
-	SFNAccountID        string
-	SFNRegion           string
-	SFNRoleArn          string
-	SFNAPI              sfniface.SFNAPI
-	Resources           map[string]interface{}
-	WorkflowDefinitions []byte
-	WorkerName          string
+	Environment  string
+	App          string
+	SFNAccountID string
+	SFNRegion    string
+	SFNRoleArn   string
+	SFNAPI       sfniface.SFNAPI
+	// Resources is a map of name to function. All functions must conform to be one of signatures defined in the following in
+	// https://github.com/Clever/workflow-manager/blob/3bd2e478da6287a2983d575f965ff010905b86ce/embedded/sfnfunction/sfnfunction.go#L24-L33
+	Resources map[string]interface{}
+	// PerResourceConcurrencyLimits sets concurrency limits by resource.
+	// It takes precedence over AllResourceConcurrency
+	PerResourceConcurrencyLimits map[string]int64
+	// AllResourceConcurrencyLimit sets a concurrency limit across all resources.
+	// It is a global setting for all resources that defaults to 1.
+	// It is safe use to alongside PerResourceConcurrencyLimits.
+	AllResourceConcurrencyLimit *int64
+	WorkflowDefinitions         []byte
+	WorkerName                  string
 }
+
+// DefaultResourceConcurrency ...
+const DefaultResourceConcurrency int64 = 1
 
 func (c Config) validate() error {
 	if c.Environment == "" {
@@ -86,12 +99,21 @@ func New(config *Config) (*Embedded, error) {
 		return nil, err
 	}
 	r := map[string]*sfnfunction.Resource{}
+	concurrencyLimits := make(map[string]int64)
+	concurrencyLimit := DefaultResourceConcurrency
+	if config.AllResourceConcurrencyLimit != nil {
+		concurrencyLimit = *config.AllResourceConcurrencyLimit
+	}
 	for k := range config.Resources {
 		kcopy := k
 		var err error
 		if r[kcopy], err = sfnfunction.New(kcopy, config.Resources[kcopy]); err != nil {
 			return nil, errors.Errorf("function '%s': %s", kcopy, err.Error())
 		}
+		concurrencyLimits[kcopy] = concurrencyLimit
+	}
+	for resource, limit := range config.PerResourceConcurrencyLimits {
+		concurrencyLimits[resource] = limit
 	}
 	for _, wfdef := range wfdefs {
 		if err := validateWorkflowDefinition(wfdef, r); err != nil {
@@ -116,6 +138,7 @@ func New(config *Config) (*Embedded, error) {
 		sfnRoleArn:          config.SFNRoleArn,
 		sfnAPI:              config.SFNAPI,
 		resources:           r,
+		concurrencyLimits:   concurrencyLimits,
 		workflowDefinitions: wfdefs,
 		workerName:          wn,
 	}, nil

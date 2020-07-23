@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Clever/workflow-manager/embedded/sfnfunction"
@@ -14,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
+	"github.com/go-openapi/swag"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	errors "golang.org/x/xerrors"
@@ -39,18 +41,24 @@ func (e *Embedded) PollForWork(ctx context.Context) error {
 		}
 		log.InfoD("startup", logger.M{"activity": *createOutput.ActivityArn})
 		r := resource
+		rName := resourceName
 		g.Go(func() error {
-			return e.pollGetActivityTask(ctx, r, *createOutput.ActivityArn)
+			return e.pollGetActivityTask(ctx, rName, r, *createOutput.ActivityArn)
 		})
 	}
 	return g.Wait()
 }
 
-func (e *Embedded) pollGetActivityTask(ctx context.Context, resource *sfnfunction.Resource, activityArn string) error {
+func (e *Embedded) pollGetActivityTask(ctx context.Context, resourceName string, resource *sfnfunction.Resource, activityArn string) error {
+	concurrentExecutions := swag.Int64(0)
 	// allow one GetActivityTask per second, max 1 at a time
 	limiter := rate.NewLimiter(rate.Every(1*time.Second), 1)
 	for ctx.Err() == nil {
 		if err := limiter.Wait(ctx); err != nil {
+			continue
+		}
+		// short circuit at the configured limit
+		if atomic.LoadInt64(concurrentExecutions) >= e.concurrencyLimits[resourceName] {
 			continue
 		}
 		select {
@@ -76,7 +84,7 @@ func (e *Embedded) pollGetActivityTask(ctx context.Context, resource *sfnfunctio
 			input := *out.Input
 			token := *out.TaskToken
 			log.TraceD("getactivitytask", logger.M{"input": input, "token": shortToken(token)})
-			e.handleTask(ctx, resource, token, input)
+			go e.concurrentlyHandleTask(ctx, concurrentExecutions, resourceName, resource, token, input)
 		}
 	}
 	return nil
@@ -88,6 +96,21 @@ func shortToken(token string) string {
 		return shasum[0:5]
 	}
 	return shasum
+}
+
+// concurrentlyHandleTask is a thin wrapper on handleTask to guarantee consistency for the internal concurency state
+func (e *Embedded) concurrentlyHandleTask(ctx context.Context, concurrentExecutions *int64, resourceName string, resource *sfnfunction.Resource, token, input string) {
+	atomic.AddInt64(concurrentExecutions, 1)
+	defer func() {
+		if r := recover(); r != nil {
+			log.WarnD("handle-task-recovered", logger.M{
+				"panic":    r,
+				"resource": resourceName,
+			})
+		}
+		atomic.AddInt64(concurrentExecutions, -1)
+	}()
+	e.handleTask(ctx, resource, token, input)
 }
 
 // handleTask sends heartbeats to SFN, invokes the resource function, and
