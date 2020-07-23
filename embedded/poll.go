@@ -58,7 +58,7 @@ func (e *Embedded) pollGetActivityTask(ctx context.Context, resourceName string,
 			continue
 		}
 		// short circuit at the configured limit
-		if atomic.LoadInt64(concurrentExecutions) == e.concurrencyLimits[resourceName] {
+		if atomic.LoadInt64(concurrentExecutions) >= e.concurrencyLimits[resourceName] {
 			continue
 		}
 		select {

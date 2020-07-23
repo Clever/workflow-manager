@@ -58,14 +58,14 @@ type Config struct {
 	PerResourceConcurrencyLimits map[string]int64
 	// AllResourceConcurrencyLimit sets a concurrency limit across all resources.
 	// It is a global setting for all resources that defaults to 1.
-	// It is safe to alongside PerResourceConcurrencyLimits.
-	AllResourceConcurrencyLimit int64
+	// It is safe use to alongside PerResourceConcurrencyLimits.
+	AllResourceConcurrencyLimit *int64
 	WorkflowDefinitions         []byte
 	WorkerName                  string
 }
 
 // DefaultResourceConcurrency ...
-var DefaultResourceConcurrency int64 = 1
+const DefaultResourceConcurrency int64 = 1
 
 func (c Config) validate() error {
 	if c.Environment == "" {
@@ -89,14 +89,6 @@ func (c Config) validate() error {
 	return nil
 }
 
-// max because math.Max is the worst
-func max(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // New returns a client to an embedded workflow manager.
 func New(config *Config) (*Embedded, error) {
 	if err := config.validate(); err != nil {
@@ -108,16 +100,20 @@ func New(config *Config) (*Embedded, error) {
 	}
 	r := map[string]*sfnfunction.Resource{}
 	concurrencyLimits := make(map[string]int64)
+	concurrencyLimit := DefaultResourceConcurrency
+	if config.AllResourceConcurrencyLimit != nil {
+		concurrencyLimit = *config.AllResourceConcurrencyLimit
+	}
 	for k := range config.Resources {
 		kcopy := k
 		var err error
 		if r[kcopy], err = sfnfunction.New(kcopy, config.Resources[kcopy]); err != nil {
 			return nil, errors.Errorf("function '%s': %s", kcopy, err.Error())
 		}
-		concurrencyLimits[kcopy] = max(config.AllResourceConcurrencyLimit, DefaultResourceConcurrency)
+		concurrencyLimits[kcopy] = concurrencyLimit
 	}
-	for k, v := range config.PerResourceConcurrencyLimits {
-		concurrencyLimits[k] = v
+	for resource, limit := range config.PerResourceConcurrencyLimits {
+		concurrencyLimits[resource] = limit
 	}
 	for _, wfdef := range wfdefs {
 		if err := validateWorkflowDefinition(wfdef, r); err != nil {
