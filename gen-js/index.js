@@ -146,7 +146,7 @@ class WorkflowManager {
    * @param {number} [options.timeout] - The timeout to use for all client requests,
    * in milliseconds. This can be overridden on a per-request basis. Default is 5000ms.
    * @param {bool} [options.keepalive] - Set keepalive to true for client requests. This sets the
-   * forever: true attribute in request. Defaults to false
+   * forever: true attribute in request. Defaults to true.
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy=RetryPolicies.Single] - The logic to
    * determine which requests to retry, as well as how many times to retry.
    * @param {module:kayvee.Logger} [options.logger=logger.New("workflow-manager-wagclient")] - The Kayvee
@@ -177,10 +177,10 @@ class WorkflowManager {
     } else {
       throw new Error("Cannot initialize workflow-manager without discovery or address");
     }
-    if (options.keepalive) {
+    if (options.keepalive !== undefined) {
       this.keepalive = options.keepalive;
     } else {
-      this.keepalive = false;
+      this.keepalive = true;
     }
     if (options.timeout) {
       this.timeout = options.timeout;
@@ -288,19 +288,22 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "healthCheck";
+      headers[versionHeader] = version;
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("GET /_health");
+        span.log({event: "GET /_health"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
         uri: this.address + "/_health",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -310,12 +313,12 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -336,19 +339,19 @@ class WorkflowManager {
             case 200:
               resolve();
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -399,19 +402,22 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "postStateResource";
+      headers[versionHeader] = version;
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("POST /state-resources");
+        span.log({event: "POST /state-resources"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "POST",
         uri: this.address + "/state-resources",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -421,14 +427,14 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
       requestOptions.body = params.NewStateResource;
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -449,19 +455,19 @@ class WorkflowManager {
             case 201:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -512,6 +518,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "deleteStateResource";
+      headers[versionHeader] = version;
       if (!params.namespace) {
         reject(new Error("namespace must be non-empty because it's a path parameter"));
         return;
@@ -523,16 +531,17 @@ class WorkflowManager {
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("DELETE /state-resources/{namespace}/{name}");
+        span.log({event: "DELETE /state-resources/{namespace}/{name}"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "DELETE",
         uri: this.address + "/state-resources/" + params.namespace + "/" + params.name + "",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -542,12 +551,12 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -568,25 +577,25 @@ class WorkflowManager {
             case 200:
               resolve();
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -637,6 +646,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "getStateResource";
+      headers[versionHeader] = version;
       if (!params.namespace) {
         reject(new Error("namespace must be non-empty because it's a path parameter"));
         return;
@@ -648,16 +659,17 @@ class WorkflowManager {
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("GET /state-resources/{namespace}/{name}");
+        span.log({event: "GET /state-resources/{namespace}/{name}"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
         uri: this.address + "/state-resources/" + params.namespace + "/" + params.name + "",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -667,12 +679,12 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -693,25 +705,25 @@ class WorkflowManager {
             case 200:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -762,6 +774,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "putStateResource";
+      headers[versionHeader] = version;
       if (!params.namespace) {
         reject(new Error("namespace must be non-empty because it's a path parameter"));
         return;
@@ -773,16 +787,17 @@ class WorkflowManager {
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("PUT /state-resources/{namespace}/{name}");
+        span.log({event: "PUT /state-resources/{namespace}/{name}"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "PUT",
         uri: this.address + "/state-resources/" + params.namespace + "/" + params.name + "",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -792,14 +807,14 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
       requestOptions.body = params.NewStateResource;
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -820,19 +835,19 @@ class WorkflowManager {
             case 201:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -882,19 +897,22 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "getWorkflowDefinitions";
+      headers[versionHeader] = version;
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("GET /workflow-definitions");
+        span.log({event: "GET /workflow-definitions"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
         uri: this.address + "/workflow-definitions",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -904,12 +922,12 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -930,19 +948,19 @@ class WorkflowManager {
             case 200:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -993,19 +1011,22 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "newWorkflowDefinition";
+      headers[versionHeader] = version;
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("POST /workflow-definitions");
+        span.log({event: "POST /workflow-definitions"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "POST",
         uri: this.address + "/workflow-definitions",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -1015,14 +1036,14 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
       requestOptions.body = params.NewWorkflowDefinitionRequest;
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -1043,19 +1064,19 @@ class WorkflowManager {
             case 201:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -1106,6 +1127,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "getWorkflowDefinitionVersionsByName";
+      headers[versionHeader] = version;
       if (!params.name) {
         reject(new Error("name must be non-empty because it's a path parameter"));
         return;
@@ -1115,18 +1138,19 @@ class WorkflowManager {
       if (typeof params.latest !== "undefined") {
         query["latest"] = params.latest;
       }
-  
 
-      if (span) {
+
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("GET /workflow-definitions/{name}");
+        span.log({event: "GET /workflow-definitions/{name}"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
         uri: this.address + "/workflow-definitions/" + params.name + "",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -1136,12 +1160,12 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -1162,25 +1186,25 @@ class WorkflowManager {
             case 200:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -1231,6 +1255,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "updateWorkflowDefinition";
+      headers[versionHeader] = version;
       if (!params.name) {
         reject(new Error("name must be non-empty because it's a path parameter"));
         return;
@@ -1238,16 +1264,17 @@ class WorkflowManager {
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("PUT /workflow-definitions/{name}");
+        span.log({event: "PUT /workflow-definitions/{name}"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "PUT",
         uri: this.address + "/workflow-definitions/" + params.name + "",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -1257,14 +1284,14 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
       requestOptions.body = params.NewWorkflowDefinitionRequest;
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -1285,25 +1312,25 @@ class WorkflowManager {
             case 201:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -1354,6 +1381,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "getWorkflowDefinitionByNameAndVersion";
+      headers[versionHeader] = version;
       if (!params.name) {
         reject(new Error("name must be non-empty because it's a path parameter"));
         return;
@@ -1365,16 +1394,17 @@ class WorkflowManager {
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("GET /workflow-definitions/{name}/{version}");
+        span.log({event: "GET /workflow-definitions/{name}/{version}"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
         uri: this.address + "/workflow-definitions/" + params.name + "/" + params.version + "",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -1384,12 +1414,12 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -1410,25 +1440,25 @@ class WorkflowManager {
             case 200:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -1484,45 +1514,48 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "getWorkflows";
+      headers[versionHeader] = version;
 
       const query = {};
       if (typeof params.limit !== "undefined") {
         query["limit"] = params.limit;
       }
-  
+
       if (typeof params.oldestFirst !== "undefined") {
         query["oldestFirst"] = params.oldestFirst;
       }
-  
+
       if (typeof params.pageToken !== "undefined") {
         query["pageToken"] = params.pageToken;
       }
-  
+
       if (typeof params.status !== "undefined") {
         query["status"] = params.status;
       }
-  
+
       if (typeof params.resolvedByUser !== "undefined") {
         query["resolvedByUser"] = params.resolvedByUser;
       }
-  
+
       if (typeof params.summaryOnly !== "undefined") {
         query["summaryOnly"] = params.summaryOnly;
       }
-  
-      query["workflowDefinitionName"] = params.workflowDefinitionName;
-  
 
-      if (span) {
+      query["workflowDefinitionName"] = params.workflowDefinitionName;
+
+
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("GET /workflows");
+        span.log({event: "GET /workflows"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -1532,12 +1565,12 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -1558,25 +1591,25 @@ class WorkflowManager {
             case 200:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -1606,9 +1639,10 @@ class WorkflowManager {
    * @returns {function} iter.map - takes in a function, applies it to each resource, and returns a promise to the result as an array
    * @returns {function} iter.toArray - returns a promise to the resources as an array
    * @returns {function} iter.forEach - takes in a function, applies it to each resource
+   * @returns {function} iter.forEachAsync - takes in an async function, applies it to each resource
    */
   getWorkflowsIter(params, options) {
-    const it = (f, saveResults) => new Promise((resolve, reject) => {
+    const it = (f, saveResults, isAsync) => new Promise((resolve, reject) => {
       if (!options) {
         options = {};
       }
@@ -1618,36 +1652,38 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "getWorkflows";
+      headers[versionHeader] = version;
 
       const query = {};
       if (typeof params.limit !== "undefined") {
         query["limit"] = params.limit;
       }
-  
+
       if (typeof params.oldestFirst !== "undefined") {
         query["oldestFirst"] = params.oldestFirst;
       }
-  
+
       if (typeof params.pageToken !== "undefined") {
         query["pageToken"] = params.pageToken;
       }
-  
+
       if (typeof params.status !== "undefined") {
         query["status"] = params.status;
       }
-  
+
       if (typeof params.resolvedByUser !== "undefined") {
         query["resolvedByUser"] = params.resolvedByUser;
       }
-  
+
       if (typeof params.summaryOnly !== "undefined") {
         query["summaryOnly"] = params.summaryOnly;
       }
-  
-      query["workflowDefinitionName"] = params.workflowDefinitionName;
-  
 
-      if (span) {
+      query["workflowDefinitionName"] = params.workflowDefinitionName;
+
+
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
         span.setTag("span.kind", "client");
@@ -1656,6 +1692,7 @@ class WorkflowManager {
       const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -1665,23 +1702,23 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let results = [];
       async.whilst(
         () => requestOptions.uri !== "",
         cbW => {
-          if (span) {
-            span.logEvent("GET /workflows");
+          if (span && typeof span.log === "function") {
+            span.log({event: "GET /workflows"});
           }
       const address = this.address;
       let retries = 0;
       (function requestOnce() {
-        request(requestOptions, (err, response, body) => {
+        request(requestOptions, async (err, response, body) => {
           if (retries < backoffs.length && retryPolicy.retry(requestOptions, err, response, body)) {
             const backoff = backoffs[retries];
             retries += 1;
@@ -1700,28 +1737,38 @@ class WorkflowManager {
               if (saveResults) {
                 results = results.concat(body.map(f));
               } else {
-                body.forEach(f);
+                if (isAsync) {
+                  for (let i = 0; i < body.length; i++) {
+                    try {
+                      await f(body[i], i, body);
+                    } catch(err) {
+                      reject(err);
+                    }
+                  }
+                } else {
+                  body.forEach(f)
+                }
               }
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               cbW(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               cbW(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               cbW(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -1754,9 +1801,10 @@ class WorkflowManager {
     });
 
     return {
-      map: (f, cb) => applyCallback(this._hystrixCommand.execute(it, [f, true]), cb),
-      toArray: cb => applyCallback(this._hystrixCommand.execute(it, [x => x, true]), cb),
-      forEach: (f, cb) => applyCallback(this._hystrixCommand.execute(it, [f, false]), cb),
+      map: (f, cb) => applyCallback(this._hystrixCommand.execute(it, [f, true, false]), cb),
+      toArray: cb => applyCallback(this._hystrixCommand.execute(it, [x => x, true, false]), cb),
+      forEach: (f, cb) => applyCallback(this._hystrixCommand.execute(it, [f, false, false]), cb),
+      forEachAsync: (f, cb) => applyCallback(this._hystrixCommand.execute(it, [f, false, true]), cb),
     };
   }
 
@@ -1800,19 +1848,22 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "startWorkflow";
+      headers[versionHeader] = version;
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("POST /workflows");
+        span.log({event: "POST /workflows"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "POST",
         uri: this.address + "/workflows",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -1822,14 +1873,14 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
       requestOptions.body = params.StartWorkflowRequest;
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -1850,25 +1901,25 @@ class WorkflowManager {
             case 200:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -1919,6 +1970,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "CancelWorkflow";
+      headers[versionHeader] = version;
       if (!params.workflowID) {
         reject(new Error("workflowID must be non-empty because it's a path parameter"));
         return;
@@ -1926,16 +1979,17 @@ class WorkflowManager {
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("DELETE /workflows/{workflowID}");
+        span.log({event: "DELETE /workflows/{workflowID}"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "DELETE",
         uri: this.address + "/workflows/" + params.workflowID + "",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -1945,14 +1999,14 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
       requestOptions.body = params.reason;
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -1973,25 +2027,25 @@ class WorkflowManager {
             case 200:
               resolve();
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -2043,6 +2097,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "getWorkflowByID";
+      headers[versionHeader] = version;
       if (!params.workflowID) {
         reject(new Error("workflowID must be non-empty because it's a path parameter"));
         return;
@@ -2050,16 +2106,17 @@ class WorkflowManager {
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("GET /workflows/{workflowID}");
+        span.log({event: "GET /workflows/{workflowID}"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows/" + params.workflowID + "",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -2069,12 +2126,12 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -2095,25 +2152,25 @@ class WorkflowManager {
             case 200:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -2164,6 +2221,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "resumeWorkflowByID";
+      headers[versionHeader] = version;
       if (!params.workflowID) {
         reject(new Error("workflowID must be non-empty because it's a path parameter"));
         return;
@@ -2171,16 +2230,17 @@ class WorkflowManager {
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("POST /workflows/{workflowID}");
+        span.log({event: "POST /workflows/{workflowID}"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "POST",
         uri: this.address + "/workflows/" + params.workflowID + "",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -2190,14 +2250,14 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
       requestOptions.body = params.overrides;
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -2218,25 +2278,25 @@ class WorkflowManager {
             case 200:
               resolve(body);
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -2289,6 +2349,8 @@ class WorkflowManager {
       const span = options.span;
 
       const headers = {};
+      headers["Canonical-Resource"] = "resolveWorkflowByID";
+      headers[versionHeader] = version;
       if (!params.workflowID) {
         reject(new Error("workflowID must be non-empty because it's a path parameter"));
         return;
@@ -2296,16 +2358,17 @@ class WorkflowManager {
 
       const query = {};
 
-      if (span) {
+      if (span && typeof span.log === "function") {
         // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
         tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.logEvent("POST /workflows/{workflowID}/resolved");
+        span.log({event: "POST /workflows/{workflowID}/resolved"});
         span.setTag("span.kind", "client");
       }
 
       const requestOptions = {
         method: "POST",
         uri: this.address + "/workflows/" + params.workflowID + "/resolved",
+        gzip: true,
         json: true,
         timeout,
         headers,
@@ -2315,12 +2378,12 @@ class WorkflowManager {
       if (this.keepalive) {
         requestOptions.forever = true;
       }
-  
+
 
       const retryPolicy = options.retryPolicy || this.retryPolicy || singleRetryPolicy;
       const backoffs = retryPolicy.backoffs();
       const logger = this.logger;
-  
+
       let retries = 0;
       (function requestOnce() {
         request(requestOptions, (err, response, body) => {
@@ -2341,31 +2404,31 @@ class WorkflowManager {
             case 201:
               resolve();
               break;
-            
+
             case 400:
               var err = new Errors.BadRequest(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 404:
               var err = new Errors.NotFound(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 409:
               var err = new Errors.Conflict(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             case 500:
               var err = new Errors.InternalError(body || {});
               responseLog(logger, requestOptions, response, err);
               reject(err);
               return;
-            
+
             default:
               var err = new Error("Received unexpected statusCode " + response.statusCode);
               responseLog(logger, requestOptions, response, err);
@@ -2397,3 +2460,8 @@ module.exports.RetryPolicies = {
 module.exports.Errors = Errors;
 
 module.exports.DefaultCircuitOptions = defaultCircuitOptions;
+
+const version = "0.12.0";
+const versionHeader = "X-Client-Version";
+module.exports.Version = version;
+module.exports.VersionHeader = versionHeader;

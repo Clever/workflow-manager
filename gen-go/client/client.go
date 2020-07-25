@@ -22,11 +22,17 @@ var _ = strings.Replace
 var _ = strconv.FormatInt
 var _ = bytes.Compare
 
+// Version of the client.
+const Version = "0.12.0"
+
+// VersionHeader is sent with every request.
+const VersionHeader = "X-Client-Version"
+
 // WagClient is used to make requests to the workflow-manager service.
 type WagClient struct {
 	basePath    string
 	requestDoer doer
-	transport   http.RoundTripper
+	client      *http.Client
 	timeout     time.Duration
 	// Keep the retry doer around so that we can set the number of retries
 	retryDoer *retryDoer
@@ -56,12 +62,12 @@ func New(basePath string) *WagClient {
 	}
 	circuit.init()
 	client := &WagClient{
+		basePath:       basePath,
 		requestDoer:    circuit,
+		client:         &http.Client{Transport: http.DefaultTransport},
 		retryDoer:      &retry,
 		circuitDoer:    circuit,
 		defaultTimeout: 5 * time.Second,
-		transport:      &http.Transport{},
-		basePath:       basePath,
 		logger:         logger,
 	}
 	client.SetCircuitBreakerSettings(DefaultCircuitBreakerSettings)
@@ -144,7 +150,7 @@ func (c *WagClient) SetTimeout(timeout time.Duration) {
 
 // SetTransport sets the http transport used by the client.
 func (c *WagClient) SetTransport(t http.RoundTripper) {
-	c.transport = t
+	c.client.Transport = t
 }
 
 // HealthCheck makes a GET request to /_health
@@ -159,7 +165,7 @@ func (c *WagClient) HealthCheck(ctx context.Context) error {
 	var body []byte
 	path := c.basePath + "/_health"
 
-	req, err := http.NewRequest("GET", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "GET", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return err
@@ -169,9 +175,9 @@ func (c *WagClient) HealthCheck(ctx context.Context) error {
 }
 
 func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request, headers map[string]string) error {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "healthCheck")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -188,7 +194,7 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -261,7 +267,7 @@ func (c *WagClient) PostStateResource(ctx context.Context, i *models.NewStateRes
 
 	}
 
-	req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -271,9 +277,9 @@ func (c *WagClient) PostStateResource(ctx context.Context, i *models.NewStateRes
 }
 
 func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.StateResource, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "postStateResource")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -290,7 +296,7 @@ func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Re
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -364,7 +370,7 @@ func (c *WagClient) DeleteStateResource(ctx context.Context, i *models.DeleteSta
 
 	path = c.basePath + path
 
-	req, err := http.NewRequest("DELETE", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "DELETE", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return err
@@ -374,9 +380,9 @@ func (c *WagClient) DeleteStateResource(ctx context.Context, i *models.DeleteSta
 }
 
 func (c *WagClient) doDeleteStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) error {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "deleteStateResource")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -393,7 +399,7 @@ func (c *WagClient) doDeleteStateResourceRequest(ctx context.Context, req *http.
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -470,7 +476,7 @@ func (c *WagClient) GetStateResource(ctx context.Context, i *models.GetStateReso
 
 	path = c.basePath + path
 
-	req, err := http.NewRequest("GET", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "GET", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -480,9 +486,9 @@ func (c *WagClient) GetStateResource(ctx context.Context, i *models.GetStateReso
 }
 
 func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.StateResource, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "getStateResource")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -499,7 +505,7 @@ func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Req
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -591,7 +597,7 @@ func (c *WagClient) PutStateResource(ctx context.Context, i *models.PutStateReso
 
 	}
 
-	req, err := http.NewRequest("PUT", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "PUT", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -601,9 +607,9 @@ func (c *WagClient) PutStateResource(ctx context.Context, i *models.PutStateReso
 }
 
 func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.StateResource, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "putStateResource")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -620,7 +626,7 @@ func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Req
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -687,7 +693,7 @@ func (c *WagClient) GetWorkflowDefinitions(ctx context.Context) ([]models.Workfl
 	var body []byte
 	path := c.basePath + "/workflow-definitions"
 
-	req, err := http.NewRequest("GET", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "GET", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -697,9 +703,9 @@ func (c *WagClient) GetWorkflowDefinitions(ctx context.Context) ([]models.Workfl
 }
 
 func (c *WagClient) doGetWorkflowDefinitionsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.WorkflowDefinition, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "getWorkflowDefinitions")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -716,7 +722,7 @@ func (c *WagClient) doGetWorkflowDefinitionsRequest(ctx context.Context, req *ht
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -794,7 +800,7 @@ func (c *WagClient) NewWorkflowDefinition(ctx context.Context, i *models.NewWork
 
 	}
 
-	req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -804,9 +810,9 @@ func (c *WagClient) NewWorkflowDefinition(ctx context.Context, i *models.NewWork
 }
 
 func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.WorkflowDefinition, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "newWorkflowDefinition")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -823,7 +829,7 @@ func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *htt
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -897,7 +903,7 @@ func (c *WagClient) GetWorkflowDefinitionVersionsByName(ctx context.Context, i *
 
 	path = c.basePath + path
 
-	req, err := http.NewRequest("GET", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "GET", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -907,9 +913,9 @@ func (c *WagClient) GetWorkflowDefinitionVersionsByName(ctx context.Context, i *
 }
 
 func (c *WagClient) doGetWorkflowDefinitionVersionsByNameRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.WorkflowDefinition, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "getWorkflowDefinitionVersionsByName")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -926,7 +932,7 @@ func (c *WagClient) doGetWorkflowDefinitionVersionsByNameRequest(ctx context.Con
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -1019,7 +1025,7 @@ func (c *WagClient) UpdateWorkflowDefinition(ctx context.Context, i *models.Upda
 
 	}
 
-	req, err := http.NewRequest("PUT", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "PUT", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -1029,9 +1035,9 @@ func (c *WagClient) UpdateWorkflowDefinition(ctx context.Context, i *models.Upda
 }
 
 func (c *WagClient) doUpdateWorkflowDefinitionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.WorkflowDefinition, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "updateWorkflowDefinition")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1048,7 +1054,7 @@ func (c *WagClient) doUpdateWorkflowDefinitionRequest(ctx context.Context, req *
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -1130,7 +1136,7 @@ func (c *WagClient) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i
 
 	path = c.basePath + path
 
-	req, err := http.NewRequest("GET", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "GET", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -1140,9 +1146,9 @@ func (c *WagClient) GetWorkflowDefinitionByNameAndVersion(ctx context.Context, i
 }
 
 func (c *WagClient) doGetWorkflowDefinitionByNameAndVersionRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.WorkflowDefinition, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "getWorkflowDefinitionByNameAndVersion")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1159,7 +1165,7 @@ func (c *WagClient) doGetWorkflowDefinitionByNameAndVersionRequest(ctx context.C
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -1241,7 +1247,7 @@ func (c *WagClient) GetWorkflows(ctx context.Context, i *models.GetWorkflowsInpu
 
 	path = c.basePath + path
 
-	req, err := http.NewRequest("GET", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "GET", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -1288,7 +1294,7 @@ func (c *WagClient) NewGetWorkflowsIter(ctx context.Context, i *models.GetWorkfl
 }
 
 func (i *getWorkflowsIterImpl) refresh() error {
-	req, err := http.NewRequest("GET", i.nextURL, bytes.NewBuffer(i.body))
+	req, err := http.NewRequestWithContext(i.ctx, "GET", i.nextURL, bytes.NewBuffer(i.body))
 
 	if err != nil {
 		i.err = err
@@ -1337,9 +1343,9 @@ func (i *getWorkflowsIterImpl) Err() error {
 }
 
 func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request, headers map[string]string) ([]models.Workflow, string, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "getWorkflows")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1356,7 +1362,7 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -1443,7 +1449,7 @@ func (c *WagClient) StartWorkflow(ctx context.Context, i *models.StartWorkflowRe
 
 	}
 
-	req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -1453,9 +1459,9 @@ func (c *WagClient) StartWorkflow(ctx context.Context, i *models.StartWorkflowRe
 }
 
 func (c *WagClient) doStartWorkflowRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "startWorkflow")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1472,7 +1478,7 @@ func (c *WagClient) doStartWorkflowRequest(ctx context.Context, req *http.Reques
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -1565,7 +1571,7 @@ func (c *WagClient) CancelWorkflow(ctx context.Context, i *models.CancelWorkflow
 
 	}
 
-	req, err := http.NewRequest("DELETE", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "DELETE", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return err
@@ -1575,9 +1581,9 @@ func (c *WagClient) CancelWorkflow(ctx context.Context, i *models.CancelWorkflow
 }
 
 func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Request, headers map[string]string) error {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "CancelWorkflow")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1594,7 +1600,7 @@ func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Reque
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -1671,7 +1677,7 @@ func (c *WagClient) GetWorkflowByID(ctx context.Context, workflowID string) (*mo
 
 	path = c.basePath + path
 
-	req, err := http.NewRequest("GET", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "GET", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -1681,9 +1687,9 @@ func (c *WagClient) GetWorkflowByID(ctx context.Context, workflowID string) (*mo
 }
 
 func (c *WagClient) doGetWorkflowByIDRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "getWorkflowByID")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1700,7 +1706,7 @@ func (c *WagClient) doGetWorkflowByIDRequest(ctx context.Context, req *http.Requ
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -1793,7 +1799,7 @@ func (c *WagClient) ResumeWorkflowByID(ctx context.Context, i *models.ResumeWork
 
 	}
 
-	req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return nil, err
@@ -1803,9 +1809,9 @@ func (c *WagClient) ResumeWorkflowByID(ctx context.Context, i *models.ResumeWork
 }
 
 func (c *WagClient) doResumeWorkflowByIDRequest(ctx context.Context, req *http.Request, headers map[string]string) (*models.Workflow, error) {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "resumeWorkflowByID")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1822,7 +1828,7 @@ func (c *WagClient) doResumeWorkflowByIDRequest(ctx context.Context, req *http.R
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode
@@ -1905,7 +1911,7 @@ func (c *WagClient) ResolveWorkflowByID(ctx context.Context, workflowID string) 
 
 	path = c.basePath + path
 
-	req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", path, bytes.NewBuffer(body))
 
 	if err != nil {
 		return err
@@ -1915,9 +1921,9 @@ func (c *WagClient) ResolveWorkflowByID(ctx context.Context, workflowID string) 
 }
 
 func (c *WagClient) doResolveWorkflowByIDRequest(ctx context.Context, req *http.Request, headers map[string]string) error {
-	client := &http.Client{Transport: c.transport}
-
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Canonical-Resource", "resolveWorkflowByID")
+	req.Header.Set(VersionHeader, Version)
 
 	for field, value := range headers {
 		req.Header.Set(field, value)
@@ -1934,7 +1940,7 @@ func (c *WagClient) doResolveWorkflowByIDRequest(ctx context.Context, req *http.
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
-	resp, err := c.requestDoer.Do(client, req)
+	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
 		retCode = resp.StatusCode

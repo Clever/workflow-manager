@@ -63,7 +63,7 @@ func convertDate(input string) (strfmt.Date, error) {
 }
 
 func jsonMarshalNoError(i interface{}) string {
-	bytes, err := json.MarshalIndent(i, "", "\t")
+	bytes, err := json.Marshal(i)
 	if err != nil {
 		// This should never happen
 		return ""
@@ -203,7 +203,7 @@ func (h handler) PostStateResourceHandler(ctx context.Context, w http.ResponseWr
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -433,7 +433,7 @@ func (h handler) GetStateResourceHandler(ctx context.Context, w http.ResponseWri
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -561,7 +561,7 @@ func (h handler) PutStateResourceHandler(ctx context.Context, w http.ResponseWri
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -695,7 +695,7 @@ func (h handler) GetWorkflowDefinitionsHandler(ctx context.Context, w http.Respo
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -793,7 +793,7 @@ func (h handler) NewWorkflowDefinitionHandler(ctx context.Context, w http.Respon
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -915,7 +915,7 @@ func (h handler) GetWorkflowDefinitionVersionsByNameHandler(ctx context.Context,
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -1048,7 +1048,7 @@ func (h handler) UpdateWorkflowDefinitionHandler(ctx context.Context, w http.Res
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -1181,7 +1181,7 @@ func (h handler) GetWorkflowDefinitionByNameAndVersionHandler(ctx context.Contex
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -1321,7 +1321,7 @@ func (h handler) GetWorkflowsHandler(ctx context.Context, w http.ResponseWriter,
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -1529,7 +1529,7 @@ func (h handler) StartWorkflowHandler(ctx context.Context, w http.ResponseWriter
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -1760,7 +1760,7 @@ func (h handler) GetWorkflowByIDHandler(ctx context.Context, w http.ResponseWrit
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)
@@ -1859,7 +1859,7 @@ func (h handler) ResumeWorkflowByIDHandler(ctx context.Context, w http.ResponseW
 	jsonSpan, _ := opentracing.StartSpanFromContext(ctx, "json-response-marshaling")
 	defer jsonSpan.Finish()
 
-	respBytes, err := json.MarshalIndent(resp, "", "\t")
+	respBytes, err := json.Marshal(resp)
 	if err != nil {
 		logger.FromContext(ctx).AddContext("error", err.Error())
 		http.Error(w, jsonMarshalNoError(models.InternalError{Message: err.Error()}), http.StatusInternalServerError)

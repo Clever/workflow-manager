@@ -19,6 +19,7 @@ interface IterResult<R> {
   map<T>(f: (r: R) => T, cb?: Callback<T[]>): Promise<T[]>;
   toArray(cb?: Callback<R[]>): Promise<R[]>;
   forEach(f: (r: R) => void, cb?: Callback<void>): Promise<void>;
+  forEachAsync(f: (r: R) => void, cb?: Callback<void>): Promise<void>;
 }
 
 interface CircuitOptions {
@@ -49,43 +50,127 @@ interface AddressOptions {
   address: string;
 }
 
-type WorkflowManagerOptions = (DiscoveryOptions | AddressOptions) & GenericOptions; 
+type WorkflowManagerOptions = (DiscoveryOptions | AddressOptions) & GenericOptions;
 
+import models = WorkflowManager.Models
 
-type CancelReason = {
+declare class WorkflowManager {
+  constructor(options: WorkflowManagerOptions);
+
+  
+  healthCheck(options?: RequestOptions, cb?: Callback<void>): Promise<void>
+  
+  postStateResource(NewStateResource?: models.NewStateResource, options?: RequestOptions, cb?: Callback<models.StateResource>): Promise<models.StateResource>
+  
+  deleteStateResource(params: models.DeleteStateResourceParams, options?: RequestOptions, cb?: Callback<void>): Promise<void>
+  
+  getStateResource(params: models.GetStateResourceParams, options?: RequestOptions, cb?: Callback<models.StateResource>): Promise<models.StateResource>
+  
+  putStateResource(params: models.PutStateResourceParams, options?: RequestOptions, cb?: Callback<models.StateResource>): Promise<models.StateResource>
+  
+  getWorkflowDefinitions(options?: RequestOptions, cb?: Callback<models.WorkflowDefinition[]>): Promise<models.WorkflowDefinition[]>
+  
+  newWorkflowDefinition(NewWorkflowDefinitionRequest?: models.NewWorkflowDefinitionRequest, options?: RequestOptions, cb?: Callback<models.WorkflowDefinition>): Promise<models.WorkflowDefinition>
+  
+  getWorkflowDefinitionVersionsByName(params: models.GetWorkflowDefinitionVersionsByNameParams, options?: RequestOptions, cb?: Callback<models.WorkflowDefinition[]>): Promise<models.WorkflowDefinition[]>
+  
+  updateWorkflowDefinition(params: models.UpdateWorkflowDefinitionParams, options?: RequestOptions, cb?: Callback<models.WorkflowDefinition>): Promise<models.WorkflowDefinition>
+  
+  getWorkflowDefinitionByNameAndVersion(params: models.GetWorkflowDefinitionByNameAndVersionParams, options?: RequestOptions, cb?: Callback<models.WorkflowDefinition>): Promise<models.WorkflowDefinition>
+  
+  getWorkflows(params: models.GetWorkflowsParams, options?: RequestOptions, cb?: Callback<models.Workflow[]>): Promise<models.Workflow[]>
+  getWorkflowsIter(params: models.GetWorkflowsParams, options?: RequestOptions): IterResult<ArrayInner<models.Workflow[]>>
+  
+  startWorkflow(StartWorkflowRequest?: models.StartWorkflowRequest, options?: RequestOptions, cb?: Callback<models.Workflow>): Promise<models.Workflow>
+  
+  CancelWorkflow(params: models.CancelWorkflowParams, options?: RequestOptions, cb?: Callback<void>): Promise<void>
+  
+  getWorkflowByID(workflowID: string, options?: RequestOptions, cb?: Callback<models.Workflow>): Promise<models.Workflow>
+  
+  resumeWorkflowByID(params: models.ResumeWorkflowByIDParams, options?: RequestOptions, cb?: Callback<models.Workflow>): Promise<models.Workflow>
+  
+  resolveWorkflowByID(workflowID: string, options?: RequestOptions, cb?: Callback<void>): Promise<void>
+  
+}
+
+declare namespace WorkflowManager {
+  const RetryPolicies: {
+    Single: RetryPolicy;
+    Exponential: RetryPolicy;
+    None: RetryPolicy;
+  }
+
+  const DefaultCircuitOptions: CircuitOptions;
+
+  namespace Errors {
+    interface ErrorBody {
+      message: string;
+      [key: string]: any;
+    }
+
+    
+    class BadRequest {
+  message?: string;
+
+  constructor(body: ErrorBody);
+}
+    
+    class InternalError {
+  message?: string;
+
+  constructor(body: ErrorBody);
+}
+    
+    class NotFound {
+  message?: string;
+
+  constructor(body: ErrorBody);
+}
+    
+    class Conflict {
+  message?: string;
+
+  constructor(body: ErrorBody);
+}
+    
+  }
+
+  namespace Models {
+    
+    type CancelReason = {
   reason?: string;
 };
-
-type CancelWorkflowParams = {
+    
+    type CancelWorkflowParams = {
   workflowID: string;
   reason: CancelReason;
 };
-
-type Conflict = {
+    
+    type Conflict = {
   message?: string;
 };
-
-type DeleteStateResourceParams = {
+    
+    type DeleteStateResourceParams = {
   namespace: string;
   name: string;
 };
-
-type GetStateResourceParams = {
+    
+    type GetStateResourceParams = {
   namespace: string;
   name: string;
 };
-
-type GetWorkflowDefinitionByNameAndVersionParams = {
+    
+    type GetWorkflowDefinitionByNameAndVersionParams = {
   name: string;
   version: number;
 };
-
-type GetWorkflowDefinitionVersionsByNameParams = {
+    
+    type GetWorkflowDefinitionVersionsByNameParams = {
   name: string;
   latest?: boolean;
 };
-
-type GetWorkflowsParams = {
+    
+    type GetWorkflowsParams = {
   limit?: number;
   oldestFirst?: boolean;
   pageToken?: string;
@@ -94,8 +179,8 @@ type GetWorkflowsParams = {
   summaryOnly?: boolean;
   workflowDefinitionName: string;
 };
-
-type Job = {
+    
+    type Job = {
   attempts?: JobAttempt[];
   container?: string;
   createdAt?: string;
@@ -111,8 +196,8 @@ type Job = {
   statusReason?: string;
   stoppedAt?: string;
 };
-
-type JobAttempt = {
+    
+    type JobAttempt = {
   containerInstanceARN?: string;
   createdAt?: string;
   exitCode?: number;
@@ -121,18 +206,18 @@ type JobAttempt = {
   stoppedAt?: string;
   taskARN?: string;
 };
-
-type JobStatus = ("created" | "queued" | "waiting_for_deps" | "running" | "succeeded" | "failed" | "aborted_deps_failed" | "aborted_by_user");
-
-type Manager = ("step-functions");
-
-type NewStateResource = {
+    
+    type JobStatus = ("created" | "queued" | "waiting_for_deps" | "running" | "succeeded" | "failed" | "aborted_deps_failed" | "aborted_by_user");
+    
+    type Manager = ("step-functions");
+    
+    type NewStateResource = {
   name?: string;
   namespace?: string;
   uri?: string;
 };
-
-type NewWorkflowDefinitionRequest = {
+    
+    type NewWorkflowDefinitionRequest = {
   defaultTags?: { [key: string]: {
   
 } };
@@ -141,30 +226,30 @@ type NewWorkflowDefinitionRequest = {
   stateMachine?: SLStateMachine;
   version?: number;
 };
-
-type PutStateResourceParams = {
+    
+    type PutStateResourceParams = {
   namespace: string;
   name: string;
   NewStateResource?: NewStateResource;
 };
-
-type ResolvedByUserWrapper = {
+    
+    type ResolvedByUserWrapper = {
   isSet?: boolean;
   value?: boolean;
 };
-
-type ResumeWorkflowByIDParams = {
+    
+    type ResumeWorkflowByIDParams = {
   workflowID: string;
   overrides: WorkflowDefinitionOverrides;
 };
-
-type SLCatcher = {
+    
+    type SLCatcher = {
   ErrorEquals?: SLErrorEquals[];
   Next?: string;
   ResultPath?: string;
 };
-
-type SLChoice = {
+    
+    type SLChoice = {
   And?: SLChoice[];
   BooleanEquals?: boolean;
   Next?: string;
@@ -187,17 +272,17 @@ type SLChoice = {
   TimestampLessThanEquals?: string;
   Variable?: string;
 };
-
-type SLErrorEquals = string;
-
-type SLRetrier = {
+    
+    type SLErrorEquals = string;
+    
+    type SLRetrier = {
   BackoffRate?: number;
   ErrorEquals?: SLErrorEquals[];
   IntervalSeconds?: number;
   MaxAttempts?: number;
 };
-
-type SLState = {
+    
+    type SLState = {
   Branches?: SLStateMachine[];
   Catch?: SLCatcher[];
   Cause?: string;
@@ -221,18 +306,18 @@ type SLState = {
   TimestampPath?: string;
   Type?: SLStateType;
 };
-
-type SLStateMachine = {
+    
+    type SLStateMachine = {
   Comment?: string;
   StartAt?: string;
   States?: { [key: string]: SLState };
   TimeoutSeconds?: number;
   Version?: ("1.0");
 };
-
-type SLStateType = ("Pass" | "Task" | "Choice" | "Wait" | "Succeed" | "Fail" | "Parallel");
-
-type StartWorkflowRequest = {
+    
+    type SLStateType = ("Pass" | "Task" | "Choice" | "Wait" | "Succeed" | "Fail" | "Parallel");
+    
+    type StartWorkflowRequest = {
   idSuffix?: string;
   input?: string;
   namespace?: string;
@@ -242,25 +327,25 @@ type StartWorkflowRequest = {
 } };
   workflowDefinition?: WorkflowDefinitionRef;
 };
-
-type StateResource = {
+    
+    type StateResource = {
   lastUpdated?: string;
   name?: string;
   namespace?: string;
   type?: StateResourceType;
   uri?: string;
 };
-
-type StateResourceType = ("JobDefinitionARN" | "ActivityARN" | "LambdaFunctionARN");
-
-type UpdateWorkflowDefinitionParams = {
+    
+    type StateResourceType = ("JobDefinitionARN" | "ActivityARN" | "LambdaFunctionARN");
+    
+    type UpdateWorkflowDefinitionParams = {
   NewWorkflowDefinitionRequest?: NewWorkflowDefinitionRequest;
   name: string;
 };
-
-type Workflow = any;
-
-type WorkflowDefinition = {
+    
+    type Workflow = any;
+    
+    type WorkflowDefinition = {
   createdAt?: string;
   defaultTags?: { [key: string]: {
   
@@ -271,17 +356,17 @@ type WorkflowDefinition = {
   stateMachine?: SLStateMachine;
   version?: number;
 };
-
-type WorkflowDefinitionOverrides = {
+    
+    type WorkflowDefinitionOverrides = {
   StartAt?: string;
 };
-
-type WorkflowDefinitionRef = {
+    
+    type WorkflowDefinitionRef = {
   name?: string;
   version?: number;
 };
-
-type WorkflowQuery = {
+    
+    type WorkflowQuery = {
   limit?: number;
   oldestFirst?: boolean;
   pageToken?: string;
@@ -290,10 +375,10 @@ type WorkflowQuery = {
   summaryOnly?: boolean;
   workflowDefinitionName: string;
 };
-
-type WorkflowStatus = ("queued" | "running" | "failed" | "succeeded" | "cancelled");
-
-type WorkflowSummary = {
+    
+    type WorkflowStatus = ("queued" | "running" | "failed" | "succeeded" | "cancelled");
+    
+    type WorkflowSummary = {
   createdAt?: string;
   id?: string;
   input?: string;
@@ -311,72 +396,6 @@ type WorkflowSummary = {
 } };
   workflowDefinition?: WorkflowDefinition;
 };
-
-declare class WorkflowManager {
-  constructor(options: WorkflowManagerOptions);
-
-  
-  healthCheck(options?: RequestOptions, cb?: Callback<void>): Promise<void>
-  
-  postStateResource(NewStateResource?: NewStateResource, options?: RequestOptions, cb?: Callback<StateResource>): Promise<StateResource>
-  
-  deleteStateResource(params: DeleteStateResourceParams, options?: RequestOptions, cb?: Callback<void>): Promise<void>
-  
-  getStateResource(params: GetStateResourceParams, options?: RequestOptions, cb?: Callback<StateResource>): Promise<StateResource>
-  
-  putStateResource(params: PutStateResourceParams, options?: RequestOptions, cb?: Callback<StateResource>): Promise<StateResource>
-  
-  getWorkflowDefinitions(options?: RequestOptions, cb?: Callback<WorkflowDefinition[]>): Promise<WorkflowDefinition[]>
-  
-  newWorkflowDefinition(NewWorkflowDefinitionRequest?: NewWorkflowDefinitionRequest, options?: RequestOptions, cb?: Callback<WorkflowDefinition>): Promise<WorkflowDefinition>
-  
-  getWorkflowDefinitionVersionsByName(params: GetWorkflowDefinitionVersionsByNameParams, options?: RequestOptions, cb?: Callback<WorkflowDefinition[]>): Promise<WorkflowDefinition[]>
-  
-  updateWorkflowDefinition(params: UpdateWorkflowDefinitionParams, options?: RequestOptions, cb?: Callback<WorkflowDefinition>): Promise<WorkflowDefinition>
-  
-  getWorkflowDefinitionByNameAndVersion(params: GetWorkflowDefinitionByNameAndVersionParams, options?: RequestOptions, cb?: Callback<WorkflowDefinition>): Promise<WorkflowDefinition>
-  
-  getWorkflows(params: GetWorkflowsParams, options?: RequestOptions, cb?: Callback<Workflow[]>): Promise<Workflow[]>
-  getWorkflowsIter(params: GetWorkflowsParams, options?: RequestOptions): IterResult<ArrayInner<Workflow[]>>
-  
-  startWorkflow(StartWorkflowRequest?: StartWorkflowRequest, options?: RequestOptions, cb?: Callback<Workflow>): Promise<Workflow>
-  
-  CancelWorkflow(params: CancelWorkflowParams, options?: RequestOptions, cb?: Callback<void>): Promise<void>
-  
-  getWorkflowByID(workflowID: string, options?: RequestOptions, cb?: Callback<Workflow>): Promise<Workflow>
-  
-  resumeWorkflowByID(params: ResumeWorkflowByIDParams, options?: RequestOptions, cb?: Callback<Workflow>): Promise<Workflow>
-  
-  resolveWorkflowByID(workflowID: string, options?: RequestOptions, cb?: Callback<void>): Promise<void>
-  
-}
-
-declare namespace WorkflowManager {
-  const RetryPolicies: {
-    Single: RetryPolicy;
-    Exponential: RetryPolicy;
-    None: RetryPolicy;
-  }
-
-  const DefaultCircuitOptions: CircuitOptions;
-
-  namespace Errors {
-    
-    class BadRequest {
-  message?: string;
-}
-    
-    class InternalError {
-  message?: string;
-}
-    
-    class NotFound {
-  message?: string;
-}
-    
-    class Conflict {
-  message?: string;
-}
     
   }
 }
