@@ -256,6 +256,14 @@
   revision = "bfa1e97ed7a159b123865559eabdec69b78fe1d5"
 
 [[projects]]
+  digest = "1:3e16b38456fa0dd6173c032e594cc070a0167755f5af89afcfd32ca92d7764e3"
+  name = "github.com/gorilla/handlers"
+  packages = ["."]
+  pruneopts = ""
+  revision = "8a3748addc242fc560bd6d4ff28b0374c010b1b4"
+  version = "v1.4.2"
+
+[[projects]]
   digest = "1:ec5262e6c65f9fcedc01d7789ee4e18ad429dde822cfd50e57e3fd77c4d70c73"
   name = "github.com/gorilla/mux"
   packages = ["."]
@@ -523,14 +531,6 @@
   version = "v6.17.0"
 
 [[projects]]
-  digest = "1:8143ea52154df4cf52589d780ad447f625978a4c29713200842ccaa7c532350a"
-  name = "gopkg.in/tylerb/graceful.v1"
-  packages = ["."]
-  pruneopts = ""
-  revision = "4654dfbb6ad53cb5e27f37d99b02e16c1872fbbb"
-  version = "v1.2.15"
-
-[[projects]]
   branch = "v2"
   digest = "1:60ccede33d50c82c86e907255319a6f40dca4ac395e5ee143638176d3b871069"
   name = "gopkg.in/yaml.v2"
@@ -567,6 +567,7 @@
     "github.com/go-openapi/validate",
     "github.com/golang/mock/gomock",
     "github.com/golang/mock/mockgen",
+    "github.com/gorilla/handlers",
     "github.com/gorilla/mux",
     "github.com/hashicorp/go-multierror",
     "github.com/hashicorp/golang-lru",
@@ -588,7 +589,6 @@
     "golang.org/x/xerrors",
     "gopkg.in/Clever/kayvee-go.v6/logger",
     "gopkg.in/Clever/kayvee-go.v6/middleware",
-    "gopkg.in/tylerb/graceful.v1",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
