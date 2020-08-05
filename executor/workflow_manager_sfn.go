@@ -580,7 +580,11 @@ func eventToJob(
 		sfn.HistoryEventTypeExecutionFailed,
 		sfn.HistoryEventTypeExecutionTimedOut:
 		// Execution-level event - update last seen job.
-		return jobs[len(jobs)-1], eventIDToJob
+		if len(jobs) > 0 {
+			return jobs[len(jobs)-1], eventIDToJob
+		}
+		log.ErrorD("event-with-unknown-job", logger.M{"event-id": eventID, "execution-arn": execARN})
+		return nil, eventIDToJob
 	default:
 		// associate this event with the same job as its parent event
 		jobOfParent, ok := eventIDToJob[parentEventID]
