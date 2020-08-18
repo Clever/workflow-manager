@@ -153,12 +153,12 @@
   revision = "eeefdecb41b842af6dc652aaea4026e8403e62df"
 
 [[projects]]
-  digest = "1:968d8903d598e3fae738325d3410f33f07ea6a2b9ee5591e9c262ee37df6845a"
+  digest = "1:6620a2846e620b336589751988e2b5907cc80a5ee1f3170eb2423304f996eaeb"
   name = "github.com/go-errors/errors"
   packages = ["."]
   pruneopts = ""
-  revision = "a6af135bd4e28680facf08a3d206b454abc877a4"
-  version = "v1.0.1"
+  revision = "7c023725d0115f2e05423b2b43a8f85c42f7a6af"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:f729ab4863cde69a2afe8703ed0f12050eb2f46d3a18e972dd953e42b118217a"
