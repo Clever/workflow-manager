@@ -70,7 +70,7 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/uber/jaeger-client-go"
-  version = "2.15.0"
+  version = "2.25.0"
 
 [[constraint]]
   branch = "master"
