@@ -339,7 +339,7 @@
   revision = "9c29407076c0bd904a31258c4e881282aeb95cff"
 
 [[projects]]
-  digest = "1:1fc4897d3cc482d070651563c16a51489296cd9150e6d53fb7ff4d59a24334bc"
+  digest = "1:b0507210d286ef45cac3af88d5be7abbfdda35fc354ee51db1014e33212f182a"
   name = "github.com/opentracing/opentracing-go"
   packages = [
     ".",
@@ -347,8 +347,8 @@
     "log",
   ]
   pruneopts = ""
-  revision = "659c90643e714681897ec2521c60567dd21da733"
-  version = "v1.1.0"
+  revision = "d34af3eaa63c4d08ab54863a4bdd0daa45212e12"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:1d7e1867c49a6dd9856598ef7c3123604ea3daabf5b83f303ff457bcbc410b1d"
