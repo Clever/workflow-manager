@@ -10,12 +10,12 @@
   revision = "b603aedc6d672aa507c197cb1bbaaf52a353a6da"
 
 [[projects]]
-  digest = "1:5582fedc9ff5b79bdb48065ff96ead4e24c640ee084ee913c0496931ef21d64c"
+  digest = "1:8280a37746523b1140c1b99d3061bcd0a94d74dc131860dd419f7f5a9606fd00"
   name = "github.com/Clever/discovery-go"
   packages = ["."]
   pruneopts = ""
-  revision = "b2114f3bdf1c55f030cf6d6d457478ccb18b9e9c"
-  version = "v1.7.1"
+  revision = "da13a5b32689e5c3d4ca26db31271fff9315b3e3"
+  version = "v1.7.2"
 
 [[projects]]
   digest = "1:10a81a5839feee3838907e73abf9655e396e4f409a86de87954ea9379e03c412"
