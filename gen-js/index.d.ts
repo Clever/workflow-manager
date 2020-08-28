@@ -295,6 +295,9 @@ declare namespace WorkflowManager {
   InputPath?: string;
   Next?: string;
   OutputPath?: string;
+  Parameters?: { [key: string]: {
+  
+} };
   Resource?: string;
   Result?: string;
   ResultPath?: string;
@@ -336,7 +339,7 @@ declare namespace WorkflowManager {
   uri?: string;
 };
     
-    type StateResourceType = ("JobDefinitionARN" | "ActivityARN" | "LambdaFunctionARN");
+    type StateResourceType = ("JobDefinitionARN" | "ActivityARN" | "LambdaFunctionARN" | "TaskARN");
     
     type UpdateWorkflowDefinitionParams = {
   NewWorkflowDefinitionRequest?: NewWorkflowDefinitionRequest;

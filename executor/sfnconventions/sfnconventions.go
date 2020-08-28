@@ -59,6 +59,11 @@ func LambdaResource(wdResource, region, accountID, namespace string) string {
 	return fmt.Sprintf("arn:aws:lambda:%s:%s:function:%s--%s", region, accountID, namespace, strings.TrimPrefix(wdResource, "lambda:"))
 }
 
+// GlueState returns the resource name and JobName parameter used for running a Glue job.
+func GlueResourceAndJobName(wdResource, namespace string) (string, string) {
+	return "arn:aws:states:::glue:startJobRun.sync", fmt.Sprintf("%s--%s", namespace, strings.TrimPrefix(wdResource, "glue:"))
+}
+
 // EmbeddedResourceArn is the activity ARN registered by embedded WFM.
 func EmbeddedResourceArn(wdResource, region, accountID, namespace string, app string) string {
 	return fmt.Sprintf("arn:aws:states:%s:%s:activity:%s--%s-%s", region, accountID, namespace, app, wdResource)

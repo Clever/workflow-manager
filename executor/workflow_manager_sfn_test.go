@@ -68,30 +68,110 @@ func TestStateMachineName(t *testing.T) {
 	}
 }
 
-func TestStateMachineWithFullActivityARNs(t *testing.T) {
-	sm := models.SLStateMachine{
-		States: map[string]models.SLState{
+type stateMachineWithFullActivityARNsAndParametersTest struct {
+	name         string
+	input        models.SLStateMachine
+	wantSMStates map[string]models.SLState
+}
+
+var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullActivityARNsAndParametersTest{
+	stateMachineWithFullActivityARNsAndParametersTest{
+		name: "happy path",
+		input: models.SLStateMachine{
+			States: map[string]models.SLState{
+				"foostate": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Resource: "resource-name",
+				},
+				"foostatelambda": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Resource: "lambda:resource-name",
+				},
+				"foostateglue": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Resource: "glue:resource-name",
+					Parameters: map[string]interface{}{
+						"Arguments.$": "$.path",
+					},
+				},
+			},
+		},
+		wantSMStates: map[string]models.SLState{
 			"foostate": models.SLState{
 				Type:     models.SLStateTypeTask,
-				Resource: "resource-name",
+				Resource: "arn:aws:states:region:accountID:activity:namespace--resource-name",
 			},
 			"foostatelambda": models.SLState{
 				Type:     models.SLStateTypeTask,
-				Resource: "lambda:resource-name",
+				Resource: "arn:aws:lambda:region:accountID:function:namespace--resource-name",
+			},
+			"foostateglue": models.SLState{
+				Type:     models.SLStateTypeTask,
+				Resource: "arn:aws:states:::glue:startJobRun.sync",
+				Parameters: map[string]interface{}{
+					"JobName":     "namespace--resource-name",
+					"Arguments.$": "$.path",
+				},
 			},
 		},
+	},
+	stateMachineWithFullActivityARNsAndParametersTest{
+		name: "glue state with no extra arguments",
+		input: models.SLStateMachine{
+			States: map[string]models.SLState{
+				"foostateglue": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Resource: "glue:resource-name",
+				},
+			},
+		},
+		wantSMStates: map[string]models.SLState{
+			"foostateglue": models.SLState{
+				Type:     models.SLStateTypeTask,
+				Resource: "arn:aws:states:::glue:startJobRun.sync",
+				Parameters: map[string]interface{}{
+					"JobName": "namespace--resource-name",
+				},
+			},
+		},
+	},
+	stateMachineWithFullActivityARNsAndParametersTest{
+		name: "glue state with explicit arguments",
+		input: models.SLStateMachine{
+			States: map[string]models.SLState{
+				"foostateglue": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Resource: "glue:resource-name",
+					Parameters: map[string]interface{}{
+						"Arguments": map[string]interface{}{
+							"arg1": "val1",
+							"arg2": 1,
+						},
+					},
+				},
+			},
+		},
+		wantSMStates: map[string]models.SLState{
+			"foostateglue": models.SLState{
+				Type:     models.SLStateTypeTask,
+				Resource: "arn:aws:states:::glue:startJobRun.sync",
+				Parameters: map[string]interface{}{
+					"JobName": "namespace--resource-name",
+					"Arguments": map[string]interface{}{
+						"arg1": "val1",
+						"arg2": 1,
+					},
+				},
+			},
+		},
+	},
+}
+
+func TestStateMachineWithFullActivityARNsAndParameters(t *testing.T) {
+	for _, test := range stateMachineWithFullActivityARNsAndParametersTests {
+		smWithFullActivityARNs := stateMachineWithFullActivityARNsAndParameters(test.input, "region", "accountID", "namespace")
+		assert.Equal(t, test.wantSMStates, smWithFullActivityARNs.States)
 	}
-	smWithFullActivityARNs := stateMachineWithFullActivityARNs(sm, "region", "accountID", "namespace")
-	require.Equal(t, map[string]models.SLState{
-		"foostate": models.SLState{
-			Type:     models.SLStateTypeTask,
-			Resource: "arn:aws:states:region:accountID:activity:namespace--resource-name",
-		},
-		"foostatelambda": models.SLState{
-			Type:     models.SLStateTypeTask,
-			Resource: "arn:aws:lambda:region:accountID:function:namespace--resource-name",
-		},
-	}, smWithFullActivityARNs.States)
 }
 
 func TestStateMachineWithDefaultRetriers(t *testing.T) {

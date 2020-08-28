@@ -641,6 +641,7 @@ definitions:
       - "JobDefinitionARN"
       - "ActivityARN"
       - "LambdaFunctionARN"
+      - "TaskARN"
 
   # States Language Types: https://states-language.net/spec.html
   SLStateMachine:
@@ -672,6 +673,9 @@ definitions:
         type: string
       End:
         type: boolean
+      Parameters:
+        additionalProperties:
+          type: object
       InputPath:
         type: string
       OutputPath:
