@@ -26,6 +26,8 @@ const (
 	maxFailureReasonLines   = 3
 	executionEventsPerPage  = 200
 	sfncliCommandTerminated = "sfncli.CommandTerminated"
+
+	jobNameField = "JobName"
 )
 
 var durationToRetryDescribeExecutions = 5 * time.Minute
@@ -61,10 +63,10 @@ func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, store
 	}
 }
 
-// stateMachineWithFullActivityARNs converts resource names in states to full activity ARNs. It returns a new state machine.
-// Our workflow definitions contain state machine definitions with short-hand for resource names, e.g. "Resource": "name-of-worker"
-// Convert this shorthand into a new state machine with full activity ARNs, e.g. "Resource": "arn:aws:states:us-west-2:589690932525:activity:production--name-of-worker"
-func stateMachineWithFullActivityARNs(oldSM models.SLStateMachine, region, accountID, namespace string) *models.SLStateMachine {
+// stateMachineWithFullActivityARNsAndParameters returns a new state machine.
+// Our workflow definitions contain state machine definitions with short-hand for resource names and parameter fields, e.g. "Resource": "name-of-worker"
+// Convert this shorthand into a new state machine with full details, e.g. "Resource": "arn:aws:states:us-west-2:589690932525:activity:production--name-of-worker"
+func stateMachineWithFullActivityARNsAndParameters(oldSM models.SLStateMachine, region, accountID, namespace string) *models.SLStateMachine {
 	sm := deepcopy.Copy(oldSM).(models.SLStateMachine)
 	for stateName, s := range sm.States {
 		state := deepcopy.Copy(s).(models.SLState)
@@ -73,6 +75,13 @@ func stateMachineWithFullActivityARNs(oldSM models.SLStateMachine, region, accou
 		}
 		if strings.HasPrefix(state.Resource, "lambda:") {
 			state.Resource = sfnconventions.LambdaResource(state.Resource, region, accountID, namespace)
+		} else if strings.HasPrefix(state.Resource, "glue:") {
+			var jobName string
+			state.Resource, jobName = sfnconventions.GlueResourceAndJobName(state.Resource, namespace)
+			if state.Parameters == nil {
+				state.Parameters = map[string]interface{}{}
+			}
+			state.Parameters[jobNameField] = jobName
 		} else {
 			state.Resource = sfnconventions.SFNCLIResource(state.Resource, region, accountID, namespace)
 		}
@@ -142,7 +151,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	}
 
 	// state machine doesn't exist, create it
-	awsStateMachine := stateMachineWithFullActivityARNs(*wd.StateMachine, wm.region, wm.accountID, namespace)
+	awsStateMachine := stateMachineWithFullActivityARNsAndParameters(*wd.StateMachine, wm.region, wm.accountID, namespace)
 	awsStateMachine = stateMachineWithDefaultRetriers(*awsStateMachine)
 	awsStateMachineDefBytes, err := json.MarshalIndent(awsStateMachine, "", "  ")
 	if err != nil {
@@ -640,6 +649,9 @@ func processEvents(
 					if strings.HasPrefix(stateDef.Resource, "lambda:") {
 						stateResourceName = strings.TrimPrefix(stateDef.Resource, "lambda:")
 						stateResourceType = models.StateResourceTypeLambdaFunctionARN
+					} else if strings.HasPrefix(stateDef.Resource, "glue:") {
+						stateResourceName = strings.TrimPrefix(stateDef.Resource, "glue:")
+						stateResourceType = models.StateResourceTypeTaskARN
 					} else {
 						stateResourceName = stateDef.Resource
 						stateResourceType = models.StateResourceTypeActivityARN
@@ -655,7 +667,9 @@ func processEvents(
 					LastUpdated: strfmt.DateTime(aws.TimeValue(evt.Timestamp)),
 				}
 			}
-		case sfn.HistoryEventTypeActivityScheduled, sfn.HistoryEventTypeLambdaFunctionScheduled:
+		case sfn.HistoryEventTypeTaskScheduled,
+			sfn.HistoryEventTypeActivityScheduled,
+			sfn.HistoryEventTypeLambdaFunctionScheduled:
 			if job.Status == models.JobStatusFailed {
 				// this is a retry, copy job data to attempt array, re-initialize job data
 				oldJobData := *job
@@ -679,7 +693,9 @@ func processEvents(
 				}
 			}
 			job.Status = models.JobStatusQueued
-		case sfn.HistoryEventTypeActivityStarted, sfn.HistoryEventTypeLambdaFunctionStarted:
+		case sfn.HistoryEventTypeTaskStarted,
+			sfn.HistoryEventTypeActivityStarted,
+			sfn.HistoryEventTypeLambdaFunctionStarted:
 			job.Status = models.JobStatusRunning
 			job.StartedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 			if details := evt.ActivityStartedEventDetails; details != nil {
@@ -708,7 +724,9 @@ func processEvents(
 				errorName,
 				getLastFewLines(cause),
 			))
-		case sfn.HistoryEventTypeActivitySucceeded, sfn.HistoryEventTypeLambdaFunctionSucceeded:
+		case sfn.HistoryEventTypeTaskSucceeded,
+			sfn.HistoryEventTypeActivitySucceeded,
+			sfn.HistoryEventTypeLambdaFunctionSucceeded:
 			job.Status = models.JobStatusSucceeded
 		case sfn.HistoryEventTypeExecutionAborted:
 			job.Status = models.JobStatusAbortedByUser
