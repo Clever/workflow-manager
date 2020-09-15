@@ -222,12 +222,12 @@
   version = "v0.19.9"
 
 [[projects]]
-  digest = "1:6a96efe97216f39809df480b5648367fd939c5a3dcb4111350eadc9847f22863"
+  digest = "1:80f9597b8b21586f7fc19be05d68db7e4e220364c3fbda4e301433189e29e4ac"
   name = "github.com/go-openapi/validate"
   packages = ["."]
   pruneopts = ""
-  revision = "b4358e2166e999e752797fead269fb411dc700f7"
-  version = "v0.19.10"
+  revision = "ac0948fa48617c7997417abdce2afe33ceca1084"
+  version = "v0.19.11"
 
 [[projects]]
   digest = "1:a01080d20c45c031c13f3828c56e58f4f51d926a482ad10cc0316225097eb7ea"
