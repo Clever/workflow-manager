@@ -487,11 +487,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ae1578a64c2b241c13ab243739d05936d83825d2b6e9ff043ea3c7105666493d"
+  digest = "1:ab2ffe307a0492e48f8b08798fc6aa8724e2bdc407ffc9e3e1a79a019e206ab1"
   name = "golang.org/x/sync"
   packages = ["errgroup"]
   pruneopts = ""
-  revision = "6e8e738ad208923de99951fe0b48239bfd864f28"
+  revision = "30421366ff761c80b137fb5084b32278ed41fab0"
 
 [[projects]]
   digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
