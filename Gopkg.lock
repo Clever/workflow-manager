@@ -214,12 +214,12 @@
   version = "v0.19.7"
 
 [[projects]]
-  digest = "1:95e7f322b4a9bf6c6e9b83a9aed1caa8c226a8ab314039810738b7fdb9bf7662"
+  digest = "1:e73520adda057998384713037310a7ee8979b4a308cc5ba35b0b92e0763eef0f"
   name = "github.com/go-openapi/swag"
   packages = ["."]
   pruneopts = ""
-  revision = "581ac183dde4c2800e57163c27631018d42a3449"
-  version = "v0.19.10"
+  revision = "3743e975ec9cedeb03f22eb93c8f384395252581"
+  version = "v0.19.11"
 
 [[projects]]
   digest = "1:6a96efe97216f39809df480b5648367fd939c5a3dcb4111350eadc9847f22863"
