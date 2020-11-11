@@ -165,12 +165,49 @@ var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullA
 			},
 		},
 	},
+	stateMachineWithFullActivityARNsAndParametersTest{
+		name: "map state adds EXECUTION_NAME and expands iterator states",
+		input: models.SLStateMachine{
+			States: map[string]models.SLState{
+				"foostatemap": models.SLState{
+					Type: models.SLStateTypeMap,
+					Iterator: &models.SLStateMachine{
+						StartAt: "foostate",
+						States: map[string]models.SLState{
+							"foostate": models.SLState{
+								Type:     models.SLStateTypeTask,
+								Resource: "resource-name",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantSMStates: map[string]models.SLState{
+			"foostatemap": models.SLState{
+				Type: models.SLStateTypeMap,
+				Parameters: map[string]interface{}{
+					"_EXECUTION_NAME.$": "$._EXECUTION_NAME",
+				},
+				Iterator: &models.SLStateMachine{
+					StartAt: "foostate",
+					States: map[string]models.SLState{
+						"foostate": models.SLState{
+							Type:     models.SLStateTypeTask,
+							Resource: "arn:aws:states:region:accountID:activity:namespace--resource-name",
+						},
+					},
+				},
+			},
+		},
+	},
 }
 
 func TestStateMachineWithFullActivityARNsAndParameters(t *testing.T) {
 	for _, test := range stateMachineWithFullActivityARNsAndParametersTests {
-		smWithFullActivityARNs := stateMachineWithFullActivityARNsAndParameters(test.input, "region", "accountID", "namespace")
+		smWithFullActivityARNs, err := stateMachineWithFullActivityARNsAndParameters(test.input, "region", "accountID", "namespace")
 		assert.Equal(t, test.wantSMStates, smWithFullActivityARNs.States)
+		assert.NoError(t, err)
 	}
 }
 

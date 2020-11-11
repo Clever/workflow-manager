@@ -186,6 +186,9 @@
 |**Error**  <br>*optional*|string|
 |**HeartbeatSeconds**  <br>*optional*|integer|
 |**InputPath**  <br>*optional*|string|
+|**ItemsPath**  <br>*optional*|string|
+|**Iterator**  <br>*optional*|[SLStateMachine](#slstatemachine)|
+|**MaxConcurrency**  <br>*optional*|integer|
 |**Next**  <br>*optional*|string|
 |**OutputPath**  <br>*optional*|string|
 |**Resource**  <br>*optional*|string|
@@ -213,7 +216,7 @@
 
 <a name="slstatetype"></a>
 ### SLStateType
-*Type* : enum (Pass, Task, Choice, Wait, Succeed, Fail, Parallel)
+*Type* : enum (Pass, Task, Choice, Wait, Succeed, Fail, Parallel, Map)
 
 
 <a name="startworkflowrequest"></a>

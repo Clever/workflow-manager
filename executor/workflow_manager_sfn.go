@@ -66,11 +66,41 @@ func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, store
 // stateMachineWithFullActivityARNsAndParameters returns a new state machine.
 // Our workflow definitions contain state machine definitions with short-hand for resource names and parameter fields, e.g. "Resource": "name-of-worker"
 // Convert this shorthand into a new state machine with full details, e.g. "Resource": "arn:aws:states:us-west-2:589690932525:activity:production--name-of-worker"
-func stateMachineWithFullActivityARNsAndParameters(oldSM models.SLStateMachine, region, accountID, namespace string) *models.SLStateMachine {
+func stateMachineWithFullActivityARNsAndParameters(oldSM models.SLStateMachine, region, accountID, namespace string) (*models.SLStateMachine, error) {
 	sm := deepcopy.Copy(oldSM).(models.SLStateMachine)
+	var err error
 	for stateName, s := range sm.States {
 		state := deepcopy.Copy(s).(models.SLState)
-		if state.Type != models.SLStateTypeTask {
+		if state.Type == models.SLStateTypeParallel {
+			for index, branch := range state.Branches {
+				if branch == nil {
+					return nil, fmt.Errorf("Nil branch found in parallel state")
+				}
+				state.Branches[index], err = stateMachineWithFullActivityARNsAndParameters(*branch, region, accountID, namespace)
+				if err != nil {
+					return nil, err
+				}
+			}
+			sm.States[stateName] = state
+			continue
+		} else if state.Type == models.SLStateTypeMap {
+			if state.Iterator == nil {
+				return nil, fmt.Errorf("Nil iterator found in map state")
+			}
+			if state.Parameters == nil {
+				state.Parameters = map[string]interface{}{}
+			}
+			if _, copyingExecutionName := state.Parameters["_EXECUTION_NAME.$"]; !copyingExecutionName {
+				// Copies over of _EXECUTION_NAME so that its absence in input will not break things
+				state.Parameters["_EXECUTION_NAME.$"] = "$._EXECUTION_NAME"
+			}
+			state.Iterator, err = stateMachineWithFullActivityARNsAndParameters(*state.Iterator, region, accountID, namespace)
+			if err != nil {
+				return nil, err
+			}
+			sm.States[stateName] = state
+			continue
+		} else if state.Type != models.SLStateTypeTask {
 			continue
 		}
 		if strings.HasPrefix(state.Resource, "lambda:") {
@@ -87,7 +117,7 @@ func stateMachineWithFullActivityARNsAndParameters(oldSM models.SLStateMachine, 
 		}
 		sm.States[stateName] = state
 	}
-	return &sm
+	return &sm, nil
 }
 
 // stateMachineWithDefaultRetriers creates a new state machine that has the following retry properties on every state's retry array:
@@ -151,7 +181,10 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	}
 
 	// state machine doesn't exist, create it
-	awsStateMachine := stateMachineWithFullActivityARNsAndParameters(*wd.StateMachine, wm.region, wm.accountID, namespace)
+	awsStateMachine, err := stateMachineWithFullActivityARNsAndParameters(*wd.StateMachine, wm.region, wm.accountID, namespace)
+	if err != nil {
+		return nil, err
+	}
 	awsStateMachine = stateMachineWithDefaultRetriers(*awsStateMachine)
 	awsStateMachineDefBytes, err := json.MarshalIndent(awsStateMachine, "", "  ")
 	if err != nil {

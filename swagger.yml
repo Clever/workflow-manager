@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.12.0
+  version: 0.13.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -678,12 +678,19 @@ definitions:
           type: object
       InputPath:
         type: string
+      ItemsPath:
+        type: string
       OutputPath:
         type: string
       ResultPath:
         type: string
       Result:
         type: string
+      ResultSelector:
+        additionalProperties:
+          type: string
+      MaxConcurrency:
+        type: integer
       Retry:
         x-omitempty: true
         type: array
@@ -708,6 +715,9 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/SLStateMachine'
+      Iterator:
+        x-omitempty: true
+        $ref: '#/definitions/SLStateMachine'
       Default:
         type: string
       Error:
@@ -841,6 +851,7 @@ definitions:
       - "Succeed"
       - "Fail"
       - "Parallel"
+      - "Map"
 
   SLErrorEquals:
     type: string

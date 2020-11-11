@@ -58,8 +58,53 @@ func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 				},
 				"second-state": models.SLState{
 					Type:     models.SLStateTypeTask,
-					Next:     "end-state",
+					Next:     "parallel-state",
 					Resource: "test-resource-2",
+				},
+				"parallel-state": models.SLState{
+					Type: models.SLStateTypeParallel,
+					Next: "map-state",
+					End:  false,
+					Branches: []*models.SLStateMachine{
+						&models.SLStateMachine{
+							StartAt: "branch1",
+							States: map[string]models.SLState{
+								"branch1": models.SLState{
+									Type:     models.SLStateTypeTask,
+									Resource: "fake-resource-3",
+									End:      true,
+									Retry:    []*models.SLRetrier{},
+								},
+							},
+						},
+						&models.SLStateMachine{
+							StartAt: "branch2",
+							States: map[string]models.SLState{
+								"branch2": models.SLState{
+									Type:     models.SLStateTypeTask,
+									Resource: "fake-resource-4",
+									End:      true,
+									Retry:    []*models.SLRetrier{},
+								},
+							},
+						},
+					},
+				},
+				"map-state": models.SLState{
+					Type: models.SLStateTypeMap,
+					Next: "end-state",
+					End:  false,
+					Iterator: &models.SLStateMachine{
+						StartAt: "mapStateStart",
+						States: map[string]models.SLState{
+							"mapStateStart": models.SLState{
+								Type:     models.SLStateTypeTask,
+								Resource: "fake-resource-5",
+								End:      true,
+								Retry:    []*models.SLRetrier{},
+							},
+						},
+					},
 				},
 				"end-state": models.SLState{
 					Type:     models.SLStateTypeTask,
@@ -72,6 +117,159 @@ func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 
 	_, err := newWorkflowDefinitionFromRequest(workflowReq)
 	t.Log("No error converting from new workflow request to resource")
+	assert.Nil(t, err)
+}
+
+func TestValidateMapState(t *testing.T) {
+	state := models.SLState{
+		Type: models.SLStateTypeMap,
+		End:  true,
+	}
+
+	t.Log("Error if there is no use of the Iterator field")
+	err := validateMapState(state)
+	assert.Error(t, err)
+
+	state.Iterator = &models.SLStateMachine{
+		StartAt: "mapStateStart",
+		States: map[string]models.SLState{
+			"mapStateStart": models.SLState{
+				Type:     models.SLStateTypeTask,
+				Resource: "fake-resource-5",
+				End:      true,
+				Retry:    []*models.SLRetrier{},
+			},
+		},
+	}
+	t.Log("No error with correctly formatted map state")
+	state.Parameters = map[string]interface{}{
+		"_EXECUTION_NAME.$": "$._EXECUTION_NAME",
+	}
+	err = validateMapState(state)
+	assert.Nil(t, err)
+}
+
+func TestValidateTaskState(t *testing.T) {
+	state := models.SLState{
+		Type: models.SLStateTypeTask,
+		End:  true,
+	}
+	err := validateTaskState(state)
+	t.Log("Error if there is not use of Resource")
+	assert.Error(t, err)
+
+	t.Log("No error with correctly formatted Task state")
+	state.Resource = "fake-resource"
+	err = validateTaskState(state)
+	assert.Nil(t, err)
+}
+
+func TestValidateParallelState(t *testing.T) {
+	state := models.SLState{
+		Type: models.SLStateTypeParallel,
+		End:  true,
+	}
+
+	t.Log("Error if branches field is not specified")
+	err := validateParallelState(state)
+	assert.Error(t, err)
+
+	t.Log("Error if branch is malformed")
+	state.Branches = []*models.SLStateMachine{
+		&models.SLStateMachine{
+			StartAt: "branch1",
+			States: map[string]models.SLState{
+				"branch1": models.SLState{
+					Type:  models.SLStateTypeTask,
+					End:   true,
+					Retry: []*models.SLRetrier{},
+				},
+			},
+		},
+	}
+	err = validateParallelState(state)
+	assert.Error(t, err)
+
+	t.Log("No error with correctly formatted Parallel state")
+	state.Branches = []*models.SLStateMachine{
+		&models.SLStateMachine{
+			StartAt: "branch1",
+			States: map[string]models.SLState{
+				"branch1": models.SLState{
+					Type:     models.SLStateTypeTask,
+					Resource: "fake-resource",
+					End:      true,
+					Retry:    []*models.SLRetrier{},
+				},
+			},
+		},
+	}
+	err = validateParallelState(state)
+	assert.Nil(t, err)
+
+}
+
+func TestValidateChoiceState(t *testing.T) {
+	state := models.SLState{
+		Type: models.SLStateTypeChoice,
+	}
+
+	t.Log("Error if branches field is not specified")
+	err := validateChoiceState(state)
+	assert.Error(t, err)
+
+	t.Log("Error if choice is missing Next field")
+	state.Choices = []*models.SLChoice{&models.SLChoice{}}
+	err = validateChoiceState(state)
+	assert.Error(t, err)
+
+	t.Log("No error with correctly formatted Choice state")
+	state.Choices = []*models.SLChoice{&models.SLChoice{Next: "fakeState"}}
+	err = validateChoiceState(state)
+	assert.Nil(t, err)
+}
+
+func TestValidateWaitState(t *testing.T) {
+	state := models.SLState{
+		Type: models.SLStateTypeWait,
+	}
+
+	t.Log("Error if no wait time field specified")
+	err := validateWaitState(state)
+	assert.Error(t, err)
+
+	t.Log("Error if more than one wait time field specified")
+	state = models.SLState{
+		Type:          models.SLStateTypeWait,
+		Timestamp:     "timestamp",
+		TimestampPath: "timestampPath",
+	}
+	err = validateWaitState(state)
+	assert.Error(t, err)
+
+	t.Log("No error with correctly formatted Wait state")
+	state = models.SLState{
+		Type:      models.SLStateTypeWait,
+		Timestamp: "timestamp",
+	}
+	err = validateWaitState(state)
+	assert.Nil(t, err)
+}
+
+func TestValidateEndState(t *testing.T) {
+	state := models.SLState{
+		Type: models.SLStateTypeFail,
+		Next: "fakeStat",
+	}
+	t.Log("Error if End state specifies next state")
+	err := validateEndState(state)
+	assert.Error(t, err)
+
+	t.Log("No error for correctly formatted End state")
+	state = models.SLState{
+		Type: models.SLStateTypeSucceed,
+	}
+	err = validateEndState(state)
 	assert.Nil(t, err)
 }
 

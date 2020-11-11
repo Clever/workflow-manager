@@ -48,6 +48,15 @@ type SLState struct {
 	// input path
 	InputPath string `json:"InputPath,omitempty"`
 
+	// items path
+	ItemsPath string `json:"ItemsPath,omitempty"`
+
+	// iterator
+	Iterator *SLStateMachine `json:"Iterator,omitempty"`
+
+	// max concurrency
+	MaxConcurrency int64 `json:"MaxConcurrency,omitempty"`
+
 	// next
 	Next string `json:"Next,omitempty"`
 
@@ -65,6 +74,9 @@ type SLState struct {
 
 	// result path
 	ResultPath string `json:"ResultPath,omitempty"`
+
+	// result selector
+	ResultSelector map[string]string `json:"ResultSelector,omitempty"`
 
 	// retry
 	Retry []*SLRetrier `json:"Retry,omitempty"`
@@ -103,6 +115,11 @@ func (m *SLState) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateChoices(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateIterator(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -199,6 +216,25 @@ func (m *SLState) validateChoices(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *SLState) validateIterator(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Iterator) { // not required
+		return nil
+	}
+
+	if m.Iterator != nil {
+
+		if err := m.Iterator.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("Iterator")
+			}
+			return err
+		}
 	}
 
 	return nil

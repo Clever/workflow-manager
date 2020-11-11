@@ -293,6 +293,9 @@ declare namespace WorkflowManager {
   Error?: string;
   HeartbeatSeconds?: number;
   InputPath?: string;
+  ItemsPath?: string;
+  Iterator?: SLStateMachine;
+  MaxConcurrency?: number;
   Next?: string;
   OutputPath?: string;
   Parameters?: { [key: string]: {
@@ -301,6 +304,7 @@ declare namespace WorkflowManager {
   Resource?: string;
   Result?: string;
   ResultPath?: string;
+  ResultSelector?: { [key: string]: string };
   Retry?: SLRetrier[];
   Seconds?: number;
   SecondsPath?: string;
@@ -318,7 +322,7 @@ declare namespace WorkflowManager {
   Version?: ("1.0");
 };
     
-    type SLStateType = ("Pass" | "Task" | "Choice" | "Wait" | "Succeed" | "Fail" | "Parallel");
+    type SLStateType = ("Pass" | "Task" | "Choice" | "Wait" | "Succeed" | "Fail" | "Parallel" | "Map");
     
     type StartWorkflowRequest = {
   idSuffix?: string;

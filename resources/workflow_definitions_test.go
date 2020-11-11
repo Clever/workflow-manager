@@ -53,6 +53,73 @@ func TestRemoveInactiveStates(t *testing.T) {
 	var smInvalid models.SLStateMachine
 	assert.Nil(t, json.Unmarshal([]byte(awsExampleChoiceStateMachineInvalid), &smInvalid))
 	assert.Error(t, RemoveInactiveStates(&smInvalid))
+
+	t.Log("Fails if parallel state machine is malformed")
+	sm = models.SLStateMachine{
+		Comment: "description",
+		StartAt: "parallel-state",
+		States: map[string]models.SLState{
+			"parallel-state": models.SLState{
+				Type: models.SLStateTypeParallel,
+				End:  true,
+				Branches: []*models.SLStateMachine{
+					&models.SLStateMachine{
+						StartAt: "branch1",
+						States: map[string]models.SLState{
+							"branch1": models.SLState{
+								Type:     models.SLStateTypeTask,
+								Resource: "fake-resource-3",
+								End:      false,
+								Retry:    []*models.SLRetrier{},
+							},
+						},
+					},
+					&models.SLStateMachine{
+						StartAt: "branch2",
+						States: map[string]models.SLState{
+							"branch2": models.SLState{
+								Type:     models.SLStateTypeTask,
+								Resource: "fake-resource-4",
+								End:      true,
+								Retry:    []*models.SLRetrier{},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	assert.Error(t, RemoveInactiveStates(&sm))
+	t.Log("Fails if map state machine is malformed")
+	sm = models.SLStateMachine{
+		Comment: "description",
+		StartAt: "map-state",
+		States: map[string]models.SLState{
+			"map-state": models.SLState{
+				Type: models.SLStateTypeMap,
+				End:  true,
+				Iterator: &models.SLStateMachine{
+					StartAt: "mapStateStart",
+					States: map[string]models.SLState{
+						"mapStateStart": models.SLState{
+							Type:     models.SLStateTypeTask,
+							Resource: "fake-resource-3",
+							End:      false,
+							Next:     "mapStateBad",
+							Retry:    []*models.SLRetrier{},
+						},
+						"mapStateEnd": models.SLState{
+							Type:     models.SLStateTypeTask,
+							Resource: "fake-resource-4",
+							End:      true,
+							Retry:    []*models.SLRetrier{},
+						},
+					},
+				},
+			},
+		},
+	}
+	assert.Error(t, RemoveInactiveStates(&sm))
 }
 
 func TestCopyWorflowDefinition(t *testing.T) {
