@@ -206,12 +206,12 @@
   version = "v0.19.9"
 
 [[projects]]
-  digest = "1:7584db140c8d93d1f27331375882c06020240711095fffe61b3fe2b1150fed3b"
+  digest = "1:c328cf5cedb3b09eca2e32b055e9765a0b95cac48179b530eb7dcafec7ecd7c7"
   name = "github.com/go-openapi/strfmt"
   packages = ["."]
   pruneopts = ""
-  revision = "323624487551d1332082011528c4aa8df3671451"
-  version = "v0.19.8"
+  revision = "b08369e149a567459aff997a7bea878f01f3effd"
+  version = "v0.19.10"
 
 [[projects]]
   digest = "1:95e7f322b4a9bf6c6e9b83a9aed1caa8c226a8ab314039810738b7fdb9bf7662"
