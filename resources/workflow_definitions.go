@@ -53,57 +53,66 @@ func stateExists(stateName string, stateMachine *models.SLStateMachine) bool {
 	return ok
 }
 
-func reachable(stateName string, stateMachine *models.SLStateMachine) bool {
+func reachable(stateName string, stateMachine *models.SLStateMachine) (bool, error) {
 	// A state is reachable if
 	// (1) it exists in the state machine definition
 	// (2) it is either (a) the StartAt state or (b) another state contains a transition into it
 
 	if !stateExists(stateName, stateMachine) {
-		return false
+		return false, nil
 	}
 
 	if stateMachine.StartAt == stateName {
-		return true
+		return true, nil
 	}
 
 	for _, state := range stateMachine.States {
 		switch state.Type {
-		case models.SLStateTypePass, models.SLStateTypeTask, models.SLStateTypeWait:
+		case models.SLStateTypePass, models.SLStateTypeTask, models.SLStateTypeWait, models.SLStateTypeParallel, models.SLStateTypeMap:
 			if state.Next == stateName {
-				return true
+				return true, nil
 			}
 			for _, catcher := range state.Catch {
 				if catcher.Next == stateName {
-					return true
+					return true, nil
 				}
 			}
 		case models.SLStateTypeChoice:
 			for _, choice := range state.Choices {
 				if choice.Next == stateName {
-					return true
+					return true, nil
 				}
 			}
 			if state.Default == stateName {
-				return true
+				return true, nil
 			}
 		case models.SLStateTypeSucceed, models.SLStateTypeFail:
 			// these states don't contain transitions
-		case models.SLStateTypeParallel:
-			panic("parallel states not supported yet")
 		default:
-			panic(fmt.Sprintf("%s states not supported yet", state.Type))
+			return false, fmt.Errorf("%s states not supported yet", state.Type)
 		}
 	}
-	return false
+	return false, nil
 }
 
 func hasValidTransitions(stateName string, state models.SLState, stateMachine *models.SLStateMachine) error {
 	// A state has a valid transition if it is an End state or all of its "Next"s are defined
+	if state.End && len(state.Next) > 0 {
+		return fmt.Errorf("Can only be an End state or have a Next state not both")
+	}
+	if (!state.End && len(state.Next) == 0) &&
+		state.Type != models.SLStateTypeFail &&
+		state.Type != models.SLStateTypeSucceed &&
+		state.Type != models.SLStateTypeChoice {
+		return fmt.Errorf("Must either be an End state, Choice state, or have a valid Next state")
+	}
+
 	if state.End {
 		return nil
 	}
+
 	switch state.Type {
-	case models.SLStateTypePass, models.SLStateTypeTask, models.SLStateTypeWait:
+	case models.SLStateTypePass, models.SLStateTypeTask, models.SLStateTypeWait, models.SLStateTypeParallel, models.SLStateTypeMap:
 		if !stateExists(state.Next, stateMachine) {
 			return fmt.Errorf("invalid transition in '%s': '%s'", stateName, state.Next)
 		}
@@ -119,10 +128,8 @@ func hasValidTransitions(stateName string, state models.SLState, stateMachine *m
 		return nil
 	case models.SLStateTypeSucceed, models.SLStateTypeFail:
 		return nil
-	case models.SLStateTypeParallel:
-		panic("Parallel states not supported yet")
 	default:
-		panic(fmt.Sprintf("%s states not supported yet", state.Type))
+		return fmt.Errorf("%s states not supported yet", state.Type)
 	}
 	return nil
 }
@@ -139,7 +146,10 @@ func RemoveInactiveStates(stateMachine *models.SLStateMachine) error {
 	for {
 		everyStateReachable := true
 		for stateName := range stateMachine.States {
-			if !reachable(stateName, stateMachine) {
+			canReach, err := reachable(stateName, stateMachine)
+			if err != nil {
+				return err
+			} else if !canReach {
 				everyStateReachable = false
 				delete(stateMachine.States, stateName)
 			}
@@ -153,6 +163,19 @@ func RemoveInactiveStates(stateMachine *models.SLStateMachine) error {
 	for stateName, state := range stateMachine.States {
 		if err := hasValidTransitions(stateName, state, stateMachine); err != nil {
 			return err
+		}
+	}
+	for _, state := range stateMachine.States {
+		if state.Type == models.SLStateTypeParallel {
+			for _, branch := range state.Branches {
+				if err := RemoveInactiveStates(branch); err != nil {
+					return err
+				}
+			}
+		} else if state.Type == models.SLStateTypeMap {
+			if err := RemoveInactiveStates(state.Iterator); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

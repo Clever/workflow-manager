@@ -33,6 +33,8 @@ const (
 	SLStateTypeFail SLStateType = "Fail"
 	// SLStateTypeParallel captures enum value "Parallel"
 	SLStateTypeParallel SLStateType = "Parallel"
+	// SLStateTypeMap captures enum value "Map"
+	SLStateTypeMap SLStateType = "Map"
 )
 
 // for schema
@@ -40,7 +42,7 @@ var sLStateTypeEnum []interface{}
 
 func init() {
 	var res []SLStateType
-	if err := json.Unmarshal([]byte(`["Pass","Task","Choice","Wait","Succeed","Fail","Parallel"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Pass","Task","Choice","Wait","Succeed","Fail","Parallel","Map"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

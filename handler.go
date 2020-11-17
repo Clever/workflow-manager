@@ -33,14 +33,118 @@ func (h Handler) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
+func validateStateMachine(sm *models.SLStateMachine) error {
+	if len(sm.States) == 0 {
+		return fmt.Errorf("Must define at least one state")
+	}
+	for _, state := range sm.States {
+		switch state.Type {
+		case models.SLStateTypeMap:
+			if err := validateMapState(state); err != nil {
+				return err
+			}
+		case models.SLStateTypeParallel:
+			if err := validateParallelState(state); err != nil {
+				return err
+			}
+		case models.SLStateTypeTask:
+			if err := validateTaskState(state); err != nil {
+				return err
+			}
+		case models.SLStateTypeChoice:
+			if err := validateChoiceState(state); err != nil {
+				return err
+			}
+		case models.SLStateTypePass:
+			//Pass state is does not have any special restrictions or allowable fields
+		case models.SLStateTypeWait:
+			if err := validateWaitState(state); err != nil {
+				return err
+			}
+		case models.SLStateTypeFail, models.SLStateTypeSucceed:
+			if err := validateEndState(state); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("Unrecognized state type used in state maching %s", state.Type)
+		}
+	}
+	return nil
+}
+
+func validateEndState(state models.SLState) error {
+	if len(state.Next) > 0 {
+		return fmt.Errorf("%s states cannot contain a Next value", state.Type)
+	}
+	return nil
+}
+
+func validateWaitState(state models.SLState) error {
+	waitTimeFields := 0
+	if state.Seconds > 0 {
+		waitTimeFields++
+	}
+	if len(state.SecondsPath) > 0 {
+		waitTimeFields++
+	}
+	if len(state.Timestamp) > 0 {
+		waitTimeFields++
+	}
+	if len(state.TimestampPath) > 0 {
+		waitTimeFields++
+	}
+	if waitTimeFields != 1 {
+		return fmt.Errorf("Wait states must use one and only one field to specify wait time")
+	}
+	return nil
+}
+
+func validateChoiceState(state models.SLState) error {
+	if len(state.Choices) == 0 {
+		return fmt.Errorf("Choice states must contain at least one choice")
+	}
+	for _, choice := range state.Choices {
+		if len(choice.Next) == 0 {
+			return fmt.Errorf("Every choice in a choice state must specify a Next state to transistion to")
+		}
+	}
+	return nil
+}
+
+func validateTaskState(state models.SLState) error {
+	if len(state.Resource) == 0 {
+		return fmt.Errorf("Task states must contain a valid resource string")
+	}
+	return nil
+}
+
+func validateParallelState(state models.SLState) error {
+	if len(state.Branches) == 0 {
+		return fmt.Errorf("Parallel states must contain at least one branch")
+	}
+	for _, branch := range state.Branches {
+		if err := validateStateMachine(branch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateMapState(state models.SLState) error {
+	if state.Iterator == nil {
+		return fmt.Errorf("Map states must contain an iterator with at least one state")
+	}
+	return validateStateMachine(state.Iterator)
+}
+
 // NewWorkflowDefinition creates a new workflow definition
 func (h Handler) NewWorkflowDefinition(ctx context.Context, workflowDefReq *models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
-	//TODO: validate states
-	if len(workflowDefReq.StateMachine.States) == 0 {
-		return nil, fmt.Errorf("Must define at least one state")
-	}
 	if workflowDefReq.Name == "" {
 		return nil, fmt.Errorf("WorkflowDefinition `name` is required")
+	}
+
+	if err := validateStateMachine(workflowDefReq.StateMachine); err != nil {
+		return nil, err
 	}
 
 	workflowDef, err := newWorkflowDefinitionFromRequest(*workflowDefReq)
@@ -61,8 +165,9 @@ func (h Handler) UpdateWorkflowDefinition(ctx context.Context, input *models.Upd
 	if workflowReq == nil || workflowReq.Name != input.Name {
 		return &models.WorkflowDefinition{}, fmt.Errorf("Name in path must match WorkflowDefinition object")
 	}
-	if len(workflowReq.StateMachine.States) == 0 {
-		return &models.WorkflowDefinition{}, fmt.Errorf("Must define at least one state")
+
+	if err := validateStateMachine(workflowReq.StateMachine); err != nil {
+		return nil, err
 	}
 
 	workflow, err := newWorkflowDefinitionFromRequest(*workflowReq)
@@ -436,17 +541,34 @@ func (h Handler) ResolveWorkflowByID(ctx context.Context, workflowID string) err
 	return h.store.UpdateWorkflow(ctx, workflow)
 }
 
+func stateCount(sm *models.SLStateMachine) int {
+	numStates := 0
+	for _, state := range sm.States {
+		switch state.Type {
+		case models.SLStateTypeParallel:
+			for _, branch := range state.Branches {
+				numStates += stateCount(branch)
+			}
+		case models.SLStateTypeMap:
+			numStates += stateCount(state.Iterator)
+		default:
+			numStates++
+		}
+	}
+	return numStates
+}
+
 func newWorkflowDefinitionFromRequest(req models.NewWorkflowDefinitionRequest) (*models.WorkflowDefinition, error) {
 	if req.StateMachine.StartAt == "" {
 		return nil, fmt.Errorf("StartAt is a required field")
 	}
 
 	// ensure all states are defined and have a transition path
-	numStates := len(req.StateMachine.States)
+	numStates := stateCount(req.StateMachine)
 	if err := resources.RemoveInactiveStates(req.StateMachine); err != nil {
 		return nil, err
 	}
-	if len(req.StateMachine.States) != numStates {
+	if stateCount(req.StateMachine) != numStates {
 		return nil, fmt.Errorf("Invalid WorkflowDefinition: %d states have no transition path",
 			numStates-len(req.StateMachine.States))
 	}

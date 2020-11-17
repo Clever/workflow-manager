@@ -31,14 +31,59 @@ func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 				},
 				"second-state": models.SLState{
 					Type:     models.SLStateTypeTask,
-					Next:     "end-state",
+					Next:     "parallel-state",
 					Resource: "fake-resource-2",
 					End:      false,
 					Retry:    []*models.SLRetrier{},
 				},
+				"parallel-state": models.SLState{
+					Type: models.SLStateTypeParallel,
+					Next: "map-state",
+					End:  false,
+					Branches: []*models.SLStateMachine{
+						&models.SLStateMachine{
+							StartAt: "branch1",
+							States: map[string]models.SLState{
+								"branch1": models.SLState{
+									Type:     models.SLStateTypeTask,
+									Resource: "fake-resource-3",
+									End:      true,
+									Retry:    []*models.SLRetrier{},
+								},
+							},
+						},
+						&models.SLStateMachine{
+							StartAt: "branch2",
+							States: map[string]models.SLState{
+								"branch2": models.SLState{
+									Type:     models.SLStateTypeTask,
+									Resource: "fake-resource-4",
+									End:      true,
+									Retry:    []*models.SLRetrier{},
+								},
+							},
+						},
+					},
+				},
+				"map-state": models.SLState{
+					Type: models.SLStateTypeMap,
+					Next: "end-state",
+					End:  false,
+					Iterator: &models.SLStateMachine{
+						StartAt: "mapStateStart",
+						States: map[string]models.SLState{
+							"mapStateStart": models.SLState{
+								Type:     models.SLStateTypeTask,
+								Resource: "fake-resource-5",
+								End:      true,
+								Retry:    []*models.SLRetrier{},
+							},
+						},
+					},
+				},
 				"end-state": models.SLState{
 					Type:     models.SLStateTypeTask,
-					Resource: "fake-resource-3",
+					Resource: "fake-resource-5",
 					End:      true,
 					Retry:    []*models.SLRetrier{},
 				},
