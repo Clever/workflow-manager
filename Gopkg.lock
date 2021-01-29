@@ -62,7 +62,7 @@
   version = "v9"
 
 [[projects]]
-  digest = "1:22bb975d8ef6b17e222cc163c17f1b77494bc31ca2392e8856601f0881ce5948"
+  digest = "1:d65361e9246cb5629ce6df680849dad50234872ccd471cd45e2b3d49f0df01de"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -75,6 +75,7 @@
     "aws/credentials/ec2rolecreds",
     "aws/credentials/endpointcreds",
     "aws/credentials/processcreds",
+    "aws/credentials/ssocreds",
     "aws/credentials/stscreds",
     "aws/crr",
     "aws/csm",
@@ -99,6 +100,7 @@
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
+    "private/protocol/restjson",
     "private/protocol/xml/xmlutil",
     "service/dynamodb",
     "service/dynamodb/dynamodbattribute",
@@ -107,12 +109,14 @@
     "service/sfn/sfniface",
     "service/sqs",
     "service/sqs/sqsiface",
+    "service/sso",
+    "service/sso/ssoiface",
     "service/sts",
     "service/sts/stsiface",
   ]
   pruneopts = ""
-  revision = "a226e8d9a75c160c1830b31fc0049f76177016e0"
-  version = "v1.36.0"
+  revision = "df821b14ab982657900b1986db282156f3652836"
+  version = "v1.37.0"
 
 [[projects]]
   digest = "1:0deddd908b6b4b768cfc272c16ee61e7088a60f7fe2f06c547bd3d8e1f8b8e77"
