@@ -82,7 +82,7 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "gopkg.in/Clever/kayvee-go.v6"
-  version = "6.24.0"
+  version = "6.24.1"
 
 [[constraint]]
   name = "gopkg.in/tylerb/graceful.v1"
