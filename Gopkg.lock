@@ -162,12 +162,12 @@
   version = "v0.19.10"
 
 [[projects]]
-  digest = "1:7bdb4db5d49c81d4d82baafcd2d792c90a5fddded585499587b001f709101a57"
+  digest = "1:d25e58ef03850554e64b5e67359c0a174c443d548742a488904a3c1903cb18a2"
   name = "github.com/go-openapi/errors"
   packages = ["."]
   pruneopts = ""
-  revision = "7f2246786dd6ea01e5e7fe8e0229a53ea48bc6c4"
-  version = "v0.19.6"
+  revision = "8b5b7790aa74a2148bf29be0d24e1f455fdbc706"
+  version = "v0.20.0"
 
 [[projects]]
   digest = "1:47688961daa2895c860642608d671822b7b53fed1e3e3e2d46506f01dcddaae3"
