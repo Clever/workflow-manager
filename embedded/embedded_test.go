@@ -353,6 +353,48 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		},
 	},
 	{
+		description: "validate map state (invalid inner)",
+		input: models.WorkflowDefinition{
+			StateMachine: &models.SLStateMachine{
+				States: map[string]models.SLState{
+					"map": models.SLState{
+						Type:     models.SLStateTypeMap,
+						Iterator: &models.SLStateMachine{},
+						End:      true,
+					},
+				},
+			},
+		},
+		assertions: func(t *testing.T, err error) {
+			require.Error(t, err)
+		},
+	},
+	{
+		description: "validate map state (valid inner)",
+		input: models.WorkflowDefinition{
+			StateMachine: &models.SLStateMachine{
+				States: map[string]models.SLState{
+					"map": models.SLState{
+						Type: models.SLStateTypeMap,
+						Iterator: &models.SLStateMachine{
+							States: map[string]models.SLState{
+								"pass": models.SLState{
+									End:    true,
+									Type:   models.SLStateTypePass,
+									Result: "result",
+								},
+							},
+						},
+						End: true,
+					},
+				},
+			},
+		},
+		assertions: func(t *testing.T, err error) {
+			require.NoError(t, err)
+		},
+	},
+	{
 		description: "invalid state type",
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{

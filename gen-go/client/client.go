@@ -23,7 +23,7 @@ var _ = strconv.FormatInt
 var _ = bytes.Compare
 
 // Version of the client.
-const Version = "0.13.0"
+const Version = "0.13.1"
 
 // VersionHeader is sent with every request.
 const VersionHeader = "X-Client-Version"
@@ -54,7 +54,8 @@ func New(basePath string) *WagClient {
 	retry := retryDoer{d: tracing, retryPolicy: SingleRetryPolicy{}}
 	logger := logger.New("workflow-manager-wagclient")
 	circuit := &circuitBreakerDoer{
-		d:     &retry,
+		d: &retry,
+		// TODO: INFRANG-4404 allow passing circuitBreakerOptions
 		debug: true,
 		// one circuit for each service + url pair
 		circuitName: fmt.Sprintf("workflow-manager-%s", shortHash(basePath)),
@@ -240,7 +241,7 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 		return &output
 
 	default:
-		return &models.InternalError{Message: "Unknown response"}
+		return &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -347,7 +348,7 @@ func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Re
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -453,7 +454,7 @@ func (c *WagClient) doDeleteStateResourceRequest(ctx context.Context, req *http.
 		return &output
 
 	default:
-		return &models.InternalError{Message: "Unknown response"}
+		return &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -564,7 +565,7 @@ func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Req
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -677,7 +678,7 @@ func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Req
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -773,7 +774,7 @@ func (c *WagClient) doGetWorkflowDefinitionsRequest(ctx context.Context, req *ht
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -880,7 +881,7 @@ func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *htt
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -991,7 +992,7 @@ func (c *WagClient) doGetWorkflowDefinitionVersionsByNameRequest(ctx context.Con
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -1113,7 +1114,7 @@ func (c *WagClient) doUpdateWorkflowDefinitionRequest(ctx context.Context, req *
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -1224,7 +1225,7 @@ func (c *WagClient) doGetWorkflowDefinitionByNameAndVersionRequest(ctx context.C
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -1421,7 +1422,7 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 		return nil, "", &output
 
 	default:
-		return nil, "", &models.InternalError{Message: "Unknown response"}
+		return nil, "", &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -1537,7 +1538,7 @@ func (c *WagClient) doStartWorkflowRequest(ctx context.Context, req *http.Reques
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -1654,7 +1655,7 @@ func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Reque
 		return &output
 
 	default:
-		return &models.InternalError{Message: "Unknown response"}
+		return &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -1765,7 +1766,7 @@ func (c *WagClient) doGetWorkflowByIDRequest(ctx context.Context, req *http.Requ
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -1887,7 +1888,7 @@ func (c *WagClient) doResumeWorkflowByIDRequest(ctx context.Context, req *http.R
 		return nil, &output
 
 	default:
-		return nil, &models.InternalError{Message: "Unknown response"}
+		return nil, &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
@@ -2002,7 +2003,7 @@ func (c *WagClient) doResolveWorkflowByIDRequest(ctx context.Context, req *http.
 		return &output
 
 	default:
-		return &models.InternalError{Message: "Unknown response"}
+		return &models.InternalError{Message: fmt.Sprintf("Unknown status code %v", resp.StatusCode)}
 	}
 }
 
