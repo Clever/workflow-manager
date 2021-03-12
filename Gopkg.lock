@@ -278,12 +278,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:c6e569ffa34fcd24febd3562bff0520a104d15d1a600199cb3141debf2e58c89"
+  digest = "1:188957524d9020840895ac001fd3259f3364efc354f8b147dcce6df88dc18642"
   name = "github.com/hashicorp/go-multierror"
   packages = ["."]
   pruneopts = ""
-  revision = "2004d9dba6b07a5b8d133209244f376680f9d472"
-  version = "v1.1.0"
+  revision = "9974e9ec57696378079ecc3accd3d6f29401b3a0"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:e9ba8bd7f740264f703a41911c9523fb06aaf439dd899cedb263aadddc4be90e"
