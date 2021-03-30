@@ -194,6 +194,10 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
 	// this effectively creates a new workflow definition in each namespace we deploy into
 	awsStateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
+	// we use the 'application' tag to attribute costs, so if it wasn't explicitly specified, set it to the workflow name
+	if _, ok := wd.DefaultTags["application"]; !ok {
+		wd.DefaultTags["application"] = wd.Name
+	}
 	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
 	_, err = wm.sfnapi.CreateStateMachineWithContext(ctx,
 		&sfn.CreateStateMachineInput{
