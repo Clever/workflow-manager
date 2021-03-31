@@ -210,12 +210,12 @@
   version = "v0.19.9"
 
 [[projects]]
-  digest = "1:c55304c0d7790cbf0d3a05b5c8de5005f0ebad125cebaa38b6180b06c3ca8546"
+  digest = "1:80e850cba8b80a93429eefc1af0cd5109878181685e9604a5b9894b5d2b1f896"
   name = "github.com/go-openapi/strfmt"
   packages = ["."]
   pruneopts = ""
-  revision = "a4e46eae40fd7f77151fc130d3b9cb2dc9ebb548"
-  version = "v0.20.0"
+  revision = "ac88b91001dabf734bc72230d47bae46bc427ca5"
+  version = "v0.20.1"
 
 [[projects]]
   digest = "1:95e7f322b4a9bf6c6e9b83a9aed1caa8c226a8ab314039810738b7fdb9bf7662"
@@ -338,6 +338,14 @@
   packages = ["."]
   pruneopts = ""
   revision = "c48cc78d482608239f6c4c92a4abd87eb8761c90"
+
+[[projects]]
+  digest = "1:996b8a7ca2c2018ad7e645e867de8dd325be2a4aa6a4a422701b4ddd7f0060b2"
+  name = "github.com/oklog/ulid"
+  packages = ["."]
+  pruneopts = ""
+  revision = "be3bccf06dda9a40aa6800c4736ac77f2fef987f"
+  version = "v2.0.2"
 
 [[projects]]
   branch = "master"
