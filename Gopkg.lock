@@ -403,7 +403,7 @@
   version = "v1.7.0"
 
 [[projects]]
-  digest = "1:6fe049d0de50adc1f97ccc4044f5724968e693958eb8d3b28ce0fd6b135229e8"
+  digest = "1:7736dff1797356f63f965afc4976d492e4a8f36fc5e9c40358548b1de408e146"
   name = "github.com/uber/jaeger-client-go"
   packages = [
     ".",
@@ -426,8 +426,8 @@
     "utils",
   ]
   pruneopts = ""
-  revision = "d9b654a095b420576e5852435717cb4b70ce6c71"
-  version = "v2.27.0"
+  revision = "049c226d206a6d9e1c0d47c93991275d0698ee9e"
+  version = "v2.28.0"
 
 [[projects]]
   digest = "1:5906d6837b86053e986b202cd5ea7c5d2abfdf1742b54a1a5ad02ec05268fb8c"
