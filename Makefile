@@ -38,19 +38,12 @@ swagger2markup-cli-1.3.1.jar:
 
 generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 	java -jar swagger2markup-cli-1.3.1.jar convert -c docs/config.properties -i swagger.yml  -d docs/
-	$(call wag-generate,./swagger.yml,$(PKG))
+	$(call wag-generate-mod,./swagger.yml)
 
-install_deps: golang-dep-vendor-deps
-	$(call golang-dep-vendor)
+install_deps:
+	go mod vendor
 	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
 	cp bin/mockgen $(GOPATH)/bin/mockgen
-	# hack to workaround dep not working with go module suffixes https://github.com/golang/dep/issues/2139
-	if [ ! -f vendor/github.com/elastic/go-elasticsearch/v6 ]; then \
-          mkdir -p vendor/github.com/elastic/go-elasticsearch/ && \
-          git clone git@github.com:elastic/go-elasticsearch vendor/github.com/elastic/go-elasticsearch/v6 && \
-          cd vendor/github.com/elastic/go-elasticsearch/v6 && \
-          git checkout 6.x; \
-        fi
 	mkdir -p mocks/
 	rm -rf mocks/*
 	for svc in dynamodb sfn sqs; do \

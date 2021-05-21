@@ -13,6 +13,7 @@ import (
 
 	discovery "github.com/Clever/discovery-go"
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/gen-go/tracing"
 	"github.com/afex/hystrix-go/hystrix"
 	logger "gopkg.in/Clever/kayvee-go.v6/logger"
 )
@@ -33,7 +34,6 @@ type WagClient struct {
 	basePath    string
 	requestDoer doer
 	client      *http.Client
-	timeout     time.Duration
 	// Keep the retry doer around so that we can set the number of retries
 	retryDoer *retryDoer
 	// Keep the circuit doer around so that we can turn it on / off
@@ -48,10 +48,9 @@ var _ Client = (*WagClient)(nil)
 func New(basePath string) *WagClient {
 	basePath = strings.TrimSuffix(basePath, "/")
 	base := baseDoer{}
-	tracing := tracingDoer{d: base}
 	// For the short-term don't use the default retry policy since its 5 retries can 5X
 	// the traffic. Once we've enabled circuit breakers by default we can turn it on.
-	retry := retryDoer{d: tracing, retryPolicy: SingleRetryPolicy{}}
+	retry := retryDoer{d: base, retryPolicy: SingleRetryPolicy{}}
 	logger := logger.New("workflow-manager-wagclient")
 	circuit := &circuitBreakerDoer{
 		d: &retry,
@@ -63,9 +62,11 @@ func New(basePath string) *WagClient {
 	}
 	circuit.init()
 	client := &WagClient{
-		basePath:       basePath,
-		requestDoer:    circuit,
-		client:         &http.Client{Transport: http.DefaultTransport},
+		basePath:    basePath,
+		requestDoer: circuit,
+		client: &http.Client{
+			Transport: tracing.NewTransport(http.DefaultTransport, opNameCtx{}),
+		},
 		retryDoer:      &retry,
 		circuitDoer:    circuit,
 		defaultTimeout: 5 * time.Second,
@@ -143,15 +144,15 @@ func (c *WagClient) SetCircuitBreakerSettings(settings CircuitBreakerSettings) {
 	})
 }
 
-// SetTimeout sets a timeout on all operations for the client. To make a single request
-// with a timeout use context.WithTimeout as described here: https://godoc.org/golang.org/x/net/context#WithTimeout.
+// SetTimeout sets a timeout on all operations for the client. To make a single request with a shorter timeout
+// than the default on the client, use context.WithTimeout as described here: https://godoc.org/golang.org/x/net/context#WithTimeout.
 func (c *WagClient) SetTimeout(timeout time.Duration) {
 	c.defaultTimeout = timeout
 }
 
 // SetTransport sets the http transport used by the client.
 func (c *WagClient) SetTransport(t http.RoundTripper) {
-	c.client.Transport = t
+	c.client.Transport = tracing.NewTransport(t, opNameCtx{})
 }
 
 // HealthCheck makes a GET request to /_health

@@ -80,7 +80,6 @@ Checks if the service is healthy
 | --- | --- | --- |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -98,7 +97,6 @@ Checks if the service is healthy
 | NewStateResource |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -119,7 +117,6 @@ Checks if the service is healthy
 | params.name | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -140,7 +137,6 @@ Checks if the service is healthy
 | params.name | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -161,7 +157,6 @@ Checks if the service is healthy
 | [params.NewStateResource] |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -180,7 +175,6 @@ Get the latest versions of all available WorkflowDefinitions
 | --- | --- | --- |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -198,7 +192,6 @@ Get the latest versions of all available WorkflowDefinitions
 | NewWorkflowDefinitionRequest |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -219,7 +212,6 @@ Get the latest versions of all available WorkflowDefinitions
 | [params.latest] | <code>boolean</code> | <code>true</code> |  |
 | [options] | <code>object</code> |  |  |
 | [options.timeout] | <code>number</code> |  | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) |  | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) |  | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |  |
 
@@ -240,7 +232,6 @@ Get the latest versions of all available WorkflowDefinitions
 | params.name | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -261,7 +252,6 @@ Get the latest versions of all available WorkflowDefinitions
 | params.version | <code>number</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -287,7 +277,6 @@ Get the latest versions of all available WorkflowDefinitions
 | params.workflowDefinitionName | <code>string</code> |  |  |
 | [options] | <code>object</code> |  |  |
 | [options.timeout] | <code>number</code> |  | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) |  | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) |  | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |  |
 
@@ -309,7 +298,6 @@ Get the latest versions of all available WorkflowDefinitions
 | params.workflowDefinitionName | <code>string</code> |  |  |
 | [options] | <code>object</code> |  |  |
 | [options.timeout] | <code>number</code> |  | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) |  | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) |  | A request specific retryPolicy |
 
 <a name="module_workflow-manager--WorkflowManager+startWorkflow"></a>
@@ -327,7 +315,6 @@ Get the latest versions of all available WorkflowDefinitions
 | StartWorkflowRequest |  | Parameters for starting a workflow (workflow definition, input, and optionally namespace, queue, and tags) |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -348,7 +335,6 @@ Get the latest versions of all available WorkflowDefinitions
 | params.reason |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -367,7 +353,6 @@ Get the latest versions of all available WorkflowDefinitions
 | workflowID | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -388,7 +373,6 @@ Get the latest versions of all available WorkflowDefinitions
 | params.overrides |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -408,7 +392,6 @@ Get the latest versions of all available WorkflowDefinitions
 | workflowID | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
-| [options.span] | [<code>Span</code>](https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html) | An OpenTracing span - For example from the parent request |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 

@@ -8,6 +8,9 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/label"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,8 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
 )
 
 // WorkflowManager is the interface for creating, stopping and checking status for Workflows
@@ -33,14 +34,14 @@ var backoffDuration = time.Second * 1
 // PollForPendingWorkflowsAndUpdateStore polls an SQS queue for workflows needing an update.
 // It will stop polling when the context is done.
 func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) {
+	tracer := otel.GetTracerProvider().Tracer("workflow-update-loop")
 	for {
 		select {
 		case <-ctx.Done():
 			log.Info("poll-for-pending-workflows-done")
 			return
 		default:
-			span, innerCtx := opentracing.StartSpanFromContext(ctx, "updating-pending-workflows")
-
+			innerCtx, span := tracer.Start(ctx, "update-pending-workflows")
 			out, err := sqsapi.ReceiveMessageWithContext(innerCtx, &sqs.ReceiveMessageInput{
 				MaxNumberOfMessages: aws.Int64(10),
 				QueueUrl:            aws.String(sqsQueueURL),
@@ -48,8 +49,7 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 			})
 			if err != nil {
 				log.ErrorD("poll-for-pending-workflows", logger.M{"error": err.Error()})
-				ext.Error.Set(span, true)
-				span.SetTag("errorMessage", err.Error())
+				span.SetStatus(codes.Error, err.Error())
 			}
 
 			for _, message := range out.Messages {
@@ -68,7 +68,7 @@ func PollForPendingWorkflowsAndUpdateStore(ctx context.Context, wm WorkflowManag
 					log.InfoD("update-pending-workflow", logger.M{"id": id})
 				}
 			}
-			span.Finish()
+			span.End()
 		}
 	}
 }
@@ -95,8 +95,9 @@ func createPendingWorkflow(ctx context.Context, workflowID string, sqsapi sqsifa
 }
 
 func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManager, thestore store.Store, sqsapi sqsiface.SQSAPI, sqsQueueURL string) (string, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "workflow-update")
-	defer span.Finish()
+	tracer := otel.GetTracerProvider().Tracer("workflow-update-loop")
+	ctx, span := tracer.Start(ctx, "workflow-update")
+	defer span.End()
 	deleteMsg := func() {
 		if _, err := sqsapi.DeleteMessageWithContext(ctx, &sqs.DeleteMessageInput{
 			QueueUrl:      aws.String(sqsQueueURL),
@@ -116,7 +117,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	}
 
 	wfID := *m.Body
-	span.SetTag("workflow-id", wfID)
+	span.SetAttributes(label.String("workflow-id", wfID))
 	wf, err := thestore.GetWorkflowByID(ctx, wfID)
 	if err != nil {
 		if _, ok := err.(models.NotFound); ok {
@@ -126,13 +127,13 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 			// this could indicate an error in starting the workflow.
 			// if that happened, it is logged separately.
 			deleteMsg()
-			span.SetTag("result", "workflow-not-found")
+			span.SetAttributes(label.String("result", "workflow-not-found"))
 			return "", fmt.Errorf("workflow id not found: %s", wfID)
 		}
 		// other error, e.g. throttling. Try again later
 		requeueMsg()
 		deleteMsg()
-		span.SetTag("result", "database-error")
+		span.SetAttributes(label.String("result", "database-error"))
 		return "", err
 	}
 
@@ -144,12 +145,11 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	// and re-queue a new message if the workflow remains pending.
 	defer func() {
 		if storeSaveFailed {
-			span.SetTag("result", "requeue-store-save-failed")
+			span.SetAttributes(label.String("result", "requeue-store-save-failed"))
 			requeueMsg()
 		} else if !resources.WorkflowStatusIsDone(&wf) {
-			span.SetTag("result", "requeue-workflow-not-done")
+			span.SetAttributes(label.String("result", "requeue-workflow-not-done"))
 			requeueMsg()
-
 		}
 		deleteMsg()
 	}()
