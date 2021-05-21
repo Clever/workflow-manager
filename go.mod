@@ -26,8 +26,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
-	github.com/opentracing-contrib/go-aws-sdk v0.0.0-20190205132030-9c29407076c0
-	github.com/opentracing/opentracing-go v1.2.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.7.0
