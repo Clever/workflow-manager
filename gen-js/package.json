@@ -1,12 +1,11 @@
 {
   "name": "workflow-manager",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "description": "Orchestrator for AWS Step Functions",
   "main": "index.js",
   "dependencies": {
     "async": "^2.1.4",
     "clever-discovery": "0.0.8",
-    "opentracing": "^0.14.0",
     "request": "^2.87.0",
     "kayvee": "^3.13.0",
     "hystrixjs": "^0.2.0",

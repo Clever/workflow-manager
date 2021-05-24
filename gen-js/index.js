@@ -2,14 +2,8 @@ const async = require("async");
 const discovery = require("clever-discovery");
 const kayvee = require("kayvee");
 const request = require("request");
-const opentracing = require("opentracing");
 const {commandFactory} = require("hystrixjs");
 const RollingNumberEvent = require("hystrixjs/lib/metrics/RollingNumberEvent");
-
-/**
- * @external Span
- * @see {@link https://doc.esdoc.org/github.com/opentracing/opentracing-javascript/class/src/span.js~Span.html}
- */
 
 const { Errors } = require("./types");
 
@@ -195,11 +189,6 @@ class WorkflowManager {
     } else {
       this.logger = new kayvee.logger((options.serviceName || "workflow-manager") + "-wagclient");
     }
-    if (options.tracer) {
-      this.tracer = options.tracer;
-    } else {
-      this.tracer = opentracing.globalTracer();
-    }
 
     const circuitOptions = Object.assign({}, defaultCircuitOptions, options.circuit);
     this._hystrixCommand = commandFactory.getOrCreate(options.serviceName || "workflow-manager").
@@ -254,7 +243,6 @@ class WorkflowManager {
    * Checks if the service is healthy
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -284,21 +272,12 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "healthCheck";
       headers[versionHeader] = version;
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "GET /_health"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "GET",
@@ -367,7 +346,6 @@ class WorkflowManager {
    * @param NewStateResource
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -398,21 +376,12 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "postStateResource";
       headers[versionHeader] = version;
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "POST /state-resources"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "POST",
@@ -485,7 +454,6 @@ class WorkflowManager {
    * @param {string} params.name
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -514,8 +482,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "deleteStateResource";
@@ -530,13 +496,6 @@ class WorkflowManager {
       }
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "DELETE /state-resources/{namespace}/{name}"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "DELETE",
@@ -613,7 +572,6 @@ class WorkflowManager {
    * @param {string} params.name
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -642,8 +600,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "getStateResource";
@@ -658,13 +614,6 @@ class WorkflowManager {
       }
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "GET /state-resources/{namespace}/{name}"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "GET",
@@ -742,7 +691,6 @@ class WorkflowManager {
    * @param [params.NewStateResource]
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -770,8 +718,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "putStateResource";
@@ -786,13 +732,6 @@ class WorkflowManager {
       }
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "PUT /state-resources/{namespace}/{name}"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "PUT",
@@ -863,7 +802,6 @@ class WorkflowManager {
    * Get the latest versions of all available WorkflowDefinitions
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -893,21 +831,12 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "getWorkflowDefinitions";
       headers[versionHeader] = version;
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "GET /workflow-definitions"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "GET",
@@ -976,7 +905,6 @@ class WorkflowManager {
    * @param NewWorkflowDefinitionRequest
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -1007,21 +935,12 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "newWorkflowDefinition";
       headers[versionHeader] = version;
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "POST /workflow-definitions"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "POST",
@@ -1094,7 +1013,6 @@ class WorkflowManager {
    * @param {boolean} [params.latest=true]
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -1123,8 +1041,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "getWorkflowDefinitionVersionsByName";
@@ -1139,13 +1055,6 @@ class WorkflowManager {
         query["latest"] = params.latest;
       }
 
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "GET /workflow-definitions/{name}"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "GET",
@@ -1222,7 +1131,6 @@ class WorkflowManager {
    * @param {string} params.name
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -1251,8 +1159,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "updateWorkflowDefinition";
@@ -1263,13 +1169,6 @@ class WorkflowManager {
       }
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "PUT /workflow-definitions/{name}"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "PUT",
@@ -1348,7 +1247,6 @@ class WorkflowManager {
    * @param {number} params.version
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -1377,8 +1275,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "getWorkflowDefinitionByNameAndVersion";
@@ -1393,13 +1289,6 @@ class WorkflowManager {
       }
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "GET /workflow-definitions/{name}/{version}"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "GET",
@@ -1481,7 +1370,6 @@ class WorkflowManager {
    * @param {string} params.workflowDefinitionName
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -1510,8 +1398,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "getWorkflows";
@@ -1544,13 +1430,6 @@ class WorkflowManager {
 
       query["workflowDefinitionName"] = params.workflowDefinitionName;
 
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "GET /workflows"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "GET",
@@ -1633,7 +1512,6 @@ class WorkflowManager {
    * @param {string} params.workflowDefinitionName
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @returns {Object} iter
    * @returns {function} iter.map - takes in a function, applies it to each resource, and returns a promise to the result as an array
@@ -1648,8 +1526,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "getWorkflows";
@@ -1683,12 +1559,6 @@ class WorkflowManager {
       query["workflowDefinitionName"] = params.workflowDefinitionName;
 
 
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.setTag("span.kind", "client");
-      }
-
       const requestOptions = {
         method: "GET",
         uri: this.address + "/workflows",
@@ -1712,9 +1582,6 @@ class WorkflowManager {
       async.whilst(
         () => requestOptions.uri !== "",
         cbW => {
-          if (span && typeof span.log === "function") {
-            span.log({event: "GET /workflows"});
-          }
       const address = this.address;
       let retries = 0;
       (function requestOnce() {
@@ -1812,7 +1679,6 @@ class WorkflowManager {
    * @param StartWorkflowRequest - Parameters for starting a workflow (workflow definition, input, and optionally namespace, queue, and tags)
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -1844,21 +1710,12 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "startWorkflow";
       headers[versionHeader] = version;
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "POST /workflows"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "POST",
@@ -1937,7 +1794,6 @@ class WorkflowManager {
    * @param params.reason
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -1966,8 +1822,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "CancelWorkflow";
@@ -1978,13 +1832,6 @@ class WorkflowManager {
       }
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "DELETE /workflows/{workflowID}"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "DELETE",
@@ -2061,7 +1908,6 @@ class WorkflowManager {
    * @param {string} workflowID
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -2093,8 +1939,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "getWorkflowByID";
@@ -2105,13 +1949,6 @@ class WorkflowManager {
       }
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "GET /workflows/{workflowID}"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "GET",
@@ -2188,7 +2025,6 @@ class WorkflowManager {
    * @param params.overrides
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -2217,8 +2053,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "resumeWorkflowByID";
@@ -2229,13 +2063,6 @@ class WorkflowManager {
       }
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "POST /workflows/{workflowID}"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "POST",
@@ -2312,7 +2139,6 @@ class WorkflowManager {
    * @param {string} workflowID
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
-   * @param {external:Span} [options.span] - An OpenTracing span - For example from the parent request
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -2345,8 +2171,6 @@ class WorkflowManager {
       }
 
       const timeout = options.timeout || this.timeout;
-      const tracer = options.tracer || this.tracer;
-      const span = options.span;
 
       const headers = {};
       headers["Canonical-Resource"] = "resolveWorkflowByID";
@@ -2357,13 +2181,6 @@ class WorkflowManager {
       }
 
       const query = {};
-
-      if (span && typeof span.log === "function") {
-        // Need to get tracer to inject. Use HTTP headers format so we can properly escape special characters
-        tracer.inject(span, opentracing.FORMAT_HTTP_HEADERS, headers);
-        span.log({event: "POST /workflows/{workflowID}/resolved"});
-        span.setTag("span.kind", "client");
-      }
 
       const requestOptions = {
         method: "POST",
@@ -2461,7 +2278,7 @@ module.exports.Errors = Errors;
 
 module.exports.DefaultCircuitOptions = defaultCircuitOptions;
 
-const version = "0.13.1";
+const version = "0.14.0";
 const versionHeader = "X-Client-Version";
 module.exports.Version = version;
 module.exports.VersionHeader = versionHeader;

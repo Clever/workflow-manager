@@ -14,19 +14,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	elasticsearch "github.com/elastic/go-elasticsearch/v6"
-	"github.com/elastic/go-elasticsearch/v6/esapi"
-	"github.com/elastic/go-elasticsearch/v6/estransport"
+	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/kardianos/osext"
-	otaws "github.com/opentracing-contrib/go-aws-sdk"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/trace"
 
 	counter "github.com/Clever/aws-sdk-go-counter"
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/sfncache"
 	"github.com/Clever/workflow-manager/gen-go/server"
 	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
+	"github.com/Clever/workflow-manager/gen-go/tracing"
 	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
@@ -65,9 +64,25 @@ func main() {
 	c := loadConfig()
 	setupRouting()
 
+	// Initialize globals for tracing
+	if exp, prov, err := tracing.SetupGlobalTraceProviderAndExporter(context.Background()); err != nil {
+		log.Fatalf("failed to setup tracing: %v", err)
+	} else {
+		// Ensure traces are finalized when exiting
+		defer exp.Shutdown(context.Background())
+		defer prov.Shutdown(context.Background())
+	}
+
+	dynamoTransport := tracedTransport("go-aws", "dynamodb", func(operation string, _ *http.Request) string {
+		return operation
+	})
 	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
 		// reducing MaxRetries to 2 (from 10) to avoid long backoffs when writes fail
-		Config: aws.Config{Region: aws.String(c.DynamoRegion), MaxRetries: &dynamoMaxRetries},
+		Config: aws.Config{
+			Region:     aws.String(c.DynamoRegion),
+			MaxRetries: &dynamoMaxRetries,
+			HTTPClient: &http.Client{Transport: dynamoTransport},
+		},
 	})))
 	db := dynamodbstore.New(svc, dynamodbstore.TableConfig{
 		PrefixStateResources:      c.DynamoPrefixStateResources,
@@ -89,26 +104,31 @@ func main() {
 	sfnsess := session.New()
 	counter := counter.New()
 	sfnsess.Handlers.Send.PushFront(counter.SessionHandler)
-	countedSFNAPI := sfn.New(sfnsess, aws.NewConfig().WithRegion(c.SFNRegion))
+	sfnTransport := tracedTransport("go-aws", "sfn", func(operation string, _ *http.Request) string {
+		return operation
+	})
+	countedSFNAPI := sfn.New(sfnsess, aws.NewConfig().WithRegion(c.SFNRegion).WithHTTPClient(&http.Client{Transport: sfnTransport}))
 	cachedSFNAPI, err := sfncache.New(countedSFNAPI)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.SQSRegion))
-
-	// Add OpenTracing Handlers
-	// Note that Dynamo has automatically OpenTracing through wag's dynamo code
-	otaws.AddOTHandlers(countedSFNAPI.Client)
-	otaws.AddOTHandlers(sqsapi.Client)
+	sqsTransport := tracedTransport("go-aws", "sqs", func(operation string, _ *http.Request) string {
+		return operation
+	})
+	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.SQSRegion).WithHTTPClient(&http.Client{Transport: sqsTransport}))
 
 	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL)
 
-	es, err := elasticsearch.NewClient(elasticsearch.Config{Addresses: []string{c.ESURL}})
+	es, err := elasticsearch.NewClient(elasticsearch.Config{
+		Addresses: []string{c.ESURL},
+		Transport: tracedTransport("go-elasticsearch", "elasticsearch", func(_ string, _ *http.Request) string {
+			return "elasticsearch-request"
+		}),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	es = tracedClient(es)
 
 	h := Handler{
 		store:     db,
@@ -190,45 +210,15 @@ func logSFNCounts(sfnCounter *counter.Counter) {
 	}
 }
 
-// Below provides a thin wrapper around the elasticsearch Client with opentracing added in
-// The Client consists of a Transport object which handles the http requests, and an API object
-//   which makes calls to the Transport. We take the old transport, wrap it with the tracing,
-//   then build a new API object from it.
-
-type tracedESTransport struct {
-	child estransport.Interface
-}
-
-func (t tracedESTransport) Perform(req *http.Request) (*http.Response, error) {
-	span, ctx := opentracing.StartSpanFromContext(req.Context(), "elasticsearch-request")
-	defer span.Finish()
-
-	// These fields mirror the ones in the aws-sdk-go opentracing package
-	ext.SpanKindRPCClient.Set(span)
-	ext.Component.Set(span, "go-elasticsearch")
-	ext.HTTPMethod.Set(span, req.Method)
-	ext.HTTPUrl.Set(span, req.URL.String())
-	ext.PeerService.Set(span, "elasticsearch")
-
-	req = req.WithContext(ctx)
-	resp, err := t.child.Perform(req)
-
-	if err != nil {
-		ext.Error.Set(span, true)
-	} else {
-		ext.HTTPStatusCode.Set(span, uint16(resp.StatusCode))
-	}
-
-	return resp, err
-}
-
-func tracedClient(client *elasticsearch.Client) *elasticsearch.Client {
-
-	tracedTransport := tracedESTransport{
-		child: client.Transport,
-	}
-	return &elasticsearch.Client{
-		API:       esapi.New(tracedTransport),
-		Transport: tracedTransport,
-	}
+// This can be used when more detailed instrumentation is not available.
+// For example, the go-elasticsearch doesn't have instrumentation, and as of writing, aws-sdk-go doesn't.
+// aws-sdk-go-v2 may get instrumentation eventually, but v1 is unlikely to get it.
+func tracedTransport(component string, peerService string, spanNamer func(operation string, req *http.Request) string) http.RoundTripper {
+	return otelhttp.NewTransport(http.DefaultTransport,
+		otelhttp.WithSpanNameFormatter(spanNamer),
+		otelhttp.WithSpanOptions(
+			trace.WithSpanKind(trace.SpanKindClient),
+			trace.WithAttributes(label.String("peer.service", peerService), label.String("component", component)),
+		),
+	)
 }
