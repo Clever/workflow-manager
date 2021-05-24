@@ -43,11 +43,9 @@ generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 install_deps:
 	go mod vendor
 	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
-	cp bin/mockgen $(GOPATH)/bin/mockgen
-	mkdir -p mocks/
-	rm -rf mocks/*
+	rm -rf mocks/mock_*.go
 	for svc in dynamodb sfn sqs; do \
-	  bin/mockgen -package mocks -source ./vendor/github.com/aws/aws-sdk-go/service/$${svc}/$${svc}iface/interface.go -destination mocks/$${svc}.go; \
+	  bin/mockgen -package mocks -source ./vendor/github.com/aws/aws-sdk-go/service/$${svc}/$${svc}iface/interface.go -destination mocks/mock_$${svc}.go; \
 	done
-	bin/mockgen -package mocks -source ./executor/workflow_manager.go -destination mocks/workflow_manager.go WorkflowManager
-	bin/mockgen -package mocks -source ./store/store.go -destination mocks/store.go Store
+	bin/mockgen -package mocks -source ./executor/workflow_manager.go -destination mocks/mock_workflow_manager.go WorkflowManager
+	bin/mockgen -package mocks -source ./store/store.go -destination mocks/mock_store.go Store
