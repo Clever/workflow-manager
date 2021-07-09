@@ -13,9 +13,8 @@ env:
 - TRACING_INGEST_URL
 - TRACING_USER_NAME
 resources:
-  cpu: 0.4
-  soft_mem_limit: 0.3
-  max_mem: 0.6
+  cpu: 0.25
+  max_mem: 0.5
 aws:
   sqs:
     read:
@@ -53,3 +52,9 @@ alarms:
     threshold: 0.01
   extraParameters:
     source: ELB
+pod_config:
+  dev:
+    migrationState: podOnly
+  group: us-west-1
+  prod:
+    migrationState: podOnly
