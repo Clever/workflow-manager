@@ -6,13 +6,13 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // NewWorkflowDefinitionRequest new workflow definition request
+//
 // swagger:model NewWorkflowDefinitionRequest
 type NewWorkflowDefinitionRequest struct {
 
@@ -37,12 +37,10 @@ func (m *NewWorkflowDefinitionRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateManager(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateStateMachine(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
@@ -75,7 +73,6 @@ func (m *NewWorkflowDefinitionRequest) validateStateMachine(formats strfmt.Regis
 	}
 
 	if m.StateMachine != nil {
-
 		if err := m.StateMachine.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("stateMachine")

@@ -8,14 +8,14 @@ package models
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // SLStateMachine s l state machine
+//
 // swagger:model SLStateMachine
 type SLStateMachine struct {
 
@@ -32,6 +32,7 @@ type SLStateMachine struct {
 	TimeoutSeconds int64 `json:"TimeoutSeconds,omitempty"`
 
 	// version
+	// Enum: [1.0]
 	Version string `json:"Version,omitempty"`
 }
 
@@ -40,12 +41,10 @@ func (m *SLStateMachine) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateStates(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateVersion(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
@@ -61,8 +60,17 @@ func (m *SLStateMachine) validateStates(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.Required("States", "body", m.States); err != nil {
-		return err
+	for k := range m.States {
+
+		if err := validate.Required("States"+"."+k, "body", m.States[k]); err != nil {
+			return err
+		}
+		if val, ok := m.States[k]; ok {
+			if err := val.Validate(formats); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -81,6 +89,7 @@ func init() {
 }
 
 const (
+
 	// SLStateMachineVersionNr10 captures enum value "1.0"
 	SLStateMachineVersionNr10 string = "1.0"
 )

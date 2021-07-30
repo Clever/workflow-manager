@@ -54,6 +54,7 @@ import models = WorkflowManager.Models
 declare class WorkflowManager {
   constructor(options: WorkflowManagerOptions);
 
+  close();
   
   healthCheck(options?: RequestOptions, cb?: Callback<void>): Promise<void>
   
@@ -347,7 +348,11 @@ declare namespace WorkflowManager {
   name: string;
 };
     
-    type Workflow = any;
+    type Workflow = WorkflowSummary & {
+  jobs?: Job[];
+  output?: string;
+  statusReason?: string;
+};
     
     type WorkflowDefinition = {
   createdAt?: string;

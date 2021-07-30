@@ -6,17 +6,19 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // WorkflowSummary workflow summary
+//
 // swagger:model WorkflowSummary
 type WorkflowSummary struct {
 
 	// created at
+	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
 	// id
@@ -29,6 +31,7 @@ type WorkflowSummary struct {
 	LastJob *Job `json:"lastJob,omitempty"`
 
 	// last updated
+	// Format: date-time
 	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
 
 	// namespace
@@ -50,6 +53,7 @@ type WorkflowSummary struct {
 	Status WorkflowStatus `json:"status,omitempty"`
 
 	// stopped at
+	// Format: date-time
 	StoppedAt strfmt.DateTime `json:"stoppedAt,omitempty"`
 
 	// tags: object with key-value pairs; keys and values should be strings
@@ -63,29 +67,46 @@ type WorkflowSummary struct {
 func (m *WorkflowSummary) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateLastJob(formats); err != nil {
-		// prop
+	if err := m.validateCreatedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateRetries(formats); err != nil {
-		// prop
+	if err := m.validateLastJob(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateLastUpdated(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateStatus(formats); err != nil {
-		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateStoppedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateWorkflowDefinition(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *WorkflowSummary) validateCreatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.CreatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("createdAt", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -96,7 +117,6 @@ func (m *WorkflowSummary) validateLastJob(formats strfmt.Registry) error {
 	}
 
 	if m.LastJob != nil {
-
 		if err := m.LastJob.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("lastJob")
@@ -108,10 +128,14 @@ func (m *WorkflowSummary) validateLastJob(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *WorkflowSummary) validateRetries(formats strfmt.Registry) error {
+func (m *WorkflowSummary) validateLastUpdated(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Retries) { // not required
+	if swag.IsZero(m.LastUpdated) { // not required
 		return nil
+	}
+
+	if err := validate.FormatOf("lastUpdated", "body", "date-time", m.LastUpdated.String(), formats); err != nil {
+		return err
 	}
 
 	return nil
@@ -133,6 +157,19 @@ func (m *WorkflowSummary) validateStatus(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *WorkflowSummary) validateStoppedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StoppedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("stoppedAt", "body", "date-time", m.StoppedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *WorkflowSummary) validateWorkflowDefinition(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.WorkflowDefinition) { // not required
@@ -140,7 +177,6 @@ func (m *WorkflowSummary) validateWorkflowDefinition(formats strfmt.Registry) er
 	}
 
 	if m.WorkflowDefinition != nil {
-
 		if err := m.WorkflowDefinition.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("workflowDefinition")

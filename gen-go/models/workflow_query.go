@@ -6,14 +6,14 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // WorkflowQuery workflow query
+//
 // swagger:model WorkflowQuery
 type WorkflowQuery struct {
 
@@ -46,22 +46,18 @@ func (m *WorkflowQuery) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateLimit(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateResolvedByUserWrapper(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateStatus(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateWorkflowDefinitionName(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
@@ -91,7 +87,6 @@ func (m *WorkflowQuery) validateResolvedByUserWrapper(formats strfmt.Registry) e
 	}
 
 	if m.ResolvedByUserWrapper != nil {
-
 		if err := m.ResolvedByUserWrapper.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("resolvedByUserWrapper")

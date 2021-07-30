@@ -6,13 +6,14 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // JobAttempt job attempt
+//
 // swagger:model JobAttempt
 type JobAttempt struct {
 
@@ -20,6 +21,7 @@ type JobAttempt struct {
 	ContainerInstanceARN string `json:"containerInstanceARN,omitempty"`
 
 	// created at
+	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
 	// exit code
@@ -29,9 +31,11 @@ type JobAttempt struct {
 	Reason string `json:"reason,omitempty"`
 
 	// started at
+	// Format: date-time
 	StartedAt strfmt.DateTime `json:"startedAt,omitempty"`
 
 	// stopped at
+	// Format: date-time
 	StoppedAt strfmt.DateTime `json:"stoppedAt,omitempty"`
 
 	// task a r n
@@ -42,9 +46,60 @@ type JobAttempt struct {
 func (m *JobAttempt) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStartedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStoppedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *JobAttempt) validateCreatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.CreatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("createdAt", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *JobAttempt) validateStartedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StartedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("startedAt", "body", "date-time", m.StartedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *JobAttempt) validateStoppedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StoppedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("stoppedAt", "body", "date-time", m.StoppedAt.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

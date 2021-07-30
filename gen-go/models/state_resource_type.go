@@ -8,23 +8,27 @@ package models
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // StateResourceType state resource type
+//
 // swagger:model StateResourceType
 type StateResourceType string
 
 const (
+
 	// StateResourceTypeJobDefinitionARN captures enum value "JobDefinitionARN"
 	StateResourceTypeJobDefinitionARN StateResourceType = "JobDefinitionARN"
+
 	// StateResourceTypeActivityARN captures enum value "ActivityARN"
 	StateResourceTypeActivityARN StateResourceType = "ActivityARN"
+
 	// StateResourceTypeLambdaFunctionARN captures enum value "LambdaFunctionARN"
 	StateResourceTypeLambdaFunctionARN StateResourceType = "LambdaFunctionARN"
+
 	// StateResourceTypeTaskARN captures enum value "TaskARN"
 	StateResourceTypeTaskARN StateResourceType = "TaskARN"
 )

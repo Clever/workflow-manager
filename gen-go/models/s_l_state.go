@@ -8,13 +8,13 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // SLState s l state
+//
 // swagger:model SLState
 type SLState struct {
 
@@ -105,32 +105,26 @@ func (m *SLState) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateBranches(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateCatch(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateChoices(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateIterator(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateRetry(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateType(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
@@ -147,13 +141,11 @@ func (m *SLState) validateBranches(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Branches); i++ {
-
 		if swag.IsZero(m.Branches[i]) { // not required
 			continue
 		}
 
 		if m.Branches[i] != nil {
-
 			if err := m.Branches[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("Branches" + "." + strconv.Itoa(i))
@@ -174,13 +166,11 @@ func (m *SLState) validateCatch(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Catch); i++ {
-
 		if swag.IsZero(m.Catch[i]) { // not required
 			continue
 		}
 
 		if m.Catch[i] != nil {
-
 			if err := m.Catch[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("Catch" + "." + strconv.Itoa(i))
@@ -201,13 +191,11 @@ func (m *SLState) validateChoices(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Choices); i++ {
-
 		if swag.IsZero(m.Choices[i]) { // not required
 			continue
 		}
 
 		if m.Choices[i] != nil {
-
 			if err := m.Choices[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("Choices" + "." + strconv.Itoa(i))
@@ -228,7 +216,6 @@ func (m *SLState) validateIterator(formats strfmt.Registry) error {
 	}
 
 	if m.Iterator != nil {
-
 		if err := m.Iterator.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("Iterator")
@@ -247,13 +234,11 @@ func (m *SLState) validateRetry(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Retry); i++ {
-
 		if swag.IsZero(m.Retry[i]) { // not required
 			continue
 		}
 
 		if m.Retry[i] != nil {
-
 			if err := m.Retry[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("Retry" + "." + strconv.Itoa(i))
