@@ -8,6 +8,7 @@ workflow-manager client library.
     * [WorkflowManager](#exp_module_workflow-manager--WorkflowManager) ⏏
         * [new WorkflowManager(options)](#new_module_workflow-manager--WorkflowManager_new)
         * _instance_
+            * [.close()](#module_workflow-manager--WorkflowManager+close)
             * [.healthCheck([options], [cb])](#module_workflow-manager--WorkflowManager+healthCheck) ⇒ <code>Promise</code>
             * [.postStateResource(NewStateResource, [options], [cb])](#module_workflow-manager--WorkflowManager+postStateResource) ⇒ <code>Promise</code>
             * [.deleteStateResource(params, [options], [cb])](#module_workflow-manager--WorkflowManager+deleteStateResource) ⇒ <code>Promise</code>
@@ -65,6 +66,12 @@ Create a new client object.
 | [options.circuit.sleepWindow] | <code>number</code> |  | how long, in milliseconds, to wait after a circuit opens before testing for recovery. Default: 5000. |
 | [options.circuit.errorPercentThreshold] | <code>number</code> |  | the threshold to place on the rolling error rate. Once the error rate exceeds this percentage, the circuit opens. Default: 90. |
 
+<a name="module_workflow-manager--WorkflowManager+close"></a>
+
+#### workflowManager.close()
+Releases handles used in client
+
+**Kind**: instance method of [<code>WorkflowManager</code>](#exp_module_workflow-manager--WorkflowManager)  
 <a name="module_workflow-manager--WorkflowManager+healthCheck"></a>
 
 #### workflowManager.healthCheck([options], [cb]) ⇒ <code>Promise</code>

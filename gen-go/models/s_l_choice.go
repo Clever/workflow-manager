@@ -8,13 +8,14 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // SLChoice s l choice
+//
 // swagger:model SLChoice
 type SLChoice struct {
 
@@ -64,18 +65,23 @@ type SLChoice struct {
 	StringLessThanEquals *string `json:"StringLessThanEquals,omitempty"`
 
 	// timestamp equals
+	// Format: date-time
 	TimestampEquals *strfmt.DateTime `json:"TimestampEquals,omitempty"`
 
 	// timestamp greater than
+	// Format: date-time
 	TimestampGreaterThan *strfmt.DateTime `json:"TimestampGreaterThan,omitempty"`
 
 	// timestamp greater than equals
+	// Format: date-time
 	TimestampGreaterThanEquals *strfmt.DateTime `json:"TimestampGreaterThanEquals,omitempty"`
 
 	// timestamp less than
+	// Format: date-time
 	TimestampLessThan *strfmt.DateTime `json:"TimestampLessThan,omitempty"`
 
 	// timestamp less than equals
+	// Format: date-time
 	TimestampLessThanEquals *strfmt.DateTime `json:"TimestampLessThanEquals,omitempty"`
 
 	// variable
@@ -87,17 +93,34 @@ func (m *SLChoice) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAnd(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateNot(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateOr(formats); err != nil {
-		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateTimestampEquals(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTimestampGreaterThan(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTimestampGreaterThanEquals(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTimestampLessThan(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTimestampLessThanEquals(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -114,13 +137,11 @@ func (m *SLChoice) validateAnd(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.And); i++ {
-
 		if swag.IsZero(m.And[i]) { // not required
 			continue
 		}
 
 		if m.And[i] != nil {
-
 			if err := m.And[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("And" + "." + strconv.Itoa(i))
@@ -141,7 +162,6 @@ func (m *SLChoice) validateNot(formats strfmt.Registry) error {
 	}
 
 	if m.Not != nil {
-
 		if err := m.Not.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("Not")
@@ -160,13 +180,11 @@ func (m *SLChoice) validateOr(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Or); i++ {
-
 		if swag.IsZero(m.Or[i]) { // not required
 			continue
 		}
 
 		if m.Or[i] != nil {
-
 			if err := m.Or[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("Or" + "." + strconv.Itoa(i))
@@ -175,6 +193,71 @@ func (m *SLChoice) validateOr(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *SLChoice) validateTimestampEquals(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.TimestampEquals) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("TimestampEquals", "body", "date-time", m.TimestampEquals.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *SLChoice) validateTimestampGreaterThan(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.TimestampGreaterThan) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("TimestampGreaterThan", "body", "date-time", m.TimestampGreaterThan.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *SLChoice) validateTimestampGreaterThanEquals(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.TimestampGreaterThanEquals) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("TimestampGreaterThanEquals", "body", "date-time", m.TimestampGreaterThanEquals.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *SLChoice) validateTimestampLessThan(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.TimestampLessThan) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("TimestampLessThan", "body", "date-time", m.TimestampLessThan.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *SLChoice) validateTimestampLessThanEquals(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.TimestampLessThanEquals) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("TimestampLessThanEquals", "body", "date-time", m.TimestampLessThanEquals.String(), formats); err != nil {
+		return err
 	}
 
 	return nil

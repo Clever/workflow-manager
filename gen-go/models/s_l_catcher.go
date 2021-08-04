@@ -8,13 +8,13 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // SLCatcher s l catcher
+//
 // swagger:model SLCatcher
 type SLCatcher struct {
 
@@ -33,7 +33,6 @@ func (m *SLCatcher) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateErrorEquals(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 

@@ -9,8 +9,8 @@ import (
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/label"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -117,7 +117,7 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	}
 
 	wfID := *m.Body
-	span.SetAttributes(label.String("workflow-id", wfID))
+	span.SetAttributes(attribute.String("workflow-id", wfID))
 	wf, err := thestore.GetWorkflowByID(ctx, wfID)
 	if err != nil {
 		if _, ok := err.(models.NotFound); ok {
@@ -127,13 +127,13 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 			// this could indicate an error in starting the workflow.
 			// if that happened, it is logged separately.
 			deleteMsg()
-			span.SetAttributes(label.String("result", "workflow-not-found"))
+			span.SetAttributes(attribute.String("result", "workflow-not-found"))
 			return "", fmt.Errorf("workflow id not found: %s", wfID)
 		}
 		// other error, e.g. throttling. Try again later
 		requeueMsg()
 		deleteMsg()
-		span.SetAttributes(label.String("result", "database-error"))
+		span.SetAttributes(attribute.String("result", "database-error"))
 		return "", err
 	}
 
@@ -145,10 +145,10 @@ func updatePendingWorkflow(ctx context.Context, m *sqs.Message, wm WorkflowManag
 	// and re-queue a new message if the workflow remains pending.
 	defer func() {
 		if storeSaveFailed {
-			span.SetAttributes(label.String("result", "requeue-store-save-failed"))
+			span.SetAttributes(attribute.String("result", "requeue-store-save-failed"))
 			requeueMsg()
 		} else if !resources.WorkflowStatusIsDone(&wf) {
-			span.SetAttributes(label.String("result", "requeue-workflow-not-done"))
+			span.SetAttributes(attribute.String("result", "requeue-workflow-not-done"))
 			requeueMsg()
 		}
 		deleteMsg()

@@ -6,17 +6,19 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // StateResource state resource
+//
 // swagger:model StateResource
 type StateResource struct {
 
 	// last updated
+	// Format: date-time
 	LastUpdated strfmt.DateTime `json:"lastUpdated,omitempty"`
 
 	// name
@@ -36,14 +38,30 @@ type StateResource struct {
 func (m *StateResource) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateLastUpdated(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateType(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *StateResource) validateLastUpdated(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.LastUpdated) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("lastUpdated", "body", "date-time", m.LastUpdated.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -8,14 +8,14 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // SLRetrier s l retrier
+//
 // swagger:model SLRetrier
 type SLRetrier struct {
 
@@ -39,12 +39,10 @@ func (m *SLRetrier) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateErrorEquals(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateMaxAttempts(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 

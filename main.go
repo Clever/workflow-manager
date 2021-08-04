@@ -17,7 +17,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/kardianos/osext"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	counter "github.com/Clever/aws-sdk-go-counter"
@@ -218,7 +218,7 @@ func tracedTransport(component string, peerService string, spanNamer func(operat
 		otelhttp.WithSpanNameFormatter(spanNamer),
 		otelhttp.WithSpanOptions(
 			trace.WithSpanKind(trace.SpanKindClient),
-			trace.WithAttributes(label.String("peer.service", peerService), label.String("component", component)),
+			trace.WithAttributes(attribute.String("peer.service", peerService), attribute.String("component", component)),
 		),
 	)
 }

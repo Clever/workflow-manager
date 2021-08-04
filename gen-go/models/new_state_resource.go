@@ -6,13 +6,12 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
-	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // NewStateResource new state resource
+//
 // swagger:model NewStateResource
 type NewStateResource struct {
 
@@ -28,11 +27,6 @@ type NewStateResource struct {
 
 // Validate validates this new state resource
 func (m *NewStateResource) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
 	return nil
 }
 

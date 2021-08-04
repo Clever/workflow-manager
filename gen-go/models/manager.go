@@ -8,17 +8,18 @@ package models
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // Manager manager
+//
 // swagger:model Manager
 type Manager string
 
 const (
+
 	// ManagerStepFunctions captures enum value "step-functions"
 	ManagerStepFunctions Manager = "step-functions"
 )

@@ -8,13 +8,14 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Job job
+//
 // swagger:model Job
 type Job struct {
 
@@ -25,6 +26,7 @@ type Job struct {
 	Container string `json:"container,omitempty"`
 
 	// created at
+	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"createdAt,omitempty"`
 
 	// id
@@ -43,6 +45,7 @@ type Job struct {
 	Queue string `json:"queue,omitempty"`
 
 	// started at
+	// Format: date-time
 	StartedAt strfmt.DateTime `json:"startedAt,omitempty"`
 
 	// state
@@ -58,6 +61,7 @@ type Job struct {
 	StatusReason string `json:"statusReason,omitempty"`
 
 	// stopped at
+	// Format: date-time
 	StoppedAt strfmt.DateTime `json:"stoppedAt,omitempty"`
 }
 
@@ -66,17 +70,26 @@ func (m *Job) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAttempts(formats); err != nil {
-		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStartedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateStateResource(formats); err != nil {
-		// prop
 		res = append(res, err)
 	}
 
 	if err := m.validateStatus(formats); err != nil {
-		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateStoppedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -93,13 +106,11 @@ func (m *Job) validateAttempts(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Attempts); i++ {
-
 		if swag.IsZero(m.Attempts[i]) { // not required
 			continue
 		}
 
 		if m.Attempts[i] != nil {
-
 			if err := m.Attempts[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("attempts" + "." + strconv.Itoa(i))
@@ -113,6 +124,32 @@ func (m *Job) validateAttempts(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Job) validateCreatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.CreatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("createdAt", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Job) validateStartedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StartedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("startedAt", "body", "date-time", m.StartedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Job) validateStateResource(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.StateResource) { // not required
@@ -120,7 +157,6 @@ func (m *Job) validateStateResource(formats strfmt.Registry) error {
 	}
 
 	if m.StateResource != nil {
-
 		if err := m.StateResource.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("stateResource")
@@ -142,6 +178,19 @@ func (m *Job) validateStatus(formats strfmt.Registry) error {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("status")
 		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *Job) validateStoppedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StoppedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("stoppedAt", "body", "date-time", m.StoppedAt.String(), formats); err != nil {
 		return err
 	}
 

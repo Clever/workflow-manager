@@ -8,25 +8,30 @@ package models
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // WorkflowStatus workflow status
+//
 // swagger:model WorkflowStatus
 type WorkflowStatus string
 
 const (
+
 	// WorkflowStatusQueued captures enum value "queued"
 	WorkflowStatusQueued WorkflowStatus = "queued"
+
 	// WorkflowStatusRunning captures enum value "running"
 	WorkflowStatusRunning WorkflowStatus = "running"
+
 	// WorkflowStatusFailed captures enum value "failed"
 	WorkflowStatusFailed WorkflowStatus = "failed"
+
 	// WorkflowStatusSucceeded captures enum value "succeeded"
 	WorkflowStatusSucceeded WorkflowStatus = "succeeded"
+
 	// WorkflowStatusCancelled captures enum value "cancelled"
 	WorkflowStatusCancelled WorkflowStatus = "cancelled"
 )

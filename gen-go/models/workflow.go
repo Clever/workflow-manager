@@ -8,13 +8,13 @@ package models
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // Workflow workflow
+//
 // swagger:model Workflow
 type Workflow struct {
 	WorkflowSummary
@@ -31,63 +31,62 @@ type Workflow struct {
 
 // UnmarshalJSON unmarshals this object from a JSON structure
 func (m *Workflow) UnmarshalJSON(raw []byte) error {
-
+	// AO0
 	var aO0 WorkflowSummary
 	if err := swag.ReadJSON(raw, &aO0); err != nil {
 		return err
 	}
 	m.WorkflowSummary = aO0
 
-	var data struct {
-		Jobs []*Job `json:"jobs,omitempty"`
+	// AO1
+	var dataAO1 struct {
+		Jobs []*Job `json:"jobs"`
 
 		Output string `json:"output,omitempty"`
 
 		StatusReason string `json:"statusReason,omitempty"`
 	}
-	if err := swag.ReadJSON(raw, &data); err != nil {
+	if err := swag.ReadJSON(raw, &dataAO1); err != nil {
 		return err
 	}
 
-	m.Jobs = data.Jobs
+	m.Jobs = dataAO1.Jobs
 
-	m.Output = data.Output
+	m.Output = dataAO1.Output
 
-	m.StatusReason = data.StatusReason
+	m.StatusReason = dataAO1.StatusReason
 
 	return nil
 }
 
 // MarshalJSON marshals this object to a JSON structure
 func (m Workflow) MarshalJSON() ([]byte, error) {
-	var _parts [][]byte
+	_parts := make([][]byte, 0, 2)
 
 	aO0, err := swag.WriteJSON(m.WorkflowSummary)
 	if err != nil {
 		return nil, err
 	}
 	_parts = append(_parts, aO0)
-
-	var data struct {
-		Jobs []*Job `json:"jobs,omitempty"`
+	var dataAO1 struct {
+		Jobs []*Job `json:"jobs"`
 
 		Output string `json:"output,omitempty"`
 
 		StatusReason string `json:"statusReason,omitempty"`
 	}
 
-	data.Jobs = m.Jobs
+	dataAO1.Jobs = m.Jobs
 
-	data.Output = m.Output
+	dataAO1.Output = m.Output
 
-	data.StatusReason = m.StatusReason
+	dataAO1.StatusReason = m.StatusReason
 
-	jsonData, err := swag.WriteJSON(data)
-	if err != nil {
-		return nil, err
+	jsonDataAO1, errAO1 := swag.WriteJSON(dataAO1)
+	if errAO1 != nil {
+		return nil, errAO1
 	}
-	_parts = append(_parts, jsonData)
-
+	_parts = append(_parts, jsonDataAO1)
 	return swag.ConcatJSON(_parts...), nil
 }
 
@@ -95,6 +94,7 @@ func (m Workflow) MarshalJSON() ([]byte, error) {
 func (m *Workflow) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	// validation for a type composition with WorkflowSummary
 	if err := m.WorkflowSummary.Validate(formats); err != nil {
 		res = append(res, err)
 	}
@@ -116,13 +116,11 @@ func (m *Workflow) validateJobs(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Jobs); i++ {
-
 		if swag.IsZero(m.Jobs[i]) { // not required
 			continue
 		}
 
 		if m.Jobs[i] != nil {
-
 			if err := m.Jobs[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("jobs" + "." + strconv.Itoa(i))

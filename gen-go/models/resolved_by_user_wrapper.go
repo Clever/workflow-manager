@@ -6,13 +6,12 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
-	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // ResolvedByUserWrapper resolved by user wrapper
+//
 // swagger:model ResolvedByUserWrapper
 type ResolvedByUserWrapper struct {
 
@@ -25,11 +24,6 @@ type ResolvedByUserWrapper struct {
 
 // Validate validates this resolved by user wrapper
 func (m *ResolvedByUserWrapper) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
 	return nil
 }
 

@@ -8,31 +8,39 @@ package models
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // SLStateType s l state type
+//
 // swagger:model SLStateType
 type SLStateType string
 
 const (
+
 	// SLStateTypePass captures enum value "Pass"
 	SLStateTypePass SLStateType = "Pass"
+
 	// SLStateTypeTask captures enum value "Task"
 	SLStateTypeTask SLStateType = "Task"
+
 	// SLStateTypeChoice captures enum value "Choice"
 	SLStateTypeChoice SLStateType = "Choice"
+
 	// SLStateTypeWait captures enum value "Wait"
 	SLStateTypeWait SLStateType = "Wait"
+
 	// SLStateTypeSucceed captures enum value "Succeed"
 	SLStateTypeSucceed SLStateType = "Succeed"
+
 	// SLStateTypeFail captures enum value "Fail"
 	SLStateTypeFail SLStateType = "Fail"
+
 	// SLStateTypeParallel captures enum value "Parallel"
 	SLStateTypeParallel SLStateType = "Parallel"
+
 	// SLStateTypeMap captures enum value "Map"
 	SLStateTypeMap SLStateType = "Map"
 )
