@@ -168,7 +168,7 @@
 |**BackoffRate**  <br>*optional*||number|
 |**ErrorEquals**  <br>*optional*||< [SLErrorEquals](#slerrorequals) > array|
 |**IntervalSeconds**  <br>*optional*||integer|
-|**MaxAttempts**  <br>*optional*|**Minimum value** : `0`  <br>**Maximum value** : `10`|integer|
+|**MaxAttempts**  <br>*optional*|**Minimum value** : `0`  <br>**Maximum value** : `2000`|integer|
 
 
 <a name="slstate"></a>

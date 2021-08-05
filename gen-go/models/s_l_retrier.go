@@ -29,7 +29,7 @@ type SLRetrier struct {
 	IntervalSeconds int64 `json:"IntervalSeconds,omitempty"`
 
 	// max attempts
-	// Maximum: 10
+	// Maximum: 2000
 	// Minimum: 0
 	MaxAttempts *int64 `json:"MaxAttempts,omitempty"`
 }
@@ -82,7 +82,7 @@ func (m *SLRetrier) validateMaxAttempts(formats strfmt.Registry) error {
 		return err
 	}
 
-	if err := validate.MaximumInt("MaxAttempts", "body", int64(*m.MaxAttempts), 10, false); err != nil {
+	if err := validate.MaximumInt("MaxAttempts", "body", int64(*m.MaxAttempts), 2000, false); err != nil {
 		return err
 	}
 
