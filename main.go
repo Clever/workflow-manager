@@ -65,12 +65,18 @@ func main() {
 	setupRouting()
 
 	// Initialize globals for tracing
-	if exp, prov, err := tracing.SetupGlobalTraceProviderAndExporter(context.Background()); err != nil {
-		log.Fatalf("failed to setup tracing: %v", err)
+	enableTracing := os.Getenv("_TRACING_ENABLED")
+	if enableTracing == "true" {
+		log.Print("Tracinng is enabled")
+		if exp, prov, err := tracing.SetupGlobalTraceProviderAndExporter(context.Background()); err != nil {
+			log.Fatalf("failed to setup tracing: %v", err)
+		} else {
+			// Ensure traces are finalized when exiting
+			defer exp.Shutdown(context.Background())
+			defer prov.Shutdown(context.Background())
+		}
 	} else {
-		// Ensure traces are finalized when exiting
-		defer exp.Shutdown(context.Background())
-		defer prov.Shutdown(context.Background())
+		log.Print("tracing is disabled")
 	}
 
 	dynamoTransport := tracedTransport("go-aws", "dynamodb", func(operation string, _ *http.Request) string {
