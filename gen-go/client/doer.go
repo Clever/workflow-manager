@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
+	logger "github.com/Clever/kayvee-go/v7/logger"
 	"github.com/afex/hystrix-go/hystrix"
 	"github.com/donovanhide/eventsource"
 	"golang.org/x/net/context/ctxhttp"
-	logger "gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // doer is an interface for "doing" http requests possibly with wrapping
@@ -144,8 +144,10 @@ func (d *retryDoer) Do(c *http.Client, r *http.Request) (*http.Response, error) 
 		if retries == len(backoffs) || !retryPolicy.Retry(r, resp, err) {
 			break
 		}
-		// Close the response body and try again
-		resp.Body.Close()
+		// Close the response body if response is not nil
+		if resp != nil {
+			resp.Body.Close()
+		}
 		time.Sleep(backoffs[retries])
 	}
 	return resp, err

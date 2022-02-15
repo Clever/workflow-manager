@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/go-openapi/strfmt"
 
-	"gopkg.in/Clever/kayvee-go.v6/logger"
+	"github.com/Clever/kayvee-go/v7/logger"
 )
 
 // AWS ValidationException message when item is > 400KB

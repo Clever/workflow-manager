@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/Clever/workflow-manager/embedded/sfnfunction"
 	"github.com/Clever/workflow-manager/executor/sfnconventions"
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,7 +20,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	errors "golang.org/x/xerrors"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 var log = logger.New("wfm-embedded")

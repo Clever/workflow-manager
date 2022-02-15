@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/Clever/workflow-manager/executor/sfnconventions"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
@@ -19,7 +20,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/mohae/deepcopy"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 const (

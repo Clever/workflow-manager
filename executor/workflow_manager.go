@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"

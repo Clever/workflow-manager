@@ -12,10 +12,10 @@ import (
 	"time"
 
 	discovery "github.com/Clever/discovery-go"
+	logger "github.com/Clever/kayvee-go/v7/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/gen-go/tracing"
 	"github.com/afex/hystrix-go/hystrix"
-	logger "gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 var _ = json.Marshal
@@ -24,7 +24,7 @@ var _ = strconv.FormatInt
 var _ = bytes.Compare
 
 // Version of the client.
-const Version = "0.14.2"
+const Version = "0.15.0"
 
 // VersionHeader is sent with every request.
 const VersionHeader = "X-Client-Version"

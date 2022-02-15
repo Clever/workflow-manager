@@ -5,10 +5,10 @@ import (
 	"time"
 
 	counter "github.com/Clever/aws-sdk-go-counter"
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 func init() {

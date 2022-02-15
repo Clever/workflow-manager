@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/elastic/go-elasticsearch/v6/esapi"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/gen-go/models"
