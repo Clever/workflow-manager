@@ -62,3 +62,8 @@ telemetry:
   metrics:
     exporters:
     - datadog
+deploy_config:
+  canaryInProd: false
+  autoDeployEnvs:
+  - clever-dev
+  - production
