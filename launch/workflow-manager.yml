@@ -55,6 +55,13 @@ alarms:
     threshold: 0.01
   extraParameters:
     source: ELB
+- type: InternalErrorAlarm
+  severity: critical
+  parameters:
+    threshold: 0.10
+    evaluationPeriods: 2
+  extraParameters:
+    source: Total
 pod_config:
   group: us-west-1
 telemetry:
