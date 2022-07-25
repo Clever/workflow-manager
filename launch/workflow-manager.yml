@@ -9,9 +9,6 @@ env:
 - AWS_SQS_REGION
 - AWS_SQS_URL
 - ES_URL
-- TRACING_ACCESS_TOKEN
-- TRACING_INGEST_URL
-- TRACING_USER_NAME
 resources:
   cpu: 0.25
   max_mem: 0.5
@@ -32,7 +29,7 @@ expose:
     type: http
     path: /_health
 shepherds:
-- mohit.gupta@clever.com
+- taylor.sutton@clever.com
 team: eng-infra
 databases:
 - dynamodb:us-west-1:workflow-manager-prod-v3
@@ -55,6 +52,13 @@ alarms:
     threshold: 0.01
   extraParameters:
     source: ELB
+- type: InternalErrorAlarm
+  severity: critical
+  parameters:
+    threshold: 0.10
+    evaluationPeriods: 2
+  extraParameters:
+    source: Total
 pod_config:
   group: us-west-1
 telemetry:
