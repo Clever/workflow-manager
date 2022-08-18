@@ -10,8 +10,8 @@ env:
 - AWS_SQS_URL
 - ES_URL
 resources:
-  cpu: 0.25
-  max_mem: 0.5
+  cpu: 0.5
+  max_mem: 1.0
 autoscaling:
   min_count: 10
   max_count: 10
