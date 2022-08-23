@@ -164,12 +164,44 @@ func toSFNTags(wmTags map[string]interface{}) []*sfn.Tag {
 	return sfnTags
 }
 
+func loggingConfiguration(logGroupARN string) *sfn.LoggingConfiguration {
+	return &sfn.LoggingConfiguration{
+		Destinations: []*sfn.LogDestination{{
+			CloudWatchLogsLogGroup: &sfn.CloudWatchLogsLogGroup{
+				LogGroupArn: aws.String(logGroupARN),
+			},
+		}},
+		Level:                aws.String(sfn.LogLevelAll),
+		IncludeExecutionData: aws.Bool(true),
+	}
+}
+
+func (wm *SFNWorkflowManager) updateLoggingConfiguration(ctx context.Context, stateMachineARN string, lc *sfn.LoggingConfiguration) error {
+	_, err := wm.sfnapi.UpdateStateMachineWithContext(ctx, &sfn.UpdateStateMachineInput{
+		LoggingConfiguration: lc,
+		StateMachineArn:      aws.String(stateMachineARN),
+	})
+	return err
+}
+
 func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
+	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
+	// this effectively creates a new workflow definition in each namespace we deploy into
+	awsStateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
 	describeOutput, err := wm.sfnapi.DescribeStateMachineWithContext(ctx,
 		&sfn.DescribeStateMachineInput{
 			StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
 		})
 	if err == nil {
+		// logging configuration is something we have recently added and might not be present yet
+		// we're also only doing it in dev for now
+		if namespace != "production" && describeOutput.LoggingConfiguration == nil {
+			if err := wm.updateLoggingConfiguration(ctx, *describeOutput.StateMachineArn,
+				loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))); err != nil {
+				return nil, err
+			}
+			return wm.describeOrCreateStateMachine(ctx, wd, namespace, queue)
+		}
 		return describeOutput, nil
 	}
 	awserr, ok := err.(awserr.Error)
@@ -191,19 +223,23 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 		return nil, err
 	}
 	awsStateMachineDef := string(awsStateMachineDefBytes)
-	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
-	// this effectively creates a new workflow definition in each namespace we deploy into
-	awsStateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
+
 	// we use the 'application' tag to attribute costs, so if it wasn't explicitly specified, set it to the workflow name
 	if _, ok := wd.DefaultTags["application"]; !ok {
 		wd.DefaultTags["application"] = wd.Name
 	}
 	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
+	// for now only turn on logs in dev
+	var lc *sfn.LoggingConfiguration
+	if namespace != "production" {
+		lc = loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))
+	}
 	_, err = wm.sfnapi.CreateStateMachineWithContext(ctx,
 		&sfn.CreateStateMachineInput{
-			Name:       aws.String(awsStateMachineName),
-			Definition: aws.String(awsStateMachineDef),
-			RoleArn:    aws.String(wm.roleARN),
+			Name:                 aws.String(awsStateMachineName),
+			Definition:           aws.String(awsStateMachineDef),
+			RoleArn:              aws.String(wm.roleARN),
+			LoggingConfiguration: lc,
 			Tags: append([]*sfn.Tag{
 				{Key: aws.String("environment"), Value: aws.String(namespace)},
 				{Key: aws.String("workflow-definition-name"), Value: aws.String(wd.Name)},

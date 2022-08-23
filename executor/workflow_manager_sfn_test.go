@@ -274,7 +274,8 @@ func TestCreateWorkflow(t *testing.T) {
 				StateMachineArn: aws.String(stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn:      aws.String(stateMachineArn),
+				LoggingConfiguration: &sfn.LoggingConfiguration{},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
@@ -361,7 +362,8 @@ func TestCreateWorkflow(t *testing.T) {
 				StateMachineArn: aws.String(stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn:      aws.String(stateMachineArn),
+				LoggingConfiguration: &sfn.LoggingConfiguration{},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
@@ -416,7 +418,8 @@ func TestCreateWorkflow(t *testing.T) {
 				StateMachineArn: aws.String(stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn:      aws.String(stateMachineArn),
+				LoggingConfiguration: &sfn.LoggingConfiguration{},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
@@ -456,7 +459,8 @@ func TestRetryWorkflow(t *testing.T) {
 				StateMachineArn: aws.String(stateMachineArn),
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn:      aws.String(stateMachineArn),
+				LoggingConfiguration: &sfn.LoggingConfiguration{},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
@@ -493,7 +497,8 @@ func TestRetryWorkflow(t *testing.T) {
 		c.mockSFNAPI.EXPECT().
 			DescribeStateMachineWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.DescribeStateMachineOutput{
-				StateMachineArn: aws.String(stateMachineArn),
+				StateMachineArn:      aws.String(stateMachineArn),
+				LoggingConfiguration: &sfn.LoggingConfiguration{},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
