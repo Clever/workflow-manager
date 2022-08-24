@@ -1253,13 +1253,14 @@ func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockController := gomock.NewController(t)
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
 	mockSQSAPI := mocks.NewMockSQSAPI(mockController)
+	mockCWLogsAPI := mocks.NewMockCloudWatchLogsAPI(mockController)
 	store := memory.New()
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
 	require.NoError(t, store.SaveWorkflowDefinition(context.Background(), *workflowDefinition))
 
 	return &sfnManagerTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, store, "", "", "", ""),
+		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, mockCWLogsAPI, store, "", "", "", ""),
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
 		mockSQSAPI:         mockSQSAPI,

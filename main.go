@@ -11,6 +11,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -120,7 +121,12 @@ func main() {
 	})
 	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.SQSRegion).WithHTTPClient(&http.Client{Transport: sqsTransport}))
 
-	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL)
+	cwlogsTransport := tracedTransport("go-aws", "cwlogs", func(operation string, _ *http.Request) string {
+		return operation
+	})
+	cwlogsapi := cloudwatchlogs.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion).WithHTTPClient(&http.Client{Transport: cwlogsTransport}))
+
+	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, cwlogsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL)
 
 	es, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{c.ESURL},

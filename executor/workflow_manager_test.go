@@ -3,6 +3,9 @@ package executor
 import (
 	"context"
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/mocks"
 	"github.com/Clever/workflow-manager/resources"
@@ -12,8 +15,6 @@ import (
 	"github.com/golang/mock/gomock"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 type wfmTestController struct {
@@ -248,12 +249,13 @@ func newWfmTestController(t *testing.T) *wfmTestController {
 	mockController := gomock.NewController(t)
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
 	mockSQSAPI := mocks.NewMockSQSAPI(mockController)
+	mockCWLogsAPI := mocks.NewMockCloudWatchLogsAPI(mockController)
 	mockStore := mocks.NewMockStore(mockController)
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
 
 	return &wfmTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, mockStore, "", "", "", ""),
+		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, mockCWLogsAPI, mockStore, "", "", "", ""),
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
 		mockSQSAPI:         mockSQSAPI,
