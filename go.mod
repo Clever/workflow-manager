@@ -7,7 +7,7 @@ require (
 	github.com/Clever/discovery-go v1.7.2
 	github.com/Clever/go-process-metrics v0.0.0-20181203221932-ca5b011e155b
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
-	github.com/aws/aws-sdk-go v1.38.0
+	github.com/aws/aws-sdk-go v1.44.83
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
 	github.com/elastic/go-elasticsearch/v6 v6.8.10
 	github.com/felixge/httpsnoop v1.0.2 // indirect
@@ -38,7 +38,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp v0.20.0
 	go.opentelemetry.io/otel/sdk v0.20.0
 	go.opentelemetry.io/otel/trace v0.20.0
-	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1

@@ -44,7 +44,7 @@ install_deps:
 	go mod vendor
 	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
 	rm -rf mocks/mock_*.go
-	for svc in dynamodb sfn sqs; do \
+	for svc in dynamodb sfn sqs cloudwatchlogs; do \
 	  bin/mockgen -package mocks -source ./vendor/github.com/aws/aws-sdk-go/service/$${svc}/$${svc}iface/interface.go -destination mocks/mock_$${svc}.go; \
 	done
 	bin/mockgen -package mocks -source ./executor/workflow_manager.go -destination mocks/mock_workflow_manager.go WorkflowManager

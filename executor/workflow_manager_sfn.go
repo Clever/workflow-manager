@@ -13,6 +13,8 @@ import (
 	"github.com/Clever/workflow-manager/store"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
@@ -44,6 +46,7 @@ var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 type SFNWorkflowManager struct {
 	sfnapi      sfniface.SFNAPI
 	sqsapi      sqsiface.SQSAPI
+	cwlogsapi   cloudwatchlogsiface.CloudWatchLogsAPI
 	store       store.Store
 	region      string
 	roleARN     string
@@ -51,10 +54,11 @@ type SFNWorkflowManager struct {
 	sqsQueueURL string
 }
 
-func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, store store.Store, roleARN, region, accountID, sqsQueueURL string) *SFNWorkflowManager {
+func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, cwlogsapi cloudwatchlogsiface.CloudWatchLogsAPI, store store.Store, roleARN, region, accountID, sqsQueueURL string) *SFNWorkflowManager {
 	return &SFNWorkflowManager{
 		sfnapi:      sfnapi,
 		sqsapi:      sqsapi,
+		cwlogsapi:   cwlogsapi,
 		store:       store,
 		roleARN:     roleARN,
 		region:      region,
@@ -150,16 +154,32 @@ func stateMachineWithDefaultRetriers(oldSM models.SLStateMachine) *models.SLStat
 	return &sm
 }
 
-func toSFNTags(wmTags map[string]interface{}) []*sfn.Tag {
-	sfnTags := []*sfn.Tag{}
-	for k, v := range wmTags {
+func toTagMap(wdTags map[string]interface{}) map[string]string {
+	tags := map[string]string{}
+	for k, v := range wdTags {
 		vs, ok := v.(string)
 		if ok {
-			sfnTags = append(sfnTags, &sfn.Tag{
-				Key:   aws.String(k),
-				Value: aws.String(vs),
-			})
+			tags[k] = vs
 		}
+	}
+	return tags
+}
+
+func toCWLogGroupTags(tags map[string]string) map[string]*string {
+	cwlogsTags := map[string]*string{}
+	for k, v := range tags {
+		cwlogsTags[k] = aws.String(v)
+	}
+	return cwlogsTags
+}
+
+func toSFNTags(tags map[string]string) []*sfn.Tag {
+	sfnTags := []*sfn.Tag{}
+	for k, v := range tags {
+		sfnTags = append(sfnTags, &sfn.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
 	}
 	return sfnTags
 }
@@ -176,7 +196,32 @@ func loggingConfiguration(logGroupARN string) *sfn.LoggingConfiguration {
 	}
 }
 
-func (wm *SFNWorkflowManager) updateLoggingConfiguration(ctx context.Context, stateMachineARN string, lc *sfn.LoggingConfiguration) error {
+func (wm *SFNWorkflowManager) createLogGroupsForLoggingConfiguration(ctx context.Context, tags map[string]string, lc *sfn.LoggingConfiguration) error {
+	// for now there's only one log group destination in our state machine logging configuration, but loop over them for completeness
+	for _, ld := range lc.Destinations {
+		parts := strings.Split(*ld.CloudWatchLogsLogGroup.LogGroupArn, ":")
+		if len(parts) != 8 {
+			return fmt.Errorf("unexpected log group ARN format: %s", *ld.CloudWatchLogsLogGroup.LogGroupArn)
+		}
+		lgname := parts[6]
+		if _, err := wm.cwlogsapi.CreateLogGroupWithContext(ctx, &cloudwatchlogs.CreateLogGroupInput{
+			LogGroupName: aws.String(lgname),
+			Tags:         toCWLogGroupTags(tags),
+		}); err != nil {
+			// ignore already exists error since in that case the log group is created and we're all set
+			if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != cloudwatchlogs.ErrCodeResourceAlreadyExistsException {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (wm *SFNWorkflowManager) updateLoggingConfiguration(ctx context.Context, stateMachineARN string, tags map[string]string, lc *sfn.LoggingConfiguration) error {
+	// must create the log group before creating or updating a state machine referencing the log group
+	if err := wm.createLogGroupsForLoggingConfiguration(ctx, tags, lc); err != nil {
+		return err
+	}
 	_, err := wm.sfnapi.UpdateStateMachineWithContext(ctx, &sfn.UpdateStateMachineInput{
 		LoggingConfiguration: lc,
 		StateMachineArn:      aws.String(stateMachineARN),
@@ -188,6 +233,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
 	// this effectively creates a new workflow definition in each namespace we deploy into
 	awsStateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
+	tags := sfnconventions.StateMachineTags(namespace, wd.Name, wd.Version, wd.StateMachine.StartAt, toTagMap(wd.DefaultTags))
 	describeOutput, err := wm.sfnapi.DescribeStateMachineWithContext(ctx,
 		&sfn.DescribeStateMachineInput{
 			StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
@@ -196,7 +242,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 		// logging configuration is something we have recently added and might not be present yet
 		// we're also only doing it in dev for now
 		if namespace != "production" && describeOutput.LoggingConfiguration == nil {
-			if err := wm.updateLoggingConfiguration(ctx, *describeOutput.StateMachineArn,
+			if err := wm.updateLoggingConfiguration(ctx, *describeOutput.StateMachineArn, tags,
 				loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))); err != nil {
 				return nil, err
 			}
@@ -233,6 +279,10 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	var lc *sfn.LoggingConfiguration
 	if namespace != "production" {
 		lc = loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))
+		// must create the log group before creating a state machine referencing the log group
+		if err := wm.createLogGroupsForLoggingConfiguration(ctx, tags, lc); err != nil {
+			return nil, err
+		}
 	}
 	_, err = wm.sfnapi.CreateStateMachineWithContext(ctx,
 		&sfn.CreateStateMachineInput{
@@ -240,12 +290,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 			Definition:           aws.String(awsStateMachineDef),
 			RoleArn:              aws.String(wm.roleARN),
 			LoggingConfiguration: lc,
-			Tags: append([]*sfn.Tag{
-				{Key: aws.String("environment"), Value: aws.String(namespace)},
-				{Key: aws.String("workflow-definition-name"), Value: aws.String(wd.Name)},
-				{Key: aws.String("workflow-definition-version"), Value: aws.String(fmt.Sprintf("%d", wd.Version))},
-				{Key: aws.String("workflow-definition-start-at"), Value: aws.String(wd.StateMachine.StartAt)},
-			}, toSFNTags(wd.DefaultTags)...),
+			Tags:                 toSFNTags(tags),
 		})
 	if err != nil {
 		return nil, fmt.Errorf("CreateStateMachine error: %s", err.Error())

@@ -44,6 +44,20 @@ func StateMachineNameParts(stateMachineName string) (*SMParts, error) {
 	}, nil
 }
 
+// StateMachineTags returns the tags we place on state machine resources.
+func StateMachineTags(namespace, wdName string, wdVersion int64, startAt string, defaultTags map[string]string) map[string]string {
+	tags := map[string]string{
+		"environment":                  namespace,
+		"workflow-definition-name":     wdName,
+		"workflow-definition-version":  fmt.Sprintf("%d", wdVersion),
+		"workflow-definition-start-at": wdName,
+	}
+	for k, v := range defaultTags {
+		tags[k] = v
+	}
+	return tags
+}
+
 // StateMachineArn constructs a state machine ARN.
 func StateMachineArn(region, accountID, wdName string, wdVersion int64, namespace string, startAt string) string {
 	return fmt.Sprintf("arn:aws:states:%s:%s:stateMachine:%s", region, accountID, StateMachineName(wdName, wdVersion, namespace, startAt))
