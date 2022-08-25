@@ -44,6 +44,8 @@ type Config struct {
 	SQSRegion                       string
 	SQSQueueURL                     string
 	ESURL                           string
+	ExecutionEventsStreamARN        string
+	CWLogsToKinesisRoleARN          string
 }
 
 //go:embed kvconfig.yml
@@ -123,7 +125,7 @@ func main() {
 	})
 	cwlogsapi := cloudwatchlogs.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion).WithHTTPClient(&http.Client{Transport: cwlogsTransport}))
 
-	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, cwlogsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL)
+	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, cwlogsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL, c.ExecutionEventsStreamARN, c.CWLogsToKinesisRoleARN)
 
 	es, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{c.ESURL},
@@ -181,13 +183,15 @@ func loadConfig() Config {
 			"AWS_DYNAMO_PREFIX_WORKFLOWS",
 			"workflow-manager-test",
 		),
-		DynamoRegion: mustGetenv("AWS_DYNAMO_REGION"),
-		SFNRegion:    mustGetenv("AWS_SFN_REGION"),
-		SFNAccountID: mustGetenv("AWS_SFN_ACCOUNT_ID"),
-		SFNRoleARN:   mustGetenv("AWS_SFN_ROLE_ARN"),
-		SQSRegion:    mustGetenv("AWS_SQS_REGION"),
-		SQSQueueURL:  mustGetenv("AWS_SQS_URL"),
-		ESURL:        mustGetenv("ES_URL"),
+		DynamoRegion:             mustGetenv("AWS_DYNAMO_REGION"),
+		SFNRegion:                mustGetenv("AWS_SFN_REGION"),
+		SFNAccountID:             mustGetenv("AWS_SFN_ACCOUNT_ID"),
+		SFNRoleARN:               mustGetenv("AWS_SFN_ROLE_ARN"),
+		SQSRegion:                mustGetenv("AWS_SQS_REGION"),
+		SQSQueueURL:              mustGetenv("AWS_SQS_URL"),
+		ESURL:                    mustGetenv("ES_URL"),
+		ExecutionEventsStreamARN: mustGetenv("AWS_SFN_EXECUTION_EVENTS_STREAM_ARN"),
+		CWLogsToKinesisRoleARN:   mustGetenv("AWS_IAM_CWLOGS_TO_KINESIS_ROLE_ARN"),
 	}
 }
 

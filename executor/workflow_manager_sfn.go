@@ -44,26 +44,30 @@ var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 
 // SFNWorkflowManager manages workflows run through AWS Step Functions.
 type SFNWorkflowManager struct {
-	sfnapi      sfniface.SFNAPI
-	sqsapi      sqsiface.SQSAPI
-	cwlogsapi   cloudwatchlogsiface.CloudWatchLogsAPI
-	store       store.Store
-	region      string
-	roleARN     string
-	accountID   string
-	sqsQueueURL string
+	sfnapi                   sfniface.SFNAPI
+	sqsapi                   sqsiface.SQSAPI
+	cwlogsapi                cloudwatchlogsiface.CloudWatchLogsAPI
+	store                    store.Store
+	region                   string
+	roleARN                  string
+	accountID                string
+	sqsQueueURL              string
+	executionEventsStreamARN string
+	cwLogsToKinesisRoleARN   string
 }
 
-func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, cwlogsapi cloudwatchlogsiface.CloudWatchLogsAPI, store store.Store, roleARN, region, accountID, sqsQueueURL string) *SFNWorkflowManager {
+func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, cwlogsapi cloudwatchlogsiface.CloudWatchLogsAPI, store store.Store, roleARN, region, accountID, sqsQueueURL, executionEventsStreamARN, cwLogsToKinesisRoleARN string) *SFNWorkflowManager {
 	return &SFNWorkflowManager{
-		sfnapi:      sfnapi,
-		sqsapi:      sqsapi,
-		cwlogsapi:   cwlogsapi,
-		store:       store,
-		roleARN:     roleARN,
-		region:      region,
-		accountID:   accountID,
-		sqsQueueURL: sqsQueueURL,
+		sfnapi:                   sfnapi,
+		sqsapi:                   sqsapi,
+		cwlogsapi:                cwlogsapi,
+		store:                    store,
+		roleARN:                  roleARN,
+		region:                   region,
+		accountID:                accountID,
+		sqsQueueURL:              sqsQueueURL,
+		executionEventsStreamARN: executionEventsStreamARN,
+		cwLogsToKinesisRoleARN:   cwLogsToKinesisRoleARN,
 	}
 }
 
@@ -212,6 +216,22 @@ func (wm *SFNWorkflowManager) createLogGroupsForLoggingConfiguration(ctx context
 			if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != cloudwatchlogs.ErrCodeResourceAlreadyExistsException {
 				return err
 			}
+		}
+		if _, err := wm.cwlogsapi.PutRetentionPolicyWithContext(ctx, &cloudwatchlogs.PutRetentionPolicyInput{
+			LogGroupName:    aws.String(lgname),
+			RetentionInDays: aws.Int64(7),
+		}); err != nil {
+			return err
+		}
+		if _, err := wm.cwlogsapi.PutSubscriptionFilterWithContext(ctx, &cloudwatchlogs.PutSubscriptionFilterInput{
+			DestinationArn: aws.String(wm.executionEventsStreamARN),
+			Distribution:   aws.String(cloudwatchlogs.DistributionByLogStream), // need to shard by log stream in order to guarantee ordered processing w/in log stream
+			FilterName:     aws.String("to-kinesis"),
+			FilterPattern:  aws.String(""), // empty string means everything
+			LogGroupName:   aws.String(lgname),
+			RoleArn:        aws.String(wm.cwLogsToKinesisRoleARN),
+		}); err != nil {
+			return err
 		}
 	}
 	return nil
