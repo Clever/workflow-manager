@@ -281,9 +281,6 @@ func TestCreateWorkflow(t *testing.T) {
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
-		c.mockSQSAPI.EXPECT().
-			SendMessageWithContext(gomock.Any(), gomock.Any()).
-			Return(&sqs.SendMessageOutput{}, nil)
 
 		defaultTags := map[string]interface{}{
 			"tag1": "val1",
@@ -369,9 +366,6 @@ func TestCreateWorkflow(t *testing.T) {
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
-		c.mockSQSAPI.EXPECT().
-			SendMessageWithContext(gomock.Any(), gomock.Any()).
-			Return(&sqs.SendMessageOutput{}, nil)
 
 		defaultTags := map[string]interface{}{
 			"tag1": "val1",
@@ -411,9 +405,6 @@ func TestCreateWorkflow(t *testing.T) {
 		)
 		awsError := awserr.New("test", "test", errors.New(""))
 
-		c.mockSQSAPI.EXPECT().
-			SendMessageWithContext(gomock.Any(), gomock.Any()).
-			Return(&sqs.SendMessageOutput{}, nil)
 		c.mockSFNAPI.EXPECT().
 			DescribeStateMachineWithContext(gomock.Any(), &sfn.DescribeStateMachineInput{
 				StateMachineArn: aws.String(stateMachineArn),
@@ -466,9 +457,6 @@ func TestRetryWorkflow(t *testing.T) {
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
-		c.mockSQSAPI.EXPECT().
-			SendMessageWithContext(gomock.Any(), gomock.Any()).
-			Return(&sqs.SendMessageOutput{}, nil)
 
 		workflow, err := c.manager.CreateWorkflow(ctx, *c.workflowDefinition,
 			input,
@@ -504,9 +492,6 @@ func TestRetryWorkflow(t *testing.T) {
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.StartExecutionOutput{}, nil)
-		c.mockSQSAPI.EXPECT().
-			SendMessageWithContext(gomock.Any(), gomock.Any()).
-			Return(&sqs.SendMessageOutput{}, nil)
 
 		workflow2, err := c.manager.RetryWorkflow(ctx, *workflow, workflow.WorkflowDefinition.StateMachine.StartAt, input)
 		assert.Nil(t, err)
@@ -1255,13 +1240,14 @@ func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
 	mockSQSAPI := mocks.NewMockSQSAPI(mockController)
 	mockCWLogsAPI := mocks.NewMockCloudWatchLogsAPI(mockController)
+	mockFeatureFlag := mocks.NewMockClient(mockController)
 	store := memory.New()
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
 	require.NoError(t, store.SaveWorkflowDefinition(context.Background(), *workflowDefinition))
 
 	return &sfnManagerTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, mockCWLogsAPI, store, "", "", "", "", "", ""),
+		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, mockCWLogsAPI, store, mockFeatureFlag, "", "", "", "", "", ""),
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
 		mockSQSAPI:         mockSQSAPI,

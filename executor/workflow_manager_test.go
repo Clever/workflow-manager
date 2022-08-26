@@ -251,11 +251,12 @@ func newWfmTestController(t *testing.T) *wfmTestController {
 	mockSQSAPI := mocks.NewMockSQSAPI(mockController)
 	mockCWLogsAPI := mocks.NewMockCloudWatchLogsAPI(mockController)
 	mockStore := mocks.NewMockStore(mockController)
+	mockFeatureFlag := mocks.NewMockClient(mockController)
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
 
 	return &wfmTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, mockCWLogsAPI, mockStore, "", "", "", "", "", ""),
+		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, mockCWLogsAPI, mockStore, mockFeatureFlag, "", "", "", "", "", ""),
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
 		mockSQSAPI:         mockSQSAPI,

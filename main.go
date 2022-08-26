@@ -24,6 +24,7 @@ import (
 	counter "github.com/Clever/aws-sdk-go-counter"
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/sfncache"
+	"github.com/Clever/workflow-manager/featureflag"
 	"github.com/Clever/workflow-manager/gen-go/server"
 	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
 	"github.com/Clever/workflow-manager/gen-go/tracing"
@@ -47,6 +48,7 @@ type Config struct {
 	ESURL                           string
 	ExecutionEventsStreamARN        string
 	CWLogsToKinesisRoleARN          string
+	LDAPIKey                        string
 }
 
 func setupRouting() {
@@ -127,8 +129,13 @@ func main() {
 		return operation
 	})
 	cwlogsapi := cloudwatchlogs.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion).WithHTTPClient(&http.Client{Transport: cwlogsTransport}))
+	featureFlagClient, err := featureflag.NewLaunchDarkly(c.LDAPIKey, 5*time.Second)
+	if err != nil {
+		log.Fatalf("Error connecting to LaunchDarkly: %s", err.Error())
+	}
+	defer featureFlagClient.Close()
 
-	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, cwlogsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL, c.ExecutionEventsStreamARN, c.CWLogsToKinesisRoleARN)
+	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, cwlogsapi, db, featureFlagClient, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL, c.ExecutionEventsStreamARN, c.CWLogsToKinesisRoleARN)
 
 	es, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{c.ESURL},
@@ -195,6 +202,7 @@ func loadConfig() Config {
 		ESURL:                    mustGetenv("ES_URL"),
 		ExecutionEventsStreamARN: mustGetenv("AWS_SFN_EXECUTION_EVENTS_STREAM_ARN"),
 		CWLogsToKinesisRoleARN:   mustGetenv("AWS_IAM_CWLOGS_TO_KINESIS_ROLE_ARN"),
+		LDAPIKey:                 mustGetenv("LD_API_KEY"),
 	}
 }
 
