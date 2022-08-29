@@ -54,7 +54,7 @@ import models = WorkflowManager.Models
 declare class WorkflowManager {
   constructor(options: WorkflowManagerOptions);
 
-  close();
+  close(): void;
   
   healthCheck(options?: RequestOptions, cb?: Callback<void>): Promise<void>
   
