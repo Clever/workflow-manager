@@ -32,6 +32,10 @@ type Config struct {
 	WorkflowDefinitionTable WorkflowDefinitionTable
 }
 
+// maxDynamoDBBatchItems is the AWS-defined maximum number of items that can be written at once
+// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
+const maxDynamoDBBatchItems = 25
+
 // New creates a new DB object.
 func New(config Config) (*DB, error) {
 	if config.DynamoDBAPI == nil {

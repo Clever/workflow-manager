@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"flag"
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/elastic/go-elasticsearch/v6"
-	"github.com/kardianos/osext"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -51,14 +50,12 @@ type Config struct {
 	LDAPIKey                        string
 }
 
+//go:embed kvconfig.yml
+var kvconfig []byte
+
 func setupRouting() {
-	dir, err := osext.ExecutableFolder()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = logger.SetGlobalRouting(path.Join(dir, "kvconfig.yml"))
-	if err != nil {
-		log.Fatal(err)
+	if err := logger.SetGlobalRoutingFromBytes(kvconfig); err != nil {
+		log.Fatalf("Error setting kvconfig: %s", err)
 	}
 }
 

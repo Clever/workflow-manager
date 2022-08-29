@@ -6,7 +6,9 @@ require (
 	github.com/Clever/aws-sdk-go-counter v1.10.39-0.20190610193009-b603aedc6d67
 	github.com/Clever/discovery-go v1.7.2
 	github.com/Clever/go-process-metrics v0.0.0-20181203221932-ca5b011e155b
+	github.com/Clever/launch-gen v0.0.0-20220707212639-7c830d53b040
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
+	github.com/aws/aws-lambda-go v1.34.1
 	github.com/aws/aws-sdk-go v1.44.83
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
 	github.com/elastic/go-elasticsearch/v6 v6.8.10
@@ -28,7 +30,7 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/satori/go.uuid v1.2.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.2
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v0.0.0-20181016150526-f3a9dae5b194 // indirect
