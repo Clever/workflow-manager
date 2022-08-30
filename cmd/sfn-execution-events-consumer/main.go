@@ -60,7 +60,7 @@ func (h Handler) Handle(ctx context.Context, input events.KinesisEvent) error {
 		logger.FromContext(ctx).ErrorD("error", logger.M{
 			"error": err,
 		})
-		return err
+		// do not return the error, as we need to guarantee that the lambda continues to process events
 	}
 	return nil
 }
@@ -100,7 +100,7 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 	for _, evt := range d.LogEvents {
 		var historyEvent HistoryEvent
 		if err := json.Unmarshal([]byte(evt.Message), &historyEvent); err != nil {
-			return err
+			return fmt.Errorf("error decoding message as JSON, message='%s' error='%s'", evt.Message, err)
 		}
 		if err := h.handleHistoryEvent(ctx, historyEvent); err != nil {
 			return err
@@ -116,7 +116,7 @@ type HistoryEvent struct {
 	ExecutionARN string `json:"execution_arn"`
 
 	// The id of the event. Events are numbered sequentially, starting at one.
-	ID int64 `json:"id"`
+	ID string `json:"id"`
 
 	// Type of the event.
 	Type string `json:"type"`
@@ -156,7 +156,7 @@ func ptrStatus(s models.WorkflowStatus) *models.WorkflowStatus {
 
 func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error {
 	var update store.UpdateWorkflowAttributesInput
-	if evt.ID == 2 {
+	if evt.ID == "2" {
 		update.Status = ptrStatus(models.WorkflowStatusRunning)
 		return h.store.UpdateWorkflowAttributes(ctx, execIDFromARN(evt.ExecutionARN), update)
 	}
