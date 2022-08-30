@@ -276,7 +276,7 @@ func TestCreateWorkflow(t *testing.T) {
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn:      aws.String(stateMachineArn),
-				LoggingConfiguration: &sfn.LoggingConfiguration{},
+				LoggingConfiguration: &sfn.LoggingConfiguration{Level: aws.String(sfn.LogLevelAll)},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
@@ -361,7 +361,7 @@ func TestCreateWorkflow(t *testing.T) {
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn:      aws.String(stateMachineArn),
-				LoggingConfiguration: &sfn.LoggingConfiguration{},
+				LoggingConfiguration: &sfn.LoggingConfiguration{Level: aws.String(sfn.LogLevelAll)},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
@@ -411,7 +411,7 @@ func TestCreateWorkflow(t *testing.T) {
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn:      aws.String(stateMachineArn),
-				LoggingConfiguration: &sfn.LoggingConfiguration{},
+				LoggingConfiguration: &sfn.LoggingConfiguration{Level: aws.String(sfn.LogLevelAll)},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
@@ -452,7 +452,7 @@ func TestRetryWorkflow(t *testing.T) {
 			}).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn:      aws.String(stateMachineArn),
-				LoggingConfiguration: &sfn.LoggingConfiguration{},
+				LoggingConfiguration: &sfn.LoggingConfiguration{Level: aws.String(sfn.LogLevelAll)},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).
@@ -487,7 +487,7 @@ func TestRetryWorkflow(t *testing.T) {
 			DescribeStateMachineWithContext(gomock.Any(), gomock.Any()).
 			Return(&sfn.DescribeStateMachineOutput{
 				StateMachineArn:      aws.String(stateMachineArn),
-				LoggingConfiguration: &sfn.LoggingConfiguration{},
+				LoggingConfiguration: &sfn.LoggingConfiguration{Level: aws.String(sfn.LogLevelAll)},
 			}, nil)
 		c.mockSFNAPI.EXPECT().
 			StartExecutionWithContext(gomock.Any(), gomock.Any()).

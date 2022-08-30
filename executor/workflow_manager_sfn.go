@@ -277,7 +277,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 		})
 	if err == nil {
 		// logging configuration is something we have recently added and might not be present yet
-		if wm.loggingEnabled(namespace, wd.Name) && describeOutput.LoggingConfiguration == nil {
+		if wm.loggingEnabled(namespace, wd.Name) && (describeOutput.LoggingConfiguration == nil || aws.StringValue(describeOutput.LoggingConfiguration.Level) != sfn.LogLevelAll) {
 			if err := wm.updateLoggingConfiguration(ctx, *describeOutput.StateMachineArn, tags,
 				loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))); err != nil {
 				return nil, err
