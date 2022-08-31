@@ -9,7 +9,7 @@ require (
 	github.com/Clever/launch-gen v0.0.0-20220707212639-7c830d53b040
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
 	github.com/aws/aws-lambda-go v1.34.1
-	github.com/aws/aws-sdk-go v1.44.83
+	github.com/aws/aws-sdk-go v1.44.87
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
 	github.com/elastic/go-elasticsearch/v6 v6.8.10
 	github.com/felixge/httpsnoop v1.0.2 // indirect

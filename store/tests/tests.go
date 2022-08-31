@@ -9,6 +9,8 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
+	"github.com/go-openapi/strfmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,6 +27,7 @@ func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
 	t.Run("UpdateLargeWorkflow", UpdateLargeWorkflow(storeFactory(), t))
 	t.Run("DeleteWorkflow", DeleteWorkflow(storeFactory(), t))
 	t.Run("GetWorkflowByID", GetWorkflowByID(storeFactory(), t))
+	t.Run("UpdateWorkflowAttributes", UpdateWorkflowAttributes(storeFactory(), t))
 }
 
 func UpdateWorkflowDefinition(s store.Store, t *testing.T) func(t *testing.T) {
@@ -300,5 +303,49 @@ func GetWorkflowByID(s store.Store, t *testing.T) func(t *testing.T) {
 		require.Equal(t, savedWorkflow.Tags, expected.Tags)
 		require.WithinDuration(t, time.Time(savedWorkflow.CreatedAt), time.Now(), 1*time.Second)
 		require.Equal(t, time.Time(savedWorkflow.CreatedAt), time.Time(savedWorkflow.LastUpdated))
+	}
+}
+
+func ptrStatus(s models.WorkflowStatus) *models.WorkflowStatus {
+	return &s
+}
+
+func ptrString(s string) *string {
+	return &s
+}
+
+func ptrBool(b bool) *bool {
+	return &b
+}
+
+func UpdateWorkflowAttributes(s store.Store, t *testing.T) func(t *testing.T) {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		wf := resources.KitchenSinkWorkflowDefinition(t)
+		require.Nil(t, s.SaveWorkflowDefinition(ctx, *wf))
+		tags := map[string]interface{}{"team": "infra", "tag2": "value2"}
+		workflow := resources.NewWorkflow(wf, `["input"]`, "namespace", "queue", tags)
+		require.Nil(t, s.SaveWorkflow(ctx, *workflow))
+
+		now := strfmt.DateTime(time.Now())
+		update := store.UpdateWorkflowAttributesInput{
+			LastUpdated:    &now,
+			Status:         ptrStatus(models.WorkflowStatusSucceeded),
+			StatusReason:   ptrString("much success very wow"),
+			StoppedAt:      &now,
+			ResolvedByUser: ptrBool(true),
+			Output:         ptrString("kthxbai"),
+		}
+		require.Nil(t, s.UpdateWorkflowAttributes(ctx, workflow.ID, update))
+
+		updatedWorkflow, err := s.GetWorkflowByID(ctx, workflow.ID)
+		require.Nil(t, err)
+		assert.Equal(t, time.Time(updatedWorkflow.LastUpdated).Format(time.RFC3339Nano), time.Time(*update.LastUpdated).Format(time.RFC3339Nano))
+		assert.Equal(t, updatedWorkflow.Status, *update.Status)
+		assert.Equal(t, updatedWorkflow.StatusReason, *update.StatusReason)
+		assert.Equal(t, time.Time(updatedWorkflow.StoppedAt).Format(time.RFC3339Nano), time.Time(*update.StoppedAt).Format(time.RFC3339Nano))
+		assert.Equal(t, updatedWorkflow.ResolvedByUser, *update.ResolvedByUser)
+		assert.Equal(t, updatedWorkflow.Output, *update.Output)
 	}
 }

@@ -292,7 +292,7 @@ func TestStartWorkflow(t *testing.T) {
 
 	h := Handler{
 		manager: mockWFM,
-		store:   store,
+		store:   &store,
 	}
 
 	t.Log("Verify that StartWorkflow handler converts empty string to empty dictionary")
