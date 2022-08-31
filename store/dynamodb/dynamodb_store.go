@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/go-openapi/strfmt"
 
 	"gopkg.in/Clever/kayvee-go.v6/logger"
@@ -559,6 +560,62 @@ func (d DynamoDB) GetWorkflowByID(ctx context.Context, id string) (models.Workfl
 	}
 
 	return workflow, nil
+}
+
+// UpdateWorkflowAttributes updates specific attributes of a workflow.
+func (d DynamoDB) UpdateWorkflowAttributes(ctx context.Context, workflowID string, update store.UpdateWorkflowAttributesInput) error {
+	var updateExpr expression.UpdateBuilder
+	if update.LastUpdated != nil {
+		updateExpr = expression.Set(
+			expression.Name("Workflow.lastUpdated"),
+			expression.Value(time.Time(*update.LastUpdated).Format(time.RFC3339Nano)),
+		)
+	}
+	if update.Status != nil {
+		updateExpr = updateExpr.Set(
+			expression.Name("Workflow.status"),
+			expression.Value(*update.Status),
+		)
+	}
+	if update.StatusReason != nil {
+		updateExpr = updateExpr.Set(
+			expression.Name("Workflow.statusReason"),
+			expression.Value(*update.StatusReason),
+		)
+	}
+	if update.StoppedAt != nil {
+		updateExpr = updateExpr.Set(
+			expression.Name("Workflow.stoppedAt"),
+			expression.Value(time.Time(*update.StoppedAt).Format(time.RFC3339Nano)),
+		)
+	}
+	if update.ResolvedByUser != nil {
+		updateExpr = updateExpr.Set(
+			expression.Name("Workflow.resolvedByUser"),
+			expression.Value(*update.ResolvedByUser),
+		)
+	}
+	if update.Output != nil {
+		updateExpr = updateExpr.Set(
+			expression.Name("Workflow.output"),
+			expression.Value(*update.Output),
+		)
+	}
+	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
+	if err != nil {
+		return err
+	}
+	if _, err := d.ddb.UpdateItem(&dynamodb.UpdateItemInput{
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		Key:                       map[string]*dynamodb.AttributeValue{"id": {S: aws.String(workflowID)}},
+		ReturnValues:              aws.String(dynamodb.ReturnValueNone),
+		TableName:                 aws.String(d.workflowsTable()),
+		UpdateExpression:          expr.Update(),
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 type byLastUpdatedTime []models.Workflow

@@ -19,7 +19,12 @@ type Dependencies struct{}
 
 // Environment has environment variables and their values
 type Environment struct {
-	KinesisStreamArn string
+	KinesisStreamArn                   string
+	AwsDynamoRegion                    string
+	AwsDynamoPrefixWorkflows           string
+	AwsDynamoPrefixStateResources      string
+	AwsDynamoPrefixWorkflowDefinitions string
+	AwsSfnRegion                       string
 }
 
 // AwsResources contains string IDs that will help for accessing various AWS resources
@@ -30,7 +35,14 @@ func InitLaunchConfig() LaunchConfig {
 	return LaunchConfig{
 		AwsResources: AwsResources{},
 		Deps:         Dependencies{},
-		Env:          Environment{KinesisStreamArn: requireEnvVar("KINESIS_STREAM_ARN")},
+		Env: Environment{
+			AwsDynamoPrefixStateResources:      requireEnvVar("AWS_DYNAMO_PREFIX_STATE_RESOURCES"),
+			AwsDynamoPrefixWorkflowDefinitions: requireEnvVar("AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS"),
+			AwsDynamoPrefixWorkflows:           requireEnvVar("AWS_DYNAMO_PREFIX_WORKFLOWS"),
+			AwsDynamoRegion:                    requireEnvVar("AWS_DYNAMO_REGION"),
+			AwsSfnRegion:                       requireEnvVar("AWS_SFN_REGION"),
+			KinesisStreamArn:                   requireEnvVar("KINESIS_STREAM_ARN"),
+		},
 	}
 }
 

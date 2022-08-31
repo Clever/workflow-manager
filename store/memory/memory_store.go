@@ -8,7 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-openapi/strfmt"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
@@ -247,6 +247,33 @@ func (s MemoryStore) GetWorkflowByID(ctx context.Context, id string) (models.Wor
 	}
 
 	return s.workflows[id], nil
+}
+
+func (s *MemoryStore) UpdateWorkflowAttributes(ctx context.Context, id string, update store.UpdateWorkflowAttributesInput) error {
+	wf, ok := s.workflows[id]
+	if !ok {
+		return store.NewNotFound(id)
+	}
+	if update.LastUpdated != nil {
+		wf.LastUpdated = *update.LastUpdated
+	}
+	if update.Status != nil {
+		wf.Status = *update.Status
+	}
+	if update.StatusReason != nil {
+		wf.StatusReason = *update.StatusReason
+	}
+	if update.StoppedAt != nil {
+		wf.StoppedAt = strfmt.DateTime(*update.StoppedAt)
+	}
+	if update.ResolvedByUser != nil {
+		wf.ResolvedByUser = *update.ResolvedByUser
+	}
+	if update.Output != nil {
+		wf.Output = *update.Output
+	}
+	s.workflows[id] = wf
+	return nil
 }
 
 type byLastUpdatedTime []models.Workflow

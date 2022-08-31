@@ -8,5 +8,6 @@ import (
 )
 
 func TestMemoryStore(t *testing.T) {
-	tests.RunStoreTests(t, func() store.Store { return New() })
+	s := New()
+	tests.RunStoreTests(t, func() store.Store { return &s })
 }

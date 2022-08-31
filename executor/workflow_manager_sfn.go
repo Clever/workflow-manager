@@ -192,7 +192,7 @@ func loggingConfiguration(logGroupARN string) *sfn.LoggingConfiguration {
 			},
 		}},
 		Level:                aws.String(sfn.LogLevelAll),
-		IncludeExecutionData: aws.Bool(true),
+		IncludeExecutionData: aws.Bool(true), // we need execution output data specifically when setting workflow.Output
 	}
 }
 

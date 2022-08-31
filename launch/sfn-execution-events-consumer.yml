@@ -12,6 +12,13 @@ deploy_config:
   - clever-dev
 env:
 - KINESIS_STREAM_ARN
+- AWS_DYNAMO_REGION
+- AWS_DYNAMO_PREFIX_WORKFLOWS
+- AWS_DYNAMO_PREFIX_STATE_RESOURCES 
+- AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS
+- AWS_SFN_REGION
+aws:
+  custom: true
 lambda:
   Timeout: 10 # seconds
   NoVPC: true # if the lambda depends on internal services, set this to false
