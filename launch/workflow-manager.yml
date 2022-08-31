@@ -13,8 +13,8 @@ resources:
   cpu: 0.5
   max_mem: 1.0
 autoscaling:
-  min_count: 10
-  max_count: 10
+  min_count: 16
+  max_count: 16
 aws:
   sqs:
     read:
