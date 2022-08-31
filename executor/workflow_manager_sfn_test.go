@@ -21,6 +21,7 @@ import (
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 	"github.com/Clever/workflow-manager/store/memory"
+	"github.com/Clever/workflow-manager/wfupdater"
 )
 
 type sfnManagerTestController struct {
@@ -686,7 +687,7 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 			ReverseOrder: aws.Bool(true),
 		}).
 		Return(&sfn.GetExecutionHistoryOutput{
-			Events: reverseHistory(events),
+			Events: wfupdater.ReverseHistory(events),
 		}, nil).
 		Times(1)
 
@@ -760,7 +761,7 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			ReverseOrder: aws.Bool(true),
 		}).
 		Return(&sfn.GetExecutionHistoryOutput{
-			Events: reverseHistory(events),
+			Events: wfupdater.ReverseHistory(events),
 		}, nil).
 		Times(1)
 
@@ -1143,7 +1144,7 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 			ReverseOrder: aws.Bool(true),
 		}).
 		Return(&sfn.GetExecutionHistoryOutput{
-			Events: reverseHistory(events),
+			Events: wfupdater.ReverseHistory(events),
 		}, nil).
 		Times(1)
 
@@ -1215,7 +1216,7 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 			ReverseOrder: aws.Bool(true),
 		}).
 		Return(&sfn.GetExecutionHistoryOutput{
-			Events: reverseHistory(events),
+			Events: wfupdater.ReverseHistory(events),
 		}, nil).
 		Times(1)
 
@@ -1246,7 +1247,7 @@ func TestReverseHistory(t *testing.T) {
 		jobCreatedEvent,
 	}
 
-	assert.Equal(t, reversedEvents, reverseHistory(events))
+	assert.Equal(t, reversedEvents, wfupdater.ReverseHistory(events))
 }
 
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
