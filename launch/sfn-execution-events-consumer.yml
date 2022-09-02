@@ -31,4 +31,4 @@ lambda:
         StartingPosition: LATEST
         BatchSize: 100
 pod_config:
-  group: us-west-1
+  group: us-west-2
