@@ -1,0 +1,34 @@
+run:
+  type: lambda
+  architecture: arm64
+resources:
+  max_mem: 0.1
+shepherds:
+- rafael.garcia@clever.com
+team: eng-infra
+deploy_config:
+  autoDeployEnvs:
+  - production
+  - clever-dev
+env:
+- KINESIS_STREAM_ARN
+- AWS_DYNAMO_REGION
+- AWS_DYNAMO_PREFIX_WORKFLOWS
+- AWS_DYNAMO_PREFIX_STATE_RESOURCES 
+- AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS
+- AWS_SFN_REGION
+aws:
+  custom: true
+lambda:
+  Timeout: 10 # seconds
+  NoVPC: true # if the lambda depends on internal services, set this to false
+  # MaxConcurrent: 10 # maximum concurrent lambda executions
+  Events:
+    SFNEvents:
+      Type: Kinesis
+      Properties:
+        Stream: ${KINESIS_STREAM_ARN}
+        StartingPosition: LATEST
+        BatchSize: 100
+pod_config:
+  group: us-west-2

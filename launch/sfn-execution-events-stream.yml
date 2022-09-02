@@ -1,0 +1,38 @@
+type: kinesis-streams
+team: eng-infra
+application: workflow-manager
+dev:
+  region: us-west-2
+  retentionPeriodHours: 24
+  shardCount: 1
+  alarms: []
+prod:
+  region: us-west-1
+  retentionPeriodHours: 24
+  shardCount: 1
+  alarms:
+  # hitting 75% of read or write capacity
+  - type: KinesisLimitsAlarm
+    severity: minor
+    parameters:
+      threshold: .75
+      period: 60
+      evaluationPeriods: 5
+  # consumers falling behind more than 30 minutes
+  - type: KinesisDelaysAlarm
+    severity: minor
+    runbookURL: ""
+    tips: "Workflow Manager is falling behind state machine events, consider increasing shard count of the kinesis stream, which will create more lambda consumers."
+    parameters:
+      threshold: 2700000 # = 45 minutes * 60000 millis / minute
+      period: 60
+      evaluationPeriods: 15
+  # consumers falling behind more than 60 minutes
+  - type: KinesisDelaysAlarm
+    severity: major
+    runbookURL: ""
+    tips: "Workflow Manager is falling behind state machine events, consider increasing shard count of the kinesis stream, which will create more lambda consumers."
+    parameters:
+      threshold: 3600000 # = 60 minutes * 60000 millis / minute
+      period: 60
+      evaluationPeriods: 1

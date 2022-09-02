@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/go-openapi/strfmt"
 )
 
 // Store defines the interface for persistence of Workflow Manager resources.
@@ -24,6 +25,18 @@ type Store interface {
 	DeleteWorkflowByID(ctx context.Context, workflowID string) error
 	UpdateWorkflow(ctx context.Context, workflow models.Workflow) error
 	GetWorkflowByID(ctx context.Context, id string) (models.Workflow, error)
+	UpdateWorkflowAttributes(ctx context.Context, id string, update UpdateWorkflowAttributesInput) error
+}
+
+// UpdateWorkflowAttributesInput represents updates to one or more attributes of a workflow.
+// A non-nil struct field represents an attribute to update.
+type UpdateWorkflowAttributesInput struct {
+	LastUpdated    *strfmt.DateTime
+	Status         *models.WorkflowStatus
+	StatusReason   *string
+	StoppedAt      *strfmt.DateTime
+	ResolvedByUser *bool
+	Output         *string
 }
 
 type ConflictError struct {
