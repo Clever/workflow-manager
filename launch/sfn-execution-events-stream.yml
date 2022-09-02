@@ -7,7 +7,7 @@ dev:
   shardCount: 1
   alarms: []
 prod:
-  region: us-west-1
+  region: us-west-2
   retentionPeriodHours: 24
   shardCount: 1
   alarms:
