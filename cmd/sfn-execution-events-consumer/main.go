@@ -159,9 +159,12 @@ func ptrStatus(s models.WorkflowStatus) *models.WorkflowStatus {
 }
 
 func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error {
+	wfid := execIDFromARN(evt.ExecutionARN)
+	logger.FromContext(ctx).AddContext("id", wfid)
 	var update store.UpdateWorkflowAttributesInput
 	if evt.ID == "2" {
 		update.Status = ptrStatus(models.WorkflowStatusRunning)
+		logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
 		return h.store.UpdateWorkflowAttributes(ctx, execIDFromARN(evt.ExecutionARN), update)
 	}
 
@@ -176,7 +179,6 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 		update.StoppedAt = &stoppedAt
 
 	}
-
 	switch evt.Type {
 	case "ExecutionAborted":
 		update.Status = ptrStatus(models.WorkflowStatusCancelled)
@@ -229,6 +231,7 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 	if update.ZeroValue() {
 		return nil // no updates to perform
 	}
+	logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
 	return h.store.UpdateWorkflowAttributes(ctx, execIDFromARN(evt.ExecutionARN), update)
 }
 
