@@ -58,7 +58,7 @@ func (h Handler) Handle(ctx context.Context, input events.KinesisEvent) error {
 	}
 	if err := h.handle(ctx, input); err != nil {
 		logger.FromContext(ctx).ErrorD("error", logger.M{
-			"error": err,
+			"error": err.Error(),
 		})
 		// do not return the error, as we need to guarantee that the lambda continues to process events
 	}
