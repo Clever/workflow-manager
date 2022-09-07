@@ -248,11 +248,17 @@ func (wm *SFNWorkflowManager) updateLoggingConfiguration(ctx context.Context, st
 		return err
 	}
 	logger.FromContext(ctx).InfoD("update-logging-configuration", logger.M{"state-machine-arn": stateMachineARN})
-	_, err := wm.sfnapi.UpdateStateMachineWithContext(ctx, &sfn.UpdateStateMachineInput{
+	if _, err := wm.sfnapi.UpdateStateMachineWithContext(ctx, &sfn.UpdateStateMachineInput{
 		LoggingConfiguration: lc,
 		StateMachineArn:      aws.String(stateMachineARN),
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	// seeing some eventual consistency in the update behavior... e.g. if an execution is started
+	// shortly after calling UpdateStateMachine, the logging configuration may not have taken hold yet.
+	// wait a bit to make sure the update is complete
+	time.Sleep(2 * time.Second)
+	return nil
 }
 
 const loggingFeatureFlagKey = "wfm-cwlogs"
@@ -280,6 +286,8 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 		})
 	if err == nil {
 		// logging configuration is something we have recently added and might not be present yet
+		// describestatemachine is cached (see sfncache package in this repo) so we need to be careful about using
+		// the output repeatedly. Use the updatedLoggingConfig map to track this
 		_, alreadyUpdated := wm.updatedLoggingConfig.Load(*describeOutput.StateMachineArn)
 		if !alreadyUpdated && wm.loggingEnabled(namespace, wd.Name) && (describeOutput.LoggingConfiguration == nil || aws.StringValue(describeOutput.LoggingConfiguration.Level) != sfn.LogLevelAll) {
 			if err := wm.updateLoggingConfiguration(ctx, *describeOutput.StateMachineArn, tags,
