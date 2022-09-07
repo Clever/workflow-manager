@@ -142,10 +142,20 @@ type HistoryEvent struct {
 	*/
 }
 
-// execIDFromARN extracts the execution ID (i.e. our workflow ID) from the execution ARN
-func execIDFromARN(arn string) string {
+// execIDFromExecutionARN extracts the execution ID (i.e. our workflow ID) from the execution ARN
+// e.g. arn:aws:states:us-west-2:589690932525:execution:clever-dev--sfncli-dummy-worker-master--2--start:cdc2f7f2-787f-4d0e-be4a-e32f427bc824
+// -> cdc2f7f2-787f-4d0e-be4a-e32f427bc824
+func execIDFromExecutionARN(arn string) string {
 	parts := strings.Split(arn, ":")
 	return parts[len(parts)-1]
+}
+
+// stateMachineFromExecutionARN extracts the state machine name from the execution ARN
+// e.g. arn:aws:states:us-west-2:589690932525:execution:clever-dev--sfncli-dummy-worker-master--2--start:cdc2f7f2-787f-4d0e-be4a-e32f427bc824
+// -> clever-dev--sfncli-dummy-worker-master--2--start
+func stateMachineFromExecutionARN(arn string) string {
+	parts := strings.Split(arn, ":")
+	return parts[len(parts)-2]
 }
 
 // unixMilli returns the local Time corresponding to the given Unix time, msec milliseconds since January 1, 1970 UTC.
@@ -159,13 +169,15 @@ func ptrStatus(s models.WorkflowStatus) *models.WorkflowStatus {
 }
 
 func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error {
-	wfid := execIDFromARN(evt.ExecutionARN)
-	logger.FromContext(ctx).AddContext("id", wfid)
+	execID := execIDFromExecutionARN(evt.ExecutionARN)
+	smName := stateMachineFromExecutionARN(evt.ExecutionARN)
+	logger.FromContext(ctx).AddContext("id", execID)
+	logger.FromContext(ctx).AddContext("sm", smName)
 	var update store.UpdateWorkflowAttributesInput
 	if evt.ID == "2" {
 		update.Status = ptrStatus(models.WorkflowStatusRunning)
 		logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
-		return h.store.UpdateWorkflowAttributes(ctx, execIDFromARN(evt.ExecutionARN), update)
+		return h.store.UpdateWorkflowAttributes(ctx, execID, update)
 	}
 
 	// on terminal events, update StoppedAt
@@ -204,7 +216,7 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 	// Populate the last job within WorkflowSummary on failures so that workflows can be
 	// more easily searched for and bucketed by failure state.
 	if update.Status != nil && (*update.Status == models.WorkflowStatusFailed) {
-		workflow, err := h.store.GetWorkflowByID(ctx, execIDFromARN(evt.ExecutionARN))
+		workflow, err := h.store.GetWorkflowByID(ctx, execID)
 		if err != nil {
 			return err
 		}
@@ -232,7 +244,7 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 		return nil // no updates to perform
 	}
 	logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
-	return h.store.UpdateWorkflowAttributes(ctx, execIDFromARN(evt.ExecutionARN), update)
+	return h.store.UpdateWorkflowAttributes(ctx, execID, update)
 }
 
 func main() {
