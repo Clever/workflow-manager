@@ -39,6 +39,29 @@ type UpdateWorkflowAttributesInput struct {
 	Output         *string
 }
 
+// ZeroValue returns whether the struct has not had any fields set.
+func (u UpdateWorkflowAttributesInput) ZeroValue() bool {
+	if u.LastUpdated != nil {
+		return false
+	}
+	if u.Status != nil {
+		return false
+	}
+	if u.StatusReason != nil {
+		return false
+	}
+	if u.StoppedAt != nil {
+		return false
+	}
+	if u.ResolvedByUser != nil {
+		return false
+	}
+	if u.Output != nil {
+		return false
+	}
+	return true
+}
+
 type ConflictError struct {
 	name string
 }

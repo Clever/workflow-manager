@@ -282,7 +282,6 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 				loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))); err != nil {
 				return nil, err
 			}
-			return wm.describeOrCreateStateMachine(ctx, wd, namespace, queue)
 		}
 		return describeOutput, nil
 	}
@@ -392,7 +391,9 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	workflow := resources.NewWorkflow(&wd, input, namespace, queue, mergedTags)
 	logger.FromContext(ctx).AddContext("workflow-id", workflow.ID)
 
-	if !wm.loggingEnabled(namespace, wd.Name) {
+	if wm.loggingEnabled(namespace, wd.Name) {
+		logger.FromContext(ctx).Info("skipping-sqs-send-message")
+	} else {
 		if err := createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL); err != nil {
 			// this error is logged in createPendingWorkflow with title "sqs-send-message"
 			return nil, err

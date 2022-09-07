@@ -96,7 +96,11 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 	if err := json.Unmarshal(byt, &d); err != nil {
 		return err
 	}
-	logger.FromContext(ctx).InfoD("received", logger.M{"count": len(d.LogEvents)})
+	if !strings.HasPrefix(d.LogStream, "states/") {
+		logger.FromContext(ctx).InfoD("skipped", logger.M{"stream": d.LogStream, "count": len(d.LogEvents)})
+		return nil
+	}
+	logger.FromContext(ctx).InfoD("received", logger.M{"stream": d.LogStream, "count": len(d.LogEvents)})
 	for _, evt := range d.LogEvents {
 		var historyEvent HistoryEvent
 		if err := json.Unmarshal([]byte(evt.Message), &historyEvent); err != nil {
@@ -222,6 +226,9 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 		})
 	}
 
+	if update.ZeroValue() {
+		return nil // no updates to perform
+	}
 	return h.store.UpdateWorkflowAttributes(ctx, execIDFromARN(evt.ExecutionARN), update)
 }
 
