@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Clever/workflow-manager/executor/sfnconventions"
@@ -56,6 +57,7 @@ type SFNWorkflowManager struct {
 	executionEventsStreamARN string
 	cwLogsToKinesisRoleARN   string
 	featureFlagClient        featureflag.Client
+	updatedLoggingConfig     sync.Map
 }
 
 func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, cwlogsapi cloudwatchlogsiface.CloudWatchLogsAPI, store store.Store, featureFlagClient featureflag.Client, roleARN, region, accountID, sqsQueueURL, executionEventsStreamARN, cwLogsToKinesisRoleARN string) *SFNWorkflowManager {
@@ -245,6 +247,7 @@ func (wm *SFNWorkflowManager) updateLoggingConfiguration(ctx context.Context, st
 	if err := wm.createLogGroupsForLoggingConfiguration(ctx, tags, lc); err != nil {
 		return err
 	}
+	logger.FromContext(ctx).InfoD("update-logging-configuration", logger.M{"state-machine-arn": stateMachineARN})
 	_, err := wm.sfnapi.UpdateStateMachineWithContext(ctx, &sfn.UpdateStateMachineInput{
 		LoggingConfiguration: lc,
 		StateMachineArn:      aws.String(stateMachineARN),
@@ -277,20 +280,24 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 		})
 	if err == nil {
 		// logging configuration is something we have recently added and might not be present yet
-		if wm.loggingEnabled(namespace, wd.Name) && (describeOutput.LoggingConfiguration == nil || aws.StringValue(describeOutput.LoggingConfiguration.Level) != sfn.LogLevelAll) {
+		_, alreadyUpdated := wm.updatedLoggingConfig.Load(*describeOutput.StateMachineArn)
+		if !alreadyUpdated && wm.loggingEnabled(namespace, wd.Name) && (describeOutput.LoggingConfiguration == nil || aws.StringValue(describeOutput.LoggingConfiguration.Level) != sfn.LogLevelAll) {
 			if err := wm.updateLoggingConfiguration(ctx, *describeOutput.StateMachineArn, tags,
 				loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))); err != nil {
 				return nil, err
 			}
+			wm.updatedLoggingConfig.Store(*describeOutput.StateMachineArn, struct{}{})
+			return wm.describeOrCreateStateMachine(ctx, wd, namespace, queue)
 		}
 		return describeOutput, nil
-	}
-	awserr, ok := err.(awserr.Error)
-	if !ok {
-		return nil, fmt.Errorf("non-AWS error in findOrCreateStateMachine: %s", err)
-	}
-	if awserr.Code() != sfn.ErrCodeStateMachineDoesNotExist {
-		return nil, fmt.Errorf("unexpected AWS error in findOrCreateStateMachine: %s", awserr)
+	} else {
+		awserr, ok := err.(awserr.Error)
+		if !ok {
+			return nil, fmt.Errorf("non-AWS error in findOrCreateStateMachine: %s", err)
+		}
+		if awserr.Code() != sfn.ErrCodeStateMachineDoesNotExist {
+			return nil, fmt.Errorf("unexpected AWS error in findOrCreateStateMachine: %s", awserr)
+		}
 	}
 
 	// state machine doesn't exist, create it

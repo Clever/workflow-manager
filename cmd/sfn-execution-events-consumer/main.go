@@ -97,10 +97,10 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 		return err
 	}
 	if !strings.HasPrefix(d.LogStream, "states/") {
-		logger.FromContext(ctx).InfoD("skipped", logger.M{"stream": d.LogStream, "count": len(d.LogEvents)})
+		logger.FromContext(ctx).InfoD("skipped", logger.M{"group": d.LogGroup, "stream": d.LogStream, "count": len(d.LogEvents)})
 		return nil
 	}
-	logger.FromContext(ctx).InfoD("received", logger.M{"stream": d.LogStream, "count": len(d.LogEvents)})
+	logger.FromContext(ctx).InfoD("received", logger.M{"group": d.LogGroup, "stream": d.LogStream, "count": len(d.LogEvents)})
 	for _, evt := range d.LogEvents {
 		var historyEvent HistoryEvent
 		if err := json.Unmarshal([]byte(evt.Message), &historyEvent); err != nil {
