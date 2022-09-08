@@ -2,6 +2,7 @@ package dynamodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -603,6 +604,10 @@ func (d DynamoDB) UpdateWorkflowAttributes(ctx context.Context, workflowID strin
 	}
 	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
 	if err != nil {
+		var unsetError expression.UnsetParameterError
+		if errors.As(err, &unsetError) {
+			return errors.New("no updates provided to UpdateWorkflowAttributes")
+		}
 		return err
 	}
 	if _, err := d.ddb.UpdateItem(&dynamodb.UpdateItemInput{

@@ -78,3 +78,4 @@ install_deps:
 	done
 	bin/mockgen -package mocks -source ./executor/workflow_manager.go -destination mocks/mock_workflow_manager.go WorkflowManager
 	bin/mockgen -package mocks -source ./store/store.go -destination mocks/mock_store.go Store
+	bin/mockgen -package mocks -source ./featureflag/featureflag.go -destination=mocks/mock_feature_flag.go

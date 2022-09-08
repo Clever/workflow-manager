@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/go-openapi/strfmt"
@@ -37,6 +38,53 @@ type UpdateWorkflowAttributesInput struct {
 	StoppedAt      *strfmt.DateTime
 	ResolvedByUser *bool
 	Output         *string
+}
+
+// Map returns a map version of the update
+func (u UpdateWorkflowAttributesInput) Map() map[string]interface{} {
+	m := make(map[string]interface{})
+	if u.LastUpdated != nil {
+		m["last_updated"] = time.Time(*u.LastUpdated).Format(time.RFC3339Nano)
+	}
+	if u.Status != nil {
+		m["status"] = string(*u.Status)
+	}
+	if u.StatusReason != nil {
+		m["status_reason"] = *u.StatusReason
+	}
+	if u.StoppedAt != nil {
+		m["stopped_at"] = time.Time(*u.StoppedAt).Format(time.RFC3339Nano)
+	}
+	if u.ResolvedByUser != nil {
+		m["resolved_by_user"] = *u.ResolvedByUser
+	}
+	if u.Output != nil {
+		m["output"] = *u.Output
+	}
+	return m
+}
+
+// ZeroValue returns whether the struct has not had any fields set.
+func (u UpdateWorkflowAttributesInput) ZeroValue() bool {
+	if u.LastUpdated != nil {
+		return false
+	}
+	if u.Status != nil {
+		return false
+	}
+	if u.StatusReason != nil {
+		return false
+	}
+	if u.StoppedAt != nil {
+		return false
+	}
+	if u.ResolvedByUser != nil {
+		return false
+	}
+	if u.Output != nil {
+		return false
+	}
+	return true
 }
 
 type ConflictError struct {
