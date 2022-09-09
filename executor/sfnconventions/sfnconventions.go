@@ -64,8 +64,9 @@ func StateMachineArn(region, accountID, wdName string, wdVersion int64, namespac
 }
 
 // LogGroupArn constructs the Cloudwatch Logs log group name for a state machine.
+// They must start with /aws/vendedlogs/states/. See https://docs.aws.amazon.com/step-functions/latest/dg/bp-cwl.html
 func LogGroupArn(region, accountID, stateMachineName string) string {
-	return fmt.Sprintf("arn:aws:logs:%s:%s:log-group:/sfn/%s:*", region, accountID, stateMachineName)
+	return fmt.Sprintf("arn:aws:logs:%s:%s:log-group:/aws/vendedlogs/states/%s:*", region, accountID, stateMachineName)
 }
 
 // SFNCLIResource is the activity ARN registered by SFNCLI.
