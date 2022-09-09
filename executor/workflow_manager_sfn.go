@@ -289,7 +289,8 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 		// describestatemachine is cached (see sfncache package in this repo) so we need to be careful about using
 		// the output repeatedly. Use the updatedLoggingConfig map to track this
 		_, alreadyUpdated := wm.updatedLoggingConfig.Load(*describeOutput.StateMachineArn)
-		if !alreadyUpdated && wm.loggingEnabled(namespace, wd.Name) && (describeOutput.LoggingConfiguration == nil || aws.StringValue(describeOutput.LoggingConfiguration.Level) != sfn.LogLevelAll) {
+		if !alreadyUpdated && wm.loggingEnabled(namespace, wd.Name) && (describeOutput.LoggingConfiguration == nil || aws.StringValue(describeOutput.LoggingConfiguration.Level) != sfn.LogLevelAll ||
+			(len(describeOutput.LoggingConfiguration.Destinations) > 0 && !strings.Contains(aws.StringValue(describeOutput.LoggingConfiguration.Destinations[0].CloudWatchLogsLogGroup.LogGroupArn), "log-group:/aws/vendedlogs/states/"))) {
 			if err := wm.updateLoggingConfiguration(ctx, *describeOutput.StateMachineArn, tags,
 				loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))); err != nil {
 				return nil, err
