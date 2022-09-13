@@ -9,7 +9,7 @@ dev:
 prod:
   region: us-west-2
   retentionPeriodHours: 24
-  shardCount: 1
+  shardCount: 2
   alarms:
   # hitting 75% of read or write capacity
   - type: KinesisLimitsAlarm
