@@ -2,7 +2,7 @@ run:
   type: lambda
   architecture: arm64
 resources:
-  max_mem: 0.1
+  max_mem: 0.5
 shepherds:
 - rafael.garcia@clever.com
 team: eng-infra
