@@ -208,8 +208,8 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 		}
 	}
 
-	// we consider any successful or canceled workflow as "resolved"
-	if update.Status != nil && (*update.Status == models.WorkflowStatusSucceeded || *update.Status == models.WorkflowStatusCancelled) {
+	// we consider any completed workflow as "resolved"
+	if update.Status != nil && (*update.Status == models.WorkflowStatusSucceeded || *update.Status == models.WorkflowStatusCancelled || *update.Status == models.WorkflowStatusFailed) {
 		update.ResolvedByUser = aws.Bool(true)
 	}
 
