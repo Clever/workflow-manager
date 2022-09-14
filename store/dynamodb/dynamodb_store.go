@@ -602,6 +602,12 @@ func (d DynamoDB) UpdateWorkflowAttributes(ctx context.Context, workflowID strin
 			expression.Value(*update.Output),
 		)
 	}
+	if update.LastJob != nil {
+		updateExpr = updateExpr.Set(
+			expression.Name("Workflow.lastJob"),
+			expression.Value(*update.LastJob),
+		)
+	}
 	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
 	if err != nil {
 		var unsetError expression.UnsetParameterError

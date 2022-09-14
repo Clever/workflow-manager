@@ -230,8 +230,9 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 			if workflow.LastJob.StateResource != nil {
 				failedJobResource = workflow.LastJob.StateResource.Name
 			}
+			update.LastJob = workflow.LastJob
 		}
-		logger.FromContext(ctx).CounterD("workflow-failed", 1, logger.M{
+		logger.FromContext(ctx).InfoD("workflow-failed", logger.M{
 			"workflow-name":       workflow.WorkflowDefinition.Name,
 			"workflow-version":    workflow.WorkflowDefinition.Version,
 			"workflow-id":         workflow.ID,

@@ -38,6 +38,7 @@ type UpdateWorkflowAttributesInput struct {
 	StoppedAt      *strfmt.DateTime
 	ResolvedByUser *bool
 	Output         *string
+	LastJob        *models.Job
 }
 
 // Map returns a map version of the update

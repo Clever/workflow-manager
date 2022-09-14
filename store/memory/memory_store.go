@@ -272,6 +272,9 @@ func (s *MemoryStore) UpdateWorkflowAttributes(ctx context.Context, id string, u
 	if update.Output != nil {
 		wf.Output = *update.Output
 	}
+	if update.LastJob != nil {
+		wf.LastJob = update.LastJob
+	}
 	s.workflows[id] = wf
 	return nil
 }
