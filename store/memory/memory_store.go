@@ -258,6 +258,9 @@ func (s *MemoryStore) UpdateWorkflowAttributes(ctx context.Context, id string, u
 		wf.LastUpdated = *update.LastUpdated
 	}
 	if update.Status != nil {
+		if store.TerminalState(wf.Status) && !store.TerminalState(*update.Status) {
+			return store.ErrUpdatingWorkflowFromTerminalToNonTerminalState
+		}
 		wf.Status = *update.Status
 	}
 	if update.StatusReason != nil {

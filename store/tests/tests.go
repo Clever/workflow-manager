@@ -347,5 +347,12 @@ func UpdateWorkflowAttributes(s store.Store, t *testing.T) func(t *testing.T) {
 		assert.Equal(t, time.Time(updatedWorkflow.StoppedAt).Format(time.RFC3339Nano), time.Time(*update.StoppedAt).Format(time.RFC3339Nano))
 		assert.Equal(t, updatedWorkflow.ResolvedByUser, *update.ResolvedByUser)
 		assert.Equal(t, updatedWorkflow.Output, *update.Output)
+
+		// don't allow updating from terminal to non-terminal state
+		update = store.UpdateWorkflowAttributesInput{
+			LastUpdated: &now,
+			Status:      ptrStatus(models.WorkflowStatusRunning),
+		}
+		assert.Equal(t, store.ErrUpdatingWorkflowFromTerminalToNonTerminalState, s.UpdateWorkflowAttributes(ctx, workflow.ID, update))
 	}
 }

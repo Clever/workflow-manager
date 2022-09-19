@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -86,6 +87,26 @@ func (u UpdateWorkflowAttributesInput) ZeroValue() bool {
 		return false
 	}
 	return true
+}
+
+// ErrUpdatingWorkflowFromTerminalToNonTerminalState is returned when a workflow is updated from a terminal state to a non-terminal state.
+var ErrUpdatingWorkflowFromTerminalToNonTerminalState = errors.New("cannot update workflow from terminal to non-terminal state")
+
+// TerminalStates is a list of terminal states.
+var TerminalStates = []models.WorkflowStatus{
+	models.WorkflowStatusSucceeded,
+	models.WorkflowStatusFailed,
+	models.WorkflowStatusCancelled,
+}
+
+// TerminalState returns true if a workflow state is terminal
+func TerminalState(state models.WorkflowStatus) bool {
+	for _, s := range TerminalStates {
+		if state == s {
+			return true
+		}
+	}
+	return false
 }
 
 type ConflictError struct {

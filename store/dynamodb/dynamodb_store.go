@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -608,15 +609,25 @@ func (d DynamoDB) UpdateWorkflowAttributes(ctx context.Context, workflowID strin
 			expression.Value(*update.LastJob),
 		)
 	}
-	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
+
+	builder := expression.NewBuilder().WithUpdate(updateExpr)
+
+	// add a condition expression to protect against events out of order and
+	// accidentally setting a workflow to a non-terminal state if it is already in a terminal state
+	if update.Status != nil && !store.TerminalState(*update.Status) {
+		builder = builder.WithCondition(notTerminalStateCondition())
+	}
+
+	expr, err := builder.Build()
 	if err != nil {
 		var unsetError expression.UnsetParameterError
 		if errors.As(err, &unsetError) {
-			return errors.New("no updates provided to UpdateWorkflowAttributes")
+			return fmt.Errorf("no updates provided to UpdateWorkflowAttributes")
 		}
 		return err
 	}
 	if _, err := d.ddb.UpdateItem(&dynamodb.UpdateItemInput{
+		ConditionExpression:       expr.Condition(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		Key:                       map[string]*dynamodb.AttributeValue{"id": {S: aws.String(workflowID)}},
@@ -624,7 +635,11 @@ func (d DynamoDB) UpdateWorkflowAttributes(ctx context.Context, workflowID strin
 		TableName:                 aws.String(d.workflowsTable()),
 		UpdateExpression:          expr.Update(),
 	}); err != nil {
-		return err
+		if strings.Contains(err.Error(), "conditional request failed") {
+			return store.ErrUpdatingWorkflowFromTerminalToNonTerminalState
+		} else {
+			return err
+		}
 	}
 	return nil
 }
@@ -635,4 +650,13 @@ func (b byLastUpdatedTime) Len() int      { return len(b) }
 func (b byLastUpdatedTime) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 func (b byLastUpdatedTime) Less(i, j int) bool {
 	return time.Time(b[i].LastUpdated).Before(time.Time(b[j].LastUpdated))
+}
+
+// notTerminalStateCondition returns a condition expression that evaluates to true if the workflow is not in a terminal state
+func notTerminalStateCondition() expression.ConditionBuilder {
+	condition := expression.Name("Workflow.status").NotEqual(expression.Value(string(store.TerminalStates[0])))
+	for _, state := range store.TerminalStates[1:] {
+		condition = condition.And(expression.Name("Workflow.status").NotEqual(expression.Value(string(state))))
+	}
+	return condition
 }
