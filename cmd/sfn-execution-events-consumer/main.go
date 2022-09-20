@@ -245,7 +245,14 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 		return nil // no updates to perform
 	}
 	logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
-	return h.store.UpdateWorkflowAttributes(ctx, execID, update)
+	if err := h.store.UpdateWorkflowAttributes(ctx, execID, update); err != nil {
+		if err == store.ErrUpdatingWorkflowFromTerminalToNonTerminalState {
+			logger.FromContext(ctx).Info("workflow-already-terminal")
+		} else {
+			return err
+		}
+	}
+	return nil
 }
 
 func main() {
