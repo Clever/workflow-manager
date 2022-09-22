@@ -73,9 +73,8 @@ install_deps:
 	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
 	go build -o bin/launch-gen github.com/Clever/launch-gen
 	rm -rf mocks/mock_*.go
-	for svc in dynamodb sfn sqs cloudwatchlogs; do \
+	for svc in dynamodb sfn cloudwatchlogs; do \
 	  bin/mockgen -package mocks -source ./vendor/github.com/aws/aws-sdk-go/service/$${svc}/$${svc}iface/interface.go -destination mocks/mock_$${svc}.go; \
 	done
 	bin/mockgen -package mocks -source ./executor/workflow_manager.go -destination mocks/mock_workflow_manager.go WorkflowManager
 	bin/mockgen -package mocks -source ./store/store.go -destination mocks/mock_store.go Store
-	bin/mockgen -package mocks -source ./featureflag/featureflag.go -destination=mocks/mock_feature_flag.go

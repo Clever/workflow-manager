@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Clever/workflow-manager/executor/sfnconventions"
-	"github.com/Clever/workflow-manager/featureflag"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
@@ -20,7 +19,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
-	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/mohae/deepcopy"
@@ -47,32 +45,26 @@ var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 // SFNWorkflowManager manages workflows run through AWS Step Functions.
 type SFNWorkflowManager struct {
 	sfnapi                   sfniface.SFNAPI
-	sqsapi                   sqsiface.SQSAPI
 	cwlogsapi                cloudwatchlogsiface.CloudWatchLogsAPI
 	store                    store.Store
 	region                   string
 	roleARN                  string
 	accountID                string
-	sqsQueueURL              string
 	executionEventsStreamARN string
 	cwLogsToKinesisRoleARN   string
-	featureFlagClient        featureflag.Client
 	updatedLoggingConfig     sync.Map
 }
 
-func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, sqsapi sqsiface.SQSAPI, cwlogsapi cloudwatchlogsiface.CloudWatchLogsAPI, store store.Store, featureFlagClient featureflag.Client, roleARN, region, accountID, sqsQueueURL, executionEventsStreamARN, cwLogsToKinesisRoleARN string) *SFNWorkflowManager {
+func NewSFNWorkflowManager(sfnapi sfniface.SFNAPI, cwlogsapi cloudwatchlogsiface.CloudWatchLogsAPI, store store.Store, roleARN, region, accountID, executionEventsStreamARN, cwLogsToKinesisRoleARN string) *SFNWorkflowManager {
 	return &SFNWorkflowManager{
 		sfnapi:                   sfnapi,
-		sqsapi:                   sqsapi,
 		cwlogsapi:                cwlogsapi,
 		store:                    store,
 		roleARN:                  roleARN,
 		region:                   region,
 		accountID:                accountID,
-		sqsQueueURL:              sqsQueueURL,
 		executionEventsStreamARN: executionEventsStreamARN,
 		cwLogsToKinesisRoleARN:   cwLogsToKinesisRoleARN,
-		featureFlagClient:        featureFlagClient,
 	}
 }
 
@@ -261,20 +253,6 @@ func (wm *SFNWorkflowManager) updateLoggingConfiguration(ctx context.Context, st
 	return nil
 }
 
-const loggingFeatureFlagKey = "wfm-cwlogs"
-
-func (wm *SFNWorkflowManager) loggingEnabled(env string, wdname string) bool {
-	if env != "production" {
-		return true // always on for workflows run in dev envs
-	}
-	isLoggingEnabled, _ := wm.featureFlagClient.BoolVariation(
-		loggingFeatureFlagKey,
-		fmt.Sprintf("workflow-definition:%s", wdname),
-		false,
-	)
-	return isLoggingEnabled
-}
-
 func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, wd models.WorkflowDefinition, namespace, queue string) (*sfn.DescribeStateMachineOutput, error) {
 	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
 	// this effectively creates a new workflow definition in each namespace we deploy into
@@ -289,7 +267,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 		// describestatemachine is cached (see sfncache package in this repo) so we need to be careful about using
 		// the output repeatedly. Use the updatedLoggingConfig map to track this
 		_, alreadyUpdated := wm.updatedLoggingConfig.Load(*describeOutput.StateMachineArn)
-		if !alreadyUpdated && wm.loggingEnabled(namespace, wd.Name) && (describeOutput.LoggingConfiguration == nil || aws.StringValue(describeOutput.LoggingConfiguration.Level) != sfn.LogLevelAll ||
+		if !alreadyUpdated && (describeOutput.LoggingConfiguration == nil || aws.StringValue(describeOutput.LoggingConfiguration.Level) != sfn.LogLevelAll ||
 			(len(describeOutput.LoggingConfiguration.Destinations) > 0 && !strings.Contains(aws.StringValue(describeOutput.LoggingConfiguration.Destinations[0].CloudWatchLogsLogGroup.LogGroupArn), "log-group:/aws/vendedlogs/states/"))) {
 			if err := wm.updateLoggingConfiguration(ctx, *describeOutput.StateMachineArn, tags,
 				loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))); err != nil {
@@ -327,12 +305,10 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	}
 	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
 	var lc *sfn.LoggingConfiguration
-	if wm.loggingEnabled(namespace, wd.Name) {
-		lc = loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))
-		// must create the log group before creating a state machine referencing the log group
-		if err := wm.createLogGroupsForLoggingConfiguration(ctx, tags, lc); err != nil {
-			return nil, err
-		}
+	lc = loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))
+	// must create the log group before creating a state machine referencing the log group
+	if err := wm.createLogGroupsForLoggingConfiguration(ctx, tags, lc); err != nil {
+		return nil, err
 	}
 	_, err = wm.sfnapi.CreateStateMachineWithContext(ctx,
 		&sfn.CreateStateMachineInput{
@@ -407,15 +383,6 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	workflow := resources.NewWorkflow(&wd, input, namespace, queue, mergedTags)
 	logger.FromContext(ctx).AddContext("workflow-id", workflow.ID)
 
-	if wm.loggingEnabled(namespace, wd.Name) {
-		logger.FromContext(ctx).Info("skipping-sqs-send-message")
-	} else {
-		if err := createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL); err != nil {
-			// this error is logged in createPendingWorkflow with title "sqs-send-message"
-			return nil, err
-		}
-	}
-
 	if err := wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
@@ -460,17 +427,9 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 	workflow.RetryFor = ogWorkflow.ID
 	ogWorkflow.Retries = append(ogWorkflow.Retries, workflow.ID)
 
-	// start the update loop and save the workflow before starting execution to ensure we don't have
+	// save the workflow before starting execution to ensure we don't have
 	// untracked executions i.e. execution was started but we failed to save workflow
 	// If we fail starting the execution, we can resolve this out of band (TODO: should support cancelling)
-
-	if !wm.loggingEnabled(ogWorkflow.Namespace, newDef.Name) {
-		if err := createPendingWorkflow(ctx, workflow.ID, wm.sqsapi, wm.sqsQueueURL); err != nil {
-			// this error is logged in createPendingWorkflow with title "sqs-send-message"
-			return nil, err
-		}
-	}
-
 	if err = wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
