@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/sfn"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/elastic/go-elasticsearch/v6"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
@@ -23,7 +22,6 @@ import (
 	counter "github.com/Clever/aws-sdk-go-counter"
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/sfncache"
-	"github.com/Clever/workflow-manager/featureflag"
 	"github.com/Clever/workflow-manager/gen-go/server"
 	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
 	"github.com/Clever/workflow-manager/gen-go/tracing"
@@ -42,12 +40,9 @@ type Config struct {
 	SFNRegion                       string
 	SFNAccountID                    string
 	SFNRoleARN                      string
-	SQSRegion                       string
-	SQSQueueURL                     string
 	ESURL                           string
 	ExecutionEventsStreamARN        string
 	CWLogsToKinesisRoleARN          string
-	LDAPIKey                        string
 }
 
 //go:embed kvconfig.yml
@@ -117,22 +112,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	sqsTransport := tracedTransport("go-aws", "sqs", func(operation string, _ *http.Request) string {
-		return operation
-	})
-	sqsapi := sqs.New(session.New(), aws.NewConfig().WithRegion(c.SQSRegion).WithHTTPClient(&http.Client{Transport: sqsTransport}))
-
 	cwlogsTransport := tracedTransport("go-aws", "cwlogs", func(operation string, _ *http.Request) string {
 		return operation
 	})
 	cwlogsapi := cloudwatchlogs.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion).WithHTTPClient(&http.Client{Transport: cwlogsTransport}))
-	featureFlagClient, err := featureflag.NewLaunchDarkly(c.LDAPIKey, 5*time.Second)
-	if err != nil {
-		log.Fatalf("Error connecting to LaunchDarkly: %s", err.Error())
-	}
-	defer featureFlagClient.Close()
 
-	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, sqsapi, cwlogsapi, db, featureFlagClient, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.SQSQueueURL, c.ExecutionEventsStreamARN, c.CWLogsToKinesisRoleARN)
+	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, cwlogsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.ExecutionEventsStreamARN, c.CWLogsToKinesisRoleARN)
 
 	es, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{c.ESURL},
@@ -157,7 +142,6 @@ func main() {
 		},
 	})
 
-	go executor.PollForPendingWorkflowsAndUpdateStore(context.Background(), wfmSFN, db, sqsapi, c.SQSQueueURL)
 	go logSFNCounts(counter)
 
 	if err := s.Serve(); err != nil {
@@ -194,12 +178,9 @@ func loadConfig() Config {
 		SFNRegion:                mustGetenv("AWS_SFN_REGION"),
 		SFNAccountID:             mustGetenv("AWS_SFN_ACCOUNT_ID"),
 		SFNRoleARN:               mustGetenv("AWS_SFN_ROLE_ARN"),
-		SQSRegion:                mustGetenv("AWS_SQS_REGION"),
-		SQSQueueURL:              mustGetenv("AWS_SQS_URL"),
 		ESURL:                    mustGetenv("ES_URL"),
 		ExecutionEventsStreamARN: mustGetenv("AWS_SFN_EXECUTION_EVENTS_STREAM_ARN"),
 		CWLogsToKinesisRoleARN:   mustGetenv("AWS_IAM_CWLOGS_TO_KINESIS_ROLE_ARN"),
-		LDAPIKey:                 mustGetenv("LD_API_KEY"),
 	}
 }
 

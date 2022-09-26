@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +27,6 @@ type sfnManagerTestController struct {
 	manager            *SFNWorkflowManager
 	mockController     *gomock.Controller
 	mockSFNAPI         *mocks.MockSFNAPI
-	mockSQSAPI         *mocks.MockSQSAPI
 	store              store.Store
 	t                  *testing.T
 	workflowDefinition *models.WorkflowDefinition
@@ -308,40 +306,6 @@ func TestCreateWorkflow(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, workflow.CreatedAt.String(), savedWorkflow.CreatedAt.String())
 		assert.Equal(t, workflow.ID, savedWorkflow.ID)
-
-		t.Log("Verify updatePendingWorkflow causes in-progress workflow to be put back into the update queue")
-		sfnExecutionARN := c.manager.executionArn(workflow, c.workflowDefinition)
-		c.mockSFNAPI.EXPECT().
-			DescribeExecutionWithContext(gomock.Any(), &sfn.DescribeExecutionInput{
-				ExecutionArn: aws.String(sfnExecutionARN),
-			}).
-			Return(&sfn.DescribeExecutionOutput{
-				Status: aws.String(sfn.ExecutionStatusRunning),
-			}, nil)
-
-		// These calls mean the message is processed and then put back into the queue
-		msg := &sqs.Message{
-			Body:          aws.String(workflow.ID),
-			ReceiptHandle: aws.String("first-message"),
-		}
-
-		c.mockSQSAPI.EXPECT().
-			SendMessageWithContext(gomock.Any(), &sqs.SendMessageInput{
-				QueueUrl:     aws.String(""),
-				DelaySeconds: aws.Int64(updateLoopDelay),
-				MessageBody:  aws.String(workflow.ID),
-			}).
-			Return(&sqs.SendMessageOutput{}, nil)
-		c.mockSQSAPI.EXPECT().
-			DeleteMessageWithContext(gomock.Any(), &sqs.DeleteMessageInput{
-				QueueUrl:      aws.String(""),
-				ReceiptHandle: aws.String("first-message"),
-			}).
-			Return(&sqs.DeleteMessageOutput{}, nil)
-
-		wfID, err := updatePendingWorkflow(ctx, msg, c.manager, c.store, c.mockSQSAPI, "")
-		assert.Nil(t, err)
-		assert.Equal(t, workflow.ID, wfID)
 	})
 
 	t.Run("CreateWorkflow with added tags", func(t *testing.T) {
@@ -1238,19 +1202,16 @@ func TestReverseHistory(t *testing.T) {
 func newSFNManagerTestController(t *testing.T) *sfnManagerTestController {
 	mockController := gomock.NewController(t)
 	mockSFNAPI := mocks.NewMockSFNAPI(mockController)
-	mockSQSAPI := mocks.NewMockSQSAPI(mockController)
 	mockCWLogsAPI := mocks.NewMockCloudWatchLogsAPI(mockController)
-	mockFeatureFlag := mocks.NewMockClient(mockController)
 	store := memory.New()
 
 	workflowDefinition := resources.KitchenSinkWorkflowDefinition(t)
 	require.NoError(t, store.SaveWorkflowDefinition(context.Background(), *workflowDefinition))
 
 	return &sfnManagerTestController{
-		manager:            NewSFNWorkflowManager(mockSFNAPI, mockSQSAPI, mockCWLogsAPI, &store, mockFeatureFlag, "", "", "", "", "", ""),
+		manager:            NewSFNWorkflowManager(mockSFNAPI, mockCWLogsAPI, &store, "", "", "", "", ""),
 		mockController:     mockController,
 		mockSFNAPI:         mockSFNAPI,
-		mockSQSAPI:         mockSQSAPI,
 		store:              &store,
 		t:                  t,
 		workflowDefinition: workflowDefinition,
