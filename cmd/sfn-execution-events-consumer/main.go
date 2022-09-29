@@ -100,7 +100,9 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 		logger.FromContext(ctx).InfoD("skipped", logger.M{"group": d.LogGroup, "stream": d.LogStream, "count": len(d.LogEvents)})
 		return nil
 	}
-	logger.FromContext(ctx).InfoD("received", logger.M{"group": d.LogGroup, "stream": d.LogStream, "count": len(d.LogEvents)})
+	logger.FromContext(ctx).AddContext("log-group", d.LogGroup)
+	logger.FromContext(ctx).AddContext("log-stream", d.LogStream)
+	logger.FromContext(ctx).InfoD("received", logger.M{"count": len(d.LogEvents)})
 	for _, evt := range d.LogEvents {
 		var historyEvent HistoryEvent
 		if err := json.Unmarshal([]byte(evt.Message), &historyEvent); err != nil {
