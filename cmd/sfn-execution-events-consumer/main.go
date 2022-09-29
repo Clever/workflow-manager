@@ -102,6 +102,12 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 	}
 	logger.FromContext(ctx).AddContext("log-group", d.LogGroup)
 	logger.FromContext(ctx).AddContext("log-stream", d.LogStream)
+	logger.FromContext(ctx).AddContext("kinesis-arrival", rec.Kinesis.ApproximateArrivalTimestamp.Format(time.RFC3339))
+	defer func() {
+		logger.FromContext(ctx).AddContext("log-group", "")
+		logger.FromContext(ctx).AddContext("log-stream", "")
+		logger.FromContext(ctx).AddContext("kinesis-arrival", "")
+	}()
 	logger.FromContext(ctx).InfoD("received", logger.M{"count": len(d.LogEvents)})
 	for _, evt := range d.LogEvents {
 		var historyEvent HistoryEvent
@@ -175,6 +181,10 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 	smName := stateMachineFromExecutionARN(evt.ExecutionARN)
 	logger.FromContext(ctx).AddContext("id", execID)
 	logger.FromContext(ctx).AddContext("sm", smName)
+	defer func() {
+		logger.FromContext(ctx).AddContext("id", "")
+		logger.FromContext(ctx).AddContext("sm", "")
+	}()
 	var update store.UpdateWorkflowAttributesInput
 	if evt.ID == "2" {
 		update.Status = ptrStatus(models.WorkflowStatusRunning)
