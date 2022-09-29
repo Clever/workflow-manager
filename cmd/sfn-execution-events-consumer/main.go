@@ -102,11 +102,11 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 	}
 	logger.FromContext(ctx).AddContext("log-group", d.LogGroup)
 	logger.FromContext(ctx).AddContext("log-stream", d.LogStream)
-	logger.FromContext(ctx).AddContext("kinesis-arrival", rec.Kinesis.ApproximateArrivalTimestamp.Format(time.RFC3339))
+	logger.FromContext(ctx).AddContext("kinesis-seq", rec.Kinesis.SequenceNumber)
 	defer func() {
 		logger.FromContext(ctx).AddContext("log-group", "")
 		logger.FromContext(ctx).AddContext("log-stream", "")
-		logger.FromContext(ctx).AddContext("kinesis-arrival", "")
+		logger.FromContext(ctx).AddContext("kinesis-seq", "")
 	}()
 	logger.FromContext(ctx).InfoD("received", logger.M{"count": len(d.LogEvents)})
 	for _, evt := range d.LogEvents {
