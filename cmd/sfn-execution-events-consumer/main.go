@@ -105,11 +105,6 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 	logger.FromContext(ctx).AddContext("log-group", d.LogGroup)
 	logger.FromContext(ctx).AddContext("log-stream", d.LogStream)
 	logger.FromContext(ctx).AddContext("kinesis-seq", rec.Kinesis.SequenceNumber)
-	defer func() {
-		logger.FromContext(ctx).AddContext("log-group", "")
-		logger.FromContext(ctx).AddContext("log-stream", "")
-		logger.FromContext(ctx).AddContext("kinesis-seq", "")
-	}()
 	logger.FromContext(ctx).InfoD("received", logger.M{"count": len(d.LogEvents)})
 	for _, evt := range d.LogEvents {
 		var historyEvent HistoryEvent
@@ -181,12 +176,8 @@ func ptrStatus(s models.WorkflowStatus) *models.WorkflowStatus {
 func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error {
 	execID := execIDFromExecutionARN(evt.ExecutionARN)
 	smName := stateMachineFromExecutionARN(evt.ExecutionARN)
-	logger.FromContext(ctx).AddContext("id", execID)
-	logger.FromContext(ctx).AddContext("sm", smName)
-	defer func() {
-		logger.FromContext(ctx).AddContext("id", "")
-		logger.FromContext(ctx).AddContext("sm", "")
-	}()
+	logger.FromContext(ctx).AddContext("execution-id", execID)
+	logger.FromContext(ctx).AddContext("state-machine-name", smName)
 	var update store.UpdateWorkflowAttributesInput
 	if evt.ID == "2" {
 		update.Status = ptrStatus(models.WorkflowStatusRunning)
