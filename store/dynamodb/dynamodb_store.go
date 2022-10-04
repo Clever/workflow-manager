@@ -637,7 +637,7 @@ func (d DynamoDB) UpdateWorkflowAttributes(ctx context.Context, workflowID strin
 		UpdateExpression:          expr.Update(),
 	}); err != nil {
 		if strings.Contains(err.Error(), "conditional request failed") {
-			return fmt.Errorf("%w: attempted to update workflow to state %s: %s", store.ErrUpdatingWorkflowFromTerminalToNonTerminalState, *update.Status, err)
+			return fmt.Errorf("%w: attempted to update workflow to state %q: %s", store.ErrUpdatingWorkflowFromTerminalToNonTerminalState, *update.Status, err)
 		} else {
 			return err
 		}

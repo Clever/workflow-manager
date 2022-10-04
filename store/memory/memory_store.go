@@ -258,7 +258,7 @@ func (s *MemoryStore) UpdateWorkflowAttributes(ctx context.Context, id string, u
 	}
 	if update.Status != nil {
 		if store.TerminalState(wf.Status) && !store.TerminalState(*update.Status) {
-			return fmt.Errorf("%w: %s => %s transition attempted", store.ErrUpdatingWorkflowFromTerminalToNonTerminalState, wf.Status, *update.Status)
+			return fmt.Errorf("%w: %q => %q transition attempted", store.ErrUpdatingWorkflowFromTerminalToNonTerminalState, wf.Status, *update.Status)
 		}
 		wf.Status = *update.Status
 	}
