@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,12 +17,6 @@ import (
 
 	_ "embed"
 
-	"github.com/Clever/workflow-manager/gen-go/models"
-	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
-	"github.com/Clever/workflow-manager/resources"
-	"github.com/Clever/workflow-manager/store"
-	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
-	"github.com/Clever/workflow-manager/wfupdater"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -32,6 +27,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/go-openapi/strfmt"
 	"gopkg.in/Clever/kayvee-go.v6/logger"
+
+	"github.com/Clever/workflow-manager/gen-go/models"
+	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
+	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/store"
+	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
+	"github.com/Clever/workflow-manager/wfupdater"
 )
 
 var dynamoMaxRetries int = 4
@@ -201,7 +203,6 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 		}
 		stoppedAt := strfmt.DateTime(unixMilli(msec))
 		update.StoppedAt = &stoppedAt
-
 	}
 	switch evt.Type {
 	case "ExecutionAborted":
@@ -258,8 +259,8 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 	}
 	logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
 	if err := h.store.UpdateWorkflowAttributes(ctx, execID, update); err != nil {
-		if err == store.ErrUpdatingWorkflowFromTerminalToNonTerminalState {
-			logger.FromContext(ctx).Info("workflow-already-terminal")
+		if errors.Is(err, store.ErrUpdatingWorkflowFromTerminalToNonTerminalState) {
+			logger.FromContext(ctx).WarnD("workflow-already-terminal", logger.M{"err": err.Error()})
 		} else {
 			return err
 		}
