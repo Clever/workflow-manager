@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -354,6 +355,6 @@ func UpdateWorkflowAttributes(s store.Store, t *testing.T) func(t *testing.T) {
 			LastUpdated: &now,
 			Status:      ptrStatus(models.WorkflowStatusRunning),
 		}
-		assert.Equal(t, "cannot update workflow from terminal to non-terminal state: succeeded => running transition attempted", s.UpdateWorkflowAttributes(ctx, workflow.ID, update).Error())
+		assert.True(t, errors.Is(s.UpdateWorkflowAttributes(ctx, workflow.ID, update), store.ErrUpdatingWorkflowFromTerminalToNonTerminalState))
 	}
 }
