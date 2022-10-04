@@ -7,10 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/gen-go/server/db"
-	"github.com/Clever/workflow-manager/resources"
-	"github.com/Clever/workflow-manager/store"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -18,6 +14,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/gen-go/server/db"
+	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/store"
 
 	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
@@ -290,7 +291,7 @@ func (d DynamoDB) GetWorkflowDefinitionVersions(ctx context.Context, name string
 			"#N": aws.String("name"),
 		},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":name": &dynamodb.AttributeValue{
+			":name": {
 				S: aws.String(name),
 			},
 		},
@@ -345,7 +346,7 @@ func (d DynamoDB) LatestWorkflowDefinition(ctx context.Context, name string) (mo
 			"#N": aws.String("name"),
 		},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":name": &dynamodb.AttributeValue{
+			":name": {
 				S: aws.String(name),
 			},
 		},
@@ -516,7 +517,7 @@ func (d DynamoDB) DeleteWorkflowByID(ctx context.Context, workflowID string) err
 	_, err := d.ddb.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
 		TableName: aws.String(d.workflowsTable()),
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{
+			"id": {
 				S: aws.String(workflowID),
 			},
 		},
@@ -636,7 +637,7 @@ func (d DynamoDB) UpdateWorkflowAttributes(ctx context.Context, workflowID strin
 		UpdateExpression:          expr.Update(),
 	}); err != nil {
 		if strings.Contains(err.Error(), "conditional request failed") {
-			return store.ErrUpdatingWorkflowFromTerminalToNonTerminalState
+			return fmt.Errorf("%w: attempted to update workflow to state %q: %s", store.ErrUpdatingWorkflowFromTerminalToNonTerminalState, *update.Status, err)
 		} else {
 			return err
 		}

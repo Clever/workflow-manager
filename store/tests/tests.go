@@ -2,16 +2,18 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/resources"
-	"github.com/Clever/workflow-manager/store"
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/store"
 )
 
 func RunStoreTests(t *testing.T, storeFactory func() store.Store) {
@@ -246,7 +248,7 @@ func UpdateLargeWorkflow(s store.Store, t *testing.T) func(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, savedWorkflow.Status, updatedWorkflow.Status)
 		// Large Workflows don't save Jobs in DynamoDB
-		//require.Equal(t, len(savedWorkflow.Jobs), len(updatedWorkflow.Jobs))
+		// require.Equal(t, len(savedWorkflow.Jobs), len(updatedWorkflow.Jobs))
 	}
 }
 
@@ -353,6 +355,6 @@ func UpdateWorkflowAttributes(s store.Store, t *testing.T) func(t *testing.T) {
 			LastUpdated: &now,
 			Status:      ptrStatus(models.WorkflowStatusRunning),
 		}
-		assert.Equal(t, store.ErrUpdatingWorkflowFromTerminalToNonTerminalState, s.UpdateWorkflowAttributes(ctx, workflow.ID, update))
+		assert.True(t, errors.Is(s.UpdateWorkflowAttributes(ctx, workflow.ID, update), store.ErrUpdatingWorkflowFromTerminalToNonTerminalState))
 	}
 }

@@ -40,7 +40,6 @@ func New() MemoryStore {
 }
 
 func (s MemoryStore) SaveWorkflowDefinition(ctx context.Context, def models.WorkflowDefinition) error {
-
 	if _, ok := s.workflowDefinitions[def.Name]; ok {
 		return store.NewConflict(def.Name)
 	}
@@ -259,7 +258,7 @@ func (s *MemoryStore) UpdateWorkflowAttributes(ctx context.Context, id string, u
 	}
 	if update.Status != nil {
 		if store.TerminalState(wf.Status) && !store.TerminalState(*update.Status) {
-			return store.ErrUpdatingWorkflowFromTerminalToNonTerminalState
+			return fmt.Errorf("%w: %q => %q transition attempted", store.ErrUpdatingWorkflowFromTerminalToNonTerminalState, wf.Status, *update.Status)
 		}
 		wf.Status = *update.Status
 	}
