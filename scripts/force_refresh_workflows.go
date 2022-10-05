@@ -22,6 +22,7 @@ const (
 	// execution limit is 15/s per account per region. We need to share
 	// with regular application functionality.
 	// A GetWorkflowByID api call qill be queued on this interval.
+	rateLimit = 200 * time.Millisecond
 	// This is the number of workers processing the queue
 	// The queue is populated according to the rate limit
 	concurrency = 4
