@@ -186,6 +186,7 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 	smName := stateMachineFromExecutionARN(evt.ExecutionARN)
 	logger.FromContext(ctx).AddContext("execution-id", execID)
 	logger.FromContext(ctx).AddContext("state-machine-name", smName)
+	logger.FromContext(ctx).AddContext("aws-event-type", evt.Type)
 
 	var update store.UpdateWorkflowAttributesInput
 	// on terminal events, update StoppedAt
