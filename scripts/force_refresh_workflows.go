@@ -21,7 +21,7 @@ const (
 	// Note that we are limited by the AWS SFN API Quotas. The describe
 	// execution limit is 15/s per account per region. We need to share
 	// with regular application functionality.
-	rateLimit = 300 * time.Millisecond
+	// A GetWorkflowByID api call qill be queued on this interval.
 	// This is the number of workers processing the queue
 	// The queue is populated according to the rate limit
 	concurrency = 4
