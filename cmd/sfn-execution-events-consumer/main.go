@@ -173,13 +173,21 @@ func ptrStatus(s models.WorkflowStatus) *models.WorkflowStatus {
 	return &s
 }
 
+func swallowOutOfOrderStateError(ctx context.Context, err error) error {
+	if errors.Is(err, store.ErrUpdatingWorkflowFromTerminalToNonTerminalState) {
+		logger.FromContext(ctx).WarnD("workflow-already-terminal", logger.M{"err": err.Error()})
+		return nil
+	}
+	return err
+}
+
 func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error {
 	execID := execIDFromExecutionARN(evt.ExecutionARN)
 	smName := stateMachineFromExecutionARN(evt.ExecutionARN)
 	logger.FromContext(ctx).AddContext("execution-id", execID)
 	logger.FromContext(ctx).AddContext("state-machine-name", smName)
 	var update store.UpdateWorkflowAttributesInput
-	if evt.ID == "2" {
+	if evt.Type == "TaskStateEntered" {
 		update.Status = ptrStatus(models.WorkflowStatusRunning)
 		logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
 		return swallowOutOfOrderStateError(ctx, h.store.UpdateWorkflowAttributes(ctx, execID, update))
@@ -298,12 +306,4 @@ func main() {
 	} else {
 		lambda.Start(handler.Handle)
 	}
-}
-
-func swallowOutOfOrderStateError(ctx context.Context, err error) error {
-	if errors.Is(err, store.ErrUpdatingWorkflowFromTerminalToNonTerminalState) {
-		logger.FromContext(ctx).WarnD("workflow-already-terminal", logger.M{"err": err.Error()})
-		return nil
-	}
-	return err
 }
