@@ -80,12 +80,12 @@ func main() {
 		}
 	}()
 
-	rateLimit := time.Tick(rateLimit)
+	limiter := time.Tick(rateLimit)
 	wf := models.Workflow{}
 	log.Println("queuing work...")
 	for itr.Next(&wf) {
 		// block on the rate limiter
-		<-rateLimit
+		<-limiter
 		workc <- wf.ID
 	}
 
