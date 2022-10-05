@@ -182,7 +182,7 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 	if evt.ID == "2" {
 		update.Status = ptrStatus(models.WorkflowStatusRunning)
 		logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
-		return h.store.UpdateWorkflowAttributes(ctx, execID, update)
+		return swallowOutOfOrderStateError(ctx, h.store.UpdateWorkflowAttributes(ctx, execID, update))
 	}
 
 	// on terminal events, update StoppedAt
@@ -249,14 +249,7 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 		return nil // no updates to perform
 	}
 	logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
-	if err := h.store.UpdateWorkflowAttributes(ctx, execID, update); err != nil {
-		if errors.Is(err, store.ErrUpdatingWorkflowFromTerminalToNonTerminalState) {
-			logger.FromContext(ctx).WarnD("workflow-already-terminal", logger.M{"err": err.Error()})
-		} else {
-			return err
-		}
-	}
-	return nil
+	return swallowOutOfOrderStateError(ctx, h.store.UpdateWorkflowAttributes(ctx, execID, update))
 }
 
 func main() {
@@ -305,4 +298,12 @@ func main() {
 	} else {
 		lambda.Start(handler.Handle)
 	}
+}
+
+func swallowOutOfOrderStateError(ctx context.Context, err error) error {
+	if errors.Is(err, store.ErrUpdatingWorkflowFromTerminalToNonTerminalState) {
+		logger.FromContext(ctx).WarnD("workflow-already-terminal", logger.M{"err": err.Error()})
+		return nil
+	}
+	return err
 }
