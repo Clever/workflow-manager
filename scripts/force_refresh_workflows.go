@@ -84,13 +84,9 @@ func main() {
 	wf := models.Workflow{}
 	log.Println("queuing work...")
 	for itr.Next(&wf) {
-		select {
-		case <-ctx.Done():
-			log.Println("context canceled")
-			os.Exit(0)
-		case <-rateLimit:
-			workc <- wf.ID
-		}
+		// block on the rate limiter
+		<-rateLimit
+		workc <- wf.ID
 	}
 
 	if err := itr.Err(); err != nil {
