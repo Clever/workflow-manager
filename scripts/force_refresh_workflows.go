@@ -11,10 +11,10 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 )
 
-// This script cam be used to force hubble state to be updated when the wfm state monitoring pipeline breaks
-// and loses data. It works by fetching all workflows in a given stat (usually running or queued), then
-// fetching each of those workflows individually. When workflows are fetched individually the wfm API
-// forces an update by fetching the latest execution description from AWS.
+// This script forces hubble state to be updated when the wfm state monitoring pipeline breaks
+// and loses data. It works by fetching all workflows in a given state (usually running or queued),
+// then fetching each of those workflows individually. When workflows are fetched individually
+// the wfm API forces an update by fetching the latest execution description from AWS.
 
 // Knobs to turn
 const (
