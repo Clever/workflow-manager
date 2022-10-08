@@ -92,6 +92,8 @@ func main() {
 
 	if err := itr.Err(); err != nil {
 		log.Fatalf("iterator error: %v", err)
+	} else {
+		log.Println("successfully processed all records")
 	}
 }
 
