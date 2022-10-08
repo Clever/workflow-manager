@@ -188,6 +188,12 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 	logger.FromContext(ctx).AddContext("state-machine-name", smName)
 	logger.FromContext(ctx).AddContext("aws-event-type", evt.Type)
 	var update store.UpdateWorkflowAttributesInput
+	// This special case prevents slamming DDB with requests that would update the state from
+	// running => running. Event ID #2 may be a number of different SFN events, but regardless
+	// of the specific event type, we consider them all to put the workflow into a 'running'
+	// state according to our own internal definition that we want displayed in hubble. Acting
+	// only on event ID #2 and terminal events (below in switch statements) means that we only
+	// attempt to put the workflow into each state once and therefore save on DDB requests.
 	if evt.ID == "2" {
 		update.Status = ptrStatus(models.WorkflowStatusRunning)
 		logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
