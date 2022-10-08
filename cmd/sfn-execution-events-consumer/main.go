@@ -187,8 +187,13 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 	logger.FromContext(ctx).AddContext("execution-id", execID)
 	logger.FromContext(ctx).AddContext("state-machine-name", smName)
 	logger.FromContext(ctx).AddContext("aws-event-type", evt.Type)
-
 	var update store.UpdateWorkflowAttributesInput
+	if evt.ID == "2" {
+		update.Status = ptrStatus(models.WorkflowStatusRunning)
+		logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
+		return swallowOutOfOrderStateError(ctx, h.store.UpdateWorkflowAttributes(ctx, execID, update))
+	}
+
 	// on terminal events, update StoppedAt
 	switch evt.Type {
 	case "ExecutionAborted", "ExecutionFailed", "ExecutionTimedOut", "ExecutionSucceeded":
@@ -200,8 +205,6 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 		update.StoppedAt = &stoppedAt
 	}
 	switch evt.Type {
-	case "TaskStateEntered":
-		update.Status = ptrStatus(models.WorkflowStatusRunning)
 	case "ExecutionAborted":
 		update.Status = ptrStatus(models.WorkflowStatusCancelled)
 	case "ExecutionFailed":
