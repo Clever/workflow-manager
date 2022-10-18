@@ -191,6 +191,13 @@ func ProcessEvents(
 			if details.Output != nil {
 				job.Output = aws.StringValue(details.Output)
 			}
+		default:
+			// There are 50+ event types and all of them don't need to be handled
+			// but it is a good idea to log the event type for debugging purposes
+			log.InfoD("unhandled-sfn-event", logger.M{
+				"event-type":  aws.StringValue(evt.Type),
+				"workflow-id": workflow.ID,
+			})
 		}
 	}
 
