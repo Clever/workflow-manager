@@ -115,7 +115,8 @@ func ProcessEvents(
 		case sfn.HistoryEventTypeActivityFailed,
 			sfn.HistoryEventTypeLambdaFunctionFailed,
 			sfn.HistoryEventTypeLambdaFunctionScheduleFailed,
-			sfn.HistoryEventTypeLambdaFunctionStartFailed:
+			sfn.HistoryEventTypeLambdaFunctionStartFailed,
+			sfn.HistoryEventTypeTaskSubmitFailed:
 			job.Status = models.JobStatusFailed
 			job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 			cause, errorName := causeAndErrorNameFromFailureEvent(evt)
@@ -125,7 +126,9 @@ func ProcessEvents(
 				getLastFewLines(cause),
 				errorName,
 			))
-		case sfn.HistoryEventTypeActivityTimedOut, sfn.HistoryEventTypeLambdaFunctionTimedOut:
+		case sfn.HistoryEventTypeActivityTimedOut,
+			sfn.HistoryEventTypeLambdaFunctionTimedOut,
+			sfn.HistoryEventTypeTaskTimedOut:
 			job.Status = models.JobStatusFailed
 			job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 			cause, errorName := causeAndErrorNameFromFailureEvent(evt)
@@ -188,6 +191,13 @@ func ProcessEvents(
 			if details.Output != nil {
 				job.Output = aws.StringValue(details.Output)
 			}
+		default:
+			// There are 50+ event types and all of them don't need to be handled
+			// but it is a good idea to log the event type for debugging purposes
+			log.InfoD("unhandled-sfn-event", logger.M{
+				"event-type":  aws.StringValue(evt.Type),
+				"workflow-id": workflow.ID,
+			})
 		}
 	}
 
@@ -239,6 +249,10 @@ func causeAndErrorNameFromFailureEvent(evt *sfn.HistoryEvent) (string, string) {
 		return aws.StringValue(evt.LambdaFunctionStartFailedEventDetails.Cause), aws.StringValue(evt.LambdaFunctionStartFailedEventDetails.Error)
 	case sfn.HistoryEventTypeLambdaFunctionTimedOut:
 		return aws.StringValue(evt.LambdaFunctionTimedOutEventDetails.Cause), aws.StringValue(evt.LambdaFunctionTimedOutEventDetails.Error)
+	case sfn.HistoryEventTypeTaskTimedOut:
+		return aws.StringValue(evt.TaskTimedOutEventDetails.Cause), aws.StringValue(evt.TaskTimedOutEventDetails.Error)
+	case sfn.HistoryEventTypeTaskSubmitFailed:
+		return aws.StringValue(evt.TaskSubmitFailedEventDetails.Cause), aws.StringValue(evt.TaskSubmitFailedEventDetails.Error)
 	default:
 		return "", ""
 	}
