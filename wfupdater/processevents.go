@@ -115,7 +115,8 @@ func ProcessEvents(
 		case sfn.HistoryEventTypeActivityFailed,
 			sfn.HistoryEventTypeLambdaFunctionFailed,
 			sfn.HistoryEventTypeLambdaFunctionScheduleFailed,
-			sfn.HistoryEventTypeLambdaFunctionStartFailed:
+			sfn.HistoryEventTypeLambdaFunctionStartFailed,
+			sfn.HistoryEventTypeTaskSubmitFailed:
 			job.Status = models.JobStatusFailed
 			job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 			cause, errorName := causeAndErrorNameFromFailureEvent(evt)
@@ -125,7 +126,9 @@ func ProcessEvents(
 				getLastFewLines(cause),
 				errorName,
 			))
-		case sfn.HistoryEventTypeActivityTimedOut, sfn.HistoryEventTypeLambdaFunctionTimedOut:
+		case sfn.HistoryEventTypeActivityTimedOut,
+			sfn.HistoryEventTypeLambdaFunctionTimedOut,
+			sfn.HistoryEventTypeTaskTimedOut:
 			job.Status = models.JobStatusFailed
 			job.StoppedAt = strfmt.DateTime(aws.TimeValue(evt.Timestamp))
 			cause, errorName := causeAndErrorNameFromFailureEvent(evt)
@@ -239,6 +242,10 @@ func causeAndErrorNameFromFailureEvent(evt *sfn.HistoryEvent) (string, string) {
 		return aws.StringValue(evt.LambdaFunctionStartFailedEventDetails.Cause), aws.StringValue(evt.LambdaFunctionStartFailedEventDetails.Error)
 	case sfn.HistoryEventTypeLambdaFunctionTimedOut:
 		return aws.StringValue(evt.LambdaFunctionTimedOutEventDetails.Cause), aws.StringValue(evt.LambdaFunctionTimedOutEventDetails.Error)
+	case sfn.HistoryEventTypeTaskTimedOut:
+		return aws.StringValue(evt.TaskTimedOutEventDetails.Cause), aws.StringValue(evt.TaskTimedOutEventDetails.Error)
+	case sfn.HistoryEventTypeTaskSubmitFailed:
+		return aws.StringValue(evt.TaskSubmitFailedEventDetails.Cause), aws.StringValue(evt.TaskSubmitFailedEventDetails.Error)
 	default:
 		return "", ""
 	}
