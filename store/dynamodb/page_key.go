@@ -52,7 +52,7 @@ func (k *PageKey) ToJSON() (string, error) {
 		return "", fmt.Errorf("unable to serialize dynamodb page key: %v", err)
 	}
 
-	return string(pageKeyJSONBytes[:len(pageKeyJSONBytes)]), nil
+	return string(pageKeyJSONBytes[:]), nil
 }
 
 // toMap returns a plain golang map respresentation of the PageKey.

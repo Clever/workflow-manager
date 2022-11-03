@@ -2,7 +2,7 @@ package executor
 
 import (
 	counter "github.com/Clever/aws-sdk-go-counter"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
+	"github.com/Clever/kayvee-go/v7/logger"
 )
 
 var log = logger.New("workflow-manager")

@@ -51,25 +51,25 @@ func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 		StateMachine: &models.SLStateMachine{
 			StartAt: "start-state",
 			States: map[string]models.SLState{
-				"start-state": models.SLState{
+				"start-state": {
 					Type:     models.SLStateTypeTask,
 					Next:     "second-state",
 					Resource: "test-resource",
 				},
-				"second-state": models.SLState{
+				"second-state": {
 					Type:     models.SLStateTypeTask,
 					Next:     "parallel-state",
 					Resource: "test-resource-2",
 				},
-				"parallel-state": models.SLState{
+				"parallel-state": {
 					Type: models.SLStateTypeParallel,
 					Next: "map-state",
 					End:  false,
 					Branches: []*models.SLStateMachine{
-						&models.SLStateMachine{
+						{
 							StartAt: "branch1",
 							States: map[string]models.SLState{
-								"branch1": models.SLState{
+								"branch1": {
 									Type:     models.SLStateTypeTask,
 									Resource: "fake-resource-3",
 									End:      true,
@@ -77,10 +77,10 @@ func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 								},
 							},
 						},
-						&models.SLStateMachine{
+						{
 							StartAt: "branch2",
 							States: map[string]models.SLState{
-								"branch2": models.SLState{
+								"branch2": {
 									Type:     models.SLStateTypeTask,
 									Resource: "fake-resource-4",
 									End:      true,
@@ -90,14 +90,14 @@ func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 						},
 					},
 				},
-				"map-state": models.SLState{
+				"map-state": {
 					Type: models.SLStateTypeMap,
 					Next: "end-state",
 					End:  false,
 					Iterator: &models.SLStateMachine{
 						StartAt: "mapStateStart",
 						States: map[string]models.SLState{
-							"mapStateStart": models.SLState{
+							"mapStateStart": {
 								Type:     models.SLStateTypeTask,
 								Resource: "fake-resource-5",
 								End:      true,
@@ -106,7 +106,7 @@ func TestNewWorkflowDefinitionFromRequest(t *testing.T) {
 						},
 					},
 				},
-				"end-state": models.SLState{
+				"end-state": {
 					Type:     models.SLStateTypeTask,
 					Resource: "test-resource-3",
 					End:      true,
@@ -133,7 +133,7 @@ func TestValidateMapState(t *testing.T) {
 	state.Iterator = &models.SLStateMachine{
 		StartAt: "mapStateStart",
 		States: map[string]models.SLState{
-			"mapStateStart": models.SLState{
+			"mapStateStart": {
 				Type:     models.SLStateTypeTask,
 				Resource: "fake-resource-5",
 				End:      true,
@@ -176,10 +176,10 @@ func TestValidateParallelState(t *testing.T) {
 
 	t.Log("Error if branch is malformed")
 	state.Branches = []*models.SLStateMachine{
-		&models.SLStateMachine{
+		{
 			StartAt: "branch1",
 			States: map[string]models.SLState{
-				"branch1": models.SLState{
+				"branch1": {
 					Type:  models.SLStateTypeTask,
 					End:   true,
 					Retry: []*models.SLRetrier{},
@@ -192,10 +192,10 @@ func TestValidateParallelState(t *testing.T) {
 
 	t.Log("No error with correctly formatted Parallel state")
 	state.Branches = []*models.SLStateMachine{
-		&models.SLStateMachine{
+		{
 			StartAt: "branch1",
 			States: map[string]models.SLState{
-				"branch1": models.SLState{
+				"branch1": {
 					Type:     models.SLStateTypeTask,
 					Resource: "fake-resource",
 					End:      true,
@@ -219,12 +219,12 @@ func TestValidateChoiceState(t *testing.T) {
 	assert.Error(t, err)
 
 	t.Log("Error if choice is missing Next field")
-	state.Choices = []*models.SLChoice{&models.SLChoice{}}
+	state.Choices = []*models.SLChoice{{}}
 	err = validateChoiceState(state)
 	assert.Error(t, err)
 
 	t.Log("No error with correctly formatted Choice state")
-	state.Choices = []*models.SLChoice{&models.SLChoice{Next: "fakeState"}}
+	state.Choices = []*models.SLChoice{{Next: "fakeState"}}
 	err = validateChoiceState(state)
 	assert.Nil(t, err)
 }
@@ -317,12 +317,12 @@ func TestResumeWorkflowByID(t *testing.T) {
 		StateMachine: &models.SLStateMachine{
 			StartAt: "monkey-state",
 			States: map[string]models.SLState{
-				"monkey-state": models.SLState{
+				"monkey-state": {
 					Type:     models.SLStateTypeTask,
 					Next:     "gorilla-state",
 					Resource: "resource-name",
 				},
-				"gorilla-state": models.SLState{
+				"gorilla-state": {
 					Type:     models.SLStateTypeTask,
 					Resource: "lambda:resource-name",
 					End:      true,

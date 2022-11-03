@@ -65,7 +65,7 @@ generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 	$(call wag-generate-mod,./swagger.yml)
 	# wag bug: this test file assumes usage of functions like `aws.String(...)` but the workflow-manager
 	# ark db doesn't use this, leading to an unused import error. Remove the import with a hack.
-	sed -i '6d' gen-go/server/db/tests/tests.go
+	sed -i -e '6d' gen-go/server/db/tests/tests.go
 	bin/launch-gen -o ./cmd/sfn-execution-events-consumer/launch.go -p main launch/sfn-execution-events-consumer.yml
 
 install_deps:

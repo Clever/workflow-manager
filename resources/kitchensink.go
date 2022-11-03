@@ -19,7 +19,7 @@ func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 			Comment: "description",
 			StartAt: "start-state",
 			States: map[string]models.SLState{
-				"start-state": models.SLState{
+				"start-state": {
 					Type:     models.SLStateTypeTask,
 					Next:     "second-state",
 					Resource: "fake-resource-1",
@@ -29,22 +29,22 @@ func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 						MaxAttempts: swag.Int64(2),
 					}},
 				},
-				"second-state": models.SLState{
+				"second-state": {
 					Type:     models.SLStateTypeTask,
 					Next:     "parallel-state",
 					Resource: "fake-resource-2",
 					End:      false,
 					Retry:    []*models.SLRetrier{},
 				},
-				"parallel-state": models.SLState{
+				"parallel-state": {
 					Type: models.SLStateTypeParallel,
 					Next: "map-state",
 					End:  false,
 					Branches: []*models.SLStateMachine{
-						&models.SLStateMachine{
+						{
 							StartAt: "branch1",
 							States: map[string]models.SLState{
-								"branch1": models.SLState{
+								"branch1": {
 									Type:     models.SLStateTypeTask,
 									Resource: "fake-resource-3",
 									End:      true,
@@ -52,10 +52,10 @@ func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 								},
 							},
 						},
-						&models.SLStateMachine{
+						{
 							StartAt: "branch2",
 							States: map[string]models.SLState{
-								"branch2": models.SLState{
+								"branch2": {
 									Type:     models.SLStateTypeTask,
 									Resource: "fake-resource-4",
 									End:      true,
@@ -65,14 +65,14 @@ func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 						},
 					},
 				},
-				"map-state": models.SLState{
+				"map-state": {
 					Type: models.SLStateTypeMap,
 					Next: "end-state",
 					End:  false,
 					Iterator: &models.SLStateMachine{
 						StartAt: "mapStateStart",
 						States: map[string]models.SLState{
-							"mapStateStart": models.SLState{
+							"mapStateStart": {
 								Type:     models.SLStateTypeTask,
 								Resource: "fake-resource-5",
 								End:      true,
@@ -81,7 +81,7 @@ func KitchenSinkWorkflowDefinition(t *testing.T) *models.WorkflowDefinition {
 						},
 					},
 				},
-				"end-state": models.SLState{
+				"end-state": {
 					Type:     models.SLStateTypeTask,
 					Resource: "fake-resource-5",
 					End:      true,

@@ -6,7 +6,7 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 )
 
-//go:generate mockgen -source=$GOFILE -destination=mock_db.go -package=db
+//go:generate mockgen -source=$GOFILE -destination=mock_db.go -package db --build_flags=--mod=mod -imports=models=github.com/Clever/workflow-manager/gen-go/models
 
 // Interface for interacting with the workflow-manager database.
 type Interface interface {

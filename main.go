@@ -20,13 +20,13 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	counter "github.com/Clever/aws-sdk-go-counter"
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/executor/sfncache"
 	"github.com/Clever/workflow-manager/gen-go/server"
 	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
-	"github.com/Clever/workflow-manager/gen-go/tracing"
+	tracing "github.com/Clever/workflow-manager/gen-go/servertracing"
 	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 var dynamoMaxRetries = 4
