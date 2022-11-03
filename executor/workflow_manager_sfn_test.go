@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -570,7 +571,7 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
-			opts ...interface{},
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{jobCreatedEvent}}, true)
 		})
@@ -627,7 +628,7 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
-			opts ...interface{},
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
@@ -702,7 +703,7 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
-			opts ...interface{},
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
@@ -790,7 +791,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
-			opts ...interface{},
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
@@ -854,7 +855,7 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
-			opts ...interface{},
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
@@ -900,7 +901,7 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
-			opts ...interface{},
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
@@ -955,7 +956,7 @@ func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
-			opts ...interface{},
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
@@ -1090,7 +1091,7 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
-			opts ...interface{},
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
@@ -1163,7 +1164,7 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
-			opts ...interface{},
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
