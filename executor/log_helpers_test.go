@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	counter "github.com/Clever/aws-sdk-go-counter"
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 func init() {

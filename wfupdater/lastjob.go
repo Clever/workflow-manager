@@ -3,11 +3,11 @@ package wfupdater
 import (
 	"context"
 
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // UpdateWorkflowLastJob queries AWS sfn for the latest events of the given state machine,

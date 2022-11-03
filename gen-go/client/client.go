@@ -1,5 +1,6 @@
 package client
 
+// Using Alpha version of WAG Yay!
 import (
 	"bytes"
 	"context"
@@ -7,15 +8,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	discovery "github.com/Clever/discovery-go"
 	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/gen-go/tracing"
+
+	discovery "github.com/Clever/discovery-go"
+	wcl "github.com/Clever/wag/logging/wagclientlogger"
+
 	"github.com/afex/hystrix-go/hystrix"
-	logger "gopkg.in/Clever/kayvee-go.v6/logger"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 )
 
 var _ = json.Marshal
@@ -24,7 +34,7 @@ var _ = strconv.FormatInt
 var _ = bytes.Compare
 
 // Version of the client.
-const Version = "0.14.2"
+const Version = "0.14.3"
 
 // VersionHeader is sent with every request.
 const VersionHeader = "X-Client-Version"
@@ -39,38 +49,221 @@ type WagClient struct {
 	// Keep the circuit doer around so that we can turn it on / off
 	circuitDoer    *circuitBreakerDoer
 	defaultTimeout time.Duration
-	logger         logger.KayveeLogger
+	logger         wcl.WagClientLogger
 }
 
 var _ Client = (*WagClient)(nil)
 
+// This pattern is used instead of using closures for greater transparency and the ability to implement additional interfaces.
+type options struct {
+	transport    http.RoundTripper
+	logger       wcl.WagClientLogger
+	instrumentor Instrumentor
+	exporter     sdktrace.SpanExporter
+}
+
+type Option interface {
+	apply(*options)
+}
+
+// WithLogger sets client logger option.
+func WithLogger(log wcl.WagClientLogger) Option {
+	return loggerOption{Log: log}
+}
+
+type loggerOption struct {
+	Log wcl.WagClientLogger
+}
+
+func (l loggerOption) apply(opts *options) {
+	opts.logger = l.Log
+}
+
+type roundTripperOption struct {
+	rt http.RoundTripper
+}
+
+func (t roundTripperOption) apply(opts *options) {
+	opts.transport = t.rt
+}
+
+// WithRoundTripper allows you to pass in intrumented/custom roundtrippers which will then wrap the
+// transport roundtripper
+func WithRoundTripper(t http.RoundTripper) Option {
+	return roundTripperOption{rt: t}
+}
+
+// Instrumentor is a function that creates an instrumented round tripper
+type Instrumentor func(baseTransport http.RoundTripper, spanNameCtxValue interface{}, tp sdktrace.TracerProvider) http.RoundTripper
+
+// WithInstrumentor sets a instrumenting function that will be used to wrap the roundTripper for tracing.
+// For standard instrumentation with tracing use tracing.InstrumentedTransport, default is non-instrumented.
+
+func WithInstrumentor(fn Instrumentor) Option {
+	return instrumentorOption{instrumentor: fn}
+}
+
+type instrumentorOption struct {
+	instrumentor Instrumentor
+}
+
+func (i instrumentorOption) apply(opts *options) {
+	opts.instrumentor = i.instrumentor
+}
+
+// WithExporter sets client span exporter option.
+func WithExporter(se sdktrace.SpanExporter) Option {
+	return exporterOption{exporter: se}
+}
+
+type exporterOption struct {
+	exporter sdktrace.SpanExporter
+}
+
+func (se exporterOption) apply(opts *options) {
+	opts.exporter = se.exporter
+}
+
+//----------------------BEGIN LOGGING RELATED FUNCTIONS----------------------
+
+// NewLogger creates a logger for id that produces logs at and below the indicated level.
+// Level indicated the level at and below which logs are created.
+func NewLogger(id string, level wcl.LogLevel) PrintlnLogger {
+	return PrintlnLogger{id: id, level: level}
+}
+
+type PrintlnLogger struct {
+	level wcl.LogLevel
+	id    string
+}
+
+func (w PrintlnLogger) Log(level wcl.LogLevel, message string, m map[string]interface{}) {
+
+	if level >= level {
+		m["id"] = w.id
+		jsonLog, err := json.Marshal(m)
+		if err != nil {
+			jsonLog, err = json.Marshal(map[string]interface{}{"Error Marshalling Log": err})
+		}
+		fmt.Println(string(jsonLog))
+	}
+}
+
+//----------------------END LOGGING RELATED FUNCTIONS------------------------
+
+//----------------------BEGIN TRACING RELATED FUNCTIONS----------------------
+
+// newResource returns a resource describing this application.
+// Used for setting up tracer provider
+func newResource() *resource.Resource {
+	r, _ := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String("workflow-manager"),
+			semconv.ServiceVersionKey.String("0.14.3"),
+		),
+	)
+	return r
+}
+
+func newTracerProvider(exporter sdktrace.SpanExporter, samplingProbability float64) *sdktrace.TracerProvider {
+
+	tp := sdktrace.NewTracerProvider(
+		// We use the default ID generator. In order for sampling to work (at least with this sampler)
+		// the ID generator must generate trace IDs uniformly at random from the entire space of uint64.
+		// For example, the default x-ray ID generator does not do this.
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		// These maximums are to guard against something going wrong and sending a ton of data unexpectedly
+		sdktrace.WithSpanLimits(sdktrace.SpanLimits{
+			AttributeCountLimit: 100,
+			EventCountLimit:     100,
+			LinkCountLimit:      100,
+		}),
+		//Batcher is more efficient, switch to it after testing
+		// sdktrace.WithSyncer(exporter),
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(newResource()),
+	)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	return tp
+}
+
+func doNothing(baseTransport http.RoundTripper, spanNameCtxValue interface{}, tp sdktrace.TracerProvider) http.RoundTripper {
+	return baseTransport
+}
+
+func determineSampling() (samplingProbability float64, err error) {
+
+	// If we're running locally, then turn off sampling. Otherwise sample
+	// 1% or whatever TRACING_SAMPLING_PROBABILITY specifies.
+	samplingProbability = 0.01
+	isLocal := os.Getenv("_IS_LOCAL") == "true"
+	if isLocal {
+		fmt.Println("Set to Local")
+		samplingProbability = 1.0
+	} else if v := os.Getenv("TRACING_SAMPLING_PROBABILITY"); v != "" {
+		samplingProbabilityFromEnv, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return 0, fmt.Errorf("could not parse '%s' to float", v)
+		}
+		samplingProbability = samplingProbabilityFromEnv
+	}
+	return
+}
+
+//----------------------END TRACING RELATEDFUNCTIONS----------------------
+
 // New creates a new client. The base path and http transport are configurable.
-func New(basePath string) *WagClient {
+func New(ctx context.Context, basePath string, opts ...Option) *WagClient {
+
+	defaultTransport := http.DefaultTransport
+	defaultLogger := NewLogger("workflow-manager-wagclient", wcl.Info)
+	defaultExporter := tracetest.NewNoopExporter()
+	defaultInstrumentor := doNothing
+
 	basePath = strings.TrimSuffix(basePath, "/")
 	base := baseDoer{}
 	// For the short-term don't use the default retry policy since its 5 retries can 5X
 	// the traffic. Once we've enabled circuit breakers by default we can turn it on.
 	retry := retryDoer{d: base, retryPolicy: SingleRetryPolicy{}}
-	logger := logger.New("workflow-manager-wagclient")
+	options := options{
+		transport:    defaultTransport,
+		logger:       defaultLogger,
+		exporter:     defaultExporter,
+		instrumentor: defaultInstrumentor,
+	}
+
+	for _, o := range opts {
+		o.apply(&options)
+	}
+
+	samplingProbability := 1.0 // TODO: Put back logic to set this to 1 for local, 0.1 otherwise etc.
+	// samplingProbability := determineSampling()
+
+	tp := newTracerProvider(options.exporter, samplingProbability)
+	options.transport = options.instrumentor(options.transport, ctx, *tp)
+
 	circuit := &circuitBreakerDoer{
 		d: &retry,
 		// TODO: INFRANG-4404 allow passing circuitBreakerOptions
 		debug: true,
 		// one circuit for each service + url pair
 		circuitName: fmt.Sprintf("workflow-manager-%s", shortHash(basePath)),
-		logger:      logger,
+		logger:      options.logger,
 	}
 	circuit.init()
 	client := &WagClient{
 		basePath:    basePath,
 		requestDoer: circuit,
 		client: &http.Client{
-			Transport: tracing.NewTransport(http.DefaultTransport, opNameCtx{}),
+			Transport: options.transport,
 		},
 		retryDoer:      &retry,
 		circuitDoer:    circuit,
 		defaultTimeout: 5 * time.Second,
-		logger:         logger,
+		logger:         options.logger,
 	}
 	client.SetCircuitBreakerSettings(DefaultCircuitBreakerSettings)
 	return client
@@ -78,7 +271,7 @@ func New(basePath string) *WagClient {
 
 // NewFromDiscovery creates a client from the discovery environment variables. This method requires
 // the three env vars: SERVICE_WORKFLOW_MANAGER_HTTP_(HOST/PORT/PROTO) to be set. Otherwise it returns an error.
-func NewFromDiscovery() (*WagClient, error) {
+func NewFromDiscovery(opts ...Option) (*WagClient, error) {
 	url, err := discovery.URL("workflow-manager", "default")
 	if err != nil {
 		url, err = discovery.URL("workflow-manager", "http") // Added fallback to maintain reverse compatibility
@@ -86,7 +279,7 @@ func NewFromDiscovery() (*WagClient, error) {
 			return nil, err
 		}
 	}
-	return New(url), nil
+	return New(context.Background(), url, opts...), nil
 }
 
 // SetRetryPolicy sets a the given retry policy for all requests.
@@ -100,9 +293,9 @@ func (c *WagClient) SetCircuitBreakerDebug(b bool) {
 }
 
 // SetLogger allows for setting a custom logger
-func (c *WagClient) SetLogger(logger logger.KayveeLogger) {
-	c.logger = logger
-	c.circuitDoer.logger = logger
+func (c *WagClient) SetLogger(l wcl.WagClientLogger) {
+	c.logger = l
+	c.circuitDoer.logger = l
 }
 
 // CircuitBreakerSettings are the parameters that govern the client's circuit breaker.
@@ -152,7 +345,7 @@ func (c *WagClient) SetTimeout(timeout time.Duration) {
 
 // SetTransport sets the http transport used by the client.
 func (c *WagClient) SetTransport(t http.RoundTripper) {
-	c.client.Transport = tracing.NewTransport(t, opNameCtx{})
+	// c.client.Transport = tracing.NewTransport(t, opNameCtx{})
 }
 
 // HealthCheck makes a GET request to /_health
@@ -196,6 +389,7 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -203,7 +397,7 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -211,11 +405,11 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return err
 	}
 	defer resp.Body.Close()
@@ -298,6 +492,7 @@ func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Re
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -305,7 +500,7 @@ func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Re
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -313,11 +508,11 @@ func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Re
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -401,6 +596,7 @@ func (c *WagClient) doDeleteStateResourceRequest(ctx context.Context, req *http.
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -408,7 +604,7 @@ func (c *WagClient) doDeleteStateResourceRequest(ctx context.Context, req *http.
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -416,11 +612,11 @@ func (c *WagClient) doDeleteStateResourceRequest(ctx context.Context, req *http.
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return err
 	}
 	defer resp.Body.Close()
@@ -507,6 +703,7 @@ func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Req
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -514,7 +711,7 @@ func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Req
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -522,11 +719,11 @@ func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Req
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -628,6 +825,7 @@ func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Req
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -635,7 +833,7 @@ func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Req
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -643,11 +841,11 @@ func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Req
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -724,6 +922,7 @@ func (c *WagClient) doGetWorkflowDefinitionsRequest(ctx context.Context, req *ht
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -731,7 +930,7 @@ func (c *WagClient) doGetWorkflowDefinitionsRequest(ctx context.Context, req *ht
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -739,11 +938,11 @@ func (c *WagClient) doGetWorkflowDefinitionsRequest(ctx context.Context, req *ht
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -831,6 +1030,7 @@ func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *htt
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -838,7 +1038,7 @@ func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *htt
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -846,11 +1046,11 @@ func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *htt
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -934,6 +1134,7 @@ func (c *WagClient) doGetWorkflowDefinitionVersionsByNameRequest(ctx context.Con
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -941,7 +1142,7 @@ func (c *WagClient) doGetWorkflowDefinitionVersionsByNameRequest(ctx context.Con
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -949,11 +1150,11 @@ func (c *WagClient) doGetWorkflowDefinitionVersionsByNameRequest(ctx context.Con
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1056,6 +1257,7 @@ func (c *WagClient) doUpdateWorkflowDefinitionRequest(ctx context.Context, req *
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -1063,7 +1265,7 @@ func (c *WagClient) doUpdateWorkflowDefinitionRequest(ctx context.Context, req *
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -1071,11 +1273,11 @@ func (c *WagClient) doUpdateWorkflowDefinitionRequest(ctx context.Context, req *
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1167,6 +1369,7 @@ func (c *WagClient) doGetWorkflowDefinitionByNameAndVersionRequest(ctx context.C
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -1174,7 +1377,7 @@ func (c *WagClient) doGetWorkflowDefinitionByNameAndVersionRequest(ctx context.C
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -1182,11 +1385,11 @@ func (c *WagClient) doGetWorkflowDefinitionByNameAndVersionRequest(ctx context.C
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1364,6 +1567,7 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -1371,7 +1575,7 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -1379,11 +1583,11 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, "", err
 	}
 	defer resp.Body.Close()
@@ -1480,6 +1684,7 @@ func (c *WagClient) doStartWorkflowRequest(ctx context.Context, req *http.Reques
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -1487,7 +1692,7 @@ func (c *WagClient) doStartWorkflowRequest(ctx context.Context, req *http.Reques
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -1495,11 +1700,11 @@ func (c *WagClient) doStartWorkflowRequest(ctx context.Context, req *http.Reques
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1602,6 +1807,7 @@ func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Reque
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -1609,7 +1815,7 @@ func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Reque
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -1617,11 +1823,11 @@ func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Reque
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return err
 	}
 	defer resp.Body.Close()
@@ -1708,6 +1914,7 @@ func (c *WagClient) doGetWorkflowByIDRequest(ctx context.Context, req *http.Requ
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -1715,7 +1922,7 @@ func (c *WagClient) doGetWorkflowByIDRequest(ctx context.Context, req *http.Requ
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -1723,11 +1930,11 @@ func (c *WagClient) doGetWorkflowByIDRequest(ctx context.Context, req *http.Requ
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1830,6 +2037,7 @@ func (c *WagClient) doResumeWorkflowByIDRequest(ctx context.Context, req *http.R
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -1837,7 +2045,7 @@ func (c *WagClient) doResumeWorkflowByIDRequest(ctx context.Context, req *http.R
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -1845,11 +2053,11 @@ func (c *WagClient) doResumeWorkflowByIDRequest(ctx context.Context, req *http.R
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1942,6 +2150,7 @@ func (c *WagClient) doResolveWorkflowByIDRequest(ctx context.Context, req *http.
 		defer cancel()
 		req = req.WithContext(ctx)
 	}
+
 	resp, err := c.requestDoer.Do(c.client, req)
 	retCode := 0
 	if resp != nil {
@@ -1949,7 +2158,7 @@ func (c *WagClient) doResolveWorkflowByIDRequest(ctx context.Context, req *http.
 	}
 
 	// log all client failures and non-successful HT
-	logData := logger.M{
+	logData := map[string]interface{}{
 		"backend":     "workflow-manager",
 		"method":      req.Method,
 		"uri":         req.URL,
@@ -1957,11 +2166,11 @@ func (c *WagClient) doResolveWorkflowByIDRequest(ctx context.Context, req *http.
 	}
 	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
 	if err != nil {
 		logData["message"] = err.Error()
-		c.logger.ErrorD("client-request-finished", logData)
+		c.logger.Log(wcl.Error, "client-request-finished", logData)
 		return err
 	}
 	defer resp.Body.Close()

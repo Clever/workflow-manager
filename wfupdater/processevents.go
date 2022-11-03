@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/go-openapi/strfmt"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 var log = logger.New("workflow-manager")

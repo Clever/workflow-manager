@@ -59,14 +59,14 @@ func TestRemoveInactiveStates(t *testing.T) {
 		Comment: "description",
 		StartAt: "parallel-state",
 		States: map[string]models.SLState{
-			"parallel-state": models.SLState{
+			"parallel-state": {
 				Type: models.SLStateTypeParallel,
 				End:  true,
 				Branches: []*models.SLStateMachine{
-					&models.SLStateMachine{
+					{
 						StartAt: "branch1",
 						States: map[string]models.SLState{
-							"branch1": models.SLState{
+							"branch1": {
 								Type:     models.SLStateTypeTask,
 								Resource: "fake-resource-3",
 								End:      false,
@@ -74,10 +74,10 @@ func TestRemoveInactiveStates(t *testing.T) {
 							},
 						},
 					},
-					&models.SLStateMachine{
+					{
 						StartAt: "branch2",
 						States: map[string]models.SLState{
-							"branch2": models.SLState{
+							"branch2": {
 								Type:     models.SLStateTypeTask,
 								Resource: "fake-resource-4",
 								End:      true,
@@ -95,20 +95,20 @@ func TestRemoveInactiveStates(t *testing.T) {
 		Comment: "description",
 		StartAt: "map-state",
 		States: map[string]models.SLState{
-			"map-state": models.SLState{
+			"map-state": {
 				Type: models.SLStateTypeMap,
 				End:  true,
 				Iterator: &models.SLStateMachine{
 					StartAt: "mapStateStart",
 					States: map[string]models.SLState{
-						"mapStateStart": models.SLState{
+						"mapStateStart": {
 							Type:     models.SLStateTypeTask,
 							Resource: "fake-resource-3",
 							End:      false,
 							Next:     "mapStateBad",
 							Retry:    []*models.SLRetrier{},
 						},
-						"mapStateEnd": models.SLState{
+						"mapStateEnd": {
 							Type:     models.SLStateTypeTask,
 							Resource: "fake-resource-4",
 							End:      true,
@@ -141,12 +141,12 @@ func TestCopyWorflowDefinition(t *testing.T) {
 	t.Log("Changing States in copy does not affect original")
 	for name, state := range copy.StateMachine.States {
 		state.Resource = "testing"
-		state.Retry = []*models.SLRetrier{&models.SLRetrier{
+		state.Retry = []*models.SLRetrier{{
 			MaxAttempts: aws.Int64(1),
 		}}
 		copy.StateMachine.States[name] = state
 	}
-	for name, _ := range wf.StateMachine.States {
+	for name := range wf.StateMachine.States {
 		assert.NotEqual(t, wf.StateMachine.States[name].Resource, copy.StateMachine.States[name].Resource)
 		assert.NotEqual(t, wf.StateMachine.States[name].Retry, copy.StateMachine.States[name].Retry)
 	}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -74,19 +75,19 @@ type stateMachineWithFullActivityARNsAndParametersTest struct {
 }
 
 var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullActivityARNsAndParametersTest{
-	stateMachineWithFullActivityARNsAndParametersTest{
+	{
 		name: "happy path",
 		input: models.SLStateMachine{
 			States: map[string]models.SLState{
-				"foostate": models.SLState{
+				"foostate": {
 					Type:     models.SLStateTypeTask,
 					Resource: "resource-name",
 				},
-				"foostatelambda": models.SLState{
+				"foostatelambda": {
 					Type:     models.SLStateTypeTask,
 					Resource: "lambda:resource-name",
 				},
-				"foostateglue": models.SLState{
+				"foostateglue": {
 					Type:     models.SLStateTypeTask,
 					Resource: "glue:resource-name",
 					Parameters: map[string]interface{}{
@@ -96,15 +97,15 @@ var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullA
 			},
 		},
 		wantSMStates: map[string]models.SLState{
-			"foostate": models.SLState{
+			"foostate": {
 				Type:     models.SLStateTypeTask,
 				Resource: "arn:aws:states:region:accountID:activity:namespace--resource-name",
 			},
-			"foostatelambda": models.SLState{
+			"foostatelambda": {
 				Type:     models.SLStateTypeTask,
 				Resource: "arn:aws:lambda:region:accountID:function:namespace--resource-name",
 			},
-			"foostateglue": models.SLState{
+			"foostateglue": {
 				Type:     models.SLStateTypeTask,
 				Resource: "arn:aws:states:::glue:startJobRun.sync",
 				Parameters: map[string]interface{}{
@@ -114,18 +115,18 @@ var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullA
 			},
 		},
 	},
-	stateMachineWithFullActivityARNsAndParametersTest{
+	{
 		name: "glue state with no extra arguments",
 		input: models.SLStateMachine{
 			States: map[string]models.SLState{
-				"foostateglue": models.SLState{
+				"foostateglue": {
 					Type:     models.SLStateTypeTask,
 					Resource: "glue:resource-name",
 				},
 			},
 		},
 		wantSMStates: map[string]models.SLState{
-			"foostateglue": models.SLState{
+			"foostateglue": {
 				Type:     models.SLStateTypeTask,
 				Resource: "arn:aws:states:::glue:startJobRun.sync",
 				Parameters: map[string]interface{}{
@@ -134,11 +135,11 @@ var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullA
 			},
 		},
 	},
-	stateMachineWithFullActivityARNsAndParametersTest{
+	{
 		name: "glue state with explicit arguments",
 		input: models.SLStateMachine{
 			States: map[string]models.SLState{
-				"foostateglue": models.SLState{
+				"foostateglue": {
 					Type:     models.SLStateTypeTask,
 					Resource: "glue:resource-name",
 					Parameters: map[string]interface{}{
@@ -151,7 +152,7 @@ var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullA
 			},
 		},
 		wantSMStates: map[string]models.SLState{
-			"foostateglue": models.SLState{
+			"foostateglue": {
 				Type:     models.SLStateTypeTask,
 				Resource: "arn:aws:states:::glue:startJobRun.sync",
 				Parameters: map[string]interface{}{
@@ -164,16 +165,16 @@ var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullA
 			},
 		},
 	},
-	stateMachineWithFullActivityARNsAndParametersTest{
+	{
 		name: "map state adds EXECUTION_NAME and expands iterator states",
 		input: models.SLStateMachine{
 			States: map[string]models.SLState{
-				"foostatemap": models.SLState{
+				"foostatemap": {
 					Type: models.SLStateTypeMap,
 					Iterator: &models.SLStateMachine{
 						StartAt: "foostate",
 						States: map[string]models.SLState{
-							"foostate": models.SLState{
+							"foostate": {
 								Type:     models.SLStateTypeTask,
 								Resource: "resource-name",
 							},
@@ -183,7 +184,7 @@ var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullA
 			},
 		},
 		wantSMStates: map[string]models.SLState{
-			"foostatemap": models.SLState{
+			"foostatemap": {
 				Type: models.SLStateTypeMap,
 				Parameters: map[string]interface{}{
 					"_EXECUTION_NAME.$": "$._EXECUTION_NAME",
@@ -191,7 +192,7 @@ var stateMachineWithFullActivityARNsAndParametersTests = []stateMachineWithFullA
 				Iterator: &models.SLStateMachine{
 					StartAt: "foostate",
 					States: map[string]models.SLState{
-						"foostate": models.SLState{
+						"foostate": {
 							Type:     models.SLStateTypeTask,
 							Resource: "arn:aws:states:region:accountID:activity:namespace--resource-name",
 						},
@@ -218,7 +219,7 @@ func TestStateMachineWithDefaultRetriers(t *testing.T) {
 	}
 	sm := models.SLStateMachine{
 		States: map[string]models.SLState{
-			"foostate": models.SLState{
+			"foostate": {
 				Type:  models.SLStateTypeTask,
 				Retry: []*models.SLRetrier{userRetry},
 			},
@@ -226,7 +227,7 @@ func TestStateMachineWithDefaultRetriers(t *testing.T) {
 	}
 	smWithRetry := stateMachineWithDefaultRetriers(sm)
 	require.Equal(t, map[string]models.SLState{
-		"foostate": models.SLState{
+		"foostate": {
 			Type:  models.SLStateTypeTask,
 			Retry: []*models.SLRetrier{defaultSFNCLICommandTerminatedRetrier, userRetry},
 		},
@@ -239,7 +240,7 @@ func TestStateMachineWithDefaultRetriers(t *testing.T) {
 	}
 	sm = models.SLStateMachine{
 		States: map[string]models.SLState{
-			"foostate": models.SLState{
+			"foostate": {
 				Type:  models.SLStateTypeTask,
 				Retry: []*models.SLRetrier{customRetry},
 			},
@@ -247,7 +248,7 @@ func TestStateMachineWithDefaultRetriers(t *testing.T) {
 	}
 	smWithRetry = stateMachineWithDefaultRetriers(sm)
 	require.Equal(t, map[string]models.SLState{
-		"foostate": models.SLState{
+		"foostate": {
 			Type:  models.SLStateTypeTask,
 			Retry: []*models.SLRetrier{customRetry},
 		},
@@ -570,6 +571,7 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{jobCreatedEvent}}, true)
 		})
@@ -626,6 +628,7 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
@@ -680,7 +683,7 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 
 	events := []*sfn.HistoryEvent{
 		jobCreatedEvent,
-		&sfn.HistoryEvent{
+		{
 			Id:        aws.Int64(2),
 			Timestamp: aws.Time(jobFailedEventTimestamp),
 			Type:      aws.String(sfn.HistoryEventTypeExecutionFailed),
@@ -700,6 +703,7 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
@@ -787,6 +791,7 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
@@ -850,6 +855,7 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
@@ -895,6 +901,7 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
@@ -944,11 +951,12 @@ func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
 		GetExecutionHistoryPagesWithContext(gomock.Any(), &sfn.GetExecutionHistoryInput{
 			ExecutionArn: aws.String(sfnExecutionARN),
 			MaxResults:   aws.Int64(executionEventsPerPage),
-		}, gomock.Any()).
+		}, gomock.Any(), gomock.Any()).
 		Do(func(
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{
 				jobCreatedEvent,
@@ -1083,6 +1091,7 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})
@@ -1155,6 +1164,7 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 			ctx aws.Context,
 			input *sfn.GetExecutionHistoryInput,
 			cb func(historyOutput *sfn.GetExecutionHistoryOutput, lastPage bool) bool,
+			opts ...request.Option,
 		) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: events}, true)
 		})

@@ -17,6 +17,7 @@ import (
 
 	_ "embed"
 
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -26,7 +27,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/go-openapi/strfmt"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"

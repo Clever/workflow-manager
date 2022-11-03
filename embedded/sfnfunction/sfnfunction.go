@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	errors "golang.org/x/xerrors"
-	"gopkg.in/Clever/kayvee-go.v6/logger"
 )
 
 // Resource is an SFN resource that calls out to a function.
@@ -22,15 +22,16 @@ type normalizedFn func(ctx context.Context, input string) (interface{}, error)
 
 // ErrBadFunctionSignature is returned when the supplied function does not
 // match one of the following:
-// 	func ()
-// 	func () error
-// 	func (TIn) error
-// 	func () (TOut, error)
-// 	func (TIn) (TOut, error)
-// 	func (context.Context) error
-// 	func (context.Context, TIn) error
-// 	func (context.Context) (TOut, error)
-// 	func (context.Context, TIn) (TOut, error)
+//
+//	func ()
+//	func () error
+//	func (TIn) error
+//	func () (TOut, error)
+//	func (TIn) (TOut, error)
+//	func (context.Context) error
+//	func (context.Context, TIn) error
+//	func (context.Context) (TOut, error)
+//	func (context.Context, TIn) (TOut, error)
 //
 // Where "TIn" and "TOut" are types compatible with the "encoding/json" standard library.
 type ErrBadFunctionSignature struct {

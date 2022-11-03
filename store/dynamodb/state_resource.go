@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-//
 type ddbStateResourcePrimaryKey struct {
 	Name      string `dynamodbav:"name"`
 	Namespace string `dynamodbav:"namespace"`

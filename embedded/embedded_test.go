@@ -41,7 +41,7 @@ var testWorkflowDefinition = models.WorkflowDefinition{
 	StateMachine: &models.SLStateMachine{
 		Comment: "this is a test",
 		States: map[string]models.SLState{
-			"test-state": models.SLState{
+			"test-state": {
 				Type: models.SLStateTypeSucceed,
 				End:  true,
 			},
@@ -76,7 +76,7 @@ var newWorkflowDefinitionTests = []newWorkflowDefinitionTest{
 		description: "happy path - replace Version -1 workflow definitions",
 		wfm: &Embedded{
 			workflowDefinitions: []models.WorkflowDefinition{
-				models.WorkflowDefinition{
+				{
 					Name:         "test-wfd",
 					StateMachine: testWorkflowDefinition.StateMachine,
 					Version:      -1,
@@ -88,7 +88,7 @@ var newWorkflowDefinitionTests = []newWorkflowDefinitionTest{
 			StateMachine: &models.SLStateMachine{
 				Comment: "this is the new world",
 				States: map[string]models.SLState{
-					"new-state": models.SLState{
+					"new-state": {
 						Type: models.SLStateTypeSucceed,
 						End:  true,
 					},
@@ -102,7 +102,7 @@ var newWorkflowDefinitionTests = []newWorkflowDefinitionTest{
 			require.Equal(t, &models.SLStateMachine{
 				Comment: "this is the new world",
 				States: map[string]models.SLState{
-					"new-state": models.SLState{
+					"new-state": {
 						Type: models.SLStateTypeSucceed,
 						End:  true,
 					},
@@ -223,7 +223,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"task": models.SLState{
+					"task": {
 						Type:     models.SLStateTypeTask,
 						Resource: "dne",
 						End:      true,
@@ -241,7 +241,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"task": models.SLState{
+					"task": {
 						Type: models.SLStateTypeTask,
 						End:  true,
 					},
@@ -258,7 +258,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"pass": models.SLState{
+					"pass": {
 						Type: models.SLStateTypePass,
 						End:  true,
 					},
@@ -275,7 +275,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"choice": models.SLState{
+					"choice": {
 						Type: models.SLStateTypeChoice,
 						End:  true,
 					},
@@ -292,7 +292,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"wait": models.SLState{
+					"wait": {
 						Type: models.SLStateTypeWait,
 						End:  true,
 					},
@@ -309,7 +309,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"succeed": models.SLState{
+					"succeed": {
 						Type: models.SLStateTypeSucceed,
 						End:  true,
 					},
@@ -325,7 +325,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"fail": models.SLState{
+					"fail": {
 						Type: models.SLStateTypeFail,
 						End:  true,
 					},
@@ -341,7 +341,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"parallel": models.SLState{
+					"parallel": {
 						Type: models.SLStateTypeParallel,
 						End:  true,
 					},
@@ -357,7 +357,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"map": models.SLState{
+					"map": {
 						Type:     models.SLStateTypeMap,
 						Iterator: &models.SLStateMachine{},
 						End:      true,
@@ -374,11 +374,11 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"map": models.SLState{
+					"map": {
 						Type: models.SLStateTypeMap,
 						Iterator: &models.SLStateMachine{
 							States: map[string]models.SLState{
-								"pass": models.SLState{
+								"pass": {
 									End:    true,
 									Type:   models.SLStateTypePass,
 									Result: "result",
@@ -399,7 +399,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"state": models.SLState{
+					"state": {
 						Type: models.SLStateType("whodis"),
 						End:  true,
 					},
@@ -416,7 +416,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"pass": models.SLState{
+					"pass": {
 						Type:   models.SLStateTypePass,
 						Result: "passing",
 					},
@@ -433,7 +433,7 @@ var validateWorkflowDefinitionStatesTests = []validateWorkflowDefinitionStatesTe
 		input: models.WorkflowDefinition{
 			StateMachine: &models.SLStateMachine{
 				States: map[string]models.SLState{
-					"no-end-state": models.SLState{
+					"no-end-state": {
 						Type: models.SLStateTypeSucceed,
 					},
 				},

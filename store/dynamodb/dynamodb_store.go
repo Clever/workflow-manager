@@ -20,7 +20,7 @@ import (
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
 
-	"gopkg.in/Clever/kayvee-go.v6/logger"
+	"github.com/Clever/kayvee-go/v7/logger"
 )
 
 // AWS ValidationException message when item is > 400KB

@@ -144,7 +144,8 @@ func (e InvalidPageTokenError) Error() string {
 }
 
 // InvalidQueryStructureError is returned for workflow queries that have a disallowed structure,
-//  like including both a Status and a ResolvedByUser value.
+//
+//	like including both a Status and a ResolvedByUser value.
 type InvalidQueryStructureError struct {
 	cause string
 }
