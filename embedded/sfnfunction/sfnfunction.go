@@ -22,15 +22,16 @@ type normalizedFn func(ctx context.Context, input string) (interface{}, error)
 
 // ErrBadFunctionSignature is returned when the supplied function does not
 // match one of the following:
-// 	func ()
-// 	func () error
-// 	func (TIn) error
-// 	func () (TOut, error)
-// 	func (TIn) (TOut, error)
-// 	func (context.Context) error
-// 	func (context.Context, TIn) error
-// 	func (context.Context) (TOut, error)
-// 	func (context.Context, TIn) (TOut, error)
+//
+//	func ()
+//	func () error
+//	func (TIn) error
+//	func () (TOut, error)
+//	func (TIn) (TOut, error)
+//	func (context.Context) error
+//	func (context.Context, TIn) error
+//	func (context.Context) (TOut, error)
+//	func (context.Context, TIn) (TOut, error)
 //
 // Where "TIn" and "TOut" are types compatible with the "encoding/json" standard library.
 type ErrBadFunctionSignature struct {

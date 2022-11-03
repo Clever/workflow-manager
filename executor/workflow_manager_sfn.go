@@ -126,9 +126,9 @@ func stateMachineWithFullActivityARNsAndParameters(oldSM models.SLStateMachine, 
 }
 
 // stateMachineWithDefaultRetriers creates a new state machine that has the following retry properties on every state's retry array:
-// - non-nil. The default serialization of a nil slice is "null", which the AWS API dislikes.
-// - sfncli.CommandTerminated for any Task state. See sfncli: https://github.com/clever/sfncli.
-//   This is to ensure that states are retried on signaled termination of activities (e.g. deploys).
+//   - non-nil. The default serialization of a nil slice is "null", which the AWS API dislikes.
+//   - sfncli.CommandTerminated for any Task state. See sfncli: https://github.com/clever/sfncli.
+//     This is to ensure that states are retried on signaled termination of activities (e.g. deploys).
 func stateMachineWithDefaultRetriers(oldSM models.SLStateMachine) *models.SLStateMachine {
 	sm := deepcopy.Copy(oldSM).(models.SLStateMachine)
 	for stateName, s := range sm.States {
