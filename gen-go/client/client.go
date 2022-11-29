@@ -34,7 +34,7 @@ var _ = strconv.FormatInt
 var _ = bytes.Compare
 
 // Version of the client.
-const Version = "0.14.3"
+const Version = "0.14.4"
 
 // VersionHeader is sent with every request.
 const VersionHeader = "X-Client-Version"
@@ -161,7 +161,7 @@ func newResource() *resource.Resource {
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceNameKey.String("workflow-manager"),
-			semconv.ServiceVersionKey.String("0.14.3"),
+			semconv.ServiceVersionKey.String("0.14.4"),
 		),
 	)
 	return r

@@ -1,10 +1,10 @@
-swagger: '2.0'
+swagger: "2.0"
 info:
   title: workflow-manager
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.14.3
+  version: 0.14.4
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -25,7 +25,7 @@ responses:
     schema:
       $ref: "#/definitions/NotFound"
   Conflict:
-    description: "Conflict with Current State"  #409
+    description: "Conflict with Current State" #409
     schema:
       $ref: "#/definitions/Conflict"
 
@@ -48,7 +48,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/WorkflowDefinition'
+              $ref: "#/definitions/WorkflowDefinition"
     post:
       operationId: newWorkflowDefinition
       summary: Create a new WorkflowDefinition
@@ -56,12 +56,12 @@ paths:
         - name: NewWorkflowDefinitionRequest
           in: body
           schema:
-            $ref: '#/definitions/NewWorkflowDefinitionRequest'
+            $ref: "#/definitions/NewWorkflowDefinitionRequest"
       responses:
         201:
           description: Successful creation of a new WorkflowDefinition
           schema:
-            $ref: '#/definitions/WorkflowDefinition'
+            $ref: "#/definitions/WorkflowDefinition"
 
   /workflow-definitions/{name}:
     get:
@@ -93,7 +93,7 @@ paths:
         - name: NewWorkflowDefinitionRequest
           in: body
           schema:
-            $ref: '#/definitions/NewWorkflowDefinitionRequest'
+            $ref: "#/definitions/NewWorkflowDefinitionRequest"
         - name: name
           in: path
           type: string
@@ -102,7 +102,7 @@ paths:
         201:
           description: Successful creation of a new WorkflowDefinition
           schema:
-            $ref: '#/definitions/WorkflowDefinition'
+            $ref: "#/definitions/WorkflowDefinition"
         404:
           $ref: "#/responses/NotFound"
 
@@ -156,12 +156,11 @@ paths:
         # TODO: Add date range filters.
         # should be kept in sync with WorkflowQuery model
         - name: limit
-          default: 10  # TODO: this can be increased after ark support
+          default: 10 # TODO: this can be increased after ark support
           maximum: 10000
           in: query
           type: integer
-          description:
-            Maximum number of workflows to return.
+          description: Maximum number of workflows to return.
             Defaults to 10.
             Restricted to a max of 10,000.
         - name: oldestFirst
@@ -171,19 +170,17 @@ paths:
           in: query
           type: string
         - name: status
-          description:
-            The status of the workflow (queued, running, etc.).
+          description: The status of the workflow (queued, running, etc.).
           in: query
           type: string
         - name: resolvedByUser
           in: query
           type: boolean
-          description:
-            A flag that indicates whether the workflow has been marked resolved by a user.
+          description: A flag that indicates whether the workflow has been marked resolved by a user.
         - name: summaryOnly
           description:
             Limits workflow data to the bare minimum - omits the full workflow definition and job
-             data.
+            data.
           in: query
           type: boolean
           default: false
@@ -249,7 +246,7 @@ paths:
           in: body
           required: true
           schema:
-            $ref: '#/definitions/WorkflowDefinitionOverrides'
+            $ref: "#/definitions/WorkflowDefinitionOverrides"
       responses:
         200:
           description: Workflow
@@ -283,7 +280,7 @@ paths:
         - name: NewStateResource
           in: body
           schema:
-            $ref: '#/definitions/NewStateResource'
+            $ref: "#/definitions/NewStateResource"
       responses:
         201:
           description: StateResource Successfully saved
@@ -325,7 +322,7 @@ paths:
         - name: NewStateResource
           in: body
           schema:
-            $ref: '#/definitions/NewStateResource'
+            $ref: "#/definitions/NewStateResource"
       responses:
         201:
           description: StateResource Successfully saved
@@ -384,9 +381,9 @@ definitions:
       name:
         type: string
       manager:
-        $ref: '#/definitions/Manager'
+        $ref: "#/definitions/Manager"
       stateMachine:
-        $ref: '#/definitions/SLStateMachine'
+        $ref: "#/definitions/SLStateMachine"
       defaultTags:
         description: "defaultTags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
@@ -413,9 +410,9 @@ definitions:
         type: string
         format: date-time
       manager:
-        $ref: '#/definitions/Manager'
+        $ref: "#/definitions/Manager"
       stateMachine:
-        $ref: '#/definitions/SLStateMachine'
+        $ref: "#/definitions/SLStateMachine"
       defaultTags:
         description: "defaultTags: object with key-value pairs; keys and values should be strings"
         additionalProperties:
@@ -428,7 +425,7 @@ definitions:
 
   Workflow:
     allOf:
-      - $ref: '#/definitions/WorkflowSummary'
+      - $ref: "#/definitions/WorkflowSummary"
       - type: object
         properties:
           statusReason:
@@ -439,7 +436,7 @@ definitions:
           jobs:
             type: array
             items:
-              $ref: '#/definitions/Job'
+              $ref: "#/definitions/Job"
 
   WorkflowSummary:
     type: object
@@ -456,9 +453,9 @@ definitions:
         type: string
         format: date-time
       workflowDefinition:
-        $ref: '#/definitions/WorkflowDefinition'
+        $ref: "#/definitions/WorkflowDefinition"
       status:
-        $ref: '#/definitions/WorkflowStatus'
+        $ref: "#/definitions/WorkflowStatus"
       namespace:
         type: string
       queue:
@@ -481,7 +478,7 @@ definitions:
         additionalProperties:
           type: object
       lastJob:
-        $ref: '#/definitions/Job'
+        $ref: "#/definitions/Job"
 
   WorkflowStatus:
     type: string
@@ -508,7 +505,7 @@ definitions:
       attempts:
         type: array
         items:
-          $ref: '#/definitions/JobAttempt'
+          $ref: "#/definitions/JobAttempt"
       container:
         type: string
       createdAt:
@@ -530,9 +527,9 @@ definitions:
       state:
         type: string
       stateResource:
-        $ref: '#/definitions/StateResource'
+        $ref: "#/definitions/StateResource"
       status:
-        $ref: '#/definitions/JobStatus'
+        $ref: "#/definitions/JobStatus"
       statusReason:
         type: string
       stoppedAt:
@@ -577,7 +574,7 @@ definitions:
     properties:
       workflowDefinition:
         # required
-        $ref: '#/definitions/WorkflowDefinitionRef'
+        $ref: "#/definitions/WorkflowDefinitionRef"
       input:
         # required
         # format: json
@@ -633,7 +630,7 @@ definitions:
         type: string
         format: date-time
       type:
-        $ref: '#/definitions/StateResourceType'
+        $ref: "#/definitions/StateResourceType"
 
   StateResourceType:
     type: string
@@ -658,13 +655,13 @@ definitions:
         type: integer
       States:
         additionalProperties:
-          $ref: '#/definitions/SLState'
+          $ref: "#/definitions/SLState"
 
   SLState:
     type: object
     properties:
       Type:
-        $ref: '#/definitions/SLStateType'
+        $ref: "#/definitions/SLStateType"
       Resource:
         type: string
       Comment:
@@ -695,12 +692,12 @@ definitions:
         x-omitempty: true
         type: array
         items:
-          $ref: '#/definitions/SLRetrier'
+          $ref: "#/definitions/SLRetrier"
       Catch:
         x-omitempty: true
         type: array
         items:
-          $ref: '#/definitions/SLCatcher'
+          $ref: "#/definitions/SLCatcher"
       TimeoutSeconds:
         type: integer
       HeartbeatSeconds:
@@ -709,15 +706,15 @@ definitions:
         x-omitempty: true
         type: array
         items:
-          $ref: '#/definitions/SLChoice'
+          $ref: "#/definitions/SLChoice"
       Branches:
         x-omitempty: true
         type: array
         items:
-          $ref: '#/definitions/SLStateMachine'
+          $ref: "#/definitions/SLStateMachine"
       Iterator:
         x-omitempty: true
-        $ref: '#/definitions/SLStateMachine'
+        $ref: "#/definitions/SLStateMachine"
       Default:
         type: string
       Error:
@@ -804,14 +801,14 @@ definitions:
         x-omitempty: true
         type: array
         items:
-          $ref: '#/definitions/SLChoice'
+          $ref: "#/definitions/SLChoice"
       Or:
         x-omitempty: true
         type: array
         items:
-          $ref: '#/definitions/SLChoice'
+          $ref: "#/definitions/SLChoice"
       Not:
-        $ref: '#/definitions/SLChoice'
+        $ref: "#/definitions/SLChoice"
 
   SLRetrier:
     type: object
@@ -823,7 +820,7 @@ definitions:
       ErrorEquals:
         type: array
         items:
-          $ref: '#/definitions/SLErrorEquals'
+          $ref: "#/definitions/SLErrorEquals"
       MaxAttempts:
         type: integer
         minimum: 0
@@ -835,7 +832,7 @@ definitions:
       ErrorEquals:
         type: array
         items:
-          $ref: '#/definitions/SLErrorEquals'
+          $ref: "#/definitions/SLErrorEquals"
       ResultPath:
         type: string
       Next:
@@ -879,10 +876,10 @@ definitions:
       pageToken:
         type: string
       status:
-        $ref: '#/definitions/WorkflowStatus'
+        $ref: "#/definitions/WorkflowStatus"
       summaryOnly:
         type: boolean
         default: false
       resolvedByUserWrapper:
         description: Tracks whether the resolvedByUser query parameter was sent or omitted in the request.
-        $ref: '#/definitions/ResolvedByUserWrapper'
+        $ref: "#/definitions/ResolvedByUserWrapper"
