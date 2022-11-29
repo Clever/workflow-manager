@@ -54,7 +54,7 @@ type WagClient struct {
 
 var _ Client = (*WagClient)(nil)
 
-// This pattern is used instead of using closures for greater transparency and the ability to implement additional interfaces.
+//This pattern is used instead of using closures for greater transparency and the ability to implement additional interfaces.
 type options struct {
 	transport    http.RoundTripper
 	logger       wcl.WagClientLogger
@@ -66,7 +66,7 @@ type Option interface {
 	apply(*options)
 }
 
-// WithLogger sets client logger option.
+//WithLogger sets client logger option.
 func WithLogger(log wcl.WagClientLogger) Option {
 	return loggerOption{Log: log}
 }
@@ -126,8 +126,8 @@ func (se exporterOption) apply(opts *options) {
 
 //----------------------BEGIN LOGGING RELATED FUNCTIONS----------------------
 
-// NewLogger creates a logger for id that produces logs at and below the indicated level.
-// Level indicated the level at and below which logs are created.
+//NewLogger creates a logger for id that produces logs at and below the indicated level.
+//Level indicated the level at and below which logs are created.
 func NewLogger(id string, level wcl.LogLevel) PrintlnLogger {
 	return PrintlnLogger{id: id, level: level}
 }

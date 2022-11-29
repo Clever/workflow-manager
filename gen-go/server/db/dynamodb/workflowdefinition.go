@@ -158,7 +158,7 @@ func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx cont
 			"#NAME": aws.String("name"),
 		},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":name": {
+			":name": &dynamodb.AttributeValue{
 				S: aws.String(input.Name),
 			},
 		},
@@ -183,10 +183,10 @@ func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx cont
 	}
 	if input.StartingAfter != nil {
 		queryInput.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
-			"version": {
+			"version": &dynamodb.AttributeValue{
 				N: aws.String(fmt.Sprintf("%d", input.StartingAfter.Version)),
 			},
-			"name": {
+			"name": &dynamodb.AttributeValue{
 				S: aws.String(input.StartingAfter.Name),
 			},
 		}
