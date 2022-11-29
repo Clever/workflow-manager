@@ -69,6 +69,8 @@ github.com/Clever/launch-gen v0.0.0-20220707212639-7c830d53b040 h1:PRHVrX8nr9HRO
 github.com/Clever/launch-gen v0.0.0-20220707212639-7c830d53b040/go.mod h1:SN5Cf87o/YLSIXOmShxJfVfN6yADVr3S+IlHD2sltXA=
 github.com/Clever/wag/logging/wagclientlogger v0.0.0-20220916194010-36f974d66e08 h1:hr8vR3NyIrxMKFOUzqMY5y1VboQaT2Lia4RXVvogLfM=
 github.com/Clever/wag/logging/wagclientlogger v0.0.0-20220916194010-36f974d66e08/go.mod h1:NPerIFemV/7da/vNGALWkky+mit4ulSa24NSalIXgpo=
+github.com/Clever/wag/logging/wagclientlogger v0.0.0-20221024182247-2bf828ef51be h1:1q4fCi5CfB+ru7uqnwRg4xWKBDwwATDptNxebm2Kx0g=
+github.com/Clever/wag/logging/wagclientlogger v0.0.0-20221024182247-2bf828ef51be/go.mod h1:NPerIFemV/7da/vNGALWkky+mit4ulSa24NSalIXgpo=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/PuerkitoBio/purell v1.1.1 h1:WEQqlqaGbrPkxLJWfBwQmfEAE1Z7ONdDLqrN38tNFfI=
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
@@ -396,6 +398,7 @@ github.com/xeipuuv/gojsonreference v0.0.0-20150808065054-e02fc20de94c/go.mod h1:
 github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 h1:EzJWgHovont7NscjpAxXsDA8S8BMYve8Y5+7cuRE7R0=
 github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415/go.mod h1:GwrjFmJcFw6At/Gs6z4yjiIwzuJ1/+UwLxMQDVQXShQ=
 github.com/xeipuuv/gojsonschema v0.0.0-20171025060643-212d8a0df7ac/go.mod h1:5yf86TLmAcydyeJq5YvxkGPE2fm/u4myDekKRoLuqhs=
+github.com/xeipuuv/gojsonschema v1.2.0 h1:LhYJRs+L4fBtjZUfuSZIKGeVu0QRy8e5Xi7D17UxZ74=
 github.com/xeipuuv/gojsonschema v1.2.0/go.mod h1:anYRn/JVcOK2ZgGU+IjEV4nwlhoK5sQluxsYJ78Id3Y=
 github.com/xeipuuv/gojsonschema v1.2.1-0.20200424115421-065759f9c3d7 h1:tdnG+ZILOafvA29+pYKP3gauEbigHll3PHsf1GQa2ms=
 github.com/xeipuuv/gojsonschema v1.2.1-0.20200424115421-065759f9c3d7/go.mod h1:anYRn/JVcOK2ZgGU+IjEV4nwlhoK5sQluxsYJ78Id3Y=
