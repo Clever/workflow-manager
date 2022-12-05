@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/go-openapi/strfmt"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
@@ -73,12 +74,13 @@ func isGzipped(b []byte) bool {
 }
 
 func (h Handler) handle(ctx context.Context, input events.KinesisEvent) error {
+	var merr *multierror.Error
 	for _, rec := range input.Records {
 		if err := h.handleRecord(ctx, rec); err != nil {
-			return err
+			multierror.Append(merr, err)
 		}
 	}
-	return nil
+	return merr.ErrorOrNil()
 }
 
 func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord) error {
@@ -102,20 +104,20 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 		logger.FromContext(ctx).InfoD("skipped", logger.M{"group": d.LogGroup, "stream": d.LogStream, "count": len(d.LogEvents)})
 		return nil
 	}
-	logger.FromContext(ctx).AddContext("log-group", d.LogGroup)
-	logger.FromContext(ctx).AddContext("log-stream", d.LogStream)
-	logger.FromContext(ctx).AddContext("kinesis-seq", rec.Kinesis.SequenceNumber)
-	logger.FromContext(ctx).InfoD("received", logger.M{"count": len(d.LogEvents)})
+
+	var merr *multierror.Error
 	for _, evt := range d.LogEvents {
 		var historyEvent HistoryEvent
 		if err := json.Unmarshal([]byte(evt.Message), &historyEvent); err != nil {
-			return fmt.Errorf("error decoding message as JSON, message='%s' error='%s'", evt.Message, err)
+			multierror.Append(merr, fmt.Errorf("error decoding message as JSON stream=%q group=%q id=%q message=%q:%v", d.LogStream, d.LogGroup, evt.ID, evt.Message, err))
+			continue
 		}
 		if err := h.handleHistoryEvent(ctx, historyEvent); err != nil {
-			return err
+			multierror.Append(merr, fmt.Errorf("failed to process event stream=%q group=%q id=%q:%v", d.LogStream, d.LogGroup, evt.ID, err))
+			continue
 		}
 	}
-	return nil
+	return merr.ErrorOrNil()
 }
 
 // HistoryEvent is the data that SFN delivers to CW Logs.
