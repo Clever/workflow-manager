@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/go-openapi/strfmt"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
@@ -73,12 +74,13 @@ func isGzipped(b []byte) bool {
 }
 
 func (h Handler) handle(ctx context.Context, input events.KinesisEvent) error {
+	var merr *multierror.Error
 	for _, rec := range input.Records {
 		if err := h.handleRecord(ctx, rec); err != nil {
-			return err
+			multierror.Append(merr, err)
 		}
 	}
-	return nil
+	return merr.ErrorOrNil()
 }
 
 func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord) error {
@@ -102,20 +104,20 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 		logger.FromContext(ctx).InfoD("skipped", logger.M{"group": d.LogGroup, "stream": d.LogStream, "count": len(d.LogEvents)})
 		return nil
 	}
-	logger.FromContext(ctx).AddContext("log-group", d.LogGroup)
-	logger.FromContext(ctx).AddContext("log-stream", d.LogStream)
-	logger.FromContext(ctx).AddContext("kinesis-seq", rec.Kinesis.SequenceNumber)
-	logger.FromContext(ctx).InfoD("received", logger.M{"count": len(d.LogEvents)})
+
+	var merr *multierror.Error
 	for _, evt := range d.LogEvents {
 		var historyEvent HistoryEvent
 		if err := json.Unmarshal([]byte(evt.Message), &historyEvent); err != nil {
-			return fmt.Errorf("error decoding message as JSON, message='%s' error='%s'", evt.Message, err)
+			multierror.Append(merr, fmt.Errorf("error decoding message as JSON stream=%q group=%q id=%q message=%q:%v", d.LogStream, d.LogGroup, evt.ID, evt.Message, err))
+			continue
 		}
 		if err := h.handleHistoryEvent(ctx, historyEvent); err != nil {
-			return err
+			multierror.Append(merr, fmt.Errorf("failed to process event stream=%q group=%q id=%q:%v", d.LogStream, d.LogGroup, evt.ID, err))
+			continue
 		}
 	}
-	return nil
+	return merr.ErrorOrNil()
 }
 
 // HistoryEvent is the data that SFN delivers to CW Logs.
@@ -188,17 +190,6 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 	logger.FromContext(ctx).AddContext("state-machine-name", smName)
 	logger.FromContext(ctx).AddContext("aws-event-type", evt.Type)
 	var update store.UpdateWorkflowAttributesInput
-	// This special case prevents slamming DDB with requests that would update the state from
-	// running => running. Event ID #2 may be a number of different SFN events, but regardless
-	// of the specific event type, we consider them all to put the workflow into a 'running'
-	// state according to our own internal definition that we want displayed in hubble. Acting
-	// only on event ID #2 and terminal events (below in switch statements) means that we only
-	// attempt to put the workflow into each state once and therefore save on DDB requests.
-	if evt.ID == "2" {
-		update.Status = ptrStatus(models.WorkflowStatusRunning)
-		logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
-		return swallowOutOfOrderStateError(ctx, h.store.UpdateWorkflowAttributes(ctx, execID, update))
-	}
 
 	// on terminal events, update StoppedAt
 	switch evt.Type {
@@ -209,7 +200,20 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 		}
 		stoppedAt := strfmt.DateTime(unixMilli(msec))
 		update.StoppedAt = &stoppedAt
+	default:
+		// This special case prevents slamming DDB with requests that would update the state from
+		// running => running. Event ID #2 may be a number of different SFN events, but regardless
+		// of the specific event type, we consider them all to put the workflow into a 'running'
+		// state according to our own internal definition that we want displayed in hubble. Acting
+		// only on event ID #2 and terminal events (below in switch statements) means that we only
+		// attempt to put the workflow into each state once and therefore save on DDB requests.
+		if evt.ID == "2" {
+			update.Status = ptrStatus(models.WorkflowStatusRunning)
+			logger.FromContext(ctx).InfoD("update-workflow", logger.M(update.Map()))
+			return swallowOutOfOrderStateError(ctx, h.store.UpdateWorkflowAttributes(ctx, execID, update))
+		}
 	}
+
 	switch evt.Type {
 	case "ExecutionAborted":
 		update.Status = ptrStatus(models.WorkflowStatusCancelled)
