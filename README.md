@@ -118,3 +118,4 @@ For more information, see the [full schema definition](docs/definitions.md#workf
 - Run `make generate` to generate the supporting code.
 - Run `make build`, `make run`, or `make test` - any of these should fail with helpful errors about how to start implementing the business logic.
 
+test
