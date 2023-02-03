@@ -73,3 +73,4 @@ mesh_config:
   dev:
     state: mesh_only
   crossRegionRoute: sso
+  setupInternalRoute: true
