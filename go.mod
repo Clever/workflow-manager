@@ -3,10 +3,10 @@ module github.com/Clever/workflow-manager
 go 1.16
 
 require (
-	github.com/Clever/aws-sdk-go-counter v1.10.39-0.20190610193009-b603aedc6d67
+	github.com/Clever/aws-sdk-go-counter v1.10.38
 	github.com/Clever/go-process-metrics v0.4.0
-	github.com/Clever/kayvee-go/v7 v7.6.0
-	github.com/Clever/launch-gen v0.0.0-20220707212639-7c830d53b040
+	github.com/Clever/kayvee-go/v7 v7.7.0
+	github.com/Clever/launch-gen v0.0.0-20230222233441-17c275320509
 	github.com/Clever/workflow-manager/gen-go/client v0.0.0-00010101000000-000000000000
 	github.com/Clever/workflow-manager/gen-go/models v0.0.0-00010101000000-000000000000
 	github.com/aws/aws-lambda-go v1.34.1
