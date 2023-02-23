@@ -58,6 +58,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/Clever/aws-sdk-go-counter v1.10.38 h1:j7wm4soPfWMzepoDHxxQJBLQui7CF/Q/i1EG0dFSEno=
 github.com/Clever/aws-sdk-go-counter v1.10.38/go.mod h1:nLHwBoaxM28ZibccJTfALxzF5EwxdPtjwUHx86LqGVM=
+github.com/Clever/aws-sdk-go-counter v1.10.39-0.20190610193009-b603aedc6d67 h1:8Bzz+tjpnTX0uBwsm9yt2OeBjRTeV0olTfAZ7yHUNKE=
+github.com/Clever/aws-sdk-go-counter v1.10.39-0.20190610193009-b603aedc6d67/go.mod h1:nLHwBoaxM28ZibccJTfALxzF5EwxdPtjwUHx86LqGVM=
 github.com/Clever/discovery-go v1.8.1 h1:bT2q5IkEZnQviXEvC6iij9KNlJTPyLXPOQQCvvpX2Rg=
 github.com/Clever/discovery-go v1.8.1/go.mod h1:2W318WszWlVde/hKBvxM3xrQKcmxWwv+6ysUu8Rfx0I=
 github.com/Clever/go-process-metrics v0.4.0 h1:f7sqN8NxRlLV0phlTRPe1/wDmVOqW/EnILM6J+MkcLE=
