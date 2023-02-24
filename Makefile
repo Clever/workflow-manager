@@ -63,6 +63,7 @@ swagger2markup-cli-1.3.1.jar:
 generate: wag-generate-deps swagger2markup-cli-1.3.1.jar
 	java -jar swagger2markup-cli-1.3.1.jar convert -c docs/config.properties -i swagger.yml  -d docs/
 	$(call wag-generate-mod,./swagger.yml)
+	go mod vendor
 	# wag bug: this test file assumes usage of functions like `aws.String(...)` but the workflow-manager
 	# ark db doesn't use this, leading to an unused import error. Remove the import with a hack.
 	sed -i -e '6d' gen-go/server/db/tests/tests.go

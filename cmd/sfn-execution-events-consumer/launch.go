@@ -1,6 +1,7 @@
 package main
 
 import (
+	trace "go.opentelemetry.io/otel/sdk/trace"
 	"log"
 	"os"
 )
@@ -31,7 +32,7 @@ type Environment struct {
 type AwsResources struct{}
 
 // InitLaunchConfig creates a LaunchConfig
-func InitLaunchConfig() LaunchConfig {
+func InitLaunchConfig(exp *trace.SpanExporter) LaunchConfig {
 	return LaunchConfig{
 		AwsResources: AwsResources{},
 		Deps:         Dependencies{},

@@ -272,7 +272,7 @@ func (h Handler) handleHistoryEvent(ctx context.Context, evt HistoryEvent) error
 }
 
 func main() {
-	lc := InitLaunchConfig()
+	lc := InitLaunchConfig(nil)
 
 	sfnapi := sfn.New(session.Must(session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{

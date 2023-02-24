@@ -1,9 +1,11 @@
-WAG_MK_VERSION := 0.6.1
+# This is the default Clever Wag Makefile.
+# Please do not alter this file directly.
+WAG_MK_VERSION := 0.7.0
 SHELL := /bin/bash
 SYSTEM := $(shell uname -a | cut -d" " -f1 | tr '[:upper:]' '[:lower:]')
 ifndef CI
 WAG_INSTALLED := $(shell [[ -e "bin/wag" ]] && bin/wag --version)
-WAG_LATEST = $(shell curl --retry 5 -f -s https://api.github.com/repos/Clever/wag/releases | grep tag_name | head -1 | cut -d\" -f4)
+WAG_LATEST = $(shell curl --retry 5 -f -s https://api.github.com/repos/Clever/wag/releases/latest | grep tag_name | cut -d\" -f4)
 endif
 .PHONY: wag-update-makefile ensure-wag-version-set wag-generate-deps
 
@@ -20,7 +22,6 @@ ensure-wag-version-set:
 bin/wag: ensure-wag-version-set
 	@mkdir -p bin
 	$(eval WAG_VERSION := $(if $(filter latest,$(WAG_VERSION)),$(WAG_LATEST),$(WAG_VERSION)))
-	@echo $(WAG_VERSION), $(WAG_INSTALLED)
 	@echo "Checking for wag updates..."
 	@echo "Using wag version $(WAG_INSTALLED)"
 	@if [[ "$(WAG_VERSION)" != "$(WAG_INSTALLED)" ]]; \
@@ -52,7 +53,7 @@ endif
 define wag-yaml-aliases
 @if [ -z "$$CI" ]; then \
 	cat $(1) | python3 -c "import sys, yaml, json; y=yaml.load(sys.stdin.read(), yaml.Loader); print(yaml.dump(y))" > /tmp/swagger.catapult.yml; \
-	bin/wag -output-path gen-go -js-path ./gen-js -file /tmp/swagger.catapult.yml; \
+	bin/wag -output-path ./gen-go -js-path ./gen-js -file /tmp/swagger.catapult.yml; \
 	(cd ./gen-js && ../node_modules/.bin/jsdoc2md index.js types.js > ./README.md); \
 else \
 	echo "skipping wag-yaml-aliases in CI"; \
@@ -75,7 +76,7 @@ endef
 # arg1: path to swagger.yml
 define wag-generate-mod
 @if [ -z "$$CI" ]; then \
-    bin/wag -output-path gen-go -js-path ./gen-js -file $(1); \
+    bin/wag -output-path ./gen-go -js-path ./gen-js -file $(1); \
     (cd ./gen-js && ../node_modules/.bin/jsdoc2md index.js types.js > ./README.md); \
 else \
     echo "skipping wag-generate-mod in CI"; \
