@@ -2285,7 +2285,7 @@ module.exports.Errors = Errors;
 
 module.exports.DefaultCircuitOptions = defaultCircuitOptions;
 
-const version = "0.14.3";
+const version = "0.15.1";
 const versionHeader = "X-Client-Version";
 module.exports.Version = version;
 module.exports.VersionHeader = versionHeader;

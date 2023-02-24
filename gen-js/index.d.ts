@@ -343,6 +343,11 @@ declare namespace WorkflowManager {
     
     type StateResourceType = ("JobDefinitionARN" | "ActivityARN" | "LambdaFunctionARN" | "TaskARN");
     
+    type UnknownResponse = {
+  body?: string;
+  statusCode?: number;
+};
+    
     type UpdateWorkflowDefinitionParams = {
   NewWorkflowDefinitionRequest?: NewWorkflowDefinitionRequest;
   name: string;

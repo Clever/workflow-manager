@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Clever/wag/clientconfig/v9"
+
 	"github.com/Clever/workflow-manager/gen-go/client"
 	"github.com/Clever/workflow-manager/gen-go/models"
 )
@@ -47,7 +49,7 @@ func main() {
 	os.Setenv("SERVICE_WORKFLOW_MANAGER_HTTP_HOST", "production--workflow-manager--a6127c9c.int.clever.com")
 	os.Setenv("SERVICE_WORKFLOW_MANAGER_HTTP_PORT", "443")
 	os.Setenv("SERVICE_WORKFLOW_MANAGER_HTTP_PROTO", "https")
-	cl, err := client.NewFromDiscovery()
+	cl, err := client.NewFromDiscovery(clientconfig.WithoutTracing("workflow-manager"))
 	if err != nil {
 		log.Fatal(err)
 	}
