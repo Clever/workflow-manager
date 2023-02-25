@@ -71,6 +71,6 @@ deploy_config:
   - production
 mesh_config:
   dev:
-    state: mesh_only
+    state: hybrid
   crossRegionRoute: sso
   setupInternalRoute: true
