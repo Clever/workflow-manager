@@ -1,8 +1,8 @@
-- name: hello-world-v2
+- name: hello-world-v4
   stateMachine:
     Version: '1.0'
     StartAt: hello
-    TimeoutSeconds: 60
+    TimeoutSeconds: 90
     States:
       hello:
         Next: world

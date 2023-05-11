@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -22,13 +21,19 @@ import (
 
 const sfnRegion = "us-east-2"
 
-var sfnAccountID = strings.Replace(os.Getenv("AWS_ACCOUNT_NUMBER"), "-", "", -1)
+var sfnAccountID = strings.ReplaceAll(os.Getenv("AWS_ACCOUNT_NUMBER"), "-", "")
 
-func first(ctx context.Context) (string, error) {
-	return "world", nil
+func first(ctx context.Context, input string) (string, error) {
+	log.Printf("in first before sleep for %s", input)
+	time.Sleep(20 * time.Second)
+	log.Printf("in first after sleep for %s", input)
+	return input, nil
 }
 
 func second(input string) (string, error) {
+	log.Printf("in second before sleep for %s", input)
+	time.Sleep(20 * time.Second)
+	log.Printf("in second after sleep for %s", input)
 	return "Hello, " + input + "!", nil
 }
 
@@ -52,7 +57,7 @@ func main() {
 		App:          "example",
 		SFNAccountID: sfnAccountID,
 		SFNRegion:    sfnRegion,
-		SFNRoleArn:   "arn:aws:iam::589690932525:role/raf-test-step-fjunctions",
+		SFNRoleArn:   "arn:aws:iam::589690932525:role/raf-test-step-functions",
 		SFNAPI: sfn.New(session.New(&aws.Config{
 			Region: aws.String(sfnRegion),
 		})),
@@ -67,34 +72,59 @@ func main() {
 	}
 	go client.PollForWork(ctx)
 	time.Sleep(2 * time.Second)
-	wf, err := client.StartWorkflow(ctx, &models.StartWorkflowRequest{
-		Input: "{}",
+	wf1, err := client.StartWorkflow(ctx, &models.StartWorkflowRequest{
+		Input: `"first wf"`,
 		WorkflowDefinition: &models.WorkflowDefinitionRef{
-			Name: "hello-world-v2",
+			Name: "hello-world-v4",
 		},
 	})
 	if err != nil {
 		log.Fatalf("start workflow: %s", err.Error())
 	}
 
-	wfbs, _ := json.MarshalIndent(wf, "", "  ")
-	fmt.Println("started workflow", string(wfbs))
+	wf2, err := client.StartWorkflow(ctx, &models.StartWorkflowRequest{
+		Input: `"second wf"`,
+
+		WorkflowDefinition: &models.WorkflowDefinitionRef{
+			Name: "hello-world-v4",
+		},
+	})
+	if err != nil {
+		log.Fatalf("start workflow 2: %s", err.Error())
+	}
+
+	// wfbs, _ := json.MarshalIndent(wf, "", "  ")
+	// fmt.Println("started workflow", string(wfbs))
 
 	for {
 		time.Sleep(2 * time.Second)
-		wf, err := client.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: wf.ID})
+		wf, err := client.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: wf1.ID})
 		if err != nil {
 			fmt.Println("Oops, err", err)
 			break
 		}
-		bs, _ := json.MarshalIndent(wf, "", "  ")
-		fmt.Println("got workflow", string(bs))
+		// bs, _ := json.MarshalIndent(wf, "", "  ")
+		// fmt.Println("got workflow", string(bs))
 		if wf.Status == models.WorkflowStatusFailed ||
 			wf.Status == models.WorkflowStatusSucceeded ||
 			wf.Status == models.WorkflowStatusCancelled {
 			break
 		}
 	}
-	cancel()
+	for {
+		time.Sleep(2 * time.Second)
+		wf, err := client.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: wf2.ID})
+		if err != nil {
+			fmt.Println("Oops, err", err)
+			break
+		}
+		// bs, _ := json.MarshalIndent(wf, "", "  ")
+		// fmt.Println("got workflow", string(bs))
+		if wf.Status == models.WorkflowStatusFailed ||
+			wf.Status == models.WorkflowStatusSucceeded ||
+			wf.Status == models.WorkflowStatusCancelled {
+			break
+		}
+	}
 	time.Sleep(1 * time.Second)
 }
