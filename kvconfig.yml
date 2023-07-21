@@ -36,3 +36,13 @@ routes:
       icon: ":pipeline:"
       user: "workflow-manager"
       message: Attempted to start unknown workflow definition `%{name}` version `%{version}`
+
+  zombie-execution-found:
+    matchers:
+      title: ["zombie-execution-found"]
+    output:
+      type: "notifications"
+      channel: "#eng-infra-alerts-major"
+      icon: ":pipeline:"
+      user: "workflow-manager"
+      message: Found zombie execution `%{execution-id}` for workflow `%{workflow-id}`. Check ticket https://clever.atlassian.net/browse/INFRANG-4733 for details
