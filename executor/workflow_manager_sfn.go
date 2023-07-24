@@ -513,6 +513,10 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 
 				// only fail after 5 minutes to see if this is an eventual-consistency thing
 				if time.Time(workflow.LastUpdated).Before(time.Now().Add(-durationToRetryDescribeExecutions)) {
+					log.ErrorD("zombie-execution-found", logger.M{
+						"workflow-id":  workflow.ID,
+						"execution-id": execARN,
+					})
 					workflow.LastUpdated = strfmt.DateTime(time.Now())
 					workflow.Status = models.WorkflowStatusFailed
 					return wm.store.UpdateWorkflow(ctx, *workflow)
