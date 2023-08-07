@@ -11,7 +11,7 @@ require (
 	github.com/Clever/workflow-manager/gen-go/client v0.0.0-00010101000000-000000000000
 	github.com/Clever/workflow-manager/gen-go/models v0.0.0-00010101000000-000000000000
 	github.com/aws/aws-lambda-go v1.34.1
-	github.com/aws/aws-sdk-go v1.44.89
+	github.com/aws/aws-sdk-go v1.44.125
 	github.com/elastic/go-elasticsearch/v6 v6.8.10
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-errors/errors v1.1.1
