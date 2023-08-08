@@ -17,7 +17,6 @@ import (
 
 	_ "embed"
 
-	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -29,6 +28,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/Clever/kayvee-go/v7/logger"
+
 	"github.com/Clever/workflow-manager/gen-go/models"
 	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
 	"github.com/Clever/workflow-manager/resources"
@@ -37,7 +38,7 @@ import (
 	"github.com/Clever/workflow-manager/wfupdater"
 )
 
-var dynamoMaxRetries int = 4
+var dynamoMaxRetries int = 0
 
 // Handler encapsulates the external dependencies of the lambda function.
 type Handler struct {
