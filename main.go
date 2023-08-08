@@ -81,6 +81,7 @@ func main() {
 			Region:     aws.String(c.DynamoRegion),
 			MaxRetries: &dynamoMaxRetries,
 			HTTPClient: &http.Client{Transport: dynamoTransport},
+			LogLevel:   aws.LogLevel(aws.LogDebugWithRequestErrors),
 		},
 	})))
 	db := dynamodbstore.New(svc, dynamodbstore.TableConfig{
