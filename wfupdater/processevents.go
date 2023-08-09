@@ -140,6 +140,7 @@ func ProcessEvents(
 			))
 		case sfn.HistoryEventTypeTaskSucceeded,
 			sfn.HistoryEventTypeActivitySucceeded,
+			"ExecutionSucceeded", // TODO: remove this and replace with a sfn.xxx once aws-sdk-go supports this event type
 			sfn.HistoryEventTypeLambdaFunctionSucceeded:
 			job.Status = models.JobStatusSucceeded
 		case sfn.HistoryEventTypeExecutionAborted:
