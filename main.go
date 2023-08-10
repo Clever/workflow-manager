@@ -29,7 +29,7 @@ import (
 	dynamodbstore "github.com/Clever/workflow-manager/store/dynamodb"
 )
 
-var dynamoMaxRetries = 0
+var dynamoMaxRetries = 4
 
 // Config contains the configuration for the workflow-manager app
 type Config struct {
