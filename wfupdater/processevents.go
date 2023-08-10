@@ -140,6 +140,7 @@ func ProcessEvents(
 			))
 		case sfn.HistoryEventTypeTaskSucceeded,
 			sfn.HistoryEventTypeActivitySucceeded,
+			sfn.HistoryEventTypeExecutionSucceeded
 			sfn.HistoryEventTypeLambdaFunctionSucceeded:
 			job.Status = models.JobStatusSucceeded
 		case sfn.HistoryEventTypeExecutionAborted:
