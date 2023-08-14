@@ -599,6 +599,15 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 		jobs = append(jobs, wfupdater.ProcessEvents(historyOutput.Events, execARN, workflow, eventIDToJob)...)
 		return true
 	}); err != nil {
+		log.ErrorD("describe-execution", logger.M{"workflow-id": workflow.ID, "error": err.Error()})
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case sfn.ErrCodeExecutionDoesNotExist:
+				// either execution hasn't started yet or this is a zombie workflow
+				// we just return with no error as there is no history to update
+				return nil
+			}
+		}
 		return err
 	}
 	workflow.Jobs = jobs
