@@ -567,6 +567,13 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 }
 
 func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflow *models.Workflow) error {
+	// Avoid the extraneous processing for executions that have already stopped.
+	// This also prevents the WM "cancelled" state from getting overwritten for workflows cancelled
+	// by the user after a failure.
+	if resources.WorkflowIsDone(workflow) {
+		return nil
+	}
+
 	// Pull in execution history to populate jobs array
 	// Each Job corresponds to a type={Task,Choice,Succeed} state, i.e. States we have currently tested and supported completely
 	// We only create a Job object if the State has been entered.
@@ -599,6 +606,15 @@ func (wm *SFNWorkflowManager) UpdateWorkflowHistory(ctx context.Context, workflo
 		jobs = append(jobs, wfupdater.ProcessEvents(historyOutput.Events, execARN, workflow, eventIDToJob)...)
 		return true
 	}); err != nil {
+		log.ErrorD("describe-execution", logger.M{"workflow-id": workflow.ID, "error": err.Error()})
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case sfn.ErrCodeExecutionDoesNotExist:
+				// either execution hasn't started yet or this is a zombie workflow
+				// we just return with no error as there is no history to update
+				return nil
+			}
+		}
 		return err
 	}
 	workflow.Jobs = jobs
