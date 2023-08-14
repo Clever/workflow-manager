@@ -431,7 +431,6 @@ func (h Handler) GetWorkflowByID(ctx context.Context, workflowID string) (*model
 		return &models.Workflow{}, err
 	}
 
-	// update history before summary so that we can preemptively exit processing once workflow is in final state
 	if err := h.manager.UpdateWorkflowHistory(ctx, &workflow); err != nil {
 		return &models.Workflow{}, err
 	}
