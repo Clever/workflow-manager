@@ -576,8 +576,8 @@ func TestUpdateWorkflowStatusJobCreated(t *testing.T) {
 			cb(&sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{jobCreatedEvent}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusRunning, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
@@ -643,8 +643,8 @@ func TestUpdateWorkflowStatusJobFailed(t *testing.T) {
 		}, nil).
 		Times(1)
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
@@ -718,8 +718,8 @@ func TestUpdateWorkflowStatusJobFailedNotDeployed(t *testing.T) {
 		}, nil).
 		Times(1)
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assert.Equal(t, models.JobStatusFailed, workflow.Jobs[0].Status)
@@ -800,8 +800,8 @@ func TestUpdateWorkflowStatusWorkflowJobSucceeded(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusSucceeded, workflow.Status)
 	assert.Equal(t, executionOutput, workflow.Output)
 	require.Len(t, workflow.Jobs, 1)
@@ -863,8 +863,8 @@ func TestUpdateWorkflowStatusJobCancelled(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
 	assert.Equal(t, "cancelled by user", workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
@@ -910,8 +910,8 @@ func TestUpdateWorkflowStatusWorkflowCancelledAfterJobSucceeded(t *testing.T) {
 			}}, true)
 		})
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusCancelled, workflow.Status)
 	assert.Equal(t, "cancelled by user", workflow.StatusReason)
 	require.Len(t, workflow.Jobs, 1)
@@ -969,9 +969,9 @@ func TestUpdateWorkflowStatusExecutionNotFoundRetry(t *testing.T) {
 	assert.Equal(t, models.WorkflowStatusQueued, workflow.Status)
 	require.Len(t, workflow.Jobs, 0)
 
+	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusSucceeded, workflow.Status)
-	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
 	assertSucceededJobData(t, workflow.Jobs[0])
@@ -1106,8 +1106,8 @@ func TestUpdateWorkflowStatusJobTimedOut(t *testing.T) {
 		}, nil).
 		Times(1)
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
@@ -1179,8 +1179,8 @@ func TestUpdateWorkflowStatusWorkflowTimedOut(t *testing.T) {
 		}, nil).
 		Times(1)
 
-	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	require.NoError(t, c.manager.UpdateWorkflowHistory(ctx, workflow))
+	require.NoError(t, c.manager.UpdateWorkflowSummary(ctx, workflow))
 	assert.Equal(t, models.WorkflowStatusFailed, workflow.Status)
 	require.Len(t, workflow.Jobs, 1)
 	assertBasicJobData(t, workflow.Jobs[0])
