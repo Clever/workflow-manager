@@ -34,7 +34,7 @@ alarms:
   parameters:
     threshold: 0.05
 - type: InternalErrorAlarm
-  severity: major
+  severity: minor
   parameters:
     threshold: 0.01
 - type: InternalErrorAlarm
