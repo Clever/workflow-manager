@@ -493,7 +493,7 @@ func (d DynamoDB) UpdateWorkflow(ctx context.Context, workflow models.Workflow) 
 			case dynamodb.ErrCodeConditionalCheckFailedException:
 				return store.NewNotFound(workflow.ID)
 			case "ValidationException":
-				if awsErr.Message() == errMessageItemTooLarge {
+				if awsErr.Message() == errMessageItemTooLarge && workflow.Jobs != nil {
 					log.WarnD("workflow-too-large", logger.M{
 						"error":     awsErr.Message(),
 						"id":        workflow.ID,
