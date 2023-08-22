@@ -17,6 +17,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v6"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
 	counter "github.com/Clever/aws-sdk-go-counter"
@@ -74,7 +75,7 @@ func main() {
 
 	dynamoTransport := tracedTransport("go-aws", "dynamodb", func(operation string, _ *http.Request) string {
 		return operation
-	})
+	}, false)
 	svc := dynamodb.New(session.Must(session.NewSessionWithOptions(session.Options{
 		// reducing MaxRetries to 2 (from 10) to avoid long backoffs when writes fail
 		Config: aws.Config{
@@ -105,7 +106,7 @@ func main() {
 	sfnsess.Handlers.Send.PushFront(counter.SessionHandler)
 	sfnTransport := tracedTransport("go-aws", "sfn", func(operation string, _ *http.Request) string {
 		return operation
-	})
+	}, false)
 	countedSFNAPI := sfn.New(sfnsess, aws.NewConfig().WithRegion(c.SFNRegion).WithHTTPClient(&http.Client{Transport: sfnTransport}))
 	cachedSFNAPI, err := sfncache.New(countedSFNAPI)
 	if err != nil {
@@ -114,7 +115,7 @@ func main() {
 
 	cwlogsTransport := tracedTransport("go-aws", "cwlogs", func(operation string, _ *http.Request) string {
 		return operation
-	})
+	}, false)
 	cwlogsapi := cloudwatchlogs.New(session.New(), aws.NewConfig().WithRegion(c.SFNRegion).WithHTTPClient(&http.Client{Transport: cwlogsTransport}))
 
 	wfmSFN := executor.NewSFNWorkflowManager(cachedSFNAPI, cwlogsapi, db, c.SFNRoleARN, c.SFNRegion, c.SFNAccountID, c.ExecutionEventsStreamARN, c.CWLogsToKinesisRoleARN)
@@ -123,7 +124,7 @@ func main() {
 		Addresses: []string{c.ESURL},
 		Transport: tracedTransport("go-elasticsearch", "elasticsearch", func(_ string, _ *http.Request) string {
 			return "elasticsearch-request"
-		}),
+		}, true),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -211,12 +212,34 @@ func logSFNCounts(sfnCounter *counter.Counter) {
 // This can be used when more detailed instrumentation is not available.
 // For example, the go-elasticsearch doesn't have instrumentation, and as of writing, aws-sdk-go doesn't.
 // aws-sdk-go-v2 may get instrumentation eventually, but v1 is unlikely to get it.
-func tracedTransport(component string, peerService string, spanNamer func(operation string, req *http.Request) string) http.RoundTripper {
-	return otelhttp.NewTransport(http.DefaultTransport,
+func tracedTransport(
+	component string,
+	peerService string,
+	spanNamer func(operation string, req *http.Request) string,
+	propagateTraceContext bool,
+) http.RoundTripper {
+	opts := []otelhttp.Option{
 		otelhttp.WithSpanNameFormatter(spanNamer),
 		otelhttp.WithSpanOptions(
 			trace.WithSpanKind(trace.SpanKindClient),
 			trace.WithAttributes(attribute.String("peer.service", peerService), attribute.String("component", component)),
 		),
+	}
+	if !propagateTraceContext {
+		opts = append(opts, otelhttp.WithPropagators(noopPropagator{}))
+	}
+	return otelhttp.NewTransport(http.DefaultTransport,
+		opts...,
 	)
 }
+
+// noopPropagator implements the propagation.TextMapPropagation interface without actually doing anything
+// This is useful because there is a bad interaction between aws-sdk-go's retries and the modifications this does
+// to outgoing requests that results in retries failing uniformly with a confusing InvalidSignatureException.
+type noopPropagator struct{}
+
+func (noopPropagator) Inject(ctx context.Context, carrier propagation.TextMapCarrier) {}
+func (noopPropagator) Extract(ctx context.Context, carrier propagation.TextMapCarrier) context.Context {
+	return ctx
+}
+func (noopPropagator) Fields() []string { return nil }
