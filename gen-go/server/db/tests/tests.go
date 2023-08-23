@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"testing"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/gen-go/server/db"
