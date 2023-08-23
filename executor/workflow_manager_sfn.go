@@ -390,15 +390,22 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	// submit an execution using input, set execution name == our workflow GUID
 	err = wm.startExecution(ctx, describeOutput.StateMachineArn, workflow.ID, input)
 	if err != nil {
-		// since we failed to start execution, remove Workflow from store
-		if delErr := wm.store.DeleteWorkflowByID(ctx, workflow.ID); delErr != nil {
-			log.ErrorD("create-workflow", logger.M{
-				"workflow-id":              workflow.ID,
-				"workflow-definition-name": workflow.WorkflowDefinition.Name,
-				"message":                  "failed to delete stray workflow",
-				"error":                    fmt.Sprintf("SFNError: %s;StoreError: %s", err, delErr),
-			})
-		}
+		go func() {
+			// We failed to start execution; remove the workflow from
+			// store. Use a new context with a sane timeout, the
+			// request context context may get canceled before we
+			// complete this operation.
+			asyncCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+			if delErr := wm.store.DeleteWorkflowByID(asyncCtx, workflow.ID); delErr != nil {
+				log.ErrorD("create-workflow", logger.M{
+					"workflow-id":              workflow.ID,
+					"workflow-definition-name": workflow.WorkflowDefinition.Name,
+					"message":                  "failed to delete stray workflow",
+					"error":                    fmt.Sprintf("sfn error: %s; store error: %s", err, delErr),
+				})
+			}
+		}()
 
 		return nil, err
 	}
