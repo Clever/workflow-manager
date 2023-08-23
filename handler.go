@@ -431,9 +431,9 @@ func (h Handler) GetWorkflowByID(ctx context.Context, workflowID string) (*model
 		return &models.Workflow{}, err
 	}
 
-	if err := h.manager.UpdateWorkflowHistory(ctx, &workflow); err != nil {
-		return &models.Workflow{}, err
-	}
+	// if err := h.manager.UpdateWorkflowHistory(ctx, &workflow); err != nil {
+	// 	return &models.Workflow{}, err
+	// }
 
 	if err := h.manager.UpdateWorkflowSummary(ctx, &workflow); err != nil {
 		return &models.Workflow{}, err
