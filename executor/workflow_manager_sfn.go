@@ -8,12 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Clever/kayvee-go/v7/logger"
-	"github.com/Clever/workflow-manager/executor/sfnconventions"
-	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/resources"
-	"github.com/Clever/workflow-manager/store"
-	"github.com/Clever/workflow-manager/wfupdater"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -23,6 +17,13 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/mohae/deepcopy"
+
+	"github.com/Clever/kayvee-go/v7/logger"
+	"github.com/Clever/workflow-manager/executor/sfnconventions"
+	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/store"
+	"github.com/Clever/workflow-manager/wfupdater"
 )
 
 const (
@@ -32,8 +33,10 @@ const (
 	jobNameField = "JobName"
 )
 
-var durationToRetryDescribeExecutions = 5 * time.Minute
-var durationToFetchHistoryPages = time.Minute
+var (
+	durationToRetryDescribeExecutions = 5 * time.Minute
+	durationToFetchHistoryPages       = time.Minute
+)
 
 var defaultSFNCLICommandTerminatedRetrier = &models.SLRetrier{
 	BackoffRate:     1.0,
@@ -360,8 +363,8 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	input string,
 	namespace string,
 	queue string,
-	tags map[string]interface{}) (*models.Workflow, error) {
-
+	tags map[string]interface{},
+) (*models.Workflow, error) {
 	describeOutput, err := wm.describeOrCreateStateMachine(ctx, wd, namespace, queue)
 	if err != nil {
 		return nil, err
@@ -383,7 +386,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 	workflow := resources.NewWorkflow(&wd, input, namespace, queue, mergedTags)
 	logger.FromContext(ctx).AddContext("workflow-id", workflow.ID)
 
-	if err := wm.store.SaveWorkflow(ctx, *workflow); err != nil {
+	if err = wm.store.SaveWorkflow(ctx, *workflow); err != nil {
 		return nil, err
 	}
 
@@ -416,7 +419,7 @@ func (wm *SFNWorkflowManager) CreateWorkflow(ctx context.Context, wd models.Work
 func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow models.Workflow, startAt, input string) (*models.Workflow, error) {
 	// don't allow resume if workflow is still active
 	if !resources.WorkflowIsDone(&ogWorkflow) {
-		return nil, fmt.Errorf("Workflow %s active: %s", ogWorkflow.ID, ogWorkflow.Status)
+		return nil, fmt.Errorf("workflow %s active: %s", ogWorkflow.ID, ogWorkflow.Status)
 	}
 
 	// modify the StateMachine with the custom StartState by making a new WorkflowDefinition (no pointer copy)
@@ -516,7 +519,8 @@ func (wm *SFNWorkflowManager) UpdateWorkflowSummary(ctx context.Context, workflo
 				log.ErrorD("execution-not-found", logger.M{
 					"workflow-id":  workflow.ID,
 					"execution-id": execARN,
-					"error":        err.Error()})
+					"error":        err.Error(),
+				})
 
 				// only fail after 5 minutes to see if this is an eventual-consistency thing
 				if time.Time(workflow.LastUpdated).Before(time.Now().Add(-durationToRetryDescribeExecutions)) {
