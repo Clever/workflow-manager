@@ -8,9 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/elastic/go-elasticsearch/v6/esapi"
+	"github.com/go-openapi/swag"
+
+	"github.com/Clever/kayvee-go/v7/logger"
 
 	"github.com/Clever/workflow-manager/executor"
 	"github.com/Clever/workflow-manager/gen-go/models"
@@ -56,7 +58,7 @@ func validateStateMachine(sm *models.SLStateMachine) error {
 				return err
 			}
 		case models.SLStateTypePass:
-			//Pass state is does not have any special restrictions or allowable fields
+			// Pass state is does not have any special restrictions or allowable fields
 		case models.SLStateTypeWait:
 			if err := validateWaitState(state); err != nil {
 				return err
@@ -425,15 +427,17 @@ func (h Handler) getWorkflowsInputToESQuery(input *models.GetWorkflowsInput) str
 }
 
 // GetWorkflowByID returns current details about a Workflow with the given workflowId
-func (h Handler) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
-	workflow, err := h.store.GetWorkflowByID(ctx, workflowID)
+func (h Handler) GetWorkflowByID(ctx context.Context, i *models.GetWorkflowByIDInput) (*models.Workflow, error) {
+	workflow, err := h.store.GetWorkflowByID(ctx, i.WorkflowID)
 	if err != nil {
 		return &models.Workflow{}, err
 	}
 
-	// if err := h.manager.UpdateWorkflowHistory(ctx, &workflow); err != nil {
-	// 	return &models.Workflow{}, err
-	// }
+	if swag.BoolValue(i.FetchHistory) {
+		if err := h.manager.UpdateWorkflowHistory(ctx, &workflow); err != nil {
+			return &models.Workflow{}, err
+		}
+	}
 
 	if err := h.manager.UpdateWorkflowSummary(ctx, &workflow); err != nil {
 		return &models.Workflow{}, err

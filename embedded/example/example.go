@@ -12,11 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Clever/workflow-manager/embedded"
-	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sfn"
+
+	"github.com/Clever/workflow-manager/embedded"
+	"github.com/Clever/workflow-manager/gen-go/models"
 )
 
 const sfnRegion = "us-east-2"
@@ -81,7 +82,7 @@ func main() {
 
 	for {
 		time.Sleep(2 * time.Second)
-		wf, err := client.GetWorkflowByID(ctx, wf.ID)
+		wf, err := client.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: wf.ID})
 		if err != nil {
 			fmt.Println("Oops, err", err)
 			break

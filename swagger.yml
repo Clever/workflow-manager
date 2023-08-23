@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.15.1
+  version: 0.16.0
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -212,6 +212,12 @@ paths:
           in: path
           type: string
           required: true
+        - name: fetchHistory
+          description: >-
+            When true, the execution history will be fetched from SFN along with the workflow summary
+          in: query
+          type: boolean
+          default: false
       responses:
         200:
           description: Workflow
