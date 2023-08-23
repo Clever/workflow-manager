@@ -101,7 +101,7 @@ func main() {
 
 func worker(ctx context.Context, cl *client.WagClient, work <-chan string) {
 	for id := range work {
-		r, err := cl.GetWorkflowByID(ctx, id)
+		r, err := cl.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: id})
 		if err != nil {
 			log.Printf("failed to fetch workflow ID = %s: %v", id, err)
 		} else if r.Status == models.WorkflowStatus(status) {

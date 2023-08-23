@@ -9,11 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Clever/workflow-manager/embedded/sfnfunction"
-	"github.com/Clever/workflow-manager/executor/sfnconventions"
-	"github.com/Clever/workflow-manager/gen-go/client"
-	"github.com/Clever/workflow-manager/gen-go/models"
-	"github.com/Clever/workflow-manager/resources"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
@@ -24,6 +19,12 @@ import (
 	"github.com/mohae/deepcopy"
 	uuid "github.com/satori/go.uuid"
 	errors "golang.org/x/xerrors"
+
+	"github.com/Clever/workflow-manager/embedded/sfnfunction"
+	"github.com/Clever/workflow-manager/executor/sfnconventions"
+	"github.com/Clever/workflow-manager/gen-go/client"
+	"github.com/Clever/workflow-manager/gen-go/models"
+	"github.com/Clever/workflow-manager/resources"
 )
 
 // Embedded ...
@@ -486,8 +487,8 @@ func (e *Embedded) CancelWorkflow(ctx context.Context, i *models.CancelWorkflowI
 }
 
 // GetWorkflowByID ...
-func (e *Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error) {
-	widParts, err := parseWorkflowID(workflowID)
+func (e *Embedded) GetWorkflowByID(ctx context.Context, i *models.GetWorkflowByIDInput) (*models.Workflow, error) {
+	widParts, err := parseWorkflowID(i.WorkflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -503,7 +504,7 @@ func (e *Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*mod
 		return nil, err
 	}
 	out, err := e.sfnAPI.DescribeExecutionWithContext(ctx, &sfn.DescribeExecutionInput{
-		ExecutionArn: aws.String(sfnconventions.ExecutionArn(e.sfnRegion, e.sfnAccountID, smName, workflowID)),
+		ExecutionArn: aws.String(sfnconventions.ExecutionArn(e.sfnRegion, e.sfnAccountID, smName, i.WorkflowID)),
 	})
 	if err != nil {
 		return nil, err
@@ -511,7 +512,7 @@ func (e *Embedded) GetWorkflowByID(ctx context.Context, workflowID string) (*mod
 	return &models.Workflow{
 		Output: aws.StringValue(out.Output),
 		WorkflowSummary: models.WorkflowSummary{
-			ID:                 workflowID,
+			ID:                 i.WorkflowID,
 			CreatedAt:          strfmt.DateTime(aws.TimeValue(out.StartDate)),
 			LastUpdated:        strfmt.DateTime(time.Now()),
 			WorkflowDefinition: wd,
