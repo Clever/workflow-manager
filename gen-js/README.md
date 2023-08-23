@@ -23,7 +23,7 @@ workflow-manager client library.
             * [.getWorkflowsIter(params, [options])](#module_workflow-manager--WorkflowManager+getWorkflowsIter) ⇒ <code>Object</code> \| <code>function</code> \| <code>function</code> \| <code>function</code> \| <code>function</code>
             * [.startWorkflow(StartWorkflowRequest, [options], [cb])](#module_workflow-manager--WorkflowManager+startWorkflow) ⇒ <code>Promise</code>
             * [.CancelWorkflow(params, [options], [cb])](#module_workflow-manager--WorkflowManager+CancelWorkflow) ⇒ <code>Promise</code>
-            * [.getWorkflowByID(workflowID, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowByID) ⇒ <code>Promise</code>
+            * [.getWorkflowByID(params, [options], [cb])](#module_workflow-manager--WorkflowManager+getWorkflowByID) ⇒ <code>Promise</code>
             * [.resumeWorkflowByID(params, [options], [cb])](#module_workflow-manager--WorkflowManager+resumeWorkflowByID) ⇒ <code>Promise</code>
             * [.resolveWorkflowByID(workflowID, [options], [cb])](#module_workflow-manager--WorkflowManager+resolveWorkflowByID) ⇒ <code>Promise</code>
         * _static_
@@ -347,7 +347,7 @@ Get the latest versions of all available WorkflowDefinitions
 
 <a name="module_workflow-manager--WorkflowManager+getWorkflowByID"></a>
 
-#### workflowManager.getWorkflowByID(workflowID, [options], [cb]) ⇒ <code>Promise</code>
+#### workflowManager.getWorkflowByID(params, [options], [cb]) ⇒ <code>Promise</code>
 **Kind**: instance method of [<code>WorkflowManager</code>](#exp_module_workflow-manager--WorkflowManager)  
 **Fulfill**: <code>Object</code>  
 **Reject**: [<code>BadRequest</code>](#module_workflow-manager--WorkflowManager.Errors.BadRequest)  
@@ -357,7 +357,9 @@ Get the latest versions of all available WorkflowDefinitions
 
 | Param | Type | Description |
 | --- | --- | --- |
-| workflowID | <code>string</code> |  |
+| params | <code>Object</code> |  |
+| params.workflowID | <code>string</code> |  |
+| [params.fetchHistory] | <code>boolean</code> | When true, the execution history will be fetched from SFN along with the workflow summary |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |

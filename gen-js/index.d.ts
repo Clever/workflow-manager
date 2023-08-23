@@ -83,7 +83,7 @@ declare class WorkflowManager {
   
   CancelWorkflow(params: models.CancelWorkflowParams, options?: RequestOptions, cb?: Callback<void>): Promise<void>
   
-  getWorkflowByID(workflowID: string, options?: RequestOptions, cb?: Callback<models.Workflow>): Promise<models.Workflow>
+  getWorkflowByID(params: models.GetWorkflowByIDParams, options?: RequestOptions, cb?: Callback<models.Workflow>): Promise<models.Workflow>
   
   resumeWorkflowByID(params: models.ResumeWorkflowByIDParams, options?: RequestOptions, cb?: Callback<models.Workflow>): Promise<models.Workflow>
   
@@ -156,6 +156,11 @@ declare namespace WorkflowManager {
     type GetStateResourceParams = {
   namespace: string;
   name: string;
+};
+    
+    type GetWorkflowByIDParams = {
+  workflowID: string;
+  fetchHistory?: boolean;
 };
     
     type GetWorkflowDefinitionByNameAndVersionParams = {

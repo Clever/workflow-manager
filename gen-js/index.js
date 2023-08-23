@@ -1912,7 +1912,9 @@ class WorkflowManager {
   }
 
   /**
-   * @param {string} workflowID
+   * @param {Object} params
+   * @param {string} params.workflowID
+   * @param {boolean} [params.fetchHistory] - When true, the execution history will be fetched from SFN along with the workflow summary
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
@@ -1924,7 +1926,7 @@ class WorkflowManager {
    * @reject {module:workflow-manager.Errors.InternalError}
    * @reject {Error}
    */
-  getWorkflowByID(workflowID, options, cb) {
+  getWorkflowByID(params, options, cb) {
     let callback = cb;
     if (!cb && typeof options === "function") {
       callback = options;
@@ -1932,10 +1934,7 @@ class WorkflowManager {
     return applyCallback(this._hystrixCommand.execute(this._getWorkflowByID, arguments), callback);
   }
 
-  _getWorkflowByID(workflowID, options, cb) {
-    const params = {};
-    params["workflowID"] = workflowID;
-
+  _getWorkflowByID(params, options, cb) {
     if (!cb && typeof options === "function") {
       options = undefined;
     }
@@ -1956,6 +1955,10 @@ class WorkflowManager {
       }
 
       const query = {};
+      if (typeof params.fetchHistory !== "undefined") {
+        query["fetchHistory"] = params.fetchHistory;
+      }
+
 
       const requestOptions = {
         method: "GET",
@@ -2285,7 +2288,7 @@ module.exports.Errors = Errors;
 
 module.exports.DefaultCircuitOptions = defaultCircuitOptions;
 
-const version = "0.15.1";
+const version = "0.16.0";
 const versionHeader = "X-Client-Version";
 module.exports.Version = version;
 module.exports.VersionHeader = versionHeader;

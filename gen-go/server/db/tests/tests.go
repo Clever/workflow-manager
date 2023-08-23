@@ -3,12 +3,15 @@ package tests
 import (
 	"context"
 	"fmt"
-	"testing"
 
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/gen-go/server/db"
 	"github.com/stretchr/testify/require"
 )
+
+func pointerToString(str string) *string {
+	return &str
+}
 
 func RunDBTests(t *testing.T, dbFactory func() db.Interface) {
 	t.Run("GetWorkflowDefinition", GetWorkflowDefinition(dbFactory(), t))

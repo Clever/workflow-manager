@@ -295,9 +295,10 @@ GET /workflows/{workflowID}
 
 #### Parameters
 
-|Type|Name|Schema|
-|---|---|---|
-|**Path**|**workflowID**  <br>*required*|string|
+|Type|Name|Description|Schema|Default|
+|---|---|---|---|---|
+|**Path**|**workflowID**  <br>*required*||string||
+|**Query**|**fetchHistory**  <br>*optional*|When true, the execution history will be fetched from SFN along with the workflow summary|boolean|`"false"`|
 
 
 #### Responses

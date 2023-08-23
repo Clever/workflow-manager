@@ -132,7 +132,7 @@ type Client interface {
 	// 404: *models.NotFound
 	// 500: *models.InternalError
 	// default: client side HTTP errors, for example: context.DeadlineExceeded.
-	GetWorkflowByID(ctx context.Context, workflowID string) (*models.Workflow, error)
+	GetWorkflowByID(ctx context.Context, i *models.GetWorkflowByIDInput) (*models.Workflow, error)
 
 	// ResumeWorkflowByID makes a POST request to /workflows/{workflowID}
 	//
