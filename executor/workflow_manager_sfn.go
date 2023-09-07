@@ -260,7 +260,14 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
 	// this effectively creates a new workflow definition in each namespace we deploy into
 	awsStateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
+
+	// we use the 'application' tag to attribute costs, so if it wasn't explicitly specified, set it to the workflow name
+	if _, ok := wd.DefaultTags["application"]; !ok {
+		wd.DefaultTags["application"] = wd.Name
+	}
+
 	tags := sfnconventions.StateMachineTags(namespace, wd.Name, wd.Version, wd.StateMachine.StartAt, toTagMap(wd.DefaultTags))
+
 	describeOutput, err := wm.sfnapi.DescribeStateMachineWithContext(ctx,
 		&sfn.DescribeStateMachineInput{
 			StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
@@ -302,13 +309,8 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	}
 	awsStateMachineDef := string(awsStateMachineDefBytes)
 
-	// we use the 'application' tag to attribute costs, so if it wasn't explicitly specified, set it to the workflow name
-	if _, ok := wd.DefaultTags["application"]; !ok {
-		wd.DefaultTags["application"] = wd.Name
-	}
 	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
-	var lc *sfn.LoggingConfiguration
-	lc = loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))
+	lc := loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))
 	// must create the log group before creating a state machine referencing the log group
 	if err := wm.createLogGroupsForLoggingConfiguration(ctx, tags, lc); err != nil {
 		return nil, err
