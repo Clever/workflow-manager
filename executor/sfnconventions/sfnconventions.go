@@ -47,6 +47,7 @@ func StateMachineNameParts(stateMachineName string) (*SMParts, error) {
 // StateMachineTags returns the tags we place on state machine resources.
 func StateMachineTags(namespace, wdName string, wdVersion int64, startAt string, defaultTags map[string]string) map[string]string {
 	tags := map[string]string{
+		"application":                  wdName,
 		"environment":                  namespace,
 		"workflow-definition-name":     wdName,
 		"workflow-definition-version":  fmt.Sprintf("%d", wdVersion),
