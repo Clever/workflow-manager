@@ -23,6 +23,7 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
 	"github.com/Clever/workflow-manager/store"
+	"github.com/Clever/workflow-manager/util"
 	"github.com/Clever/workflow-manager/wfupdater"
 )
 
@@ -158,34 +159,12 @@ func stateMachineWithDefaultRetriers(oldSM models.SLStateMachine) *models.SLStat
 	return &sm
 }
 
-func toTagMap(wdTags map[string]interface{}) map[string]string {
-	tags := map[string]string{}
-	for k, v := range wdTags {
-		vs, ok := v.(string)
-		if ok {
-			tags[k] = vs
-		}
-	}
-	return tags
-}
-
 func toCWLogGroupTags(tags map[string]string) map[string]*string {
 	cwlogsTags := map[string]*string{}
 	for k, v := range tags {
 		cwlogsTags[k] = aws.String(v)
 	}
 	return cwlogsTags
-}
-
-func toSFNTags(tags map[string]string) []*sfn.Tag {
-	sfnTags := []*sfn.Tag{}
-	for k, v := range tags {
-		sfnTags = append(sfnTags, &sfn.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		})
-	}
-	return sfnTags
 }
 
 func loggingConfiguration(logGroupARN string) *sfn.LoggingConfiguration {
@@ -260,7 +239,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	// the name must be unique. Use workflow definition name + version + namespace + queue to uniquely identify a state machine
 	// this effectively creates a new workflow definition in each namespace we deploy into
 	awsStateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)
-	tags := sfnconventions.StateMachineTags(namespace, wd.Name, wd.Version, wd.StateMachine.StartAt, toTagMap(wd.DefaultTags))
+	tags := sfnconventions.StateMachineTags(namespace, wd.Name, wd.Version, wd.StateMachine.StartAt, util.ToTagMap(wd.DefaultTags))
 	describeOutput, err := wm.sfnapi.DescribeStateMachineWithContext(ctx,
 		&sfn.DescribeStateMachineInput{
 			StateMachineArn: aws.String(sfnconventions.StateMachineArn(wm.region, wm.accountID, wd.Name, wd.Version, namespace, wd.StateMachine.StartAt)),
@@ -319,7 +298,7 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 			Definition:           aws.String(awsStateMachineDef),
 			RoleArn:              aws.String(wm.roleARN),
 			LoggingConfiguration: lc,
-			Tags:                 toSFNTags(tags),
+			Tags:                 util.ToSFNTags(tags),
 		})
 	if err != nil {
 		return nil, fmt.Errorf("CreateStateMachine error: %s", err.Error())
