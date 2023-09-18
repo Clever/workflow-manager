@@ -14,13 +14,13 @@ env:
 - KINESIS_STREAM_ARN
 - AWS_DYNAMO_REGION
 - AWS_DYNAMO_PREFIX_WORKFLOWS
-- AWS_DYNAMO_PREFIX_STATE_RESOURCES 
+- AWS_DYNAMO_PREFIX_STATE_RESOURCES
 - AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS
 - AWS_SFN_REGION
 aws:
   custom: true
 lambda:
-  Timeout: 10 # seconds
+  Timeout: 60 # seconds
   NoVPC: true # if the lambda depends on internal services, set this to false
   # MaxConcurrent: 10 # maximum concurrent lambda executions
   Events:
@@ -29,6 +29,6 @@ lambda:
       Properties:
         Stream: ${KINESIS_STREAM_ARN}
         StartingPosition: LATEST
-        BatchSize: 100
+        BatchSize: 300
 pod_config:
   group: us-west-2
