@@ -25,6 +25,7 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/client"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	"github.com/Clever/workflow-manager/resources"
+	"github.com/Clever/workflow-manager/util"
 )
 
 // Embedded ...
@@ -395,6 +396,8 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 		return nil, errors.Errorf("json marshal: %s", err.Error())
 	}
 
+	tags := sfnconventions.StateMachineTags(i.Namespace, wd.Name, wd.Version, wd.StateMachine.StartAt, util.ToTagMap(wd.DefaultTags))
+
 	// find or create the state machine in AWS
 	stateMachineName := sfnconventions.StateMachineName(wd.Name, wd.Version, i.Namespace, wd.StateMachine.StartAt)
 	stateMachineArn := sfnconventions.StateMachineArn(e.sfnRegion, e.sfnAccountID, wd.Name, wd.Version, i.Namespace, wd.StateMachine.StartAt)
@@ -408,6 +411,7 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 				Name:       aws.String(stateMachineName),
 				Definition: aws.String(string(stateMachineDefBytes)),
 				RoleArn:    aws.String(e.sfnRoleArn),
+				Tags:       util.ToSFNTags(tags),
 			}); err != nil {
 				return nil, errors.Errorf("CreateStateMachine error: %s", err.Error())
 			}
@@ -425,6 +429,12 @@ func (e *Embedded) StartWorkflow(ctx context.Context, i *models.StartWorkflowReq
 		// Control for "Executions started immediately after calling UpdateStateMachine might use the previous state machine definition and roleArn."
 		// https://docs.aws.amazon.com/step-functions/latest/dg/concepts-read-consistency.html
 		time.Sleep(5 * time.Second)
+		if _, err := e.sfnAPI.TagResource(&sfn.TagResourceInput{
+			ResourceArn: out.StateMachineArn,
+			Tags:        util.ToSFNTags(tags),
+		}); err != nil {
+			return nil, errors.Errorf("TagResource: %s", err.Error())
+		}
 	} else {
 		// if it exists, verify they're the same--if not, it's user error:
 		// state machines are immutable, user should create a workflow def with
