@@ -101,15 +101,15 @@ func GetWorkflowDefinitionsByNameAndVersion(d db.Interface, t *testing.T) func(t
 				},
 				output: getWorkflowDefinitionsByNameAndVersionOutput{
 					workflowDefinitions: []models.WorkflowDefinition{
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 1,
 						},
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 2,
 						},
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 3,
 						},
@@ -129,15 +129,15 @@ func GetWorkflowDefinitionsByNameAndVersion(d db.Interface, t *testing.T) func(t
 				},
 				output: getWorkflowDefinitionsByNameAndVersionOutput{
 					workflowDefinitions: []models.WorkflowDefinition{
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 3,
 						},
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 2,
 						},
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 1,
 						},
@@ -160,11 +160,11 @@ func GetWorkflowDefinitionsByNameAndVersion(d db.Interface, t *testing.T) func(t
 				},
 				output: getWorkflowDefinitionsByNameAndVersionOutput{
 					workflowDefinitions: []models.WorkflowDefinition{
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 2,
 						},
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 3,
 						},
@@ -188,11 +188,11 @@ func GetWorkflowDefinitionsByNameAndVersion(d db.Interface, t *testing.T) func(t
 				},
 				output: getWorkflowDefinitionsByNameAndVersionOutput{
 					workflowDefinitions: []models.WorkflowDefinition{
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 2,
 						},
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 1,
 						},
@@ -212,11 +212,11 @@ func GetWorkflowDefinitionsByNameAndVersion(d db.Interface, t *testing.T) func(t
 				},
 				output: getWorkflowDefinitionsByNameAndVersionOutput{
 					workflowDefinitions: []models.WorkflowDefinition{
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 2,
 						},
-						models.WorkflowDefinition{
+						{
 							Name:    "string1",
 							Version: 3,
 						},
