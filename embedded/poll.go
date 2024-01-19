@@ -58,33 +58,32 @@ func (e *Embedded) pollGetActivityTask(ctx context.Context, resourceName string,
 			continue
 		}
 		// short circuit at the configured limit
-		if atomic.LoadInt64(concurrentExecutions) >= e.concurrencyLimits[resourceName] {
-			continue
-		}
-		select {
-		case <-ctx.Done():
-			log.Info("getactivitytask-stop")
-		default:
-			log.TraceD("getactivitytask-start", logger.M{"activity-arn": activityArn, "worker-name": e.workerName})
-			out, err := e.sfnAPI.GetActivityTaskWithContext(ctx, &sfn.GetActivityTaskInput{
-				ActivityArn: aws.String(activityArn),
-				WorkerName:  aws.String(e.workerName),
-			})
-			if err != nil {
-				if err == context.Canceled || awsErr(err, request.CanceledErrorCode) {
-					log.Info("getactivitytask-stop")
+		if atomic.LoadInt64(concurrentExecutions) < e.concurrencyLimits[resourceName] {
+			select {
+			case <-ctx.Done():
+				log.Info("getactivitytask-stop")
+			default:
+				log.TraceD("getactivitytask-start", logger.M{"activity-arn": activityArn, "worker-name": e.workerName})
+				out, err := e.sfnAPI.GetActivityTaskWithContext(ctx, &sfn.GetActivityTaskInput{
+					ActivityArn: aws.String(activityArn),
+					WorkerName:  aws.String(e.workerName),
+				})
+				if err != nil {
+					if err == context.Canceled || awsErr(err, request.CanceledErrorCode) {
+						log.Info("getactivitytask-stop")
+						continue
+					}
+					log.ErrorD("getactivitytask-error", logger.M{"error": err.Error()})
 					continue
 				}
-				log.ErrorD("getactivitytask-error", logger.M{"error": err.Error()})
-				continue
+				if out.TaskToken == nil {
+					continue
+				}
+				input := *out.Input
+				token := *out.TaskToken
+				log.TraceD("getactivitytask", logger.M{"input": input, "token": shortToken(token)})
+				go e.concurrentlyHandleTask(ctx, concurrentExecutions, resourceName, resource, token, input)
 			}
-			if out.TaskToken == nil {
-				continue
-			}
-			input := *out.Input
-			token := *out.TaskToken
-			log.TraceD("getactivitytask", logger.M{"input": input, "token": shortToken(token)})
-			go e.concurrentlyHandleTask(ctx, concurrentExecutions, resourceName, resource, token, input)
 		}
 	}
 	return nil
