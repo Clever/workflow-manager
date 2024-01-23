@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: ~/go/src/github.com/Clever/workflow-manager
     docker:
-    - image: cimg/go:1.16-node
+    - image: cimg/go:1.21-node
     steps:
     - checkout
     - setup_remote_docker
