@@ -19,14 +19,14 @@ import (
 
 // Knobs to turn
 const (
-	// Note that we are limited by the AWS SFN API Quotas. The describe
-	// execution limit is 15/s per account per region. We need to share
+	// Note that we are limited by the AWS SFN API Quotas. The stop
+	// execution limit is 200/s per account per region. We need to share
 	// with regular application functionality.
-	// A GetWorkflowByID api call qill be queued on this interval.
-	rateLimit = 200 * time.Millisecond
+	// A CancelWorkflow api call will be queued on this interval.
+	rateLimit = 1 * time.Millisecond
 	// This is the number of workers processing the queue
 	// The queue is populated according to the rate limit
-	concurrency = 4
+	concurrency = 50
 )
 
 // API params
@@ -69,7 +69,7 @@ func main() {
 		log.Fatalf("failed to init iterator: %v", err)
 	}
 
-	workc := make(chan string, 50)
+	workc := make(chan string, 200)
 	for i := 0; i < concurrency; i++ {
 		go worker(ctx, cl, workc)
 		log.Printf("%d/%d workers started", i+1, concurrency)
