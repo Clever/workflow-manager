@@ -106,7 +106,6 @@ func worker(ctx context.Context, cl *client.WagClient, work <-chan string) {
 			log.Printf("failed to fetch workflow ID = %s: %v", id, err)
 		} else if r.WorkflowDefinition.Name == "multiverse:master" {
 			cl.CancelWorkflow(ctx, &models.CancelWorkflowInput{WorkflowID: id})
-		} else {
 			atomic.AddInt64(&successCount, 1)
 		}
 	}
