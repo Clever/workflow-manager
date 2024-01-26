@@ -32,7 +32,7 @@ const (
 // API params
 var (
 	limit          int64 = 50
-	oldestFirst          = true
+	oldestFirst          = false
 	status               = string(models.JobStatusRunning)
 	resolvedByUser       = false
 	wfName               = "multiverse:master"
@@ -100,7 +100,8 @@ func main() {
 
 func worker(ctx context.Context, cl *client.WagClient, work <-chan string) {
 	for id := range work {
-		err := cl.CancelWorkflow(ctx, &models.CancelWorkflowInput{WorkflowID: id})
+		err := cl.CancelWorkflow(ctx, &models.CancelWorkflowInput{WorkflowID: id, Reason: &models.CancelReason{Reason: "canceled by script for FLARE-1599"}})
+		log.Print("canceling workflow ", id)
 		if err != nil {
 			log.Printf("error canceling workflow %s: %v", id, err)
 			continue
