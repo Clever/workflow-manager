@@ -36,7 +36,7 @@ var (
 	oldestFirst          = true
 	status               = string(models.JobStatusQueued)
 	resolvedByUser       = false
-	wfName               = ""
+	wfName               = "multiverse:master"
 )
 
 // Progress metrics
@@ -101,12 +101,7 @@ func main() {
 
 func worker(ctx context.Context, cl *client.WagClient, work <-chan string) {
 	for id := range work {
-		r, err := cl.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: id})
-		if err != nil {
-			log.Printf("failed to fetch workflow ID = %s: %v", id, err)
-		} else if r.WorkflowDefinition.Name == "multiverse:master" {
-			cl.CancelWorkflow(ctx, &models.CancelWorkflowInput{WorkflowID: id})
-			atomic.AddInt64(&successCount, 1)
-		}
+		cl.CancelWorkflow(ctx, &models.CancelWorkflowInput{WorkflowID: id})
+		atomic.AddInt64(&successCount, 1)
 	}
 }
