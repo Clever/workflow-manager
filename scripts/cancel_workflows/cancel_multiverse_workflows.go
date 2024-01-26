@@ -13,10 +13,9 @@ import (
 	"github.com/Clever/workflow-manager/gen-go/models"
 )
 
-// This script forces hubble state to be updated when the wfm state monitoring pipeline breaks
-// and loses data. It works by fetching all workflows in a given state (usually running or queued),
-// then fetching each of those workflows individually. When workflows are fetched individually
-// the wfm API forces an update by fetching the latest execution description from AWS.
+// This script cancels all work from a specific workflow definition.
+// It works by fetching all workflows in a given state (usually running or queued),
+// then looping through and canceling each individual workflow.
 
 // Knobs to turn
 const (
@@ -34,7 +33,7 @@ const (
 var (
 	limit          int64 = 50
 	oldestFirst          = true
-	status               = string(models.JobStatusQueued)
+	status               = string(models.JobStatusRunning)
 	resolvedByUser       = false
 	wfName               = "multiverse:master"
 )
