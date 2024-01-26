@@ -101,7 +101,11 @@ func main() {
 
 func worker(ctx context.Context, cl *client.WagClient, work <-chan string) {
 	for id := range work {
-		cl.CancelWorkflow(ctx, &models.CancelWorkflowInput{WorkflowID: id})
+		err := cl.CancelWorkflow(ctx, &models.CancelWorkflowInput{WorkflowID: id})
+		if err != nil {
+			log.Printf("error canceling workflow %s: %v", id, err)
+			continue
+		}
 		atomic.AddInt64(&successCount, 1)
 	}
 }
