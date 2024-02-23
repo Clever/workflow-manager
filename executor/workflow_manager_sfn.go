@@ -438,7 +438,9 @@ func (wm *SFNWorkflowManager) RetryWorkflow(ctx context.Context, ogWorkflow mode
 
 func (wm *SFNWorkflowManager) CancelWorkflow(ctx context.Context, workflow *models.Workflow, reason string) error {
 	if workflow.Status == models.WorkflowStatusSucceeded || workflow.Status == models.WorkflowStatusFailed {
-		return fmt.Errorf("Cancellation not allowed. Workflow %s is %s", workflow.ID, workflow.Status)
+		return models.BadRequest{
+			Message: fmt.Sprintf("Cancellation not allowed. Workflow %s is %s", workflow.ID, workflow.Status),
+		}
 	}
 
 	wd := workflow.WorkflowDefinition
