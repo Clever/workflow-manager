@@ -45,24 +45,26 @@ var (
 )
 
 type cmdFlags struct {
-	apply    bool
-	workflow string
-	cmd      string
-	status   string
+	workflow     string
+	cmd          string
+	status       string
+	cancelReason string
 }
 
 var (
-	workflow = flag.String("workflow", "", "workflow name, for example multiverse:master")
-	cmd      = flag.String("cmd", "", "cmd. Can be set to \"cancel\" or \"refresh\"")
-	status   = flag.String("status", "", "status of the workflow to filter by, for example queued or running")
+	workflow     = flag.String("workflow", "", "workflow name, for example multiverse:master")
+	cmd          = flag.String("cmd", "", "cmd. Can be set to \"cancel\" or \"refresh\"")
+	cancelReason = flag.String("cancel-reason", "", "reason for canceling the workflow")
+	status       = flag.String("status", "", "status of the workflow to filter by, for example queued or running")
 )
 
 func main() {
 	flag.Parse()
 	flags := cmdFlags{
-		workflow: *workflow,
-		cmd:      *cmd,
-		status:   *status,
+		workflow:     *workflow,
+		cmd:          *cmd,
+		status:       *status,
+		cancelReason: *cancelReason,
 	}
 
 	if flags.workflow == "" || flags.cmd == "" || flags.status == "" {
@@ -71,6 +73,10 @@ func main() {
 
 	if flags.cmd != "cancel" && flags.cmd != "refresh" {
 		log.Fatal("cmd must be set to \"cancel\" or \"refresh\"")
+	}
+
+	if flags.cmd == "cancel" && flags.cancelReason == "" {
+		log.Fatal("cancel-reason must be set when cmd is set to \"cancel\"")
 	}
 
 	if flags.status != "queued" && flags.status != "running" {
@@ -104,7 +110,7 @@ func main() {
 
 	workc := make(chan string, 50)
 	for i := 0; i < concurrency; i++ {
-		go worker(ctx, cl, flags.status, flags.cmd, workc)
+		go worker(ctx, cl, flags, workc)
 		log.Printf("%d/%d workers started", i+1, concurrency)
 	}
 
@@ -136,22 +142,22 @@ func main() {
 	}
 }
 
-func worker(ctx context.Context, cl *client.WagClient, status, cmd string, work <-chan string) {
+func worker(ctx context.Context, cl *client.WagClient, flags cmdFlags, work <-chan string) {
 	for id := range work {
 		var err error
 		var r *models.Workflow
-		if cmd == "cancel" {
+		if flags.cmd == "cancel" {
 			err = cl.CancelWorkflow(ctx, &models.CancelWorkflowInput{
 				WorkflowID: id,
-				Reason:     &models.CancelReason{Reason: "canceled by script for FLARE-1599"},
+				Reason:     &models.CancelReason{Reason: flags.cancelReason},
 			})
-		} else if cmd == "refresh" {
+		} else if flags.cmd == "refresh" {
 			r, err = cl.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: id})
 		}
 
 		if err != nil {
-			log.Printf("%s(%s): %v", cmd, id, err)
-		} else if cmd == "refresh" && r.Status == models.WorkflowStatus(status) {
+			log.Printf("%s(%s): %v", flags.cmd, id, err)
+		} else if flags.cmd == "refresh" && r.Status == models.WorkflowStatus(flags.status) {
 			log.Printf("status unchanged ID = %s: %s", r.ID, r.Status)
 		} else {
 			atomic.AddInt64(&successCount, 1)
