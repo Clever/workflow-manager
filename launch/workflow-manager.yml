@@ -1,14 +1,14 @@
 env:
-- AWS_DYNAMO_REGION
-- AWS_DYNAMO_PREFIX_STATE_RESOURCES
-- AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS
-- AWS_DYNAMO_PREFIX_WORKFLOWS
-- AWS_SFN_REGION
-- AWS_SFN_ROLE_ARN
-- AWS_SFN_ACCOUNT_ID
-- ES_URL
-- AWS_SFN_EXECUTION_EVENTS_STREAM_ARN
-- AWS_IAM_CWLOGS_TO_KINESIS_ROLE_ARN
+  - AWS_DYNAMO_REGION
+  - AWS_DYNAMO_PREFIX_STATE_RESOURCES
+  - AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS
+  - AWS_DYNAMO_PREFIX_WORKFLOWS
+  - AWS_SFN_REGION
+  - AWS_SFN_ROLE_ARN
+  - AWS_SFN_ACCOUNT_ID
+  - ES_URL
+  - AWS_SFN_EXECUTION_EVENTS_STREAM_ARN
+  - AWS_IAM_CWLOGS_TO_KINESIS_ROLE_ARN
 resources:
   cpu: 0.5
   max_mem: 1.0
@@ -18,42 +18,42 @@ autoscaling:
 aws:
   custom: true
 expose:
-- name: default
-  port: 80
-  health_check:
-    type: http
-    path: /_health
+  - name: default
+    port: 80
+    health_check:
+      type: http
+      path: /_health
 shepherds:
-- taylor.sutton@clever.com
+  - taylor.sutton@clever.com
 team: eng-infra
 databases:
-- dynamodb:us-west-1:workflow-manager-prod-v3
+  - dynamodb:us-west-1:workflow-manager-prod-v3
 alarms:
-- type: InternalErrorAlarm
-  severity: major
-  parameters:
-    threshold: 0.05
-- type: InternalErrorAlarm
-  severity: minor
-  parameters:
-    threshold: 0.01
-- type: InternalErrorAlarm
-  severity: critical
-  parameters:
-    threshold: 0.10
-    evaluationPeriods: 2
+  - type: InternalErrorAlarm
+    severity: major
+    parameters:
+      threshold: 0.05
+  - type: InternalErrorAlarm
+    severity: minor
+    parameters:
+      threshold: 0.01
+  - type: InternalErrorAlarm
+    severity: critical
+    parameters:
+      threshold: 0.10
+      evaluationPeriods: 2
 pod_config:
-  group: us-west-1
+  group: us-west-2
 telemetry:
   enabled: true
   tracing:
     exporters:
-    - datadog
+      - datadog
   metrics:
     exporters:
-    - datadog
+      - datadog
 deploy_config:
   canaryInProd: false
   autoDeployEnvs:
-  - clever-dev
-  - production
+    - clever-dev
+    - production
