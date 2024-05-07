@@ -36,6 +36,8 @@ var (
 	limit          int64 = 50
 	oldestFirst          = true
 	resolvedByUser       = false
+	// We need to fetchHistory in the 'refresh' case in order to force an update
+	fetchHistory = true
 )
 
 // Progress metrics
@@ -152,7 +154,7 @@ func worker(ctx context.Context, cl *client.WagClient, flags cmdFlags, work <-ch
 				Reason:     &models.CancelReason{Reason: flags.cancelReason},
 			})
 		} else if flags.cmd == "refresh" {
-			r, err = cl.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: id})
+			r, err = cl.GetWorkflowByID(ctx, &models.GetWorkflowByIDInput{WorkflowID: id, FetchHistory: &fetchHistory})
 		}
 
 		if err != nil {
