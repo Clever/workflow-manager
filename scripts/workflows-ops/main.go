@@ -87,7 +87,7 @@ func main() {
 
 	CheckForContinue()
 
-	os.Setenv("SERVICE_WORKFLOW_MANAGER_HTTP_HOST", "production--workflow-manager--a6127c9c.int.clever.com")
+	os.Setenv("SERVICE_WORKFLOW_MANAGER_HTTP_HOST", "production--workflow-manager--8e75288e.int.clever.com")
 	os.Setenv("SERVICE_WORKFLOW_MANAGER_HTTP_PORT", "443")
 	os.Setenv("SERVICE_WORKFLOW_MANAGER_HTTP_PROTO", "https")
 	cl, err := client.NewFromDiscovery(clientconfig.WithoutTracing("workflow-manager"))
