@@ -281,13 +281,8 @@ func (wm *SFNWorkflowManager) describeOrCreateStateMachine(ctx context.Context, 
 	}
 	awsStateMachineDef := string(awsStateMachineDefBytes)
 
-	// we use the 'application' tag to attribute costs, so if it wasn't explicitly specified, set it to the workflow name
-	if _, ok := wd.DefaultTags["application"]; !ok {
-		wd.DefaultTags["application"] = wd.Name
-	}
 	log.InfoD("create-state-machine", logger.M{"definition": awsStateMachineDef, "name": awsStateMachineName})
-	var lc *sfn.LoggingConfiguration
-	lc = loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))
+	lc := loggingConfiguration(sfnconventions.LogGroupArn(wm.region, wm.accountID, awsStateMachineName))
 	// must create the log group before creating a state machine referencing the log group
 	if err := wm.createLogGroupsForLoggingConfiguration(ctx, tags, lc); err != nil {
 		return nil, err
