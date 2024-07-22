@@ -17,6 +17,9 @@ env:
 - AWS_DYNAMO_PREFIX_STATE_RESOURCES
 - AWS_DYNAMO_PREFIX_WORKFLOW_DEFINITIONS
 - AWS_SFN_REGION
+# databases:
+  # Legacy tables can't be added here but it depends on
+  # dynamodb:us-west-2:workflow-manager-prod-v3-* tables
 aws:
   custom: true
 lambda:
