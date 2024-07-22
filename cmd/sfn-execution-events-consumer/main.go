@@ -17,7 +17,6 @@ import (
 
 	_ "embed"
 
-	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -29,6 +28,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/Clever/kayvee-go/v7/logger"
 	"github.com/Clever/workflow-manager/gen-go/models"
 	dynamodbgen "github.com/Clever/workflow-manager/gen-go/server/db/dynamodb"
 	"github.com/Clever/workflow-manager/resources"
@@ -77,7 +77,7 @@ func (h Handler) handle(ctx context.Context, input events.KinesisEvent) error {
 	var merr *multierror.Error
 	for _, rec := range input.Records {
 		if err := h.handleRecord(ctx, rec); err != nil {
-			multierror.Append(merr, err)
+			merr = multierror.Append(merr, err)
 		}
 	}
 	return merr.ErrorOrNil()
@@ -109,11 +109,11 @@ func (h Handler) handleRecord(ctx context.Context, rec events.KinesisEventRecord
 	for _, evt := range d.LogEvents {
 		var historyEvent HistoryEvent
 		if err := json.Unmarshal([]byte(evt.Message), &historyEvent); err != nil {
-			multierror.Append(merr, fmt.Errorf("error decoding message as JSON stream=%q group=%q id=%q message=%q:%v", d.LogStream, d.LogGroup, evt.ID, evt.Message, err))
+			merr = multierror.Append(merr, fmt.Errorf("error decoding message as JSON stream=%q group=%q id=%q message=%q:%v", d.LogStream, d.LogGroup, evt.ID, evt.Message, err))
 			continue
 		}
 		if err := h.handleHistoryEvent(ctx, historyEvent); err != nil {
-			multierror.Append(merr, fmt.Errorf("failed to process event stream=%q group=%q id=%q:%v", d.LogStream, d.LogGroup, evt.ID, err))
+			merr = multierror.Append(merr, fmt.Errorf("failed to process event stream=%q group=%q id=%q:%v", d.LogStream, d.LogGroup, evt.ID, err))
 			continue
 		}
 	}
