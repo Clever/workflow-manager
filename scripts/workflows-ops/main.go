@@ -20,8 +20,12 @@ import (
 
 // quotas defined https://docs.aws.amazon.com/step-functions/latest/dg/limits-overview.html#service-limits-api-action-throttling-general
 const (
-	// DescribeExecution limit is 15/s per account per region. So we need to share it with regular workflow-manager operations. Which is why we opt to use 1/3 of that i.e 5/s.
-	rateLimitDescribe = 5
+	// This used to be at a cap at 5, because of a DescribeExecution limit of 15/s per account per region.
+	// But in recent times I've been able to go up to as much as 140 or so, and I think the limit wasn't even AWS-side,
+	// it was my laptop.
+	//
+	// This value is just the default, but the rate-limit flag overrides it.
+	defaultRateLimitDescribe = 38
 
 	// StopExecution limit is 200/s per account per region. Generally there are not many calls to stop execution as part of normal operations so we use 180/s to be safe.
 	rateLimitStop = 180
@@ -51,6 +55,7 @@ type cmdFlags struct {
 	cmd          string
 	status       string
 	cancelReason string
+	rateLimit    int64
 }
 
 var (
@@ -58,6 +63,7 @@ var (
 	cmd          = flag.String("cmd", "", "cmd. Can be set to \"cancel\" or \"refresh\"")
 	cancelReason = flag.String("cancel-reason", "", "reason for canceling the workflow")
 	status       = flag.String("status", "", "status of the workflow to filter by, for example queued or running")
+	rateLimit    = flag.Int64("rate-limit", defaultRateLimitDescribe, "rate limit to use for enqueuing workflows to update")
 )
 
 func main() {
@@ -67,6 +73,7 @@ func main() {
 		cmd:          *cmd,
 		status:       *status,
 		cancelReason: *cancelReason,
+		rateLimit:    *rateLimit,
 	}
 
 	if flags.workflow == "" || flags.cmd == "" || flags.status == "" {
@@ -123,7 +130,7 @@ func main() {
 		}
 	}()
 
-	rateLimit := time.Second / rateLimitDescribe
+	rateLimit := time.Second / time.Duration(flags.rateLimit)
 	if flags.cmd == "cancel" {
 		rateLimit = time.Second / rateLimitStop
 	}
@@ -136,6 +143,14 @@ func main() {
 		<-limiter
 		workc <- wf.ID
 	}
+
+	// This way to wait for the goroutines to finish is not really quite right,
+	// it should be to close the channel and use a waitgroup on the workers.
+	// But it's close enough >_>
+	for len(workc) > 0 {
+		time.Sleep(1 * time.Second)
+	}
+	time.Sleep(1 * time.Second)
 
 	if err := itr.Err(); err != nil {
 		log.Fatalf("iterator error: %v", err)
