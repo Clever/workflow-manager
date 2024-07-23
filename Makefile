@@ -43,14 +43,14 @@ build-local:
 ifeq ($(_APP_NAME),workflow-manager)
 	$(call golang-build,$(PKG),$(_APP_NAME))
 else
-	$(call golang-build,./cmd/$(_APP_NAME),$(_APP_NAME))
+	$(call golang-build,./cmd/$(APP_NAME),$(APP_NAME))
 endif
 
 run: build-local
 ifeq ($(_APP_NAME),workflow-manager)
 	TZ=UTC bin/$(_APP_NAME)
 else
-	LOCAL=true KAYVEE_LOG_LEVEL=debug bin/$(_APP_NAME)
+	LOCAL=true KAYVEE_LOG_LEVEL=debug bin/$(APP_NAME)
 endif
 
 run-docker:

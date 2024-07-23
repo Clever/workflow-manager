@@ -26,8 +26,9 @@ expose:
 shepherds:
   - taylor.sutton@clever.com
 team: eng-infra
-databases:
-  - dynamodb:us-west-1:workflow-manager-prod-v3
+# databases:
+  # Legacy tables can't be added here but it depends on
+  # dynamodb:us-west-2:workflow-manager-prod-v3-* tables
 alarms:
   - type: InternalErrorAlarm
     severity: major
