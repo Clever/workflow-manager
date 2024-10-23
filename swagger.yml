@@ -806,6 +806,12 @@ definitions:
         x-nullable: true
         type: string
         format: date-time
+      IsPresent:
+        x-nullable: true
+        type: boolean
+      IsNull:
+        x-nullable: true
+        type: boolean
       And:
         x-omitempty: true
         type: array

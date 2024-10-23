@@ -6,19 +6,19 @@ SHELL := /bin/bash
 APP_NAME ?= workflow-manager
 EXECUTABLE = $(APP_NAME)
 PKG = github.com/Clever/$(APP_NAME)
-PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /workflow-ops | grep -v /dynamodb)
+PKGS := $(shell go list ./... | grep -v /vendor | grep -v /gen-go | grep -v /workflow-ops | grep -v /dynamodb | grep -v /scripts)
 PKGS := $(PKGS) $(PKG)/gen-go/server/db/dynamodb
 APPS := $(shell [ -d "./cmd" ] && ls ./cmd/)
 
 .PHONY: all test build run dynamodb-test $(APPS) $(APP_NAME)
 
-WAG_VERSION := latest
+WAG_VERSION := v9.2.0
 
 $(eval $(call golang-version-check,1.16))
 
 all: test build
 
-test: $(PKGS) dynamodb-test
+test: $(PKGS) dynamodb-test 
 
 $(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
