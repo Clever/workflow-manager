@@ -25,6 +25,12 @@ type SLChoice struct {
 	// boolean equals
 	BooleanEquals *bool `json:"BooleanEquals,omitempty"`
 
+	// is null
+	IsNull *bool `json:"IsNull,omitempty"`
+
+	// is present
+	IsPresent *bool `json:"IsPresent,omitempty"`
+
 	// next
 	Next string `json:"Next,omitempty"`
 

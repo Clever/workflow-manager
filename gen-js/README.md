@@ -87,6 +87,7 @@ Checks if the service is healthy
 | --- | --- | --- |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.baggage] | <code>object</code> | A request specific baggage to be propagated |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -104,6 +105,7 @@ Checks if the service is healthy
 | NewStateResource |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.baggage] | <code>object</code> | A request specific baggage to be propagated |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -182,6 +184,7 @@ Get the latest versions of all available WorkflowDefinitions
 | --- | --- | --- |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.baggage] | <code>object</code> | A request specific baggage to be propagated |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -199,6 +202,7 @@ Get the latest versions of all available WorkflowDefinitions
 | NewWorkflowDefinitionRequest |  |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.baggage] | <code>object</code> | A request specific baggage to be propagated |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -322,6 +326,7 @@ Get the latest versions of all available WorkflowDefinitions
 | StartWorkflowRequest |  | Parameters for starting a workflow (workflow definition, input, and optionally namespace, queue, and tags) |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.baggage] | <code>object</code> | A request specific baggage to be propagated |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 
@@ -401,6 +406,7 @@ Get the latest versions of all available WorkflowDefinitions
 | workflowID | <code>string</code> |  |
 | [options] | <code>object</code> |  |
 | [options.timeout] | <code>number</code> | A request specific timeout |
+| [options.baggage] | <code>object</code> | A request specific baggage to be propagated |
 | [options.retryPolicy] | [<code>RetryPolicies</code>](#module_workflow-manager--WorkflowManager.RetryPolicies) | A request specific retryPolicy |
 | [cb] | <code>function</code> |  |
 

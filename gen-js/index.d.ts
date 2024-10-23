@@ -255,6 +255,8 @@ declare namespace WorkflowManager {
     type SLChoice = {
   And?: SLChoice[];
   BooleanEquals?: boolean;
+  IsNull?: boolean;
+  IsPresent?: boolean;
   Next?: string;
   Not?: SLChoice;
   NumericEquals?: number;

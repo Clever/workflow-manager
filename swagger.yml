@@ -808,10 +808,10 @@ definitions:
         format: date-time
       IsPresent:
         x-nullable: true
-        type: bool
+        type: boolean
       IsNull:
         x-nullable: true
-        type: bool
+        type: boolean
       And:
         x-omitempty: true
         type: array
