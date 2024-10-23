@@ -221,11 +221,7 @@ func (c *WagClient) doHealthCheckRequest(ctx context.Context, req *http.Request,
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -329,11 +325,7 @@ func (c *WagClient) doPostStateResourceRequest(ctx context.Context, req *http.Re
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -438,11 +430,7 @@ func (c *WagClient) doDeleteStateResourceRequest(ctx context.Context, req *http.
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -550,11 +538,7 @@ func (c *WagClient) doGetStateResourceRequest(ctx context.Context, req *http.Req
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -677,11 +661,7 @@ func (c *WagClient) doPutStateResourceRequest(ctx context.Context, req *http.Req
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -779,11 +759,7 @@ func (c *WagClient) doGetWorkflowDefinitionsRequest(ctx context.Context, req *ht
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -892,11 +868,7 @@ func (c *WagClient) doNewWorkflowDefinitionRequest(ctx context.Context, req *htt
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -1001,11 +973,7 @@ func (c *WagClient) doGetWorkflowDefinitionVersionsByNameRequest(ctx context.Con
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -1129,11 +1097,7 @@ func (c *WagClient) doUpdateWorkflowDefinitionRequest(ctx context.Context, req *
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -1246,11 +1210,7 @@ func (c *WagClient) doGetWorkflowDefinitionByNameAndVersionRequest(ctx context.C
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -1449,11 +1409,7 @@ func (c *WagClient) doGetWorkflowsRequest(ctx context.Context, req *http.Request
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -1571,11 +1527,7 @@ func (c *WagClient) doStartWorkflowRequest(ctx context.Context, req *http.Reques
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -1699,11 +1651,7 @@ func (c *WagClient) doCancelWorkflowRequest(ctx context.Context, req *http.Reque
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -1811,11 +1759,7 @@ func (c *WagClient) doGetWorkflowByIDRequest(ctx context.Context, req *http.Requ
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -1939,11 +1883,7 @@ func (c *WagClient) doResumeWorkflowByIDRequest(ctx context.Context, req *http.R
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}
@@ -2057,11 +1997,7 @@ func (c *WagClient) doResolveWorkflowByIDRequest(ctx context.Context, req *http.
 		"uri":         req.URL,
 		"status_code": retCode,
 	}
-	if err == nil && retCode > 399 && retCode < 500 {
-		logData["message"] = resp.Status
-		c.logger.Log(wcl.Warning, "client-request-finished", logData)
-	}
-	if err == nil && retCode > 499 {
+	if err == nil && retCode > 399 {
 		logData["message"] = resp.Status
 		c.logger.Log(wcl.Error, "client-request-finished", logData)
 	}

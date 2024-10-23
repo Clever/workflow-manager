@@ -36,6 +36,13 @@ type ddbWorkflowDefinition struct {
 	models.WorkflowDefinition
 }
 
+func (t WorkflowDefinitionTable) name() string {
+	if t.TableName != "" {
+		return t.TableName
+	}
+	return fmt.Sprintf("%s-workflow-definitions", t.Prefix)
+}
+
 func (t WorkflowDefinitionTable) create(ctx context.Context) error {
 	if _, err := t.DynamoDBAPI.CreateTableWithContext(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
@@ -62,9 +69,9 @@ func (t WorkflowDefinitionTable) create(ctx context.Context) error {
 			ReadCapacityUnits:  aws.Int64(t.ReadCapacityUnits),
 			WriteCapacityUnits: aws.Int64(t.WriteCapacityUnits),
 		},
-		TableName: aws.String(t.TableName),
+		TableName: aws.String(t.name()),
 	}); err != nil {
-		return fmt.Errorf("failed to create table %s: %w", t.TableName, err)
+		return err
 	}
 	return nil
 }
@@ -75,7 +82,7 @@ func (t WorkflowDefinitionTable) saveWorkflowDefinition(ctx context.Context, m m
 		return err
 	}
 	_, err = t.DynamoDBAPI.PutItemWithContext(ctx, &dynamodb.PutItemInput{
-		TableName: aws.String(t.TableName),
+		TableName: aws.String(t.name()),
 		Item:      data,
 		ExpressionAttributeNames: map[string]*string{
 			"#NAME":    aws.String("name"),
@@ -92,7 +99,7 @@ func (t WorkflowDefinitionTable) saveWorkflowDefinition(ctx context.Context, m m
 					Version: m.Version,
 				}
 			case dynamodb.ErrCodeResourceNotFoundException:
-				return fmt.Errorf("table or index not found: %s", t.TableName)
+				return fmt.Errorf("table or index not found: %s", t.name())
 			}
 		}
 		return err
@@ -110,14 +117,14 @@ func (t WorkflowDefinitionTable) getWorkflowDefinition(ctx context.Context, name
 	}
 	res, err := t.DynamoDBAPI.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		Key:            key,
-		TableName:      aws.String(t.TableName),
+		TableName:      aws.String(t.name()),
 		ConsistentRead: aws.Bool(true),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeResourceNotFoundException:
-				return nil, fmt.Errorf("table or index not found: %s", t.TableName)
+				return nil, fmt.Errorf("table or index not found: %s", t.name())
 			}
 		}
 		return nil, err
@@ -146,7 +153,7 @@ func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx cont
 		return fmt.Errorf("Hash key input.Name cannot be empty")
 	}
 	queryInput := &dynamodb.QueryInput{
-		TableName: aws.String(t.TableName),
+		TableName: aws.String(t.name()),
 		ExpressionAttributeNames: map[string]*string{
 			"#NAME": aws.String("name"),
 		},
@@ -218,7 +225,7 @@ func (t WorkflowDefinitionTable) getWorkflowDefinitionsByNameAndVersion(ctx cont
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeResourceNotFoundException:
-				return fmt.Errorf("table or index not found: %s", t.TableName)
+				return fmt.Errorf("table or index not found: %s", t.name())
 			}
 		}
 		return err
@@ -240,13 +247,13 @@ func (t WorkflowDefinitionTable) deleteWorkflowDefinition(ctx context.Context, n
 	}
 	_, err = t.DynamoDBAPI.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
 		Key:       key,
-		TableName: aws.String(t.TableName),
+		TableName: aws.String(t.name()),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeResourceNotFoundException:
-				return fmt.Errorf("table or index not found: %s", t.TableName)
+				return fmt.Errorf("table or index not found: %s", t.name())
 			}
 		}
 		return err
