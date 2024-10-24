@@ -51,8 +51,8 @@ func (e *Embedded) PollForWork(ctx context.Context) error {
 
 func (e *Embedded) pollGetActivityTask(ctx context.Context, resourceName string, resource *sfnfunction.Resource, activityArn string) error {
 	concurrentExecutions := swag.Int64(0)
-	// allow one GetActivityTask per second, max 1 at a time
-	limiter := rate.NewLimiter(rate.Every(1*time.Second), 1)
+	// limit GetActivitTask calls based on rate provided in config, default to 1 per second
+	limiter := rate.NewLimiter(rate.Every(time.Second/e.getActivityTaskPollRate), 1)
 	for ctx.Err() == nil {
 		if err := limiter.Wait(ctx); err != nil {
 			continue
@@ -63,7 +63,9 @@ func (e *Embedded) pollGetActivityTask(ctx context.Context, resourceName string,
 			case <-ctx.Done():
 				log.Info("getactivitytask-stop")
 			default:
-				log.TraceD("getactivitytask-start", logger.M{"activity-arn": activityArn, "worker-name": e.workerName})
+				if e.getActivityTaskPollRate == 1 {
+					log.TraceD("getactivitytask-start", logger.M{"activity-arn": activityArn, "worker-name": e.workerName})
+				}
 				out, err := e.sfnAPI.GetActivityTaskWithContext(ctx, &sfn.GetActivityTaskInput{
 					ActivityArn: aws.String(activityArn),
 					WorkerName:  aws.String(e.workerName),
