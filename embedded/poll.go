@@ -63,7 +63,9 @@ func (e *Embedded) pollGetActivityTask(ctx context.Context, resourceName string,
 			case <-ctx.Done():
 				log.Info("getactivitytask-stop")
 			default:
-				log.TraceD("getactivitytask-start", logger.M{"activity-arn": activityArn, "worker-name": e.workerName})
+				if e.getActivityTaskPollRate == 1 {
+					log.TraceD("getactivitytask-start", logger.M{"activity-arn": activityArn, "worker-name": e.workerName})
+				}
 				out, err := e.sfnAPI.GetActivityTaskWithContext(ctx, &sfn.GetActivityTaskInput{
 					ActivityArn: aws.String(activityArn),
 					WorkerName:  aws.String(e.workerName),
