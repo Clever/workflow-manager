@@ -51,8 +51,8 @@ func (e *Embedded) PollForWork(ctx context.Context) error {
 
 func (e *Embedded) pollGetActivityTask(ctx context.Context, resourceName string, resource *sfnfunction.Resource, activityArn string) error {
 	concurrentExecutions := swag.Int64(0)
-	// allow one GetActivityTask per second, max 1 at a time
-	limiter := rate.NewLimiter(rate.Every(1*time.Second), 1)
+	// limit GetActivitTask calls based on rate provided in config, default to 1 per second
+	limiter := rate.NewLimiter(rate.Every(time.Second/e.getActivityTaskPollRate), 1)
 	for ctx.Err() == nil {
 		if err := limiter.Wait(ctx); err != nil {
 			continue

@@ -30,16 +30,17 @@ import (
 
 // Embedded ...
 type Embedded struct {
-	environment         string
-	app                 string
-	sfnAccountID        string
-	sfnRegion           string
-	sfnRoleArn          string
-	sfnAPI              sfniface.SFNAPI
-	resources           map[string]*sfnfunction.Resource
-	concurrencyLimits   map[string]int64
-	workflowDefinitions []models.WorkflowDefinition
-	workerName          string
+	environment             string
+	app                     string
+	sfnAccountID            string
+	sfnRegion               string
+	sfnRoleArn              string
+	sfnAPI                  sfniface.SFNAPI
+	resources               map[string]*sfnfunction.Resource
+	concurrencyLimits       map[string]int64
+	getActivityTaskPollRate time.Duration
+	workflowDefinitions     []models.WorkflowDefinition
+	workerName              string
 }
 
 var _ client.Client = &Embedded{}
@@ -62,12 +63,17 @@ type Config struct {
 	// It is a global setting for all resources that defaults to 1.
 	// It is safe use to alongside PerResourceConcurrencyLimits.
 	AllResourceConcurrencyLimit *int64
-	WorkflowDefinitions         []byte
-	WorkerName                  string
+	// GetActivityTaskPollRate determines the rate in seconds
+	// the max interval at which to poll GetActivityTask per resource,
+	// defaults to 1 per second
+	GetActivityTaskPollRate *int64
+	WorkflowDefinitions     []byte
+	WorkerName              string
 }
 
 // DefaultResourceConcurrency ...
 const DefaultResourceConcurrency int64 = 1
+const DefaultGetActivityTaskPollRate int64 = 1
 
 func (c Config) validate() error {
 	if c.Environment == "" {
@@ -99,6 +105,10 @@ func New(config *Config) (*Embedded, error) {
 	wfdefs, err := parseWorkflowDefinitions(config.WorkflowDefinitions)
 	if err != nil {
 		return nil, err
+	}
+	getActivityTaskPollRate := DefaultGetActivityTaskPollRate
+	if config.GetActivityTaskPollRate != nil {
+		getActivityTaskPollRate = *config.GetActivityTaskPollRate
 	}
 	r := map[string]*sfnfunction.Resource{}
 	concurrencyLimits := make(map[string]int64)
@@ -133,16 +143,17 @@ func New(config *Config) (*Embedded, error) {
 		wn = fmt.Sprintf("%s-%s-%s", an, hn, randString(5))
 	}
 	return &Embedded{
-		environment:         config.Environment,
-		app:                 config.App,
-		sfnAccountID:        config.SFNAccountID,
-		sfnRegion:           config.SFNRegion,
-		sfnRoleArn:          config.SFNRoleArn,
-		sfnAPI:              config.SFNAPI,
-		resources:           r,
-		concurrencyLimits:   concurrencyLimits,
-		workflowDefinitions: wfdefs,
-		workerName:          wn,
+		environment:             config.Environment,
+		app:                     config.App,
+		sfnAccountID:            config.SFNAccountID,
+		sfnRegion:               config.SFNRegion,
+		sfnRoleArn:              config.SFNRoleArn,
+		sfnAPI:                  config.SFNAPI,
+		resources:               r,
+		concurrencyLimits:       concurrencyLimits,
+		workflowDefinitions:     wfdefs,
+		workerName:              wn,
+		getActivityTaskPollRate: time.Duration(getActivityTaskPollRate),
 	}, nil
 }
 
