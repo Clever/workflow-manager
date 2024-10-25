@@ -45,6 +45,9 @@ func TestDynamoDBStore(t *testing.T) {
 		if s.Future, err = dynamodbgen.New(dynamodbgen.Config{
 			DynamoDBAPI:   svc,
 			DefaultPrefix: prefix,
+			WorkflowDefinitionTable: dynamodbgen.WorkflowDefinitionTable{
+				TableName: "workflow-manager-test-WorkflowDefinition",
+			},
 		}); err != nil {
 			t.Fatal(err)
 		}

@@ -12,9 +12,9 @@ APPS := $(shell [ -d "./cmd" ] && ls ./cmd/)
 
 .PHONY: all test build run dynamodb-test $(APPS) $(APP_NAME)
 
-WAG_VERSION := v9.2.0
+WAG_VERSION := latest
 
-$(eval $(call golang-version-check,1.16))
+$(eval $(call golang-version-check,1.21))
 
 all: test build
 

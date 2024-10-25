@@ -65,6 +65,9 @@ func New(config Config) (*DB, error) {
 	if workflowDefinitionTable.WriteCapacityUnits == 0 {
 		workflowDefinitionTable.WriteCapacityUnits = config.DefaultWriteCapacityUnits
 	}
+	if workflowDefinitionTable.TableName == "" {
+		return nil, errors.New("must specify TableName for WorkflowDefinitionTable")
+	}
 
 	return &DB{
 		workflowDefinitionTable: workflowDefinitionTable,
@@ -106,10 +109,18 @@ func (d DB) DeleteWorkflowDefinition(ctx context.Context, name string, version i
 	return d.workflowDefinitionTable.deleteWorkflowDefinition(ctx, name, version)
 }
 
-func toDynamoTimeString(d strfmt.DateTime) string {
+func dateToDynamoTimeString(d strfmt.Date) string {
+	return time.Time(d).Format(time.DateOnly)
+}
+
+func datePtrToDynamoTimeString(d *strfmt.Date) string {
+	return time.Time(*d).Format(time.DateOnly)
+}
+
+func datetimeToDynamoTimeString(d strfmt.DateTime) string {
 	return time.Time(d).Format(time.RFC3339) // dynamodb attributevalue only supports RFC3339 resolution
 }
 
-func toDynamoTimeStringPtr(d *strfmt.DateTime) string {
+func datetimePtrToDynamoTimeString(d *strfmt.DateTime) string {
 	return time.Time(*d).Format(time.RFC3339) // dynamodb attributevalue only supports RFC3339 resolution
 }
