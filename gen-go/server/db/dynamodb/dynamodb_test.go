@@ -115,6 +115,9 @@ func TestDynamoDBStore(t *testing.T) {
 			DefaultPrefix:             prefix,
 			DefaultReadCapacityUnits:  10,
 			DefaultWriteCapacityUnits: 10,
+			WorkflowDefinitionTable: WorkflowDefinitionTable{
+				TableName: "automated-testing-WorkflowDefinition",
+			},
 		})
 		if err != nil {
 			t.Fatal(err)

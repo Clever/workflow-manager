@@ -134,6 +134,8 @@
 |---|---|
 |**And**  <br>*optional*|< [SLChoice](#slchoice) > array|
 |**BooleanEquals**  <br>*optional*|boolean|
+|**IsNull**  <br>*optional*|boolean|
+|**IsPresent**  <br>*optional*|boolean|
 |**Next**  <br>*optional*|string|
 |**Not**  <br>*optional*|[SLChoice](#slchoice)|
 |**NumericEquals**  <br>*optional*|integer|

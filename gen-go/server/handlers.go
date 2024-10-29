@@ -578,7 +578,7 @@ func newPutStateResourceInput(r *http.Request) (*models.PutStateResourceInput, e
 	data, err := ioutil.ReadAll(r.Body)
 
 	if len(data) > 0 {
-		input.NewStateResource = &models.NewStateResource{}
+		input.NewStateResource = new(models.NewStateResource)
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewStateResource); err != nil {
 			return nil, err
 		}
@@ -985,7 +985,7 @@ func newUpdateWorkflowDefinitionInput(r *http.Request) (*models.UpdateWorkflowDe
 	data, err := ioutil.ReadAll(r.Body)
 
 	if len(data) > 0 {
-		input.NewWorkflowDefinitionRequest = &models.NewWorkflowDefinitionRequest{}
+		input.NewWorkflowDefinitionRequest = new(models.NewWorkflowDefinitionRequest)
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.NewWorkflowDefinitionRequest); err != nil {
 			return nil, err
 		}
@@ -1538,7 +1538,7 @@ func newCancelWorkflowInput(r *http.Request) (*models.CancelWorkflowInput, error
 		return nil, errors.New("request body is required, but was empty")
 	}
 	if len(data) > 0 {
-		input.Reason = &models.CancelReason{}
+		input.Reason = new(models.CancelReason)
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Reason); err != nil {
 			return nil, err
 		}
@@ -1782,7 +1782,7 @@ func newResumeWorkflowByIDInput(r *http.Request) (*models.ResumeWorkflowByIDInpu
 		return nil, errors.New("request body is required, but was empty")
 	}
 	if len(data) > 0 {
-		input.Overrides = &models.WorkflowDefinitionOverrides{}
+		input.Overrides = new(models.WorkflowDefinitionOverrides)
 		if err := json.NewDecoder(bytes.NewReader(data)).Decode(input.Overrides); err != nil {
 			return nil, err
 		}

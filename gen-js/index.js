@@ -2,10 +2,28 @@ const async = require("async");
 const discovery = require("clever-discovery");
 const kayvee = require("kayvee");
 const request = require("request");
-const {commandFactory} = require("hystrixjs");
+const {commandFactory, circuitFactory, metricsFactory} = require("hystrixjs");
 const RollingNumberEvent = require("hystrixjs/lib/metrics/RollingNumberEvent");
 
 const { Errors } = require("./types");
+
+function parseForBaggage(entries) {
+  // Regular expression for valid characters in keys and values
+  const validChars = /^[a-zA-Z0-9!#$%&'*+`\-.^_`|~]+$/;
+  // Transform the entries object into an array of strings
+  const baggageItems = Object.entries(entries).map(([key, value]) => {
+    // Remove invalid characters from key and value
+    const validKey = key.match(validChars) ? key : encodeURIComponent(key);
+    const validValue = value.match(validChars) ? value : encodeURIComponent(value);
+
+    return `${validKey}=${validValue}`;
+  });
+
+  // Combine the array of strings into the final baggageString
+  const baggageString = baggageItems.join(',');
+
+  return baggageString;
+}
 
 /**
  * The exponential retry policy will retry five times with an exponential backoff.
@@ -80,9 +98,13 @@ function responseLog(logger, req, res, err) {
     "message": err || (res.statusMessage || ""),
     "status_code": res.statusCode || 0,
   };
-
+  
   if (err) {
-    logger.errorD("client-request-finished", logData);
+	if (logData.status_code <= 499){
+		logger.warnD("client-request-finished", logData);
+	}else{
+		logger.errorD("client-request-finished", logData);
+	}
   } else {
     logger.infoD("client-request-finished", logData);
   }
@@ -191,6 +213,11 @@ class WorkflowManager {
     }
 
     const circuitOptions = Object.assign({}, defaultCircuitOptions, options.circuit);
+    // hystrix implements a caching mechanism, we don't want this or we can't trust that clients
+    // are initialized with the values passed in. 
+    commandFactory.resetCache();
+    circuitFactory.resetCache();
+    metricsFactory.resetCache();
     this._hystrixCommand = commandFactory.getOrCreate(options.serviceName || "workflow-manager").
       errorHandler(this._hystrixCommandErrorHandler).
       circuitBreakerForceClosed(circuitOptions.forceClosed).
@@ -250,6 +277,7 @@ class WorkflowManager {
    * Checks if the service is healthy
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
+   * @param {object} [options.baggage] - A request specific baggage to be propagated
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -277,10 +305,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "healthCheck";
       headers[versionHeader] = version;
 
@@ -353,6 +403,7 @@ class WorkflowManager {
    * @param NewStateResource
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
+   * @param {object} [options.baggage] - A request specific baggage to be propagated
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -381,10 +432,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "postStateResource";
       headers[versionHeader] = version;
 
@@ -487,10 +560,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "deleteStateResource";
       headers[versionHeader] = version;
       if (!params.namespace) {
@@ -605,10 +700,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "getStateResource";
       headers[versionHeader] = version;
       if (!params.namespace) {
@@ -723,10 +840,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "putStateResource";
       headers[versionHeader] = version;
       if (!params.namespace) {
@@ -809,6 +948,7 @@ class WorkflowManager {
    * Get the latest versions of all available WorkflowDefinitions
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
+   * @param {object} [options.baggage] - A request specific baggage to be propagated
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -836,10 +976,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "getWorkflowDefinitions";
       headers[versionHeader] = version;
 
@@ -912,6 +1074,7 @@ class WorkflowManager {
    * @param NewWorkflowDefinitionRequest
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
+   * @param {object} [options.baggage] - A request specific baggage to be propagated
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -940,10 +1103,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "newWorkflowDefinition";
       headers[versionHeader] = version;
 
@@ -1046,10 +1231,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "getWorkflowDefinitionVersionsByName";
       headers[versionHeader] = version;
       if (!params.name) {
@@ -1164,10 +1371,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "updateWorkflowDefinition";
       headers[versionHeader] = version;
       if (!params.name) {
@@ -1280,10 +1509,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "getWorkflowDefinitionByNameAndVersion";
       headers[versionHeader] = version;
       if (!params.name) {
@@ -1403,10 +1654,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "getWorkflows";
       headers[versionHeader] = version;
 
@@ -1531,10 +1804,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "getWorkflows";
       headers[versionHeader] = version;
 
@@ -1686,6 +1981,7 @@ class WorkflowManager {
    * @param StartWorkflowRequest - Parameters for starting a workflow (workflow definition, input, and optionally namespace, queue, and tags)
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
+   * @param {object} [options.baggage] - A request specific baggage to be propagated
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -1715,10 +2011,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "startWorkflow";
       headers[versionHeader] = version;
 
@@ -1827,10 +2145,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "CancelWorkflow";
       headers[versionHeader] = version;
       if (!params.workflowID) {
@@ -1943,10 +2283,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "getWorkflowByID";
       headers[versionHeader] = version;
       if (!params.workflowID) {
@@ -2061,10 +2423,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "resumeWorkflowByID";
       headers[versionHeader] = version;
       if (!params.workflowID) {
@@ -2149,6 +2533,7 @@ class WorkflowManager {
    * @param {string} workflowID
    * @param {object} [options]
    * @param {number} [options.timeout] - A request specific timeout
+   * @param {object} [options.baggage] - A request specific baggage to be propagated
    * @param {module:workflow-manager.RetryPolicies} [options.retryPolicy] - A request specific retryPolicy
    * @param {function} [cb]
    * @returns {Promise}
@@ -2179,10 +2564,32 @@ class WorkflowManager {
       if (!options) {
         options = {};
       }
+  
+      const optionsBaggage = options.baggage || {}
 
       const timeout = options.timeout || this.timeout;
 
       const headers = {};
+      
+      if (headers["baggage"]) {
+        const existingBaggageItems = headers["baggage"].split(',');
+        const existingBaggage = {};
+    
+        for (const item of existingBaggageItems) {
+          const [key, value] = item.split('=');
+          existingBaggage[key] = value;
+        }
+    
+        // Merge existingBaggage and optionsBaggage. Values in optionsBaggage will overwrite those in existingBaggage.
+        const mergedBaggage = {...existingBaggage, ...optionsBaggage};
+    
+        // Convert mergedBaggage back into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(mergedBaggage);
+      } else {
+        // Convert optionsBaggage into a string using parseForBaggage
+        headers["baggage"] = parseForBaggage(optionsBaggage);
+      }
+      
       headers["Canonical-Resource"] = "resolveWorkflowByID";
       headers[versionHeader] = version;
       if (!params.workflowID) {
@@ -2288,7 +2695,7 @@ module.exports.Errors = Errors;
 
 module.exports.DefaultCircuitOptions = defaultCircuitOptions;
 
-const version = "0.16.1";
+const version = "0.16.2";
 const versionHeader = "X-Client-Version";
 module.exports.Version = version;
 module.exports.VersionHeader = versionHeader;

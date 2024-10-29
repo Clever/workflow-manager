@@ -4,7 +4,7 @@ info:
   description: Orchestrator for AWS Step Functions
   # when changing the version here, make sure to
   # re-run `make generate` to generate clients and server
-  version: 0.16.1
+  version: 0.16.2
   x-npm-package: workflow-manager
 schemes:
   - http
@@ -806,6 +806,12 @@ definitions:
         x-nullable: true
         type: string
         format: date-time
+      IsPresent:
+        x-nullable: true
+        type: boolean
+      IsNull:
+        x-nullable: true
+        type: boolean
       And:
         x-omitempty: true
         type: array
