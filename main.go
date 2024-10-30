@@ -94,7 +94,7 @@ func main() {
 		DynamoDBAPI:   svc,
 		DefaultPrefix: c.DynamoPrefixWorkflowDefinitions,
 		WorkflowDefinitionTable: dynamodbgen.WorkflowDefinitionTable{
-			Prefix: c.DynamoPrefixWorkflowDefinitions,
+			TableName: c.DynamoPrefixWorkflowDefinitions + "-workflow-definitions",
 		},
 	})
 	if err != nil {

@@ -295,7 +295,7 @@ func main() {
 		DynamoDBAPI:   svc,
 		DefaultPrefix: lc.Env.AwsDynamoPrefixWorkflowDefinitions,
 		WorkflowDefinitionTable: dynamodbgen.WorkflowDefinitionTable{
-			Prefix: lc.Env.AwsDynamoPrefixWorkflowDefinitions,
+			TableName: lc.Env.AwsDynamoPrefixWorkflowDefinitions + "-workflow-definitions",
 		},
 	})
 	if err != nil {
