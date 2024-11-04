@@ -39,6 +39,13 @@ require (
 )
 
 require (
+	github.com/gopherjs/gopherjs v1.17.2 // indirect
+	github.com/jtolds/gls v4.20.0+incompatible // indirect
+	github.com/smarty/assertions v1.15.1 // indirect
+	github.com/smartystreets/assertions v0.0.0-00010101000000-000000000000 // indirect
+)
+
+require (
 	github.com/Clever/discovery-go v1.8.1 // indirect
 	github.com/Clever/wag/logging/wagclientlogger v0.0.0-20230110184825-edb52117e67a // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
@@ -96,3 +103,5 @@ require (
 replace github.com/Clever/workflow-manager/gen-go/models => ./gen-go/models
 
 replace github.com/Clever/workflow-manager/gen-go/client => ./gen-go/client
+
+replace github.com/smartystreets/assertions => github.com/smarty/assertions v1.16.0
